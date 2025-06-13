@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from django.utils.timesince import timesince
 
-from account.models import User
+from django.contrib.auth import get_user_model
 
 from .models import Room, Message
 from .templatetags.chatextras import initials
@@ -23,7 +23,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
         # Inform user
-        if self.user.is_staff:
+        if getattr(self.user, "is_staff", False):
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -36,7 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Leave room
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-        if not self.user.is_staff:
+        if not getattr(self.user, "is_staff", False):
             await self.set_room_closed()
 
 
@@ -125,6 +125,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = Message.objects.create(body=message, sent_by=sent_by)
 
         if agent:
+            User = get_user_model()
             message.created_by = User.objects.get(pk=agent)
             message.save()
         

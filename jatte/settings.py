@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,15 +23,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-%v$gh67imza=0$i%pky!jxpk*@%t+x-w$lw5lmwbvj)+#p=r#g'
 
+# Secret key used by Supabase to sign JWTs
+SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-AUTH_USER_MODEL = 'account.User'
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/chat-admin/'
+LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 CHANNEL_LAYERS = {
@@ -49,7 +53,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'account',
+    'rest_framework',
+    'accounts',
     'chat',
     'core',
 ]

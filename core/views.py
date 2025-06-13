@@ -1,9 +1,12 @@
-from django.shortcuts import render
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
+@api_view(["GET"])
 def index(request):
-    return render(request, 'core/index.html')
+    return Response({"message": "Jatte API"})
 
 
+@api_view(["GET"])
 def about(request):
-    return render(request, 'core/about.html')
+    return Response({"about": "Jatte headless backend"})
