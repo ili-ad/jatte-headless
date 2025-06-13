@@ -1,16 +1,16 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
+from .api_views import RoomListCreateView, RoomDetailView, RoomMessageListCreateView
 
-from . import views
-
-app_name = 'chat'
-
+router = DefaultRouter()
+# Router is not used here but left for extensibility
 
 urlpatterns = [
-    path('api/create-room/<str:uuid>/', views.create_room, name='create-room'),
-    path('chat-admin/', views.admin, name='admin'),
-    path('chat-admin/add-user/', views.add_user, name='add_user'),
-    path('chat-admin/users/<uuid:uuid>/', views.user_detail, name='user_detail'),
-    path('chat-admin/users/<uuid:uuid>/edit/', views.edit_user, name='edit_user'),
-    path('chat-admin/<str:uuid>/', views.room, name='room'),
-    path('chat-admin/<str:uuid>/delete/', views.delete_room, name='delete_room'),
+    path("api/rooms/", RoomListCreateView.as_view(), name="room-list"),
+    path("api/rooms/<str:uuid>/", RoomDetailView.as_view(), name="room-detail"),
+    path(
+        "api/rooms/<str:room_uuid>/messages/",
+        RoomMessageListCreateView.as_view(),
+        name="room-messages",
+    ),
 ]
