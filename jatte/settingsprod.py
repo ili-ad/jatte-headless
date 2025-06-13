@@ -32,7 +32,7 @@ ALLOWED_HOSTS = ['jatte.com', '64.226.118.249']
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
-AUTH_USER_MODEL = 'accounts.CustomUser'
+AUTH_USER_MODEL = 'accounts_supabase.CustomUser'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
