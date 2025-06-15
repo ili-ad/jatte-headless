@@ -9,9 +9,13 @@ import type { ChatEvents } from './types';
 /* ------------------------------------------------------------------ */
 
 export class ChatClient {
-    readonly user: { id: string };
+    // `id` will be filled by connectUser; start blank
+    readonly user: { id: string | null };
     private emitter = mitt<ChatEvents>();
     /* ---------- fields Stream-UI pokes at ---------- */
+    /** Populated by connectUser, nulled by disconnectUser */
+
+
     clientID = 'local-dev';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
@@ -33,7 +37,10 @@ export class ChatClient {
     notifications!: { store: MiniStore<{ notifications: any[] }> };
 
     /* ----------------------------------------------------------- */
-    constructor(private userId: string, private jwt: string) {
+    constructor(
+        private userId: string | null = null,
+        private jwt: string | null = null,
+    ) {
         this.user = { id: userId };
 
         /* no-op stubs keep Stream-UI happy */
@@ -68,21 +75,33 @@ export class ChatClient {
     }
 
     /** Initialize the client for a given user */
-    async connectUser(user: { id: string }, token: string) {
+    /**
+     * Register a user and emit the same events Stream’s SDK does.
+     * Resolves only on successful sync.
+     */
+    async connectUser(user: { id: string }, token: string): Promise<void> {
         this.userId = user.id;
         this.jwt = token;
         (this as any).user = { id: user.id };
-        await fetch('/api/sync-user/', {
+        const res = await fetch('/api/sync-user/', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
             },
-        }).catch(() => {});
+
+        });
+        if (!res.ok) throw new Error('sync-user failed');
+        this.emit('connection.changed', { online: true });
     }
 
-    /** Minimal tear-down helper */
+    /** Tear-down helper mirroring Stream’s client.disconnectUser */
     disconnectUser() {
         this.activeChannels = {};
+        this.stateStore._set({ channels: [] });
+        delete (this as any).user;
+        this.userId = null;
+        this.jwt = null;
+        this.emit('connection.changed', { online: false });        
     }
 
     /* ---------- API that Stream-UI actually calls ---------- */
@@ -90,7 +109,7 @@ export class ChatClient {
     /** fetch list of channels for <ChannelList> */
     async queryChannels() {
         const res = await fetch('/api/rooms/', {
-            headers: { Authorization: `Bearer ${this.jwt}` },
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
 
