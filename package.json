@@ -4,5 +4,8 @@
     "frontend",
     "backend",
     "libs/*"
-  ]
+  ],
+  "devDependencies": {
+    "turbo": "^1.13.4"
+  }
 }

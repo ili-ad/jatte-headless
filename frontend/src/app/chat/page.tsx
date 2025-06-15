@@ -1,17 +1,13 @@
-// frontend/src/app/chat/page.tsx
 'use client';
-import { Chat, Channel, MessageList, MessageInput } from '@iliad/stream-ui';
-import { ChatClient } from '@/lib/stream-adapter';
 
-export default function ChatDemo() {
-  const client = new ChatClient('demo-user', 'dummy-jwt');
-  const channel = client.channel('messaging', 'demo-room');
-  return (
-    <Chat client={client as any} theme="messaging light">
-      <Channel channel={channel as any}>
-        <MessageList />
-        <MessageInput />
-      </Channel>
-    </Chat>
-  );
+import dynamic from 'next/dynamic';
+
+/**
+ * Skip SSR for the heavy chat UI – it will be
+ * loaded and rendered **only in the browser**.
+ */
+const ChatInner = dynamic(() => import('./ChatInner'), { ssr: false });
+
+export default function ChatPage() {
+  return <ChatInner />;
 }

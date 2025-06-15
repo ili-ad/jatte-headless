@@ -1,7 +1,7 @@
 import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
-import type { Message, Events } from './types';   // ⬅ add this
-
+import type { Message, ChatEvents } from './types';   // ⬅ add this
+import { ChatClient } from './ChatClient';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -13,7 +13,7 @@ export class Channel {
     readonly data: { name: string };
 
     private socket?: WebSocket;
-    private emitter = mitt<Events>();
+    private emitter = mitt<ChatEvents>();
 
     /* channel-local state object */
     private _state = {
@@ -188,20 +188,20 @@ export class Channel {
                 createDraft() { localStorage.setItem(roomKey, textStore.getSnapshot().text); },
                 discardDraft() { localStorage.removeItem(roomKey); },
 
-                pollComposer: {
-                state: new MiniStore({            // shape is all Stream-UI needs
-                    question: '', options: [] as any[],
-                }),
-                /* Stream-UI calls .reset() when you close the poll modal */
-                reset() { this.state._set({ question: '', options: [] }); },
-                },
+                // pollComposer: {
+                // state: new MiniStore({            // shape is all Stream-UI needs
+                //     question: '', options: [] as any[],
+                // }),
+                // /* Stream-UI calls .reset() when you close the poll modal */
+                // reset() { this.state._set({ question: '', options: [] }); },
+                // },
 
                 /* ----- custom-data manager (attachments of unknown kinds) -------*/
-                customDataManager: {
-                state: new MiniStore({ custom: [] as any[] }),
-                reset()   { this.state._set({ custom: [] }); },
-                addData() {/* noop for MVP */},
-                },                
+                // customDataManager: {
+                // state: new MiniStore({ custom: [] as any[] }),
+                // reset()   { this.state._set({ custom: [] }); },
+                // addData() {/* noop for MVP */},
+                // },                
                 /* ——— config flags ——— */
                 configState: new MiniStore({
                     attachments: {
@@ -232,7 +232,7 @@ export class Channel {
     constructor(
         private roomUuid: string,
         roomName: string,
-        private client: CustomChatClient,
+        private client: ChatClient,
     ) {
         this.id = roomUuid;
         this.cid = `messaging:${roomUuid}`;
