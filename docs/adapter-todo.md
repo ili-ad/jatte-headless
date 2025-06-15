@@ -16,7 +16,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **compositionIsEmpty**                       | 🔲 | 🔲 |
 | **config**                                   | 🔲 | 🔲 |
 | **configState**                              | 🔲 | 🔲 |
-| **connectUser**                              | 🔲 | 🔲 |
+| **connectUser**                              | ✅ | ✅ |
 | **connectionId**                             | 🔲 | 🔲 |
 | **contextType**                              | 🔲 | 🔲 |
 | **cooldown**                                 | 🔲 | 🔲 |
@@ -28,7 +28,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **deleteMessage**                            | 🔲 | 🔲 |
 | **deleteReaction**                           | 🔲 | 🔲 |
 | **deleted**                                  | 🔲 | 🔲 |
-| **disconnectUser**                           | 🔲 | 🔲 |
+| **disconnectUser**                           | ✅ | ✅ |
 | **disconnected**                             | 🔲 | 🔲 |
 | **dispatchEvent**                            | 🔲 | 🔲 |
 | **draft**                                    | 🔲 | 🔲 |

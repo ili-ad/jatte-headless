@@ -67,6 +67,24 @@ export class ChatClient {
         return 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     }
 
+    /** Initialize the client for a given user */
+    async connectUser(user: { id: string }, token: string) {
+        this.userId = user.id;
+        this.jwt = token;
+        (this as any).user = { id: user.id };
+        await fetch('/api/sync-user/', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }).catch(() => {});
+    }
+
+    /** Minimal tear-down helper */
+    disconnectUser() {
+        this.activeChannels = {};
+    }
+
     /* ---------- API that Stream-UI actually calls ---------- */
 
     /** fetch list of channels for <ChannelList> */
