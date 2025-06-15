@@ -1,0 +1,3 @@
+[submodule "libs/stream-ui"]
+	path = libs/stream-ui
+	url = https://github.com/GetStream/stream-chat-react
