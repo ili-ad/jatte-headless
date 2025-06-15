@@ -1,0 +1,9 @@
+# pnpm-workspace.yaml  (repo root)
+packages:
+  - 'frontend'
+  - 'backend'
+  - 'docs'
+
+  # explicit exclusion keeps pnpm from scanning the sub-module even
+  # if stream-ui someday adds a package.json
+  - '!libs/**'
