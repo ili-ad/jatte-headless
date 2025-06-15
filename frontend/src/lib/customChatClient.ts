@@ -1,14 +1,13 @@
-// frontend/src/lib/customChatClient.ts
-// ────────────────────────────────────────────────────────────────────────────
-// A *minimal* wrapper that looks “enough like” Stream Chat’s JS SDK
-// for @iliad/stream-ui to render.  Flesh out only when the UI asks for more.
-// ────────────────────────────────────────────────────────────────────────────
+// Lightweight adapter that mimics just enough of StreamChatClient
+// to satisfy @iliad/stream-ui.  Expand incrementally.
 
 import mitt from 'mitt';
 
-/* ------------------------------------------------------------------ */
-/* Types                                                               */
-/* ------------------------------------------------------------------ */
+type Events =
+  | { type: 'message.new'; message: Message }
+  | { type: 'typing.start'; user_id: string }
+  | { type: 'typing.stop'; user_id: string };
+
 interface Room {
   uuid: string;
   name?: string;
@@ -19,16 +18,11 @@ export interface Message {
   text: string;
   user_id: string;
   created_at: string;
-  // TODO: attachments, reactions…
+  // attachments, reactions, etc. (later)
 }
 
-type Events =
-  | { type: 'message.new'; message: Message }
-  | { type: 'typing.start'; user_id: string }
-  | { type: 'typing.stop'; user_id: string };
-
 /* ------------------------------------------------------------------ */
-/* Super-tiny external-store clone (React 18+ API)                     */
+/* Really tiny drop-in for Stream’s StateStore                         */
 /* ------------------------------------------------------------------ */
 class MiniStore<T> {
   private _state: T;
@@ -38,34 +32,37 @@ class MiniStore<T> {
     this._state = initial;
   }
 
-  /* “useSyncExternalStore” contract */
+  /* external-store contract */
   getSnapshot = () => this._state;
   getServerSnapshot = () => this._state;
+
   subscribe = (cb: () => void) => {
     this.listeners.add(cb);
     return () => this.listeners.delete(cb);
   };
 
-  /* helper */
-  _set(partial: Partial<T>) {
+  /* helper: mutate + notify  */
+  _set = (partial: Partial<T>) => {
     this._state = { ...this._state, ...partial };
     this.listeners.forEach((l) => l());
-  }
+  };
 }
 
 /* ------------------------------------------------------------------ */
-/* High-level client                                                   */
+/* High-level client                                                  */
 /* ------------------------------------------------------------------ */
 export class CustomChatClient {
   readonly user: { id: string };
 
-  /* fields @iliad/stream-ui pokes at */
+  /* fields the UI pokes at */
   clientID = 'local-dev';
-  activeChannels: Record<string, CustomChannel> = {};
-  mutedChannels: [] = [];
+  activeChannels: Record<string, any> = {};
+  mutedChannels: any[] = [];
   listeners: Record<string, any[]> = {};
 
   private bus = mitt();
+
+  /* UI looks for client.stateStore */
   readonly stateStore = new MiniStore({
     channels: [] as CustomChannel[],
   });
@@ -74,12 +71,25 @@ export class CustomChatClient {
     this.user = { id: userId };
   }
 
-  /* List visible rooms */
+  /* ------------  Stream-ish helpers the UI expects -------------- */
+
+  /** stream-chat-js sends a version string downstream; we just return a stub */
+  getUserAgent() {
+    return 'custom-chat-client/0.0.1 stream-chat-react-adapter';
+  }
+
+  /** basic event hub (not heavily used by the UI yet) */
+  on = this.bus.on as any;
+  off = this.bus.off as any;
+  emit = this.bus.emit.bind(this);
+
+  /* ------------  minimal API surface ---------------------------- */
+
   async queryChannels(): Promise<CustomChannel[]> {
     const res = await fetch('/api/rooms/', {
       headers: { Authorization: `Bearer ${this.jwt}` },
     });
-    const rooms: Room[] = await res.json();
+    const rooms: Room[] = res.ok ? await res.json() : [];
     const chans = rooms.map(
       (r) => new CustomChannel(r.uuid, r.name ?? r.uuid, this),
     );
@@ -87,19 +97,14 @@ export class CustomChatClient {
     return chans;
   }
 
-  /* Factory used by <Channel channel={client.channel(...)}> */
-  channel(type: 'messaging', uuid: string) {
-    return new CustomChannel(uuid, uuid, this);
+  /** used by <Channel channel={client.channel(...)}> */
+  channel(type: 'messaging', roomUuid: string) {
+    return new CustomChannel(roomUuid, roomUuid, this);
   }
-
-  /* event emitter façade */
-  on = this.bus.on as any;
-  off = this.bus.off as any;
-  emit = this.bus.emit.bind(this);
 }
 
 /* ------------------------------------------------------------------ */
-/* Per-room wrapper                                                    */
+/* Per-room channel wrapper                                           */
 /* ------------------------------------------------------------------ */
 class CustomChannel {
   private socket?: WebSocket;
@@ -109,11 +114,23 @@ class CustomChannel {
   readonly cid: string;
   readonly data: { name: string };
 
-  /* state object the UI inspects */
+  /** mutable state object Stream-UI reads */
   private _state = {
     messages: [] as Message[],
     messagePagination: { hasPrev: false, hasNext: false },
+    /* NEW → satisfy channel.state.read[] access */
+    read: {} as Record<
+      string,
+      { last_read: string; unread_messages: number; user?: { id: string } }
+    >,
   };
+
+  /** getter so UI can do `channel.state.messages` */
+  get state() {
+    return this._state;
+  }
+
+  /** UI shows spinner until true */
   initialized = false;
 
   constructor(
@@ -126,18 +143,7 @@ class CustomChannel {
     this.data = { name: roomName };
   }
 
-  /** expose state */
-  get state() {
-    return this._state;
-  }
-
-  /** merge-update local state *and* notify global store */
-  private bump(partial: Partial<typeof this._state>) {
-    this._state = { ...this._state, ...partial };
-    this.client.stateStore._set({});
-  }
-
-  /** Stream-style channel config */
+  /* ---------- Stream config flags (all enabled) ------------------ */
   getConfig() {
     return {
       typing_events: true,
@@ -147,14 +153,12 @@ class CustomChannel {
     };
   }
 
-  /* ---------------------------------------------------------------- */
-  /* Real-time connection + first page fetch                          */
-  /* ---------------------------------------------------------------- */
+  /* ---------- watch: REST seed + WS subscribe -------------------- */
   async watch() {
     if (this.socket) return;
     this.client.activeChannels[this.cid] = this;
 
-    /* seed first page so UI isn’t empty */
+    /* Seed first page so list isn’t empty */
     try {
       const res = await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
         headers: { Authorization: `Bearer ${this.client['jwt']}` },
@@ -163,51 +167,58 @@ class CustomChannel {
         const firstPage: Message[] = await res.json();
         this.bump({ messages: firstPage });
       }
-    } catch (_) {
-      /* empty channel → fine for MVP */
+    } catch {
+      /* fine – new room */
     }
     this.initialized = true;
 
-    /* WebSocket for live updates */
+    /* ----------- realtime via WS ------------ */
     this.socket = new WebSocket(
       `ws://localhost:8000/ws/${this.roomUuid}/?token=${this.client['jwt']}`,
     );
+
     this.socket.onmessage = (ev) => {
       try {
         const payload = JSON.parse(ev.data);
-
         switch (payload.type) {
           case 'message': {
             const msg = payload.data as Message;
             this.bump({ messages: [...this._state.messages, msg] });
-            this.emitter.emit('message.new', {
-              type: 'message.new',
-              message: msg,
-            });
+            this.emitter.emit('message.new', { type: 'message.new', message: msg });
             break;
           }
-
           case 'typing.start':
           case 'typing.stop':
-            this.emitter.emit(payload.type as any, {
+            this.emitter.emit(payload.type, {
               type: payload.type,
               user_id: payload.user_id,
             } as any);
             break;
         }
-      } catch (err) {
-        console.error('Bad WS payload', ev.data, err);
+      } catch {
+        console.error('Malformed WS payload', ev.data);
       }
     };
   }
 
-  /* ---------------------------------------------------------------- */
-  /* API surfaced to the UI                                           */
-  /* ---------------------------------------------------------------- */
-  on = this.emitter.on as any;
-  off = this.emitter.off as any;
+  /* ---------- Stream-style helpers the UI calls ------------------ */
 
-  /** called by <MessageInput> */
+  /** mark channel read – we just zero unread for this user */
+  async markRead() {
+    this.bump({
+      read: {
+        ...this._state.read,
+        [this.client.user.id]: {
+          last_read: new Date().toISOString(),
+          unread_messages: 0,
+        },
+      },
+    });
+  }
+
+  /* Placeholder for uploads – Stream UI calls channel.sendImage() */
+  // async sendImage(file: File) { /* TODO */ }
+
   async sendMessage({ text }: { text: string }) {
     await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
       method: 'POST',
@@ -219,5 +230,24 @@ class CustomChannel {
     });
   }
 
-  // TODO: channel.sendImage / sendFile once uploads are wired up
+  on(
+    ev: 'message.new' | 'typing.start' | 'typing.stop',
+    handler: (e: Events) => void,
+  ) {
+    // @ts-ignore – mitt types are strict
+    this.emitter.on(ev, handler);
+  }
+  off(
+    ev: 'message.new' | 'typing.start' | 'typing.stop',
+    handler: (e: Events) => void,
+  ) {
+    // @ts-ignore
+    this.emitter.off(ev, handler);
+  }
+
+  /* ---------- internal “setState” utility ------------------------ */
+  private bump(partial: Partial<typeof this._state>) {
+    this._state = { ...this._state, ...partial };
+    this.client.stateStore._set({}); // shallow nudge for React
+  }
 }
