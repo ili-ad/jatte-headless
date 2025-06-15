@@ -126,3 +126,8 @@ coverage-final.json
 *.bak
 *.tmp
 *.orig
+
+# --- node lock files we don’t use (pnpm only) ---
+package-lock.json
+npm-shrinkwrap.json
+backend/package-lock.json
