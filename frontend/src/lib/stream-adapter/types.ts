@@ -15,7 +15,13 @@ export interface Message {
 }
 
 /** Internal event-bus payloads used by CustomChannel */
-export type Events =
-  | { type: 'message.new';  message: Message }
-  | { type: 'typing.start'; user_id: string }
-  | { type: 'typing.stop';  user_id: string };
+// export type Events =
+//   | { type: 'message.new';  message: Message }
+//   | { type: 'typing.start'; user_id: string }
+//   | { type: 'typing.stop';  user_id: string };
+
+export type ChatEvents = {
+  'message.new': { type: 'message.new'; message: Message };
+  'typing.start': { type: 'typing.start'; user_id: string };
+  'typing.stop': { type: 'typing.stop'; user_id: string };
+};

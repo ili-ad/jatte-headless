@@ -1,8 +1,8 @@
 import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
-import type { Room } from './types';              // ⬅ add this
-
+import type { Room } from './types';
+import type { ChatEvents } from './types';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -10,7 +10,7 @@ import type { Room } from './types';              // ⬅ add this
 
 export class ChatClient {
     readonly user: { id: string };
-
+    private emitter = mitt<ChatEvents>();
     /* ---------- fields Stream-UI pokes at ---------- */
     clientID = 'local-dev';
     activeChannels: Record<string, any> = {};
@@ -49,9 +49,13 @@ export class ChatClient {
         };
 
         /* initialise empty notifications store                              */
+        // ChatClient.ts  – inside the constructor
         this.notifications = {
-            store: new MiniStore({ notifications: [] }),
+            store: new MiniStore({
+                notifications: [] as any[],   // 👈  cast to any[]
+            }),
         };
+
     }
 
     /* ---------- event-bus helpers ---------- */
