@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@iliad/stream-ui": "workspace:*",
+    "@iliad/stream-ui": "file:../libs/stream-ui",
     "mitt": "^3.0.1",
+    "mml-react": "0.4.7",
     "next": "15.3.3",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "stream-chat": "^9.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
