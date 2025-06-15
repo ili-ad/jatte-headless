@@ -11,6 +11,10 @@ type Events =
   | { type: 'typing.start'; user_id: string }
   | { type: 'typing.stop'; user_id: string };
 
+
+type NoopSubs     = { registerSubscriptions(): void; unregisterSubscriptions(): void };
+type ReminderSubs = NoopSubs & { initTimers(): void; clearTimers(): void };
+
 interface Room { uuid: string; name?: string }
 
 export interface Message {
@@ -46,19 +50,28 @@ export class CustomChatClient {
   private bus = mitt();
 
   // fields are initialised explicitly in ctor (safer for older compilers)
-  threads   !: { registerSubscriptions(): void };
-  polls     !: { registerSubscriptions(): void };
-  reminders !: { registerSubscriptions(): void; initTimers(): void };
+  threads   !: NoopSubs;
+  polls     !: NoopSubs;
+  reminders !: ReminderSubs;
 
   constructor(private userId: string, private jwt: string) {
     this.user = { id: userId };
 
-    /* ensure properties really exist at runtime */
-    this.threads   = { registerSubscriptions() {/* noop */} };
-    this.polls     = { registerSubscriptions() {/* noop */} };
+    /* ────────────────  ⬇ add this ⬇  ──────────────── */
+    /** Stream-UI calls these; they can be empty no-ops. */
+    this.threads = {
+      registerSubscriptions()   {/* noop */},
+      unregisterSubscriptions() {/* noop */},
+    };
+    this.polls = {
+      registerSubscriptions()   {/* noop */},
+      unregisterSubscriptions() {/* noop */},
+    };
     this.reminders = {
-      registerSubscriptions() {/* noop */},
-      initTimers() {/* noop */},
+      registerSubscriptions()   {/* noop */},
+      unregisterSubscriptions() {/* noop */},
+      initTimers()              {/* noop */},
+      clearTimers()             {/* noop */},
     };
   }
 
@@ -92,6 +105,7 @@ class CustomChannel {
   private _state = {
     messages: [] as Message[],
     messagePagination: { hasPrev: false, hasNext: false },
+    pinnedMessages: [] as Message[],    
     read: {} as Record<string,{ last_read:string; unread_messages:number; user?:{id:string} }>,
   };
   initialized = false;
