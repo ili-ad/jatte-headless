@@ -1,0 +1,128 @@
+###############################################################################
+#  💠  GLOBAL IGNORE (editors, OS, tooling)                                   #
+###############################################################################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs & debugging
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+pip-log.txt
+pytestdebug.log
+coverage.xml
+.coverage*
+*.prof
+
+###############################################################################
+#  ⚡  NODE.JS / NEXT.JS                                                       #
+###############################################################################
+# Package managers
+/node_modules/
+.pnpm-debug.log*
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Build artefacts
+/.next/
+/out/
+/build/
+/dist/
+
+# Turborepo / Turbopack
+.turbo/
+
+# Vercel
+.vercel/
+
+# env files (opt-in to commit if needed)
+.env*
+.env.*.local
+
+###############################################################################
+#  🐍  PYTHON / DJANGO                                                         #
+###############################################################################
+# Byte-code / compiled
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+
+# Virtual-envs (common names)
+.env/
+.venv/
+env/
+venv/
+.virtualenv/
+
+# Django artefacts
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Test & coverage
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+###############################################################################
+#  📝  TYPESCRIPT / TRANSPILED                                                 #
+###############################################################################
+# TS build info
+*.tsbuildinfo
+next-env.d.ts
+
+###############################################################################
+#  📦  PACKAGE LOCK FILES (uncomment if you *don’t* commit them)              #
+###############################################################################
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+###############################################################################
+#  🧪  COVERAGE / REPORTING                                                    #
+###############################################################################
+/coverage/
+coverage-final.json
+
+###############################################################################
+#  🔐  CERTS / KEYS                                                            #
+###############################################################################
+*.pem
+*.key
+*.crt
+
+###############################################################################
+#  🌎  MISC                                                                    #
+###############################################################################
+/*.swp
+*.swo
+*.bak
+*.tmp
+*.orig

@@ -1,0 +1,349 @@
+import mitt from 'mitt';
+import { MiniStore } from './MiniStore';
+import type { Message, Events } from './types';   // ⬅ add this
+
+
+/* ──────────────────────────────────────────────────────────────── */
+/*  CustomChannel  –  minimal Stream-Chat look-alike               */
+/* ──────────────────────────────────────────────────────────────── */
+
+export class Channel {
+    readonly id: string;
+    readonly cid: string;
+    readonly data: { name: string };
+
+    private socket?: WebSocket;
+    private emitter = mitt<Events>();
+
+    /* channel-local state object */
+    private _state = {
+        messages: [] as Message[],
+        latestMessages: [] as Message[],
+        messagePagination: { hasPrev: false, hasNext: false },
+        pinnedMessages: [] as Message[],
+
+        read: {} as Record<
+            string,
+            {
+                last_read: string;
+                last_read_message_id?: string;
+                unread_messages: number;
+                user?: { id: string };
+            }
+        >,
+
+        /* stub so <MessageInput> works */
+        /* stub so <MessageInput> works */
+        /* ──────────────── messageComposer shim ──────────────── */
+        messageComposer: (() => {
+            const channelRef = this;                         // capture parent
+            const roomKey = `draft:${channelRef.cid}`;
+
+            /* load any previously‑saved draft */
+            const loadDraft = () => {
+                try { return localStorage.getItem(roomKey) ?? ''; }
+                catch { return ''; }
+            };
+
+            /* tiny reactive store for the text composer */
+            const textStore = new MiniStore({
+                text: loadDraft(),
+                selection: { start: 0, end: 0 },
+                suggestions: {
+                    searchSource: { state: new MiniStore({ isLoadingItems: false }) },
+                },
+            });
+
+            return {
+                contextType: 'message' as const,
+                tag: 'root',
+
+                /* ——— attachment manager stub ——— */
+                attachmentManager: {
+                    state: new MiniStore({ attachments: [] as any[] }),
+                    availableUploadSlots: 10,
+                    addFiles: (_: File[]) => { },
+                    removeAttachment: (_: string) => { },
+                    replaceAttachment: (_o: any, _n: any) => { },
+                },
+
+                /* ——— composer‑level stores ——— */
+                state: new MiniStore({ quotedMessage: undefined as any }),
+                linkPreviewsManager: {
+                    state: new MiniStore({ previews: [] as any[] }),
+                    add: (_: string) => { },
+                    remove: (_: string) => { },
+                    clear: () => { },
+                },
+                pollComposer: {
+                state: new MiniStore({       // ✅ has .state.getLatestValue()
+                    poll: undefined as any,    // nothing yet
+                }),
+                /* helpers the UI *might* call later – leave as no-ops */
+                create          : () => {},  // “add poll” button
+                remove          : () => {},
+                reset           : () => {},
+                },
+
+                customDataManager: {
+                state: new MiniStore({
+                    customData: {} as Record<string, unknown>,
+                }),
+                set   : (_k: string, _v: unknown) => {},
+                clear : () => {},
+                },
+
+                /* ------------- text‑composer impl ------------------- */
+                textComposer: {
+                    state: textStore,
+
+                    /* update helpers React calls */
+                    setText(text: string) { textStore._set({ text }); },
+                    setSelection(sel: { start: number; end: number }) { textStore._set({ selection: sel }); },
+                    clear() { textStore._set({ text: '', selection: { start: 0, end: 0 } }); },
+
+                    handleChange({ text, selection }: { text: string; selection: { start: number; end: number } }) {
+                        textStore._set({ text, selection });
+                    },
+                    handleKeyEvent(evt: KeyboardEvent) {
+                        if (evt.key === 'Enter' && !evt.shiftKey) {
+                            evt.preventDefault();
+                            this.submit();
+                        }
+                    },
+
+                    /** ⇢ ACTUAL send logic */
+                    async submit() {
+                        const draft = textStore.getSnapshot().text.trim();
+                        if (!draft) return;
+
+                        /* 🔸 optimistic echo so the list updates immediately */
+                        const localMsg: Message = {
+                            id: `local-${Date.now()}`,
+                            text: draft,
+                            user_id: channelRef.client.user.id,
+                            created_at: new Date().toISOString(),
+                        };
+                        channelRef.bump({
+                            messages: [...channelRef.state.messages, localMsg],
+                            latestMessages: [...channelRef.state.latestMessages.slice(-49), localMsg],
+                        });
+                        channelRef.emitter.emit('message.new', { type: 'message.new', message: localMsg });
+
+                        /* 🔸 fire the real network request (no await needed for UX) */
+                        channelRef.sendMessage({ text: draft })
+                            .catch(console.error);
+
+                        /* clear draft + saved localStorage copy */
+                        this.clear();
+                        localStorage.removeItem(roomKey);
+                    },
+                },  /* ← end of textComposer */
+
+
+                /* -----  place INSIDE  messageComposer: { … }  ----- */
+
+                /* 1️⃣  Is there anything to send? */
+                get compositionIsEmpty() {
+                    return this.textComposer.state.getSnapshot().text.trim() === '';
+                },
+
+                /* 2️⃣  Build the composition object that <MessageInput> expects */
+                async compose() {
+                    if (this.compositionIsEmpty) return undefined;
+
+                    const text = this.textComposer.state.getSnapshot().text.trim();
+                    const now = new Date().toISOString();
+                    const localMessage: Message = {
+                        id: `local-${Date.now()}`,
+                        text,
+                        user_id: channelRef.client.user.id,
+                        created_at: now,
+                    };
+
+                    /* sendOptions can stay empty for MVP */
+                    return { localMessage, message: localMessage, sendOptions: {} };
+                },
+
+                /* 3️⃣  Called by useSubmitHandler (send-button / Enter) */
+                async sendMessage(
+                    _localMessage: Message,
+                    message: Message,
+                    _sendOptions: any,
+                ) {
+                    /* optimistic echo already done in textComposer.submit() */
+                    await channelRef.sendMessage({ text: message.text });
+                },
+
+
+
+
+                /* ------------- expose submit for <MessageInput> ------ */
+                submit() {        // <── NEW line
+                    this.textComposer.submit();
+                },
+
+                /* ——— subscriptions & drafts ——— */
+                registerSubscriptions() { return () => { }; },
+                createDraft() { localStorage.setItem(roomKey, textStore.getSnapshot().text); },
+                discardDraft() { localStorage.removeItem(roomKey); },
+
+                pollComposer: {
+                state: new MiniStore({            // shape is all Stream-UI needs
+                    question: '', options: [] as any[],
+                }),
+                /* Stream-UI calls .reset() when you close the poll modal */
+                reset() { this.state._set({ question: '', options: [] }); },
+                },
+
+                /* ----- custom-data manager (attachments of unknown kinds) -------*/
+                customDataManager: {
+                state: new MiniStore({ custom: [] as any[] }),
+                reset()   { this.state._set({ custom: [] }); },
+                addData() {/* noop for MVP */},
+                },                
+                /* ——— config flags ——— */
+                configState: new MiniStore({
+                    attachments: {
+                        acceptedFiles: [] as File[],
+                        maxNumberOfFilesPerMessage: 10,
+                    },
+                    text: { enabled: true },
+                    multipleUploads: true,
+                    isUploadEnabled: true,
+                }),
+
+                /* ——— simple passthrough helpers ——— */
+                getInputValue() { return textStore.getSnapshot().text; },
+                setInputValue(v: string) { textStore._set({ text: v }); },
+                reset() { this.textComposer.clear(); },
+            };
+        })(),   // end of IIFE
+    };         // ←———————— END of _state object
+
+    /** 🔹 expose the same object on the channel itself */
+    readonly messageComposer = this._state.messageComposer;
+
+    /** Stream-UI pulls from here via `useStateStore` */
+    readonly stateStore = new MiniStore(this._state);
+
+    initialized = false;
+
+    constructor(
+        private roomUuid: string,
+        roomName: string,
+        private client: CustomChatClient,
+    ) {
+        this.id = roomUuid;
+        this.cid = `messaging:${roomUuid}`;
+        this.data = { name: roomName };
+    }
+
+    /* ─── getters Stream-UI expects ─── */
+    get state() { return this._state; }
+    getConfig() { return { typing_events: true, read_events: true, reactions: true, uploads: true }; }
+
+    countUnread() {
+        const me = this._state.read[this.client.user.id];
+        return me ? me.unread_messages : 0;
+    }
+    lastRead() {
+        const me = this._state.read[this.client.user.id];
+        return me ? new Date(me.last_read) : undefined;
+    }
+
+    /* ─── main lifecycle ─── */
+    async watch() {
+        if (this.socket) return;
+        this.client.activeChannels[this.cid] = this;
+
+        /* initial history + read row */
+        try {
+            const res = await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (res.ok) {
+                const first: Message[] = await res.json();
+                const me = this.client.user.id;
+                this.bump({
+                    messages: first,
+                    latestMessages: first,                   // 🔹 keep mirror
+                    read: {
+                        [me]: {
+                            last_read: new Date().toISOString(),
+                            last_read_message_id: first.at(-1)?.id,
+                            unread_messages: 0
+                        }
+                    },
+                });
+            }
+
+        } catch {/* fine for MVP */ }
+
+        this.initialized = true;
+
+        /* web-socket for live updates */
+        this.socket = new WebSocket(
+            `ws://localhost:8000/ws/${this.roomUuid}/?token=${this.client['jwt']}`,
+        );
+        this.socket.onmessage = (ev) => {
+            try {
+                const p = JSON.parse(ev.data);
+                switch (p.type) {
+                    case 'message': {
+                        const msg = p.data as Message;
+                        this.bump({
+                            messages: [...this._state.messages, msg],
+                            latestMessages: [...this._state.latestMessages.slice(-49), msg], // keep last 50
+                        });
+                        this.emitter.emit('message.new', { type: 'message.new', message: msg });
+                        break;
+                    }
+                    case 'typing.start':
+                    case 'typing.stop':
+                        this.emitter.emit(p.type, { type: p.type, user_id: p.user_id } as any);
+                        break;
+                }
+            } catch { console.error('bad WS', ev.data); }
+        };
+    }
+
+    async markRead() {
+        const me = this.client.user.id;
+        const lastId = this._state.latestMessages.at(-1)?.id;
+        this.bump({
+            read: {
+                ...this._state.read,
+                [me]: {
+                    last_read: new Date().toISOString(),
+                    last_read_message_id: lastId,
+                    unread_messages: 0,
+                },
+            },
+        });
+    }
+
+
+    async sendMessage({ text }: { text: string }) {
+        await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.client['jwt']}`,
+            },
+            body: JSON.stringify({ text }),
+        });
+    }
+
+    /* event helpers */
+    on = this.emitter.on as any;
+    off = this.emitter.off as any;
+
+    /* internal: mutate + notify React */
+    /* tiny helper that mutates state *and* notifies both stores */
+    private bump(patch: Partial<typeof this._state>) {
+        this._state = { ...this._state, ...patch };
+        this.stateStore._set(patch);     // ← keep channel store current
+        this.client.stateStore._set({}); // ← nudge parent Chat to re-render
+    }
+}
