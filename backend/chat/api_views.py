@@ -92,5 +92,16 @@ class RoomLastReadView(APIView):
     def get(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
         state = ReadState.objects.filter(user=request.user, room=room).first()
-        last_read = state.last_read if state else None
+        last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
+
+
+class MessageDetailView(APIView):
+    """Retrieve or delete a single message."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        msg.delete()
+        return Response(status=204)
