@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.authentication import SupabaseJWTAuthentication
-from accounts.models import UserProfile
+from accounts_supabase.models import UserProfile
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
