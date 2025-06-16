@@ -3,10 +3,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag
+
+from urllib.parse import urlparse
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute
+
 from .serializers import (
     RoomSerializer,
     MessageSerializer,
@@ -308,6 +312,22 @@ class RoomCooldownView(APIView):
         return Response({"cooldown": 0})
 
 
+class RoomMembersView(APIView):
+    """Return list of members for the given room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        names = set(room.messages.values_list("sent_by", flat=True))
+        if room.client:
+            names.add(room.client)
+        if room.agent:
+            names.add(room.agent.username)
+        return Response([{"id": name} for name in sorted(names)])
+
+
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
     authentication_classes = [SupabaseJWTAuthentication]
@@ -327,4 +347,61 @@ class NotificationListView(APIView):
         notes = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notes, many=True)
         return Response(serializer.data)
+
+
+class MuteStatusView(APIView):
+    """Return whether the current user muted the given user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, target_username):
+        target = get_object_or_404(get_user_model(), username=target_username)
+        muted = UserMute.objects.filter(user=request.user, target=target).exists()
+        return Response({"muted": muted})
+
+      
+class LinkPreviewView(APIView):
+    """Return basic metadata for a URL."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        url = request.data.get("url", "")
+        if not url:
+            return Response({"error": "url required"}, status=400)
+        parsed = urlparse(url)
+        title = parsed.netloc or url
+        return Response({"url": url, "title": title})
+
+      
+class RoomHideView(APIView):
+    """Mark a room as hidden for the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        data = room.data or {}
+        data["hidden"] = True
+        room.data = data
+        room.save(update_fields=["data"])
+        return Response({"status": "ok"})
+
+
+class RoomShowView(APIView):
+    """Unhide a room previously hidden."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        data = room.data or {}
+        data["hidden"] = False
+        room.data = data
+        room.save(update_fields=["data"])
+        return Response({"status": "ok"})
+
 
