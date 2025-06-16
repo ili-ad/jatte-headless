@@ -2,6 +2,7 @@
 
 /** DTO returned by `GET /api/rooms/` */
 export interface Room {
+  id: number;
   uuid: string;
   name?: string;
   data?: Record<string, unknown>;

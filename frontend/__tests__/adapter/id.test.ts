@@ -13,10 +13,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('channel data includes extra server fields', async () => {
-  const rooms = [
-    { id: 1, uuid: 'r1', name: 'Room 1', data: { topic: 'x' } },
-  ];
+test('channel id reflects server id', async () => {
+  const rooms = [{ id: 1, uuid: 'r1', name: 'Room 1' }];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => rooms });
 
   const client = new ChatClient('u1', 'jwt1');
@@ -25,5 +23,5 @@ test('channel data includes extra server fields', async () => {
   expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
     headers: { Authorization: 'Bearer jwt1' },
   });
-  expect(channel.data).toEqual({ name: 'Room 1', topic: 'x' });
+  expect(channel.id).toBe(1);
 });
