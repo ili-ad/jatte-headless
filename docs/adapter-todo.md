@@ -70,7 +70,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **polls**                                    | 🔲 | 🔲 |
 | **query**                                    | 🔲 | 🔲 |
 | **queryChannels**                            | ✅ | ✅ |
-| **queryReactions**                           | 🔲 | 🔲 |
+| **queryReactions**                           | ✅ | ✅ |
 | **queryUsers**                               | ✅ | ✅ |
 | **read**                                     | 🔲 | 🔲 |
 | **recoverStateOnReconnect**                  | 🔲 | 🔲 |
