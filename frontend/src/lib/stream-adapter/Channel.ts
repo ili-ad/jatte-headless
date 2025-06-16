@@ -425,11 +425,12 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('deleteMessage failed');
-
+        const updated = await res.json() as Message;
         this.bump({
-            messages: this._state.messages.filter(m => m.id !== messageId),
-            latestMessages: this._state.latestMessages.filter(m => m.id !== messageId),
+            messages: this._state.messages.map(m => m.id === messageId ? updated : m),
+            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? updated : m),
         });
+        return updated;
     }
 
     /** Send a reaction to a message */
