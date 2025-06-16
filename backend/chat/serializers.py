@@ -4,8 +4,15 @@ from .models import Room, Message
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ["id", "body", "sent_by", "created_at", "created_by"]
-        read_only_fields = ["id", "created_at", "created_by"]
+        fields = [
+            "id",
+            "body",
+            "sent_by",
+            "created_at",
+            "created_by",
+            "reply_to",
+        ]
+        read_only_fields = ["id", "created_at", "created_by", "reply_to"]
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)

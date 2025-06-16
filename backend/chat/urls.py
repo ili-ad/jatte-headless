@@ -10,6 +10,7 @@ from .api_views import (
     RoomLastReadView,
     RoomConfigView,
     MessageDetailView,
+    MessageRepliesView,
     RoomArchiveView,
     RoomUnarchiveView,
 )
@@ -64,5 +65,10 @@ urlpatterns = [
         "api/messages/<int:message_id>/",
         MessageDetailView.as_view(),
         name="message-detail",
+    ),
+    path(
+        "api/messages/<int:message_id>/replies/",
+        MessageRepliesView.as_view(),
+        name="message-replies",
     ),
 ]
