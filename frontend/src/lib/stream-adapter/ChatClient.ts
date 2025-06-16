@@ -26,6 +26,8 @@ export class ChatClient {
     connectionId: string | null = null;
     /** Whether the client is currently disconnected */
     disconnected = true;
+    /** Whether the client finished initialization */
+    initialized = false;
 
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
@@ -174,6 +176,7 @@ export class ChatClient {
         const body = await res.json().catch(() => null);
         if (body) this._user = body;
         this.connectionId = crypto.randomUUID();
+        this.initialized = true;
         this.disconnected = false;
         this.emit('connection.changed', { online: true });
     }
@@ -195,6 +198,7 @@ export class ChatClient {
         this.userId = null;
         this.jwt = null;
         this.connectionId = null;
+        this.initialized = false;
         this.disconnected = true;
         this.emit('connection.changed', { online: false });
     }
