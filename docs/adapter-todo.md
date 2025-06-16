@@ -40,7 +40,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **getClient**                                | 🔲 | 🔲 |
 | **getConfig**                                | 🔲 | 🔲 |
 | **getReplies**                               | 🔲 | 🔲 |
-| **getUserAgent**                             | 🔲 | 🔲 |
+| **getUserAgent**                             | ✅ | 🔲 |
 | **hasSendableData**                          | 🔲 | 🔲 |
 | **hidden**                                   | 🔲 | 🔲 |
 | **id**                                       | 🔲 | 🔲 |
