@@ -9,7 +9,8 @@ import { API, EVENTS } from './constants';
 /* ──────────────────────────────────────────────────────────────── */
 
 export class Channel {
-    readonly id: string;
+    readonly id: number;
+    readonly uuid: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
@@ -32,13 +33,14 @@ export class Channel {
                 user?: { id: string };
             }
         >,
+        members: {} as Record<string, { user: { id: string } }>,
 
         /* stub so <MessageInput> works */
         /* stub so <MessageInput> works */
         /* ──────────────── messageComposer shim ──────────────── */
         messageComposer: (() => {
             const channelRef = this;                         // capture parent
-            const getRoomKey = () => `draft:${channelRef.roomUuid}`;
+            const getRoomKey = () => `draft:${channelRef.uuid}`;
 
             /* load any previously‑saved draft */
             const loadDraft = () => {
@@ -93,12 +95,34 @@ export class Channel {
                 /* ——— composer‑level stores ——— */
                 state: new MiniStore({ quotedMessage: undefined as any }),
                 editingAuditState,
-                linkPreviewsManager: {
-                    state: new MiniStore({ previews: [] as any[] }),
-                    add: (_: string) => { },
-                    remove: (_: string) => { },
-                    clear: () => { },
-                },
+                linkPreviewsManager: (() => {
+                    const store = new MiniStore({ previews: [] as any[] });
+                    return {
+                        state: store,
+                        async add(url: string) {
+                            const res = await fetch(API.LINK_PREVIEW, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${channelRef.client['jwt']}`,
+                                },
+                                body: JSON.stringify({ url }),
+                            });
+                            if (res.ok) {
+                                const preview = await res.json();
+                                const list = store.getSnapshot().previews;
+                                store._set({ previews: [...list, preview] });
+                            }
+                        },
+                        remove(url: string) {
+                            const list = store.getSnapshot().previews;
+                            store._set({ previews: list.filter((p: any) => p.url !== url) });
+                        },
+                        clear() {
+                            store._set({ previews: [] });
+                        },
+                    };
+                })(),
                 pollComposer: {
                 state: new MiniStore({       // ✅ has .state.getLatestValue()
                     poll: undefined as any,    // nothing yet
@@ -179,6 +203,20 @@ export class Channel {
                     return this.textComposer.state.getSnapshot().text.trim() === '';
                 },
 
+                /* 2️⃣  Check if any payload (text, attachment, poll, custom) is present */
+                get hasSendableData() {
+                    const text = this.textComposer.state.getSnapshot().text.trim();
+                    const atts = this.attachmentManager.state.getSnapshot().attachments;
+                    const poll = this.pollComposer.state.getSnapshot().poll;
+                    const custom = this.customDataManager.state.getSnapshot().customData;
+                    return (
+                        text !== '' ||
+                        atts.length > 0 ||
+                        !!poll ||
+                        Object.keys(custom).length > 0
+                    );
+                },
+
                 /* 2️⃣  Build the composition object that <MessageInput> expects */
                 async compose() {
                     if (this.compositionIsEmpty) return undefined;
@@ -221,7 +259,7 @@ export class Channel {
                     localStorage.setItem(getRoomKey(), text);
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        fetch(`/api/rooms/${channelRef.roomUuid}/draft/`, {
+                        fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -279,6 +317,24 @@ export class Channel {
                     const text = msg ? msg.text : '';
                     textStore._set({ text });
                 },
+
+                /** Reset composer state optionally from an existing message */
+                initState({ composition }: { composition?: Message } = {}) {
+                    this.attachmentManager.state._set({ attachments: [] });
+                    this.linkPreviewsManager.state._set({ previews: [] });
+                    this.pollComposer.state._set({ poll: undefined as any });
+                    this.customDataManager.clear();
+                    this.state._set({ quotedMessage: undefined });
+                    this.editingAuditState._set({
+                        lastChange: { draftUpdate: null, stateUpdate: Date.now() },
+                    });
+                    this.textComposer.clear();
+                    if (composition) {
+                        this.setEditedMessage(composition);
+                    } else {
+                        this.setEditedMessage(undefined);
+                    }
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
@@ -292,13 +348,14 @@ export class Channel {
     initialized = false;
 
     constructor(
-        private roomUuid: string,
+        id: number,
+        private uuid: string,
         roomName: string,
         private client: ChatClient,
         extraData: Record<string, unknown> = {},
     ) {
-        this.id = roomUuid;
-        this.cid = `messaging:${roomUuid}`;
+        this.id = id;
+        this.cid = `messaging:${this.uuid}`;
         this.data = { name: roomName, ...extraData };
     }
 
@@ -306,11 +363,16 @@ export class Channel {
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
     get messages() { return this._state.messages; }
+    /** Return current members map */
+    get members() { return this._state.members; }
+
+    /** Whether this channel is hidden */
+    get hidden() { return !!this.data.hidden; }
 
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
-        const res = await fetch(`${API.ROOMS}${this.roomUuid}/config/`, {
+        const res = await fetch(`${API.ROOMS}${this.uuid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('getConfig failed');
@@ -333,7 +395,7 @@ export class Channel {
 
         /* initial history + read row */
         try {
-            const res = await fetch(`${API.ROOMS}${this.roomUuid}/messages/`, {
+            const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -354,13 +416,23 @@ export class Channel {
                 });
             }
 
+            const memRes = await fetch(`${API.ROOMS}${this.roomUuid}/members/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (memRes.ok) {
+                const list = await memRes.json() as { id: string }[];
+                const map: Record<string, { user: { id: string } }> = {};
+                for (const m of list) map[m.id] = { user: { id: m.id } };
+                this.bump({ members: map });
+            }
+
         } catch {/* fine for MVP */ }
 
         this.initialized = true;
 
         /* web-socket for live updates */
         this.socket = new WebSocket(
-            `ws://localhost:8000/ws/${this.roomUuid}/?token=${this.client['jwt']}`,
+            `ws://localhost:8000/ws/${this.uuid}/?token=${this.client['jwt']}`,
         );
         this.socket.onmessage = (ev) => {
             try {
@@ -388,7 +460,7 @@ export class Channel {
         const me = this.client.user.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
         if (me) {
-            fetch(`/api/rooms/${this.roomUuid}/mark_read/`, {
+            fetch(`/api/rooms/${this.uuid}/mark_read/`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
@@ -412,7 +484,7 @@ export class Channel {
     async markUnread() {
         const me = this.client.user.id;
         if (me) {
-            fetch(`/api/rooms/${this.roomUuid}/mark_unread/`, {
+            fetch(`/api/rooms/${this.uuid}/mark_unread/`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
@@ -430,7 +502,7 @@ export class Channel {
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
         const payload: any = { text };
         if (Object.keys(custom).length) payload.custom_data = custom;
-        const res = await fetch(`${API.ROOMS}${this.roomUuid}/messages/`, {
+        const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -525,7 +597,7 @@ export class Channel {
 
     /** Archive this channel */
     async archive() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/archive/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/archive/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -534,16 +606,36 @@ export class Channel {
 
     /** Unarchive this channel */
     async unarchive() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/unarchive/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/unarchive/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('unarchive failed');
     }
 
+    /** Hide this channel */
+    async hide() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/hide/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('hide failed');
+        this.data.hidden = true;
+    }
+
+    /** Show this channel */
+    async show() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/show/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('show failed');
+        this.data.hidden = false;
+    }
+
     /** Fetch cooldown value for this channel */
     async cooldown() {
-        const res = await fetch(`${API.COOLDOWN}${this.roomUuid}/cooldown/`, {
+        const res = await fetch(`${API.COOLDOWN}${this.uuid}/cooldown/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('cooldown failed');

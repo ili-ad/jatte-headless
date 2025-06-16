@@ -16,11 +16,16 @@ from .api_views import (
     RoomArchiveView,
     RoomUnarchiveView,
     RoomCooldownView,
+    RoomMembersView,
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    LinkPreviewView,
     PollOptionCreateView,
+    RoomHideView,
+    RoomShowView,
     ReactionDetailView,
+    MuteStatusView,
 )
 
 router = DefaultRouter()
@@ -71,6 +76,11 @@ urlpatterns = [
         name="room-cooldown",
     ),
     path(
+        "api/rooms/<str:room_uuid>/members/",
+        RoomMembersView.as_view(),
+        name="room-members",
+    ),
+    path(
         "api/rooms/<str:room_uuid>/archive/",
         RoomArchiveView.as_view(),
         name="room-archive",
@@ -79,6 +89,16 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/unarchive/",
         RoomUnarchiveView.as_view(),
         name="room-unarchive",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/hide/",
+        RoomHideView.as_view(),
+        name="room-hide",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/show/",
+        RoomShowView.as_view(),
+        name="room-show",
     ),
     path(
         "api/messages/<int:message_id>/",
@@ -96,11 +116,12 @@ urlpatterns = [
         MessageReactionsView.as_view(),
         name="message-reactions",
     ),
+    path("api/link-preview/", LinkPreviewView.as_view(), name="link-preview"),
     path(
         "api/messages/<int:message_id>/flag/",
         MessageFlagView.as_view(),
         name="message-flag",
-    ),      
+    ),
     path(
         "api/messages/<int:message_id>/reactions/<int:reaction_id>/",
         ReactionDetailView.as_view(),
@@ -110,5 +131,10 @@ urlpatterns = [
         "api/polls/<str:poll_id>/options/",
         PollOptionCreateView.as_view(),
         name="poll-option-create",
+    ),
+    path(
+        "api/mute-status/<str:target_username>/",
+        MuteStatusView.as_view(),
+        name="mute-status",
     ),
 ]
