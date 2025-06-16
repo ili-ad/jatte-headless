@@ -26,7 +26,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **customDataManager**                        | ✅ | ✅ |
 | **data**                                     | 🔲 | 🔲 |
 | **deleteMessage**                            | ✅ | ✅ |
-| **deleteReaction**                           | 🔲 | 🔲 |
+| **deleteReaction**                           | ✅ | ✅ |
 | **deleted**                                  | 🔲 | 🔲 |
 | **disconnectUser**                           | ✅ | ✅ |
 | **disconnected**                             | 🔲 | 🔲 |
