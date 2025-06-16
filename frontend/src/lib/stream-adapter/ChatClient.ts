@@ -26,6 +26,8 @@ export class ChatClient {
     connectionId: string | null = null;
     /** Whether the client is currently disconnected */
     disconnected = true;
+    /** Whether the client finished initialization */
+    initialized = false;
 
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
@@ -103,8 +105,19 @@ export class ChatClient {
     }
 
     /* ---------- event-bus helpers ---------- */
-    on = this.bus.on as any;
-    off = this.bus.off as any;
+    on = (event: string, cb: (...args: any[]) => void) => {
+        if (!this.listeners[event]) this.listeners[event] = [];
+        this.listeners[event].push(cb);
+        this.bus.on(event as any, cb);
+    };
+    off = (event: string, cb: (...args: any[]) => void) => {
+        this.bus.off(event as any, cb);
+        const arr = this.listeners[event];
+        if (arr) {
+            this.listeners[event] = arr.filter(fn => fn !== cb);
+            if (this.listeners[event].length === 0) delete this.listeners[event];
+        }
+    };
     emit = this.bus.emit.bind(this);
 
     /**
@@ -174,6 +187,7 @@ export class ChatClient {
         const body = await res.json().catch(() => null);
         if (body) this._user = body;
         this.connectionId = crypto.randomUUID();
+        this.initialized = true;
         this.disconnected = false;
         this.emit('connection.changed', { online: true });
     }
@@ -195,6 +209,7 @@ export class ChatClient {
         this.userId = null;
         this.jwt = null;
         this.connectionId = null;
+        this.initialized = false;
         this.disconnected = true;
         this.emit('connection.changed', { online: false });
     }
@@ -209,7 +224,7 @@ export class ChatClient {
         const rooms = res.ok ? (await res.json() as Room[]) : [];
 
         const chans = rooms.map(
-            r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}),
+            r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {}),
         );
         this.stateStore._set({ channels: chans });
         return chans;
@@ -264,7 +279,7 @@ export class ChatClient {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
-        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}));
+        return rooms.map(r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {}));
     }
 
     /** Check if a given user is muted */
@@ -293,7 +308,7 @@ export class ChatClient {
 
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
-        return new Channel(roomUuid, roomUuid, this, {});
+        return new Channel(0, roomUuid, roomUuid, this, {});
     }
 
     /** Return this client instance */
