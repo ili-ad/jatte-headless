@@ -15,3 +15,9 @@ def about(request):
 @api_view(["GET"])
 def get_app_settings(request):
     return Response({"file_uploads": True})
+
+
+@api_view(["GET"])
+def get_user_agent(request):
+    """Return the User-Agent string sent by the client."""
+    return Response({"user_agent": request.META.get("HTTP_USER_AGENT", "")})
