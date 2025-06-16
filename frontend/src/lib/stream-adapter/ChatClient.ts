@@ -4,7 +4,7 @@ import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
 
 const randomId = () => Math.random().toString(36).slice(2);
-import type { Room, ChatEvents, AppSettings, User } from './types';
+import type { Room, ChatEvents, AppSettings, User, Message } from './types';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -24,6 +24,8 @@ export class ChatClient {
     clientID: string;
     /** Unique ID for the current connection (null until connected) */
     connectionId: string | null = null;
+    /** Whether the client is currently disconnected */
+    disconnected = true;
 
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
@@ -105,6 +107,20 @@ export class ChatClient {
     off = this.bus.off as any;
     emit = this.bus.emit.bind(this);
 
+    /**
+     * Manually dispatch an event to this client and its channels.
+     * Only a tiny subset of Stream events is supported.
+     */
+    dispatchEvent(event: { type: string; cid?: string; message?: Message; user_id?: string }) {
+        if (event.cid) {
+            const chan = this.activeChannels[event.cid];
+            if (chan && typeof (chan as any).dispatchEvent === 'function') {
+                (chan as any).dispatchEvent(event);
+            }
+        }
+        this.emit(event.type as any, event as any);
+    }
+
     private buildHeaders(extra: Record<string, string> = {}) {
         return this.jwt ? { Authorization: `Bearer ${this.jwt}`, ...extra } : extra;
     }
@@ -158,6 +174,7 @@ export class ChatClient {
         const body = await res.json().catch(() => null);
         if (body) this._user = body;
         this.connectionId = crypto.randomUUID();
+        this.disconnected = false;
         this.emit('connection.changed', { online: true });
     }
 
@@ -178,6 +195,7 @@ export class ChatClient {
         this.userId = null;
         this.jwt = null;
         this.connectionId = null;
+        this.disconnected = true;
         this.emit('connection.changed', { online: false });
     }
 
@@ -191,7 +209,7 @@ export class ChatClient {
         const rooms = res.ok ? (await res.json() as Room[]) : [];
 
         const chans = rooms.map(
-            r => new Channel(r.uuid, r.name ?? r.uuid, this),
+            r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}),
         );
         this.stateStore._set({ channels: chans });
         return chans;
@@ -246,7 +264,7 @@ export class ChatClient {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
-        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this));
+        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}));
     }
 
     /** Create a poll option */
@@ -265,7 +283,7 @@ export class ChatClient {
 
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
-        return new Channel(roomUuid, roomUuid, this);
+        return new Channel(roomUuid, roomUuid, this, {});
     }
 
     /** Return this client instance */

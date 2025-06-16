@@ -11,7 +11,7 @@ import { API, EVENTS } from './constants';
 export class Channel {
     readonly id: string;
     readonly cid: string;
-    readonly data: { name: string };
+    data: { name: string } & Record<string, unknown>;
 
     private socket?: WebSocket;
     private emitter = mitt<ChatEvents>();
@@ -269,6 +269,16 @@ export class Channel {
                 setQuotedMessage(msg: Message | undefined) {
                     this.state._set({ quotedMessage: msg });
                 },
+
+                /** Currently edited message, if any */
+                editedMessage: undefined as Message | undefined,
+
+                /** Set the message being edited and sync text composer */
+                setEditedMessage(msg: Message | undefined) {
+                    (this as any).editedMessage = msg;
+                    const text = msg ? msg.text : '';
+                    textStore._set({ text });
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
@@ -285,10 +295,11 @@ export class Channel {
         private roomUuid: string,
         roomName: string,
         private client: ChatClient,
+        extraData: Record<string, unknown> = {},
     ) {
         this.id = roomUuid;
         this.cid = `messaging:${roomUuid}`;
-        this.data = { name: roomName };
+        this.data = { name: roomName, ...extraData };
     }
 
     /* ─── getters Stream-UI expects ─── */
@@ -453,11 +464,12 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('deleteMessage failed');
-
+        const updated = await res.json() as Message;
         this.bump({
-            messages: this._state.messages.filter(m => m.id !== messageId),
-            latestMessages: this._state.latestMessages.filter(m => m.id !== messageId),
+            messages: this._state.messages.map(m => m.id === messageId ? updated : m),
+            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? updated : m),
         });
+        return updated;
     }
 
     /** Send a reaction to a message */
@@ -472,6 +484,23 @@ export class Channel {
         });
         if (!res.ok) throw new Error('sendReaction failed');
         return await res.json();
+    }
+
+    /** Fetch reactions for a given message */
+    async queryReactions(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('queryReactions failed');
+        return await res.json() as any[];
+
+    /** Delete a reaction */
+    async deleteReaction(messageId: string, reactionId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('deleteReaction failed');
     }
 
     /** Fetch replies to a given message */
@@ -514,6 +543,30 @@ export class Channel {
     /* event helpers */
     on = this.emitter.on as any;
     off = this.emitter.off as any;
+
+    /**
+     * Dispatch an incoming event to this channel.
+     * Supports message.new and typing events.
+     */
+    dispatchEvent(event: { type: string; message?: Message; user_id?: string }) {
+        switch (event.type) {
+            case EVENTS.MESSAGE_NEW:
+                if (event.message) {
+                    this.bump({
+                        messages: [...this._state.messages, event.message],
+                        latestMessages: [...this._state.latestMessages.slice(-49), event.message],
+                    });
+                }
+                this.emitter.emit(EVENTS.MESSAGE_NEW, event as any);
+                break;
+            case 'typing.start':
+            case 'typing.stop':
+                this.emitter.emit(event.type as any, event as any);
+                break;
+            default:
+                this.emitter.emit(event.type as any, event as any);
+        }
+    }
 
     /* internal: mutate + notify React */
     /* tiny helper that mutates state *and* notifies both stores */
