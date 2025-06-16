@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft
-from .serializers import RoomSerializer, MessageSerializer
+from .models import Room, Message, ReadState, Draft, Reaction
+from .serializers import RoomSerializer, MessageSerializer, ReactionSerializer
 
 
 class RoomListCreateView(generics.ListCreateAPIView):
@@ -149,6 +149,28 @@ class MessageRepliesView(APIView):
         parent = get_object_or_404(Message, id=message_id)
         serializer = MessageSerializer(parent.replies.all(), many=True)
         return Response(serializer.data)
+
+
+class MessageReactionsView(APIView):
+    """List or create reactions for a message."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        serializer = ReactionSerializer(msg.reactions.all(), many=True)
+        return Response(serializer.data)
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        serializer = ReactionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reaction = Reaction.objects.create(
+            message=msg,
+            user=request.user,
+            type=serializer.validated_data["type"],
+        )
+        return Response(ReactionSerializer(reaction).data, status=201)
 
 class RoomConfigView(APIView):
     """Return configuration flags for the given room."""
