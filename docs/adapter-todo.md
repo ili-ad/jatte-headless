@@ -19,7 +19,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **connectUser**                              | ✅ | ✅ |
 | **connectionId**                             | ✅ | 🔲 |
 | **contextType**                              | 🔲 | 🔲 |
-| **cooldown**                                 | 🔲 | 🔲 |
+| **cooldown**                                 | ✅ | ✅ |
 | **countUnread**                              | ✅ | ✅ |
 | **createDraft**                              | ✅ | ✅ |
 | **createPollOption**                         | 🔲 | 🔲 |
