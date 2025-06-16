@@ -361,7 +361,21 @@ export class Channel {
         /* global bus notify */
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
 
-        return msg;        
+        return msg;
+    }
+
+    /** Delete a message by id */
+    async deleteMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('deleteMessage failed');
+
+        this.bump({
+            messages: this._state.messages.filter(m => m.id !== messageId),
+            latestMessages: this._state.latestMessages.filter(m => m.id !== messageId),
+        });
     }
 
     /* event helpers */
