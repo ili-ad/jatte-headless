@@ -39,7 +39,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **getAppSettings**                           | ✅ | ✅ |
 | **getClient**                                | 🔲 | 🔲 |
 | **getConfig**                                | ✅ | ✅ |
-| **getReplies**                               | 🔲 | 🔲 |
+| **getReplies**                               | ✅ | ✅ |
 | **getUserAgent**                             | ✅ | 🔲 |
 | **hasSendableData**                          | 🔲 | 🔲 |
 | **hidden**                                   | 🔲 | 🔲 |

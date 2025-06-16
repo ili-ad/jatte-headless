@@ -399,6 +399,15 @@ export class Channel {
         });
     }
 
+    /** Fetch replies to a given message */
+    async getReplies(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('getReplies failed');
+        return await res.json() as Message[];
+    }
+
     /** Archive this channel */
     async archive() {
         const res = await fetch(`/api/rooms/${this.roomUuid}/archive/`, {
