@@ -4,7 +4,7 @@ import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 const originalFetch = global.fetch;
 
 beforeEach(() => {
-  global.fetch = vi.fn(() => Promise.resolve({ ok: true }));
+  global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => ({}) }));
 });
 
 afterEach(() => {
