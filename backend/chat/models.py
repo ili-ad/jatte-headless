@@ -9,6 +9,7 @@ class Message(models.Model):
     body = models.TextField()
     sent_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
     custom_data = models.JSONField(default=dict, blank=True)
     reply_to = models.ForeignKey(
         'self', blank=True, null=True, on_delete=models.CASCADE, related_name='replies'
@@ -38,6 +39,7 @@ class Room(models.Model):
     agent = models.ForeignKey(User, related_name='rooms', blank=True, null=True, on_delete=models.SET_NULL)
     messages = models.ManyToManyField(Message, blank=True)
     url = models.CharField(max_length=255, blank=True, null=True)
+    data = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=CHOICES_STATUS, default=WAITING)
     created_at = models.DateTimeField(auto_now_add=True)
 
