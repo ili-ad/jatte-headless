@@ -19,6 +19,11 @@ export interface AppSettings {
   file_uploads: boolean;
 }
 
+export interface User {
+  id: number;
+  username: string;
+}
+
 /** Internal event-bus payloads used by CustomChannel */
 // export type Events =
 //   | { type: 'message.new';  message: Message }
