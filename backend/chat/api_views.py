@@ -6,8 +6,14 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft, Notification, Reaction
-from .serializers import RoomSerializer, MessageSerializer, NotificationSerializer, ReactionSerializer
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption
+from .serializers import (
+    RoomSerializer,
+    MessageSerializer,
+    NotificationSerializer,
+    ReactionSerializer,
+    PollOptionSerializer,
+)
 
 
 
@@ -173,6 +179,23 @@ class MessageReactionsView(APIView):
         )
         return Response(ReactionSerializer(reaction).data, status=201)
 
+
+class PollOptionCreateView(APIView):
+    """Create a new poll option."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, poll_id):
+        serializer = PollOptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        option = PollOption.objects.create(
+            poll_id=poll_id,
+            text=serializer.validated_data["text"],
+            user=request.user,
+        )
+        return Response({"poll_option": PollOptionSerializer(option).data}, status=201)
+
 class RoomConfigView(APIView):
     """Return configuration flags for the given room."""
     authentication_classes = [SupabaseJWTAuthentication]
@@ -213,6 +236,16 @@ class RoomUnarchiveView(APIView):
         room.status = Room.ACTIVE
         room.save()
         return Response({"status": "ok"})
+
+
+class RoomCooldownView(APIView):
+    """Return cooldown seconds for the given room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        get_object_or_404(Room, uuid=room_uuid)
+        return Response({"cooldown": 0})
 
 
 class ActiveRoomListView(generics.ListAPIView):

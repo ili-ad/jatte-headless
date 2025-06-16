@@ -14,9 +14,11 @@ from .api_views import (
     MessageReactionsView,
     RoomArchiveView,
     RoomUnarchiveView,
+    RoomCooldownView,
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    PollOptionCreateView,
 )
 
 router = DefaultRouter()
@@ -62,6 +64,11 @@ urlpatterns = [
         name="room-config",
     ),
     path(
+        "api/rooms/<str:room_uuid>/cooldown/",
+        RoomCooldownView.as_view(),
+        name="room-cooldown",
+    ),
+    path(
         "api/rooms/<str:room_uuid>/archive/",
         RoomArchiveView.as_view(),
         name="room-archive",
@@ -86,5 +93,10 @@ urlpatterns = [
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
         name="message-reactions",
+    ),
+    path(
+        "api/polls/<str:poll_id>/options/",
+        PollOptionCreateView.as_view(),
+        name="poll-option-create",
     ),
 ]

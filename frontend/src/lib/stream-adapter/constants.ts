@@ -10,6 +10,8 @@ export const API = {
   USER: '/api/user/',
   USER_AGENT: '/api/core-user-agent/',
   NOTIFICATIONS: '/api/notifications/',
+  POLLS: '/api/polls/',
+  COOLDOWN: '/api/rooms/',
 } as const;
 
 export const EVENTS = {
