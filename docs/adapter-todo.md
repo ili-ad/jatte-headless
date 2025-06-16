@@ -37,7 +37,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **event**                                    | 🔲 | 🔲 |
 | **flagMessage**                              | 🔲 | 🔲 |
 | **getAppSettings**                           | ✅ | ✅ |
-| **getClient**                                | 🔲 | 🔲 |
+| **getClient**                                | ✅ | 🔲 |
 | **getConfig**                                | ✅ | ✅ |
 | **getReplies**                               | ✅ | ✅ |
 | **getUserAgent**                             | ✅ | ✅ |
