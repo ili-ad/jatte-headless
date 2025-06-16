@@ -18,7 +18,12 @@ export class ChatClient {
     /** Populated by connectUser, nulled by disconnectUser */
 
 
+    //oyhloh-codex/implement-adapter-surfaces-and-backend
+    /** Random identifier for this client (regenerated on connectUser) */
     clientID: string;
+    /** Unique ID for the current connection (null until connected) */
+    connectionId: string | null = null;
+    main
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
@@ -101,6 +106,7 @@ export class ChatClient {
 
         });
         if (!res.ok) throw new Error('sync-user failed');
+        this.connectionId = crypto.randomUUID();
         this.emit('connection.changed', { online: true });
     }
 
@@ -119,6 +125,7 @@ export class ChatClient {
         delete (this as any).user;
         this.userId = null;
         this.jwt = null;
+        this.connectionId = null;
         this.emit('connection.changed', { online: false });
     }
 

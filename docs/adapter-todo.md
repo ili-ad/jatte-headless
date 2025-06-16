@@ -17,7 +17,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **config**                                   | 🔲 | 🔲 |
 | **configState**                              | 🔲 | 🔲 |
 | **connectUser**                              | ✅ | ✅ |
-| **connectionId**                             | 🔲 | 🔲 |
+| **connectionId**                             | ✅ | 🔲 |
 | **contextType**                              | 🔲 | 🔲 |
 | **cooldown**                                 | 🔲 | 🔲 |
 | **countUnread**                              | ✅ | ✅ |
