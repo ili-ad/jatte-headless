@@ -6,7 +6,8 @@ export const API = {
   APP_SETTINGS: '/api/app-settings/',
   MARK_UNREAD: '/api/rooms/',
   USERS: '/api/users/',
-  USER_AGENT: '/api/user-agent/',
+  USER: '/api/user/',
+  USER_AGENT: '/api/user-agent-auth/',
 } as const;
 
 export const EVENTS = {
