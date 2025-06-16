@@ -25,6 +25,7 @@ from .api_views import (
     RoomHideView,
     RoomShowView,
     ReactionDetailView,
+    MuteStatusView,
 )
 
 router = DefaultRouter()
@@ -130,5 +131,10 @@ urlpatterns = [
         "api/polls/<str:poll_id>/options/",
         PollOptionCreateView.as_view(),
         name="poll-option-create",
+    ),
+    path(
+        "api/mute-status/<str:target_username>/",
+        MuteStatusView.as_view(),
+        name="mute-status",
     ),
 ]

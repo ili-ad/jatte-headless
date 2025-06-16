@@ -13,6 +13,7 @@ export const API = {
   POLLS: '/api/polls/',
   LINK_PREVIEW: '/api/link-preview/',
   COOLDOWN: '/api/rooms/',
+  MUTE_STATUS: '/api/mute-status/',
 } as const;
 
 export const EVENTS = {

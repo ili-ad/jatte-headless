@@ -118,3 +118,14 @@ class PollOption(models.Model):
 
     class Meta:
         ordering = ("created_at",)
+
+
+class UserMute(models.Model):
+    """Record that `user` muted `target`."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="muter")
+    target = models.ForeignKey(User, on_delete=models.CASCADE, related_name="muted")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "target")
