@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
-// import via relative path to avoid path alias issues in Vitest
-import { API } from '../../src/lib/stream-adapter';
+import { API } from '../../src/lib/stream-adapter/constants';
+
 
 const originalFetch = global.fetch;
 
