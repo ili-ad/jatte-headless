@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
-import { API } from '@/lib/stream-adapter';
+// import via relative path to avoid path alias issues in Vitest
+import { API } from '../../src/lib/stream-adapter';
 
 const originalFetch = global.fetch;
 
@@ -24,7 +25,7 @@ test('markRead posts to backend and updates state', async () => {
   await channel.markRead();
 
   expect(global.fetch).toHaveBeenCalledWith(
-    `${API.ROOMS}room1/mark_unread/`,
+    `${API.ROOMS}room1/mark_read/`,
     { method: 'POST', headers: { Authorization: 'Bearer jwt1' } },
   );
   const read = channel.state.read['u1'];
