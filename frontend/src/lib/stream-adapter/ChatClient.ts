@@ -96,12 +96,20 @@ export class ChatClient {
 
     /** Tear-down helper mirroring Stream’s client.disconnectUser */
     disconnectUser() {
+        const token = this.jwt;
+        if (token) {
+            fetch('/api/disconnect-user/', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            }).catch(() => { /* ignore network errors */ });
+        }
+
         this.activeChannels = {};
         this.stateStore._set({ channels: [] });
         delete (this as any).user;
         this.userId = null;
         this.jwt = null;
-        this.emit('connection.changed', { online: false });        
+        this.emit('connection.changed', { online: false });
     }
 
     /* ---------- API that Stream-UI actually calls ---------- */
