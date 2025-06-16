@@ -313,6 +313,14 @@ export class Channel {
     async markRead() {
         const me = this.client.user.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
+        if (me) {
+            fetch(`/api/rooms/${this.roomUuid}/mark_read/`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${this.client['jwt']}`,
+                },
+            }).catch(() => { /* network errors ignored */ });
+        }
         this.bump({
             read: {
                 ...this._state.read,

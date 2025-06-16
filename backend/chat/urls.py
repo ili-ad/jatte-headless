@@ -1,6 +1,11 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .api_views import RoomListCreateView, RoomDetailView, RoomMessageListCreateView
+from .api_views import (
+    RoomListCreateView,
+    RoomDetailView,
+    RoomMessageListCreateView,
+    RoomMarkReadView,
+)
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
@@ -12,5 +17,10 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/messages/",
         RoomMessageListCreateView.as_view(),
         name="room-messages",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/mark_read/",
+        RoomMarkReadView.as_view(),
+        name="room-mark-read",
     ),
 ]
