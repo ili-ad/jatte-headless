@@ -19,3 +19,16 @@ class SendMessageAPITests(APITestCase):
         msg = room.messages.first()
         self.assertEqual(msg.body, "hello")
         self.assertEqual(msg.sent_by, "u1")
+
+    def test_send_message_requires_auth(self):
+        room = Room.objects.create(uuid="r1", client="c1")
+        url = reverse("room-messages", kwargs={"room_uuid": room.uuid})
+        res = self.client.post(url, {"text": "x"}, format="json")
+        self.assertEqual(res.status_code, 403)
+
+    def test_send_message_wrong_method(self):
+        room = Room.objects.create(uuid="r1", client="c1")
+        token = self.make_token()
+        url = reverse("room-messages", kwargs={"room_uuid": room.uuid})
+        res = self.client.put(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 405)

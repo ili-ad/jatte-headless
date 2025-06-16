@@ -14,6 +14,11 @@ export interface Message {
   created_at: string;
 }
 
+/** Settings returned by `getAppSettings` */
+export interface AppSettings {
+  file_uploads: boolean;
+}
+
 /** Internal event-bus payloads used by CustomChannel */
 // export type Events =
 //   | { type: 'message.new';  message: Message }
@@ -24,4 +29,5 @@ export type ChatEvents = {
   'message.new': { type: 'message.new'; message: Message };
   'typing.start': { type: 'typing.start'; user_id: string };
   'typing.stop': { type: 'typing.stop'; user_id: string };
+  'settings.updated': AppSettings;
 };

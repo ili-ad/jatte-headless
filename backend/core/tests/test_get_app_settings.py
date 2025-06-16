@@ -7,3 +7,8 @@ class GetAppSettingsTests(APITestCase):
         res = self.client.get(url)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data, {"file_uploads": True})
+
+    def test_wrong_method(self):
+        url = reverse('core:app-settings')
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 405)
