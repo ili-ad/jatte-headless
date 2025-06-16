@@ -12,6 +12,7 @@ export const API = {
   NOTIFICATIONS: '/api/notifications/',
   POLLS: '/api/polls/',
   COOLDOWN: '/api/rooms/',
+  MUTE_STATUS: '/api/mute-status/',
 } as const;
 
 export const EVENTS = {
