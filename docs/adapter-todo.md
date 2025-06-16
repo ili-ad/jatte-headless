@@ -51,7 +51,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **linkPreviewsManager**                      | 🔲 | 🔲 |
 | **listeners**                                | 🔲 | 🔲 |
 | **markRead**                                 | ✅ | ✅ |
-| **markUnread**                               | 🔲 | 🔲 |
+| **markUnread**                               | ✅ | ✅ |
 | **members**                                  | 🔲 | 🔲 |
 | **messageComposer**                          | 🔲 | 🔲 |
 | **messages**                                 | 🔲 | 🔲 |
