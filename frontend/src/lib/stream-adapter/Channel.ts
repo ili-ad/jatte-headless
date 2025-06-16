@@ -90,8 +90,11 @@ export class Channel {
                 state: new MiniStore({
                     customData: {} as Record<string, unknown>,
                 }),
-                set   : (_k: string, _v: unknown) => {},
-                clear : () => {},
+                set(k: string, v: unknown) {
+                    const current = this.state.getSnapshot().customData;
+                    this.state._set({ customData: { ...current, [k]: v } });
+                },
+                clear() { this.state._set({ customData: {} }); },
                 },
 
                 /* ------------- text‑composer impl ------------------- */
@@ -384,13 +387,16 @@ export class Channel {
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
+        const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
+        const payload: any = { text };
+        if (Object.keys(custom).length) payload.custom_data = custom;
         const res = await fetch(`${API.ROOMS}${this.roomUuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${this.client['jwt']}`,
             },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify(payload),
         });
 
         if (!res.ok) throw new Error('sendMessage failed');
@@ -405,6 +411,8 @@ export class Channel {
 
         /* global bus notify */
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
+
+        this.messageComposer.customDataManager.clear();
 
         return msg;
     }

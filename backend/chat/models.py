@@ -9,6 +9,7 @@ class Message(models.Model):
     body = models.TextField()
     sent_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    custom_data = models.JSONField(default=dict, blank=True)
     reply_to = models.ForeignKey(
         'self', blank=True, null=True, on_delete=models.CASCADE, related_name='replies'
     )

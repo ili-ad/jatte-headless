@@ -20,6 +20,16 @@ class GetMessagesAPITests(APITestCase):
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]["body"], "hi")
 
+    def test_get_messages_returns_custom_data(self):
+        room = Room.objects.create(uuid="r1", client="c1")
+        msg = Message.objects.create(body="hi", sent_by="u2", custom_data={"foo": "bar"})
+        room.messages.add(msg)
+        token = self.make_token()
+        url = reverse("room-messages", kwargs={"room_uuid": room.uuid})
+        res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data[0]["custom_data"], {"foo": "bar"})
+
     def test_get_messages_requires_auth(self):
         room = Room.objects.create(uuid="r1", client="c1")
         url = reverse("room-messages", kwargs={"room_uuid": room.uuid})

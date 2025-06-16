@@ -11,7 +11,14 @@ export const buildMessageComposer = (channelRef:any) => {
     contextType:'message', tag:'root',
     attachmentManager: buildAttachmentManager(),
     pollComposer     : buildPollComposer(),
-    customDataManager: { state:new MiniStore({custom:[] as any[]}), reset(){this.state._set({custom:[]})}},
+    customDataManager: {
+      state:new MiniStore({ customData:{} as Record<string, unknown> }),
+      set(k:string,v:unknown){
+        const cur=this.state.getSnapshot().customData;
+        this.state._set({ customData:{...cur,[k]:v} });
+      },
+      clear(){ this.state._set({ customData:{} }); },
+    },
     state            : new MiniStore({ quotedMessage:undefined as any }),
     linkPreviewsManager:{ state:new MiniStore({previews:[] as any[]}), add:()=>{},remove:()=>{},clear:()=>{} },
 
