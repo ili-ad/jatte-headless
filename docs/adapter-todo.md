@@ -54,7 +54,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **markUnread**                               | ✅ | ✅ |
 | **members**                                  | 🔲 | 🔲 |
 | **messageComposer**                          | 🔲 | 🔲 |
-| **messages**                                 | 🔲 | 🔲 |
+| **messages**                                 | ✅ | ✅ |
 | **muteStatus**                               | 🔲 | 🔲 |
 | **muteUser**                                 | 🔲 | 🔲 |
 | **mutedChannels**                            | 🔲 | 🔲 |
@@ -99,7 +99,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **unpinMessage**                             | 🔲 | 🔲 |
 | **updateMessage**                            | 🔲 | 🔲 |
 | **updated**                                  | 🔲 | 🔲 |
-| **user**                                     | 🔲 | 🔲 |
+| **user**                                     | ✅ | ✅ |
 | **userID**                                   | ✅ | 🔲 |
 | **userToken**                                | 🔲 | 🔲 |
 | **visible**                                  | 🔲 | 🔲 |

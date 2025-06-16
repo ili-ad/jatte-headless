@@ -1,10 +1,11 @@
 #accounts/urls.py
 from django.urls import path
-from .views import SyncUserView, SessionView, QueryUsersView, UserAgentView
+from .views import SyncUserView, SessionView, QueryUsersView, UserAgentView, CurrentUserView
 
 urlpatterns = [
     path('api/sync-user/', SyncUserView.as_view(), name='sync-user'),
     path('api/session/', SessionView.as_view(), name='session'),
     path('api/users/', QueryUsersView.as_view(), name='query-users'),
-    path('api/user-agent/', UserAgentView.as_view(), name='user-agent'),
+    path('api/user-agent-auth/', UserAgentView.as_view(), name='user-agent'),
+    path('api/user/', CurrentUserView.as_view(), name='user'),
 ]
