@@ -307,6 +307,9 @@ export class Channel {
     /** Convenience getter exposing current message list */
     get messages() { return this._state.messages; }
 
+    /** Whether this channel is hidden */
+    get hidden() { return !!this.data.hidden; }
+
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
@@ -539,6 +542,26 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('unarchive failed');
+    }
+
+    /** Hide this channel */
+    async hide() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/hide/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('hide failed');
+        this.data.hidden = true;
+    }
+
+    /** Show this channel */
+    async show() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/show/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('show failed');
+        this.data.hidden = false;
     }
 
     /** Fetch cooldown value for this channel */
