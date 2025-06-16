@@ -55,6 +55,28 @@ export class Channel {
                 },
             });
 
+            /* track timestamps for edits/drafts */
+            const editingAuditState = new MiniStore({
+                lastChange: {
+                    draftUpdate: null as number | null,
+                    stateUpdate: Date.now(),
+                },
+            });
+
+            const logStateUpdateTimestamp = () => {
+                const last = editingAuditState.getSnapshot().lastChange;
+                editingAuditState._set({
+                    lastChange: { ...last, stateUpdate: Date.now() },
+                });
+            };
+
+            const logDraftUpdateTimestamp = () => {
+                const ts = Date.now();
+                editingAuditState._set({
+                    lastChange: { draftUpdate: ts, stateUpdate: ts },
+                });
+            };
+
             return {
                 contextType: 'message' as const,
                 tag: 'root',
@@ -70,6 +92,7 @@ export class Channel {
 
                 /* ——— composer‑level stores ——— */
                 state: new MiniStore({ quotedMessage: undefined as any }),
+                editingAuditState,
                 linkPreviewsManager: {
                     state: new MiniStore({ previews: [] as any[] }),
                     add: (_: string) => { },
@@ -97,17 +120,21 @@ export class Channel {
                 clear() { this.state._set({ customData: {} }); },
                 },
 
+                logStateUpdateTimestamp,
+                logDraftUpdateTimestamp,
+
                 /* ------------- text‑composer impl ------------------- */
                 textComposer: {
                     state: textStore,
 
                     /* update helpers React calls */
-                    setText(text: string) { textStore._set({ text }); },
+                    setText(text: string) { textStore._set({ text }); logStateUpdateTimestamp(); },
                     setSelection(sel: { start: number; end: number }) { textStore._set({ selection: sel }); },
-                    clear() { textStore._set({ text: '', selection: { start: 0, end: 0 } }); },
+                    clear() { textStore._set({ text: '', selection: { start: 0, end: 0 } }); logStateUpdateTimestamp(); },
 
                     handleChange({ text, selection }: { text: string; selection: { start: number; end: number } }) {
                         textStore._set({ text, selection });
+                        logStateUpdateTimestamp();
                     },
                     handleKeyEvent(evt: KeyboardEvent) {
                         if (evt.key === 'Enter' && !evt.shiftKey) {
@@ -203,8 +230,9 @@ export class Channel {
                             body: JSON.stringify({ text }),
                         }).catch(() => { /* ignore network errors */ });
                     }
+                    logDraftUpdateTimestamp();
                 },
-                discardDraft() { localStorage.removeItem(getRoomKey()); },
+                discardDraft() { localStorage.removeItem(getRoomKey()); logDraftUpdateTimestamp(); },
 
                 // pollComposer: {
                 // state: new MiniStore({            // shape is all Stream-UI needs
