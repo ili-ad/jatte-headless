@@ -137,14 +137,30 @@ class RoomDraftView(APIView):
 
 
 class MessageDetailView(APIView):
-    """Retrieve or delete a single message."""
+    """Retrieve, update or delete a single message."""
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def get(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        serializer = MessageSerializer(msg)
+        return Response(serializer.data)
+
+    def put(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        data = request.data.copy()
+        if "text" in data and "body" not in data:
+            data["body"] = data.pop("text")
+        serializer = MessageSerializer(msg, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
     def delete(self, request, message_id):
         msg = get_object_or_404(Message, id=message_id)
-        msg.delete()
-        return Response(status=204)
+        msg.deleted_at = timezone.now()
+        msg.save(update_fields=["deleted_at"])
+        return Response(MessageSerializer(msg).data)
 
 
 class MessageRepliesView(APIView):
@@ -178,6 +194,20 @@ class MessageReactionsView(APIView):
             type=serializer.validated_data["type"],
         )
         return Response(ReactionSerializer(reaction).data, status=201)
+
+
+class ReactionDetailView(APIView):
+    """Delete a single reaction."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id, reaction_id):
+        reaction = get_object_or_404(
+            Reaction, id=reaction_id, message_id=message_id
+        )
+        reaction.delete()
+        return Response(status=204)
 
 
 class PollOptionCreateView(APIView):
