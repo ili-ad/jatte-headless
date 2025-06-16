@@ -44,6 +44,29 @@ export class ChatClient {
     /* 🔹 NEW: notifications — only `.store` is required for now */
     notifications!: { store: MiniStore<{ notifications: any[] }> };
 
+    /** Minimal axios-like helper used by Stream-UI */
+    axiosInstance = {
+        get: async (url: string, config: { headers?: Record<string, string> } = {}) => {
+            const res = await fetch(url, { method: 'GET', headers: this.buildHeaders(config.headers) });
+            const data = await res.json().catch(() => null);
+            return { data, status: res.status, statusText: res.statusText };
+        },
+        post: async (url: string, data: any, config: { headers?: Record<string, string> } = {}) => {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: this.buildHeaders({ 'Content-Type': 'application/json', ...(config.headers || {}) }),
+                body: JSON.stringify(data ?? {}),
+            });
+            const body = await res.json().catch(() => null);
+            return { data: body, status: res.status, statusText: res.statusText };
+        },
+        delete: async (url: string, config: { headers?: Record<string, string> } = {}) => {
+            const res = await fetch(url, { method: 'DELETE', headers: this.buildHeaders(config.headers) });
+            const body = await res.json().catch(() => null);
+            return { data: body, status: res.status, statusText: res.statusText };
+        },
+    };
+
     /* ----------------------------------------------------------- */
     constructor(
         private userId: string | null = null,
@@ -78,6 +101,10 @@ export class ChatClient {
     on = this.bus.on as any;
     off = this.bus.off as any;
     emit = this.bus.emit.bind(this);
+
+    private buildHeaders(extra: Record<string, string> = {}) {
+        return this.jwt ? { Authorization: `Bearer ${this.jwt}`, ...extra } : extra;
+    }
 
     getUserAgent() {
         return this.userAgent;
