@@ -22,6 +22,7 @@ export class Channel {
         latestMessages: [] as Message[],
         messagePagination: { hasPrev: false, hasNext: false },
         pinnedMessages: [] as Message[],
+        members: [] as { id: number | string; username: string }[],
 
         read: {} as Record<
             string,
@@ -306,6 +307,8 @@ export class Channel {
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
     get messages() { return this._state.messages; }
+    /** List of members fetched from the backend */
+    get members() { return this._state.members; }
 
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
@@ -539,6 +542,17 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('unarchive failed');
+    }
+
+    /** Fetch members for this channel */
+    async fetchMembers() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/members/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('members failed');
+        const list = await res.json() as { id: number | string; username: string }[];
+        this.bump({ members: list });
+        return list;
     }
 
     /** Fetch cooldown value for this channel */
