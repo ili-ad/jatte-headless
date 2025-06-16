@@ -20,6 +20,8 @@ from .api_views import (
     RoomDraftView,
     NotificationListView,
     PollOptionCreateView,
+    RoomHideView,
+    RoomShowView,
     ReactionDetailView,
 )
 
@@ -79,6 +81,16 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/unarchive/",
         RoomUnarchiveView.as_view(),
         name="room-unarchive",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/hide/",
+        RoomHideView.as_view(),
+        name="room-hide",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/show/",
+        RoomShowView.as_view(),
+        name="room-show",
     ),
     path(
         "api/messages/<int:message_id>/",
