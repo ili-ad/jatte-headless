@@ -11,6 +11,7 @@ from .api_views import (
     RoomConfigView,
     MessageDetailView,
     RoomArchiveView,
+    RoomUnarchiveView,
 )
 
 router = DefaultRouter()
@@ -53,6 +54,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/archive/",
         RoomArchiveView.as_view(),
         name="room-archive",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/unarchive/",
+        RoomUnarchiveView.as_view(),
+        name="room-unarchive",
     ),
     path(
         "api/messages/<int:message_id>/",
