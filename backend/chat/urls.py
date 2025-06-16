@@ -10,6 +10,7 @@ from .api_views import (
     RoomLastReadView,
     RoomConfigView,
     MessageDetailView,
+    RoomArchiveView,
 )
 
 router = DefaultRouter()
@@ -47,6 +48,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/config/",
         RoomConfigView.as_view(),
         name="room-config",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/archive/",
+        RoomArchiveView.as_view(),
+        name="room-archive",
     ),
     path(
         "api/messages/<int:message_id>/",
