@@ -447,6 +447,15 @@ export class Channel {
         return await res.json();
     }
 
+    /** Delete a reaction */
+    async deleteReaction(messageId: string, reactionId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('deleteReaction failed');
+    }
+
     /** Fetch replies to a given message */
     async getReplies(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
