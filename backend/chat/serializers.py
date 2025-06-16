@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Room, Message, Notification
+from .models import Room, Message, Notification, Reaction
+
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,7 +38,17 @@ class RoomSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "text", "created_at"]
+
+        
+class ReactionSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = Reaction
+        fields = ["id", "type", "user_id", "created_at"]
+        read_only_fields = ["id", "user_id", "created_at"]

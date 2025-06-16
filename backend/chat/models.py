@@ -79,3 +79,15 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        
+        
+class Reaction(models.Model):
+    """Simple reaction tied to a message."""
+
+    message = models.ForeignKey(Message, related_name="reactions", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    type = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("message", "user", "type")
