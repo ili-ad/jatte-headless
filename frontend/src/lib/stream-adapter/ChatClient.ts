@@ -102,6 +102,11 @@ export class ChatClient {
         return this.userId;
     }
 
+    /** Return the JWT token currently in use, if any */
+    get userToken() {
+        return this.jwt;
+    }
+
     /** Initialize the client for a given user */
     /**
      * Register a user and emit the same events Stream’s SDK does.
