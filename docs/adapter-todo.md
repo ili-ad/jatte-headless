@@ -3,7 +3,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 
 | surface                                      | adapter | backend |
 |----------------------------------------------|:-------:|:-------:|
-| **_user**                                    | 🔲 | 🔲 |
+| **_user**                                    | ✅ | ✅ |
 | **activeChannels**                           | ✅ | ✅ |
 | **archive**                                  | ✅ | ✅ |
 | **attachmentManager**                        | 🔲 | 🔲 |
