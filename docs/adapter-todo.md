@@ -100,7 +100,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **updateMessage**                            | 🔲 | 🔲 |
 | **updated**                                  | 🔲 | 🔲 |
 | **user**                                     | 🔲 | 🔲 |
-| **userID**                                   | 🔲 | 🔲 |
+| **userID**                                   | ✅ | 🔲 |
 | **userToken**                                | 🔲 | 🔲 |
 | **visible**                                  | 🔲 | 🔲 |
 | **watch**                                    | ✅ | ✅ |
