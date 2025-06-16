@@ -238,6 +238,16 @@ class RoomUnarchiveView(APIView):
         return Response({"status": "ok"})
 
 
+class RoomCooldownView(APIView):
+    """Return cooldown seconds for the given room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        get_object_or_404(Room, uuid=room_uuid)
+        return Response({"cooldown": 0})
+
+
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
     authentication_classes = [SupabaseJWTAuthentication]
