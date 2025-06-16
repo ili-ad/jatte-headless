@@ -3,6 +3,7 @@ export const API = {
   SESSION: '/api/session/',
   ROOMS: '/api/rooms/',
   APP_SETTINGS: '/api/app-settings/',
+  USERS: '/api/users/',
 } as const;
 
 export const EVENTS = {
