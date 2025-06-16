@@ -116,3 +116,15 @@ class MessageDetailView(APIView):
         msg = get_object_or_404(Message, id=message_id)
         msg.delete()
         return Response(status=204)
+
+
+class RoomArchiveView(APIView):
+    """Archive a room by setting its status to CLOSED."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        room.status = Room.CLOSED
+        room.save()
+        return Response({"status": "ok"})

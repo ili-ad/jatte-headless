@@ -5,7 +5,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 |----------------------------------------------|:-------:|:-------:|
 | **_user**                                    | 🔲 | 🔲 |
 | **activeChannels**                           | ✅ | 🔲 |
-| **archive**                                  | 🔲 | 🔲 |
+| **archive**                                  | ✅ | ✅ |
 | **attachmentManager**                        | 🔲 | 🔲 |
 | **axiosInstance**                            | 🔲 | 🔲 |
 | **cid**                                      | ✅ | 🔲 |
