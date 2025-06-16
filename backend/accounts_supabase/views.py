@@ -16,7 +16,7 @@ class SyncUserView(APIView):
     def post(self, request):
         user = request.user
         UserProfile.objects.get_or_create(user=user)
-        return Response({"status": "ok"})
+        return Response({"id": user.id, "username": user.username})
 
 
 class SessionView(APIView):
