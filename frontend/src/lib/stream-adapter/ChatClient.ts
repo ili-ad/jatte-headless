@@ -17,6 +17,7 @@ export class ChatClient {
 
 
     clientID = 'local-dev';
+    private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
     listeners: Record<string, any[]> = {};
@@ -72,7 +73,11 @@ export class ChatClient {
     emit = this.bus.emit.bind(this);
 
     getUserAgent() {
-        return 'custom-chat-client/0.0.1 stream-chat-react-adapter';
+        return this.userAgent;
+    }
+
+    setUserAgent(ua: string) {
+        this.userAgent = ua;
     }
 
     /** Initialize the client for a given user */
