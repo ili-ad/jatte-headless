@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
+from django.utils import timezone
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
@@ -16,13 +17,14 @@ class SyncUserView(APIView):
         return Response({"status": "ok"})
 
 
-class DisconnectUserView(APIView):
+class SessionView(APIView):
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        # For now simply acknowledge the disconnect.
-        return Response({"status": "ok"})
+    def delete(self, request):
+        # Log timestamp for debugging stale tokens
+        print(f"disconnect at {timezone.now()} for {request.user}")
+        return Response(status=204)
 
 
 #---

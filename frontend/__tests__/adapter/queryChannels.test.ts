@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API } from '../../src/lib/stream-adapter/constants';
 
 const originalFetch = global.fetch;
 
@@ -26,7 +27,7 @@ test('queryChannels fetches rooms and updates state', async () => {
   const client = new ChatClient('u1', 'jwt1');
   const channels = await client.queryChannels();
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/', {
+  expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
     headers: { Authorization: 'Bearer jwt1' },
   });
 
