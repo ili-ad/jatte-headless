@@ -241,6 +241,16 @@ export class Channel {
                 setQuotedMessage(msg: Message | undefined) {
                     this.state._set({ quotedMessage: msg });
                 },
+
+                /** Currently edited message, if any */
+                editedMessage: undefined as Message | undefined,
+
+                /** Set the message being edited and sync text composer */
+                setEditedMessage(msg: Message | undefined) {
+                    (this as any).editedMessage = msg;
+                    const text = msg ? msg.text : '';
+                    textStore._set({ text });
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
