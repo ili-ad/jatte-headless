@@ -190,6 +190,15 @@ export class ChatClient {
         return settings;
     }
 
+    /** list of currently active channels */
+    async getActiveChannels() {
+        const res = await fetch(API.ACTIVE_ROOMS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        const rooms = res.ok ? (await res.json() as Room[]) : [];
+        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this));
+    }
+
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
         return new Channel(roomUuid, roomUuid, this);
