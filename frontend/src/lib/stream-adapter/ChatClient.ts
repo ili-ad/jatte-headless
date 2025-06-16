@@ -167,6 +167,17 @@ export class ChatClient {
         return res.ok ? await res.json() as User[] : [];
     }
 
+    /** Fetch the currently authenticated user */
+    async getUser() {
+        const res = await fetch(API.USER, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('user fetch failed');
+        const info = await res.json() as User;
+        (this as any).user = { id: String(info.id) };
+        return info;
+    }
+
     /** fetch global app settings */
     async getAppSettings(): Promise<AppSettings> {
         const res = await fetch(API.APP_SETTINGS, {

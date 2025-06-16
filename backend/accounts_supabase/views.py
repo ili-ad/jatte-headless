@@ -57,6 +57,16 @@ class QueryUsersView(generics.ListAPIView):
         return get_user_model().objects.all()
 
 
+class CurrentUserView(APIView):
+    """Return details for the current authenticated user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({"id": user.id, "username": user.username})
+
+
 #---
 # # accounts/views.py
 # from rest_framework.views import APIView
