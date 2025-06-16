@@ -122,7 +122,7 @@ export class Channel {
                         const localMsg: Message = {
                             id: `local-${Date.now()}`,
                             text: draft,
-                            user_id: channelRef.client.user.id,
+                            user_id: channelRef.client.user.id!,
                             created_at: new Date().toISOString(),
                         };
                         channelRef.bump({
@@ -158,7 +158,7 @@ export class Channel {
                     const localMessage: Message = {
                         id: `local-${Date.now()}`,
                         text,
-                        user_id: channelRef.client.user.id,
+                        user_id: channelRef.client.user.id!,
                         created_at: now,
                     };
 
@@ -245,11 +245,11 @@ export class Channel {
     getConfig() { return { typing_events: true, read_events: true, reactions: true, uploads: true }; }
 
     countUnread() {
-        const me = this._state.read[this.client.user.id];
+        const me = this._state.read[this.client.user.id!];
         return me ? me.unread_messages : 0;
     }
     lastRead() {
-        const me = this._state.read[this.client.user.id];
+        const me = this._state.read[this.client.user.id!];
         return me ? new Date(me.last_read) : undefined;
     }
 
@@ -322,16 +322,18 @@ export class Channel {
                 },
             }).catch(() => { /* network errors ignored */ });
         }
-        this.bump({
-            read: {
-                ...this._state.read,
-                [me]: {
-                    last_read: new Date().toISOString(),
-                    last_read_message_id: lastId,
-                    unread_messages: 0,
+        if (me) {
+            this.bump({
+                read: {
+                    ...this._state.read,
+                    [me]: {
+                        last_read: new Date().toISOString(),
+                        last_read_message_id: lastId,
+                        unread_messages: 0,
+                    },
                 },
-            },
-        });
+            });
+        }
     }
 
 

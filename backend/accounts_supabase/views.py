@@ -2,6 +2,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, serializers
+from django.contrib.auth import get_user_model
 from accounts.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
 from django.utils import timezone
@@ -25,6 +27,21 @@ class SessionView(APIView):
         # Log timestamp for debugging stale tokens
         print(f"disconnect at {timezone.now()} for {request.user}")
         return Response(status=204)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "username"]
+
+
+class QueryUsersView(generics.ListAPIView):
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return get_user_model().objects.all()
 
 
 #---

@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     cfg.resolve.alias ??= {};
     cfg.resolve.alias['@iliad/stream-ui'] = path.resolve(
       __dirname,
-      '../libs/stream-ui/src',
+      './stubs/stream-ui',
     );
     return cfg;
   },

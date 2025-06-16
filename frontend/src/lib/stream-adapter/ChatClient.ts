@@ -2,7 +2,7 @@ import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
-import type { Room, ChatEvents, AppSettings } from './types';
+import type { Room, ChatEvents, AppSettings, User } from './types';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -132,6 +132,14 @@ export class ChatClient {
         );
         this.stateStore._set({ channels: chans });
         return chans;
+    }
+
+    /** fetch list of users */
+    async queryUsers() {
+        const res = await fetch(API.USERS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        return res.ok ? await res.json() as User[] : [];
     }
 
     /** fetch global app settings */
