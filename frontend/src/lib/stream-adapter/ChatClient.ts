@@ -87,6 +87,11 @@ export class ChatClient {
         this.userAgent = ua;
     }
 
+    /** Return the currently connected user's ID, if any */
+    get userID() {
+        return this.userId;
+    }
+
     /** Initialize the client for a given user */
     /**
      * Register a user and emit the same events Stream’s SDK does.
