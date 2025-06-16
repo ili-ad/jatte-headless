@@ -35,7 +35,15 @@ class RoomMessageListCreateView(APIView):
 
     def post(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
-        serializer = MessageSerializer(data=request.data)
+        data = request.data.copy()
+
+        # allow simple "text" payloads from the adapter
+        if "text" in data and "body" not in data:
+            data["body"] = data.pop("text")
+        if "sent_by" not in data:
+            data["sent_by"] = request.user.username
+
+        serializer = MessageSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         message = serializer.save(created_by=request.user)
         room.messages.add(message)
