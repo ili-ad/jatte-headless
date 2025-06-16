@@ -34,4 +34,5 @@ class DeleteMessageAPITests(APITestCase):
         token = self.make_token()
         url = reverse("message-detail", kwargs={"message_id": msg.id})
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
-        self.assertEqual(res.status_code, 405)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["id"], msg.id)
