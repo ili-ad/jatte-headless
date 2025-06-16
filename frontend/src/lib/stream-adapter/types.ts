@@ -4,6 +4,7 @@
 export interface Room {
   uuid: string;
   name?: string;
+  data?: Record<string, unknown>;
 }
 
 /** Minimal message shape our adapter works with */
@@ -12,6 +13,7 @@ export interface Message {
   text: string;
   user_id: string;
   created_at: string;
+  deleted_at?: string;
 }
 
 /** Settings returned by `getAppSettings` */

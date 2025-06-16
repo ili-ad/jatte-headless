@@ -143,8 +143,9 @@ class MessageDetailView(APIView):
 
     def delete(self, request, message_id):
         msg = get_object_or_404(Message, id=message_id)
-        msg.delete()
-        return Response(status=204)
+        msg.deleted_at = timezone.now()
+        msg.save(update_fields=["deleted_at"])
+        return Response(MessageSerializer(msg).data)
 
 
 class MessageRepliesView(APIView):
@@ -178,6 +179,20 @@ class MessageReactionsView(APIView):
             type=serializer.validated_data["type"],
         )
         return Response(ReactionSerializer(reaction).data, status=201)
+
+
+class ReactionDetailView(APIView):
+    """Delete a single reaction."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id, reaction_id):
+        reaction = get_object_or_404(
+            Reaction, id=reaction_id, message_id=message_id
+        )
+        reaction.delete()
+        return Response(status=204)
 
 
 class PollOptionCreateView(APIView):
