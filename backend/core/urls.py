@@ -9,5 +9,5 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
     path('api/app-settings/', views.get_app_settings, name='app-settings'),
-    path('api/user-agent/', views.get_user_agent, name='user-agent'),
+    path('api/user-agent-echo/', views.get_user_agent, name='user-agent'),
 ]
