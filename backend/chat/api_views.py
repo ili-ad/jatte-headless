@@ -146,3 +146,15 @@ class RoomArchiveView(APIView):
         room.save()
         return Response({"status": "ok"})
 
+
+class RoomUnarchiveView(APIView):
+    """Reopen a previously archived room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        room.status = Room.ACTIVE
+        room.save()
+        return Response({"status": "ok"})
+
