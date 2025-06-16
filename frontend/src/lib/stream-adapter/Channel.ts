@@ -446,6 +446,15 @@ export class Channel {
         return await res.json();
     }
 
+    /** Fetch reactions for a given message */
+    async queryReactions(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('queryReactions failed');
+        return await res.json() as any[];
+    }
+
     /** Fetch replies to a given message */
     async getReplies(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
