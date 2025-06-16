@@ -51,3 +51,14 @@ class RoomMessageListCreateView(APIView):
 
 
 # New Stream Chat API endpoints below
+
+
+class RoomMarkReadView(APIView):
+    """Mark all messages in a room as read for the current user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        get_object_or_404(Room, uuid=room_uuid)
+        # For now we simply acknowledge the request without storing state.
+        return Response({"status": "ok"})
