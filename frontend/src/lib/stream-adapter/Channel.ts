@@ -2,6 +2,7 @@ import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import type { Message, ChatEvents } from './types';   // ⬅ add this
 import { ChatClient } from './ChatClient';
+import { API, EVENTS } from './constants';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -128,7 +129,7 @@ export class Channel {
                             messages: [...channelRef.state.messages, localMsg],
                             latestMessages: [...channelRef.state.latestMessages.slice(-49), localMsg],
                         });
-                        channelRef.emitter.emit('message.new', { type: 'message.new', message: localMsg });
+                        channelRef.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: localMsg });
 
                         /* 🔸 fire the real network request (no await needed for UX) */
                         channelRef.sendMessage({ text: draft })
@@ -259,7 +260,7 @@ export class Channel {
 
         /* initial history + read row */
         try {
-            const res = await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
+            const res = await fetch(`${API.ROOMS}${this.roomUuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -298,7 +299,7 @@ export class Channel {
                             messages: [...this._state.messages, msg],
                             latestMessages: [...this._state.latestMessages.slice(-49), msg], // keep last 50
                         });
-                        this.emitter.emit('message.new', { type: 'message.new', message: msg });
+                        this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
                         break;
                     }
                     case 'typing.start':
@@ -326,9 +327,9 @@ export class Channel {
     }
 
 
-    /** Network-level send that also updates local state & fires message.new */
+    /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
+        const res = await fetch(`${API.ROOMS}${this.roomUuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -348,7 +349,7 @@ export class Channel {
         });
 
         /* global bus notify */
-        this.client.emit('message.new', { message: msg });
+        this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
 
         return msg;        
     }

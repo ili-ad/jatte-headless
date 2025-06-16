@@ -1,8 +1,8 @@
 import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
-import type { Room } from './types';
-import type { ChatEvents } from './types';
+import { API, EVENTS } from './constants';
+import type { Room, ChatEvents, AppSettings } from './types';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -21,8 +21,9 @@ export class ChatClient {
     mutedChannels: unknown[] = [];
     listeners: Record<string, any[]> = {};
 
-    /** global store Stream-UI subscribes to */
+    /** global stores Stream-UI subscribes to */
     readonly stateStore = new MiniStore({ channels: [] as Channel[] });
+    readonly settingsStore = new MiniStore<AppSettings | null>(null);
     private bus = mitt();
 
     /* feature-module placeholders Stream-UI imports & tears-down */
@@ -83,7 +84,7 @@ export class ChatClient {
         this.userId = user.id;
         this.jwt = token;
         (this as any).user = { id: user.id };
-        const res = await fetch('/api/sync-user/', {
+        const res = await fetch(API.SYNC_USER, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -98,8 +99,8 @@ export class ChatClient {
     disconnectUser() {
         const token = this.jwt;
         if (token) {
-            fetch('/api/disconnect-user/', {
-                method: 'POST',
+            fetch(API.SESSION, {
+                method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
             }).catch(() => { /* ignore network errors */ });
         }
@@ -116,7 +117,7 @@ export class ChatClient {
 
     /** fetch list of channels for <ChannelList> */
     async queryChannels() {
-        const res = await fetch('/api/rooms/', {
+        const res = await fetch(API.ROOMS, {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
@@ -129,12 +130,15 @@ export class ChatClient {
     }
 
     /** fetch global app settings */
-    async getAppSettings() {
-        const res = await fetch('/api/app-settings/', {
+    async getAppSettings(): Promise<AppSettings> {
+        const res = await fetch(API.APP_SETTINGS, {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         if (!res.ok) throw new Error('getAppSettings failed');
-        return res.json();
+        const settings: AppSettings = await res.json();
+        this.settingsStore._set(settings);
+        this.emit(EVENTS.SETTINGS_UPDATED, settings);
+        return settings;
     }
 
     /** create / retrieve single channel for <Channel channel={…}> */

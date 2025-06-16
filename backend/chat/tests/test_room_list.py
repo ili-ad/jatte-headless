@@ -21,3 +21,14 @@ class RoomListAPITests(APITestCase):
         self.assertEqual(len(res.data), 2)
         uuids = {room["uuid"] for room in res.data}
         self.assertEqual(uuids, {"r1", "r2"})
+
+    def test_room_list_requires_auth(self):
+        url = reverse("room-list")
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 403)
+
+    def test_room_list_wrong_method(self):
+        token = self.make_token()
+        url = reverse("room-list")
+        res = self.client.delete(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 405)
