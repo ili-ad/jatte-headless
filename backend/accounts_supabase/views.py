@@ -29,6 +29,19 @@ class SessionView(APIView):
         return Response(status=204)
 
 
+class UserAgentView(APIView):
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request.session['user_agent'] = request.data.get('user_agent', '')
+        return Response({"status": "ok"})
+
+    def get(self, request):
+        ua = request.session.get('user_agent')
+        return Response({"user_agent": ua})
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()

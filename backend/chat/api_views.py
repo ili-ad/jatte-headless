@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
@@ -116,6 +117,17 @@ class MessageDetailView(APIView):
         msg = get_object_or_404(Message, id=message_id)
         msg.delete()
         return Response(status=204)
+
+
+class MessageRepliesView(APIView):
+    """Return replies to a given message."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, message_id):
+        parent = get_object_or_404(Message, id=message_id)
+        serializer = MessageSerializer(parent.replies.all(), many=True)
+        return Response(serializer.data)
 
 class RoomConfigView(APIView):
     """Return configuration flags for the given room."""

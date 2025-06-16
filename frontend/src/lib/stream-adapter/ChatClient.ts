@@ -85,6 +85,16 @@ export class ChatClient {
 
     setUserAgent(ua: string) {
         this.userAgent = ua;
+        if (this.jwt) {
+            fetch(API.USER_AGENT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${this.jwt}`,
+                },
+                body: JSON.stringify({ user_agent: ua }),
+            }).catch(() => { /* ignore network errors */ });
+        }
     }
 
     /** Return the currently connected user's ID, if any */
