@@ -4,7 +4,7 @@ import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
 
 const randomId = () => Math.random().toString(36).slice(2);
-import type { Room, ChatEvents, AppSettings, User } from './types';
+import type { Room, ChatEvents, AppSettings, User, Message } from './types';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -106,6 +106,20 @@ export class ChatClient {
     on = this.bus.on as any;
     off = this.bus.off as any;
     emit = this.bus.emit.bind(this);
+
+    /**
+     * Manually dispatch an event to this client and its channels.
+     * Only a tiny subset of Stream events is supported.
+     */
+    dispatchEvent(event: { type: string; cid?: string; message?: Message; user_id?: string }) {
+        if (event.cid) {
+            const chan = this.activeChannels[event.cid];
+            if (chan && typeof (chan as any).dispatchEvent === 'function') {
+                (chan as any).dispatchEvent(event);
+            }
+        }
+        this.emit(event.type as any, event as any);
+    }
 
     private buildHeaders(extra: Record<string, string> = {}) {
         return this.jwt ? { Authorization: `Bearer ${this.jwt}`, ...extra } : extra;
