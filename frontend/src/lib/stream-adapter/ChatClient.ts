@@ -23,7 +23,6 @@ export class ChatClient {
     clientID: string;
     /** Unique ID for the current connection (null until connected) */
     connectionId: string | null = null;
-    main
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
@@ -86,6 +85,11 @@ export class ChatClient {
 
     setUserAgent(ua: string) {
         this.userAgent = ua;
+    }
+
+    /** Return the currently connected user's ID, if any */
+    get userID() {
+        return this.userId;
     }
 
     /** Initialize the client for a given user */
