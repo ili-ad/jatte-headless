@@ -169,7 +169,7 @@ export class Channel {
                 async sendMessage(
                     _localMessage: Message,
                     message: Message,
-                    _sendOptions: any,
+                    _opts: unknown,
                 ) {
                     /* optimistic echo already done in textComposer.submit() */
                     await channelRef.sendMessage({ text: message.text });
@@ -265,10 +265,12 @@ export class Channel {
             if (res.ok) {
                 const first: Message[] = await res.json();
                 const me = this.client.user.id;
+                if (!me) return;
                 this.bump({
                     messages: first,
                     latestMessages: first,                   // 🔹 keep mirror
                     read: {
+                        ...this._state.read,
                         [me]: {
                             last_read: new Date().toISOString(),
                             last_read_message_id: first.at(-1)?.id,
@@ -324,8 +326,9 @@ export class Channel {
     }
 
 
+    /** Network-level send that also updates local state & fires message.new */
     async sendMessage({ text }: { text: string }) {
-        await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -333,6 +336,21 @@ export class Channel {
             },
             body: JSON.stringify({ text }),
         });
+
+        if (!res.ok) throw new Error('sendMessage failed');
+
+        const msg = await res.json() as Message;
+
+        /* push to state */
+        this.bump({
+            messages: [...this._state.messages, msg],
+            latestMessages: [...this._state.latestMessages.slice(-49), msg],
+        });
+
+        /* global bus notify */
+        this.client.emit('message.new', { message: msg });
+
+        return msg;        
     }
 
     /* event helpers */
