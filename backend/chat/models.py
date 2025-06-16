@@ -42,3 +42,14 @@ class Room(models.Model):
     
     def __str__(self):
         return f'{self.client} - {self.uuid}'
+
+
+class ReadState(models.Model):
+    """Track the last read timestamp per user per room."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    last_read = models.DateTimeField()
+
+    class Meta:
+        unique_together = ("user", "room")
