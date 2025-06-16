@@ -38,11 +38,11 @@ export class Channel {
         /* ──────────────── messageComposer shim ──────────────── */
         messageComposer: (() => {
             const channelRef = this;                         // capture parent
-            const roomKey = `draft:${channelRef.cid}`;
+            const getRoomKey = () => `draft:${channelRef.roomUuid}`;
 
             /* load any previously‑saved draft */
             const loadDraft = () => {
-                try { return localStorage.getItem(roomKey) ?? ''; }
+                try { return localStorage.getItem(getRoomKey()) ?? ''; }
                 catch { return ''; }
             };
 
@@ -137,7 +137,7 @@ export class Channel {
 
                         /* clear draft + saved localStorage copy */
                         this.clear();
-                        localStorage.removeItem(roomKey);
+                        localStorage.removeItem(getRoomKey());
                     },
                 },  /* ← end of textComposer */
 
@@ -188,7 +188,7 @@ export class Channel {
                 registerSubscriptions() { return () => { }; },
                 createDraft() {
                     const text = textStore.getSnapshot().text;
-                    localStorage.setItem(roomKey, text);
+                    localStorage.setItem(getRoomKey(), text);
                     const token = channelRef.client['jwt'];
                     if (token) {
                         fetch(`/api/rooms/${channelRef.roomUuid}/draft/`, {
@@ -201,7 +201,7 @@ export class Channel {
                         }).catch(() => { /* ignore network errors */ });
                     }
                 },
-                discardDraft() { localStorage.removeItem(roomKey); },
+                discardDraft() { localStorage.removeItem(getRoomKey()); },
 
                 // pollComposer: {
                 // state: new MiniStore({            // shape is all Stream-UI needs

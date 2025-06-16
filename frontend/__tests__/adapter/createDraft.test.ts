@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API } from '../../src/lib/stream-adapter/constants';
 
 let setItemSpy: any;
 const originalFetch = global.fetch;
@@ -25,8 +26,8 @@ test('createDraft saves current text to localStorage and posts draft', () => {
   channel.messageComposer.textComposer.setText('draft message');
 
   channel.messageComposer.createDraft();
-  expect(setItemSpy).toHaveBeenCalledWith('draft:undefined', 'draft message');
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/draft/', {
+  expect(setItemSpy).toHaveBeenCalledWith('draft:room1', 'draft message');
+  expect(global.fetch).toHaveBeenCalledWith(`${API.ROOMS}room1/draft/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
