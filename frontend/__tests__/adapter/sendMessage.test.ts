@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API, EVENTS } from '../../src/lib/stream-adapter/constants';
 
 const originalFetch = global.fetch;
 
@@ -22,11 +23,11 @@ test('sendMessage posts message, updates state, and emits event', async () => {
   const channel = client.channel('messaging', 'room1');
 
   const eventSpy = vi.fn();
-  client.on('message.new', eventSpy);
+  client.on(EVENTS.MESSAGE_NEW, eventSpy);
 
   await channel.sendMessage({ text: 'hello' });
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/messages/', {
+  expect(global.fetch).toHaveBeenCalledWith(`${API.ROOMS}room1/messages/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
