@@ -4,6 +4,7 @@ export const API = {
   ROOMS: '/api/rooms/',
   MESSAGES: '/api/messages/',
   APP_SETTINGS: '/api/app-settings/',
+  MARK_UNREAD: '/api/rooms/',
   USERS: '/api/users/',
 } as const;
 

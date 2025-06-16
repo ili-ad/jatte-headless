@@ -242,7 +242,13 @@ export class Channel {
 
     /* ─── getters Stream-UI expects ─── */
     get state() { return this._state; }
-    getConfig() { return { typing_events: true, read_events: true, reactions: true, uploads: true }; }
+    async getConfig() {
+        const res = await fetch(`${API.ROOMS}${this.roomUuid}/config/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('getConfig failed');
+        return await res.json();
+    }
 
     countUnread() {
         const me = this._state.read[this.client.user.id!];
@@ -391,6 +397,15 @@ export class Channel {
             messages: this._state.messages.filter(m => m.id !== messageId),
             latestMessages: this._state.latestMessages.filter(m => m.id !== messageId),
         });
+    }
+
+    /** Archive this channel */
+    async archive() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/archive/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('archive failed');
     }
 
     /* event helpers */
