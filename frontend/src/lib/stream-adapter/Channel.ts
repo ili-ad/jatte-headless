@@ -227,6 +227,7 @@ export class Channel {
                     multipleUploads: true,
                     isUploadEnabled: true,
                 }),
+                get config() { return this.configState.getLatestValue(); },
 
                 /* ——— simple passthrough helpers ——— */
                 getInputValue() { return textStore.getSnapshot().text; },

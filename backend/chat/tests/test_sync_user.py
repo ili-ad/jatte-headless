@@ -13,6 +13,7 @@ class SyncUserAPITests(APITestCase):
         url = reverse("sync-user")
         response = self.client.post(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["username"], "u1")
         self.assertTrue(CustomUser.objects.filter(username="u1").exists())
         user = CustomUser.objects.get(username="u1")
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
