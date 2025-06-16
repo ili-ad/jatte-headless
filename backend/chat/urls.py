@@ -13,6 +13,7 @@ from .api_views import (
     MessageRepliesView,
     RoomArchiveView,
     RoomUnarchiveView,
+    ActiveRoomListView,
 )
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ router = DefaultRouter()
 
 urlpatterns = [
     path("api/rooms/", RoomListCreateView.as_view(), name="room-list"),
+    path("api/rooms/active/", ActiveRoomListView.as_view(), name="active-rooms"),
     path("api/rooms/<str:uuid>/", RoomDetailView.as_view(), name="room-detail"),
     path(
         "api/rooms/<str:room_uuid>/messages/",
