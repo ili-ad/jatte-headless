@@ -180,6 +180,20 @@ export class Channel {
                     return this.textComposer.state.getSnapshot().text.trim() === '';
                 },
 
+                /* 2️⃣  Check if any payload (text, attachment, poll, custom) is present */
+                get hasSendableData() {
+                    const text = this.textComposer.state.getSnapshot().text.trim();
+                    const atts = this.attachmentManager.state.getSnapshot().attachments;
+                    const poll = this.pollComposer.state.getSnapshot().poll;
+                    const custom = this.customDataManager.state.getSnapshot().customData;
+                    return (
+                        text !== '' ||
+                        atts.length > 0 ||
+                        !!poll ||
+                        Object.keys(custom).length > 0
+                    );
+                },
+
                 /* 2️⃣  Build the composition object that <MessageInput> expects */
                 async compose() {
                     if (this.compositionIsEmpty) return undefined;
@@ -308,6 +322,9 @@ export class Channel {
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
     get messages() { return this._state.messages; }
+
+    /** Whether this channel is hidden */
+    get hidden() { return !!this.data.hidden; }
 
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
@@ -541,6 +558,26 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('unarchive failed');
+    }
+
+    /** Hide this channel */
+    async hide() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/hide/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('hide failed');
+        this.data.hidden = true;
+    }
+
+    /** Show this channel */
+    async show() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/show/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('show failed');
+        this.data.hidden = false;
     }
 
     /** Fetch cooldown value for this channel */
