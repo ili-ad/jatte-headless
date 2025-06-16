@@ -12,10 +12,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('sendMessage posts message to API', async () => {
-  (global.fetch as any).mockResolvedValue({ ok: true });
+test('sendMessage posts message, updates state, and emits event', async () => {
+  (global.fetch as any).mockResolvedValue({
+    ok: true,
+    json: async () => ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-06-15T00:00:00Z' }),
+  });
+
   const client = new ChatClient('u1', 'jwt1');
   const channel = client.channel('messaging', 'room1');
+
+  const eventSpy = vi.fn();
+  client.on('message.new', eventSpy);
 
   await channel.sendMessage({ text: 'hello' });
 
@@ -27,4 +34,7 @@ test('sendMessage posts message to API', async () => {
     },
     body: JSON.stringify({ text: 'hello' }),
   });
+
+  expect(eventSpy).toHaveBeenCalledTimes(1);
+  expect(eventSpy.mock.calls[0][0].message.text).toBe('hello');
 });
