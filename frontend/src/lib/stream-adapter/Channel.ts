@@ -336,6 +336,21 @@ export class Channel {
         }
     }
 
+    async markUnread() {
+        const me = this.client.user.id;
+        if (me) {
+            fetch(`/api/rooms/${this.roomUuid}/mark_unread/`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${this.client['jwt']}`,
+                },
+            }).catch(() => { /* network errors ignored */ });
+
+            const { [me]: _removed, ...rest } = this._state.read;
+            this.bump({ read: rest });
+        }
+    }
+
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
