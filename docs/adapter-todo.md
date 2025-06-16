@@ -8,7 +8,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **archive**                                  | 🔲 | 🔲 |
 | **attachmentManager**                        | 🔲 | 🔲 |
 | **axiosInstance**                            | 🔲 | 🔲 |
-| **channel**                                  | 🔲 | 🔲 |
+| **channel**                                  | ✅ | 🔲 |
 | **cid**                                      | 🔲 | 🔲 |
 | **clear**                                    | 🔲 | 🔲 |
 | **clientID**                                 | ✅ | 🔲 |
