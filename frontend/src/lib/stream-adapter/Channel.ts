@@ -486,6 +486,16 @@ export class Channel {
         return await res.json();
     }
 
+    /** Flag a message for moderation */
+    async flagMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/flag/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('flagMessage failed');
+        return await res.json();
+    }
+
     /** Fetch reactions for a given message */
     async queryReactions(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
@@ -493,7 +503,7 @@ export class Channel {
         });
         if (!res.ok) throw new Error('queryReactions failed');
         return await res.json() as any[];
-
+    }
     /** Delete a reaction */
     async deleteReaction(messageId: string, reactionId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
@@ -501,6 +511,7 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('deleteReaction failed');
+
     }
 
     /** Fetch replies to a given message */

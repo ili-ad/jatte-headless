@@ -37,7 +37,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **editedMessage**                            | ✅ | ✅ |
 | **editingAuditState**                        | ✅ | 🔲 |
 | **event**                                    | ✅ | ✅ |
-| **flagMessage**                              | 🔲 | 🔲 |
+| **flagMessage**                              | ✅ | ✅ |
 | **getAppSettings**                           | ✅ | ✅ |
 | **getClient**                                | ✅ | 🔲 |
 | **getConfig**                                | ✅ | ✅ |

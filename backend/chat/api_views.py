@@ -6,13 +6,14 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag
 from .serializers import (
     RoomSerializer,
     MessageSerializer,
     NotificationSerializer,
     ReactionSerializer,
     PollOptionSerializer,
+    FlagSerializer,
 )
 
 
@@ -204,11 +205,31 @@ class MessageReactionsView(APIView):
         return Response(ReactionSerializer(reaction).data, status=201)
 
 
+
+class MessageFlagView(APIView):
+    """Flag a message for moderation."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        flag, _ = Flag.objects.get_or_create(message=msg, user=request.user)
+        return Response({"flag": FlagSerializer(flag).data}, status=201)    
+
+      
+      
 class ReactionDetailView(APIView):
     """Delete a single reaction."""
 
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        flag, _ = Flag.objects.get_or_create(message=msg, user=request.user)
+        return Response({"flag": FlagSerializer(flag).data}, status=201)
 
     def delete(self, request, message_id, reaction_id):
         reaction = get_object_or_404(
@@ -216,6 +237,7 @@ class ReactionDetailView(APIView):
         )
         reaction.delete()
         return Response(status=204)
+
 
 
 class PollOptionCreateView(APIView):
