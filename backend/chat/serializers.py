@@ -10,6 +10,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "body",
             "sent_by",
             "created_at",
+            "custom_data",
             "created_by",
             "reply_to",
         ]
