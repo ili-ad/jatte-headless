@@ -408,6 +408,15 @@ export class Channel {
         if (!res.ok) throw new Error('archive failed');
     }
 
+    /** Unarchive this channel */
+    async unarchive() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/unarchive/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('unarchive failed');
+    }
+
     /* event helpers */
     on = this.emitter.on as any;
     off = this.emitter.off as any;
