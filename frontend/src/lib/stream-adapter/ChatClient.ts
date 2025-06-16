@@ -2,6 +2,8 @@ import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
+
+const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -16,7 +18,7 @@ export class ChatClient {
     /** Populated by connectUser, nulled by disconnectUser */
 
 
-    clientID = 'local-dev';
+    clientID: string;
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
@@ -44,6 +46,7 @@ export class ChatClient {
         private jwt: string | null = null,
     ) {
         this.user = { id: userId };
+        this.clientID = randomId();
 
         /* no-op stubs keep Stream-UI happy */
         this.threads = this.polls = {
@@ -89,6 +92,7 @@ export class ChatClient {
         this.userId = user.id;
         this.jwt = token;
         (this as any).user = { id: user.id };
+        this.clientID = `${user.id}--${randomId()}`;
         const res = await fetch(API.SYNC_USER, {
             method: 'POST',
             headers: {
