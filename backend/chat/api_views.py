@@ -52,6 +52,14 @@ class RoomMessageListCreateView(APIView):
         if "sent_by" not in data:
             data["sent_by"] = request.user.username
 
+        event = data.pop("event", None)
+        if event is not None:
+            cd = data.get("custom_data", {}) or {}
+            if not isinstance(cd, dict):
+                cd = {}
+            cd["event"] = event
+            data["custom_data"] = cd
+
         serializer = MessageSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         message = serializer.save(created_by=request.user)
