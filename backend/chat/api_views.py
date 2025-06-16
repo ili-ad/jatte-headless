@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState
+from .models import Room, Message, ReadState, Draft
 from .serializers import RoomSerializer, MessageSerializer
 
 
@@ -106,6 +106,27 @@ class RoomLastReadView(APIView):
         state = ReadState.objects.filter(user=request.user, room=room).first()
         last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
+
+
+class RoomDraftView(APIView):
+    """Save and retrieve message drafts."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        text = request.data.get("text", "")
+        Draft.objects.update_or_create(
+            user=request.user,
+            room=room,
+            defaults={"text": text},
+        )
+        return Response({"status": "ok"})
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        draft = Draft.objects.filter(user=request.user, room=room).first()
+        return Response({"text": draft.text if draft else ""})
 
 
 class MessageDetailView(APIView):

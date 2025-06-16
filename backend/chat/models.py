@@ -56,3 +56,15 @@ class ReadState(models.Model):
 
     class Meta:
         unique_together = ("user", "room")
+
+
+class Draft(models.Model):
+    """Store message drafts per user and room."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    text = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "room")
