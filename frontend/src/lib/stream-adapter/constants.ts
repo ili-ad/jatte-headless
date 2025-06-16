@@ -8,7 +8,7 @@ export const API = {
   MARK_UNREAD: '/api/rooms/',
   USERS: '/api/users/',
   USER: '/api/user/',
-  USER_AGENT: '/api/user-agent-auth/',
+  USER_AGENT: '/api/user-agent/',
 } as const;
 
 export const EVENTS = {
