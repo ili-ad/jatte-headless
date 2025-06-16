@@ -13,6 +13,8 @@ import type { Room, ChatEvents, AppSettings, User } from './types';
 export class ChatClient {
     // `id` will be filled by connectUser; start blank
     readonly user: { id: string | null };
+    /** copy of the full user object returned from backend */
+    _user: User | null = null;
     private emitter = mitt<ChatEvents>();
     /* ---------- fields Stream-UI pokes at ---------- */
     /** Populated by connectUser, nulled by disconnectUser */
@@ -73,6 +75,7 @@ export class ChatClient {
         private jwt: string | null = null,
     ) {
         this.user = { id: userId };
+        if (userId) this._user = { id: userId } as any;
         this.clientID = randomId();
 
         /* no-op stubs keep Stream-UI happy */
@@ -152,6 +155,8 @@ export class ChatClient {
 
         });
         if (!res.ok) throw new Error('sync-user failed');
+        const body = await res.json().catch(() => null);
+        if (body) this._user = body;
         this.connectionId = crypto.randomUUID();
         this.emit('connection.changed', { online: true });
     }
@@ -169,6 +174,7 @@ export class ChatClient {
         this.activeChannels = {};
         this.stateStore._set({ channels: [] });
         delete (this as any).user;
+        this._user = null;
         this.userId = null;
         this.jwt = null;
         this.connectionId = null;
@@ -207,6 +213,7 @@ export class ChatClient {
         if (!res.ok) throw new Error('user fetch failed');
         const info = await res.json() as User;
         (this as any).user = { id: String(info.id) };
+        this._user = info;
         return info;
     }
 
