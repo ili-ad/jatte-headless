@@ -69,6 +69,17 @@ class RoomMarkReadView(APIView):
         return Response({"status": "ok"})
 
 
+class RoomMarkUnreadView(APIView):
+    """Clear the read state for the current user in a room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        ReadState.objects.filter(user=request.user, room=room).delete()
+        return Response({"status": "ok"})
+
+
 class RoomCountUnreadView(APIView):
     """Return number of unread messages for the current user in a room."""
     authentication_classes = [SupabaseJWTAuthentication]
