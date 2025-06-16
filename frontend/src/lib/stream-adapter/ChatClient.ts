@@ -203,4 +203,9 @@ export class ChatClient {
     channel(_: 'messaging', roomUuid: string) {
         return new Channel(roomUuid, roomUuid, this);
     }
+
+    /** Return this client instance */
+    getClient() {
+        return this;
+    }
 }
