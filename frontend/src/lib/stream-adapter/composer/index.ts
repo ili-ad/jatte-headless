@@ -25,7 +25,19 @@ export const buildMessageComposer = (channelRef:any) => {
     textComposer,
     /* simple proxies */
     get compositionIsEmpty(){ return textComposer.state.getSnapshot().text.trim()==='' },
-    async compose(){ /* keep previous compose() implementation here */ },
+    async compose(){
+      if(this.compositionIsEmpty) return undefined;
+
+      const text=textComposer.state.getSnapshot().text.trim();
+      const now=new Date().toISOString();
+      const localMessage={
+        id:`local-${Date.now()}`,
+        text,
+        user_id:channelRef.client.user.id!,
+        created_at:now,
+      };
+      return { localMessage, message: localMessage, sendOptions:{} };
+    },
     async sendMessage(_loc:any,msg:any){ await channelRef.sendMessage({ text: msg.text }); },
 
     submit(){ textComposer.clear(); /* will be wired in Channel.ts*/ },
