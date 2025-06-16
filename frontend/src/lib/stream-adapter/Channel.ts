@@ -32,6 +32,7 @@ export class Channel {
                 user?: { id: string };
             }
         >,
+        members: {} as Record<string, { user: { id: string } }>,
 
         /* stub so <MessageInput> works */
         /* stub so <MessageInput> works */
@@ -306,6 +307,8 @@ export class Channel {
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
     get messages() { return this._state.messages; }
+    /** Return current members map */
+    get members() { return this._state.members; }
 
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
@@ -352,6 +355,16 @@ export class Channel {
                         }
                     },
                 });
+            }
+
+            const memRes = await fetch(`${API.ROOMS}${this.roomUuid}/members/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (memRes.ok) {
+                const list = await memRes.json() as { id: string }[];
+                const map: Record<string, { user: { id: string } }> = {};
+                for (const m of list) map[m.id] = { user: { id: m.id } };
+                this.bump({ members: map });
             }
 
         } catch {/* fine for MVP */ }
