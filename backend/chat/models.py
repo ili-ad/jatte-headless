@@ -94,6 +94,18 @@ class Reaction(models.Model):
         unique_together = ("message", "user", "type")
 
 
+class Flag(models.Model):
+    """User flag for a message."""
+
+    message = models.ForeignKey(Message, related_name="flags", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        unique_together = ("message", "user")
+
+
 class PollOption(models.Model):
     """Poll option suggestion tied to a poll id."""
 

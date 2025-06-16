@@ -12,6 +12,7 @@ from .api_views import (
     MessageDetailView,
     MessageRepliesView,
     MessageReactionsView,
+    MessageFlagView,
     RoomArchiveView,
     RoomUnarchiveView,
     RoomCooldownView,
@@ -93,6 +94,11 @@ urlpatterns = [
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
         name="message-reactions",
+    ),
+    path(
+        "api/messages/<int:message_id>/flag/",
+        MessageFlagView.as_view(),
+        name="message-flag",
     ),
     path(
         "api/polls/<str:poll_id>/options/",
