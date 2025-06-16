@@ -12,7 +12,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **channel**                                  | ✅ | ✅ |
 | **clear**                                    | 🔲 | 🔲 |
 | **clientID**                                 | ✅ | 🔲 |
-| **compose**                                  | 🔲 | 🔲 |
+| **compose**                                  | ✅ | 🔲 |
 | **compositionIsEmpty**                       | ✅ | 🔲 |
 | **config**                                   | ✅ | 🔲 |
 | **configState**                              | 🔲 | 🔲 |
@@ -24,12 +24,12 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **createDraft**                              | ✅ | ✅ |
 | **createPollOption**                         | ✅ | ✅ |
 | **customDataManager**                        | ✅ | ✅ |
-| **data**                                     | 🔲 | 🔲 |
+| **data**                                     | ✅ | ✅ |
 | **deleteMessage**                            | ✅ | ✅ |
-| **deleteReaction**                           | 🔲 | 🔲 |
-| **deleted**                                  | 🔲 | 🔲 |
+| **deleteReaction**                           | ✅ | ✅ |
+| **deleted**                                  | ✅ | ✅ |
 | **disconnectUser**                           | ✅ | ✅ |
-| **disconnected**                             | 🔲 | 🔲 |
+| **disconnected**                             | ✅ | 🔲 |
 | **dispatchEvent**                            | ✅ | 🔲 |
 | **draft**                                    | 🔲 | 🔲 |
 | **editedMessage**                            | 🔲 | 🔲 |
