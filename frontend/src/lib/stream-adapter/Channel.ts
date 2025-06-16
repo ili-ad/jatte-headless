@@ -11,7 +11,7 @@ import { API, EVENTS } from './constants';
 export class Channel {
     readonly id: string;
     readonly cid: string;
-    readonly data: { name: string };
+    data: { name: string } & Record<string, unknown>;
 
     private socket?: WebSocket;
     private emitter = mitt<ChatEvents>();
@@ -257,10 +257,11 @@ export class Channel {
         private roomUuid: string,
         roomName: string,
         private client: ChatClient,
+        extraData: Record<string, unknown> = {},
     ) {
         this.id = roomUuid;
         this.cid = `messaging:${roomUuid}`;
-        this.data = { name: roomName };
+        this.data = { name: roomName, ...extraData };
     }
 
     /* ─── getters Stream-UI expects ─── */
@@ -445,6 +446,15 @@ export class Channel {
         });
         if (!res.ok) throw new Error('sendReaction failed');
         return await res.json();
+    }
+
+    /** Delete a reaction */
+    async deleteReaction(messageId: string, reactionId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('deleteReaction failed');
     }
 
     /** Fetch replies to a given message */

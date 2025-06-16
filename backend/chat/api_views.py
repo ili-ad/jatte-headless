@@ -181,6 +181,20 @@ class MessageReactionsView(APIView):
         return Response(ReactionSerializer(reaction).data, status=201)
 
 
+class ReactionDetailView(APIView):
+    """Delete a single reaction."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id, reaction_id):
+        reaction = get_object_or_404(
+            Reaction, id=reaction_id, message_id=message_id
+        )
+        reaction.delete()
+        return Response(status=204)
+
+
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
 

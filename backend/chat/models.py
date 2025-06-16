@@ -39,6 +39,7 @@ class Room(models.Model):
     agent = models.ForeignKey(User, related_name='rooms', blank=True, null=True, on_delete=models.SET_NULL)
     messages = models.ManyToManyField(Message, blank=True)
     url = models.CharField(max_length=255, blank=True, null=True)
+    data = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=CHOICES_STATUS, default=WAITING)
     created_at = models.DateTimeField(auto_now_add=True)
 

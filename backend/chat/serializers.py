@@ -34,6 +34,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "agent",
             "messages",
             "url",
+            "data",
             "status",
             "created_at",
         ]
