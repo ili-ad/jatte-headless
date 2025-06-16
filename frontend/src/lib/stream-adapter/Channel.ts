@@ -279,6 +279,24 @@ export class Channel {
                     const text = msg ? msg.text : '';
                     textStore._set({ text });
                 },
+
+                /** Reset composer state optionally from an existing message */
+                initState({ composition }: { composition?: Message } = {}) {
+                    this.attachmentManager.state._set({ attachments: [] });
+                    this.linkPreviewsManager.state._set({ previews: [] });
+                    this.pollComposer.state._set({ poll: undefined as any });
+                    this.customDataManager.clear();
+                    this.state._set({ quotedMessage: undefined });
+                    this.editingAuditState._set({
+                        lastChange: { draftUpdate: null, stateUpdate: Date.now() },
+                    });
+                    this.textComposer.clear();
+                    if (composition) {
+                        this.setEditedMessage(composition);
+                    } else {
+                        this.setEditedMessage(undefined);
+                    }
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
