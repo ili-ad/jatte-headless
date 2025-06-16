@@ -24,7 +24,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **createDraft**                              | ✅ | ✅ |
 | **createPollOption**                         | ✅ | ✅ |
 | **customDataManager**                        | ✅ | ✅ |
-| **data**                                     | 🔲 | 🔲 |
+| **data**                                     | ✅ | ✅ |
 | **deleteMessage**                            | ✅ | ✅ |
 | **deleteReaction**                           | 🔲 | 🔲 |
 | **deleted**                                  | 🔲 | 🔲 |

@@ -11,7 +11,7 @@ import { API, EVENTS } from './constants';
 export class Channel {
     readonly id: string;
     readonly cid: string;
-    readonly data: { name: string };
+    data: { name: string } & Record<string, unknown>;
 
     private socket?: WebSocket;
     private emitter = mitt<ChatEvents>();
@@ -257,10 +257,11 @@ export class Channel {
         private roomUuid: string,
         roomName: string,
         private client: ChatClient,
+        extraData: Record<string, unknown> = {},
     ) {
         this.id = roomUuid;
         this.cid = `messaging:${roomUuid}`;
-        this.data = { name: roomName };
+        this.data = { name: roomName, ...extraData };
     }
 
     /* ─── getters Stream-UI expects ─── */

@@ -191,7 +191,7 @@ export class ChatClient {
         const rooms = res.ok ? (await res.json() as Room[]) : [];
 
         const chans = rooms.map(
-            r => new Channel(r.uuid, r.name ?? r.uuid, this),
+            r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}),
         );
         this.stateStore._set({ channels: chans });
         return chans;
@@ -246,7 +246,7 @@ export class ChatClient {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
-        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this));
+        return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this, r.data || {}));
     }
 
     /** Create a poll option */
@@ -265,7 +265,7 @@ export class ChatClient {
 
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
-        return new Channel(roomUuid, roomUuid, this);
+        return new Channel(roomUuid, roomUuid, this, {});
     }
 
     /** Return this client instance */
