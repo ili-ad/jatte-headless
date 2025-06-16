@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute
 from .serializers import (
     RoomSerializer,
     MessageSerializer,
@@ -327,4 +328,15 @@ class NotificationListView(APIView):
         notes = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notes, many=True)
         return Response(serializer.data)
+
+
+class MuteStatusView(APIView):
+    """Return whether the current user muted the given user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, target_username):
+        target = get_object_or_404(get_user_model(), username=target_username)
+        muted = UserMute.objects.filter(user=request.user, target=target).exists()
+        return Response({"muted": muted})
 
