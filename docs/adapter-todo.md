@@ -47,7 +47,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **initState**                                | 🔲 | 🔲 |
 | **initialized**                              | 🔲 | 🔲 |
 | **intro**                                    | 🔲 | 🔲 |
-| **lastRead**                                 | 🔲 | 🔲 |
+| **lastRead**                                 | ✅ | 🔲 |
 | **linkPreviewsManager**                      | 🔲 | 🔲 |
 | **listeners**                                | 🔲 | 🔲 |
 | **markRead**                                 | ✅ | ✅ |
