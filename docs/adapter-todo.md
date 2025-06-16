@@ -101,7 +101,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **updated**                                  | 🔲 | 🔲 |
 | **user**                                     | ✅ | ✅ |
 | **userID**                                   | ✅ | 🔲 |
-| **userToken**                                | 🔲 | 🔲 |
+| **userToken**                                | ✅ | ✅ |
 | **visible**                                  | 🔲 | 🔲 |
 | **watch**                                    | ✅ | ✅ |
 | **wsPromise**                                | 🔲 | 🔲 |
