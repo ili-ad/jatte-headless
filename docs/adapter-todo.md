@@ -32,9 +32,11 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **disconnected**                             | ✅ | 🔲 |
 | **dispatchEvent**                            | ✅ | 🔲 |
 | **draft**                                    | 🔲 | 🔲 |
+| **editedMessage**                            | 🔲 | 🔲 |
+| **editingAuditState**                        | 🔲 | 🔲 |
 | **editedMessage**                            | ✅ | ✅ |
 | **editingAuditState**                        | ✅ | 🔲 |
-| **event**                                    | 🔲 | 🔲 |
+| **event**                                    | ✅ | ✅ |
 | **flagMessage**                              | 🔲 | 🔲 |
 | **getAppSettings**                           | ✅ | ✅ |
 | **getClient**                                | ✅ | 🔲 |
