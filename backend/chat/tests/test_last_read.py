@@ -26,3 +26,6 @@ class LastReadAPITests(APITestCase):
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
         self.assertIsInstance(res.data["last_read"], str)
+        # ensure string is ISO formatted
+        from datetime import datetime
+        self.assertIsInstance(datetime.fromisoformat(res.data["last_read"]), datetime)
