@@ -103,7 +103,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **userID**                                   | 🔲 | 🔲 |
 | **userToken**                                | 🔲 | 🔲 |
 | **visible**                                  | 🔲 | 🔲 |
-| **watch**                                    | 🔲 | 🔲 |
+| **watch**                                    | ✅ | ✅ |
 | **wsPromise**                                | 🔲 | 🔲 |
 
 ### How to tick items
