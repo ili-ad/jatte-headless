@@ -179,6 +179,20 @@ export class Channel {
                     return this.textComposer.state.getSnapshot().text.trim() === '';
                 },
 
+                /* 2️⃣  Check if any payload (text, attachment, poll, custom) is present */
+                get hasSendableData() {
+                    const text = this.textComposer.state.getSnapshot().text.trim();
+                    const atts = this.attachmentManager.state.getSnapshot().attachments;
+                    const poll = this.pollComposer.state.getSnapshot().poll;
+                    const custom = this.customDataManager.state.getSnapshot().customData;
+                    return (
+                        text !== '' ||
+                        atts.length > 0 ||
+                        !!poll ||
+                        Object.keys(custom).length > 0
+                    );
+                },
+
                 /* 2️⃣  Build the composition object that <MessageInput> expects */
                 async compose() {
                     if (this.compositionIsEmpty) return undefined;
