@@ -2,6 +2,7 @@ import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 import { API } from '../../src/lib/stream-adapter/constants';
 
+
 const originalFetch = global.fetch;
 
 beforeEach(() => {
