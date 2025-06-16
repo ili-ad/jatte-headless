@@ -9,12 +9,17 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
+    cid = serializers.SerializerMethodField()
+
+    def get_cid(self, obj: Room) -> str:
+        return f"messaging:{obj.uuid}"
 
     class Meta:
         model = Room
         fields = [
             "id",
             "uuid",
+            "cid",
             "client",
             "agent",
             "messages",
