@@ -18,7 +18,6 @@ export class ChatClient {
     /** Populated by connectUser, nulled by disconnectUser */
 
 
-    //oyhloh-codex/implement-adapter-surfaces-and-backend
     /** Random identifier for this client (regenerated on connectUser) */
     clientID: string;
     /** Unique ID for the current connection (null until connected) */
