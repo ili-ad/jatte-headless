@@ -50,7 +50,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **initialized**                              | 🔲 | 🔲 |
 | **intro**                                    | 🔲 | 🔲 |
 | **lastRead**                                 | ✅ | ✅ |
-| **linkPreviewsManager**                      | 🔲 | 🔲 |
+| **linkPreviewsManager**                      | ✅ | ✅ |
 | **listeners**                                | 🔲 | 🔲 |
 | **markRead**                                 | ✅ | ✅ |
 | **markUnread**                               | ✅ | ✅ |

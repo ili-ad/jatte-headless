@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
+from urllib.parse import urlparse
 from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag
 from .serializers import (
     RoomSerializer,
@@ -327,4 +328,19 @@ class NotificationListView(APIView):
         notes = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notes, many=True)
         return Response(serializer.data)
+
+
+class LinkPreviewView(APIView):
+    """Return basic metadata for a URL."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        url = request.data.get("url", "")
+        if not url:
+            return Response({"error": "url required"}, status=400)
+        parsed = urlparse(url)
+        title = parsed.netloc or url
+        return Response({"url": url, "title": title})
 
