@@ -15,8 +15,8 @@ afterEach(() => {
 
 test('queryChannels fetches rooms and updates state', async () => {
   const rooms = [
-    { uuid: 'room1', name: 'Room One' },
-    { uuid: 'room2', name: undefined },
+    { id: 1, uuid: 'room1', name: 'Room One' },
+    { id: 2, uuid: 'room2', name: undefined },
   ];
 
   (global.fetch as any).mockResolvedValue({
@@ -33,5 +33,6 @@ test('queryChannels fetches rooms and updates state', async () => {
 
   expect(channels).toHaveLength(2);
   expect(channels[0].cid).toBe('messaging:room1');
+  expect(channels[0].id).toBe(1);
   expect(client.stateStore.getSnapshot().channels.length).toBe(2);
 });
