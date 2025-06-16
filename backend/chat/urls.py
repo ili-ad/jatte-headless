@@ -16,6 +16,7 @@ from .api_views import (
     RoomUnarchiveView,
     ActiveRoomListView,
     RoomDraftView,
+    NotificationListView,
 )
 
 router = DefaultRouter()
@@ -80,6 +81,7 @@ urlpatterns = [
         MessageRepliesView.as_view(),
         name="message-replies",
     ),
+    path("api/notifications/", NotificationListView.as_view(), name="notifications"),
     path(
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),

@@ -6,8 +6,9 @@ from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
-from .models import Room, Message, ReadState, Draft, Reaction
-from .serializers import RoomSerializer, MessageSerializer, ReactionSerializer
+from .models import Room, Message, ReadState, Draft, Notification, Reaction
+from .serializers import RoomSerializer, MessageSerializer, NotificationSerializer, ReactionSerializer
+
 
 
 class RoomListCreateView(generics.ListCreateAPIView):
@@ -222,4 +223,15 @@ class ActiveRoomListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Room.objects.filter(status=Room.ACTIVE)
+
+
+class NotificationListView(APIView):
+    """Return notifications for the current user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        notes = Notification.objects.filter(user=request.user)
+        serializer = NotificationSerializer(notes, many=True)
+        return Response(serializer.data)
 
