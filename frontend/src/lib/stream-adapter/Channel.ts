@@ -446,6 +446,16 @@ export class Channel {
         return await res.json();
     }
 
+    /** Flag a message for moderation */
+    async flagMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/flag/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('flagMessage failed');
+        return await res.json();
+    }
+
     /** Fetch replies to a given message */
     async getReplies(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
