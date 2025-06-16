@@ -12,6 +12,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "body",
             "sent_by",
             "created_at",
+            "deleted_at",
             "custom_data",
             "created_by",
             "reply_to",
@@ -39,6 +40,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "agent",
             "messages",
             "url",
+            "data",
             "status",
             "created_at",
         ]
