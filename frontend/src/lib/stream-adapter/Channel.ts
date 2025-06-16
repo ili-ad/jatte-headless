@@ -423,6 +423,20 @@ export class Channel {
         });
     }
 
+    /** Send a reaction to a message */
+    async sendReaction(messageId: string, type: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.client['jwt']}`,
+            },
+            body: JSON.stringify({ type }),
+        });
+        if (!res.ok) throw new Error('sendReaction failed');
+        return await res.json();
+    }
+
     /** Fetch replies to a given message */
     async getReplies(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
