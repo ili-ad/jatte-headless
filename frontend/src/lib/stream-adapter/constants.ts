@@ -2,6 +2,7 @@ export const API = {
   SYNC_USER: '/api/sync-user/',
   SESSION: '/api/session/',
   ROOMS: '/api/rooms/',
+  ACTIVE_ROOMS: '/api/rooms/active/',
   MESSAGES: '/api/messages/',
   APP_SETTINGS: '/api/app-settings/',
   MARK_UNREAD: '/api/rooms/',
