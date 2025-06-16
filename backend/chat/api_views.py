@@ -170,3 +170,13 @@ class RoomUnarchiveView(APIView):
         room.save()
         return Response({"status": "ok"})
 
+
+class ActiveRoomListView(generics.ListAPIView):
+    """Return all rooms currently marked as ACTIVE."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RoomSerializer
+
+    def get_queryset(self):
+        return Room.objects.filter(status=Room.ACTIVE)
+
