@@ -143,8 +143,9 @@ class MessageDetailView(APIView):
 
     def delete(self, request, message_id):
         msg = get_object_or_404(Message, id=message_id)
-        msg.delete()
-        return Response(status=204)
+        msg.deleted_at = timezone.now()
+        msg.save(update_fields=["deleted_at"])
+        return Response(MessageSerializer(msg).data)
 
 
 class MessageRepliesView(APIView):
