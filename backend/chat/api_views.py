@@ -116,3 +116,21 @@ class MessageDetailView(APIView):
         msg = get_object_or_404(Message, id=message_id)
         msg.delete()
         return Response(status=204)
+
+
+class RoomConfigView(APIView):
+    """Return configuration flags for the given room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        # For now return static configuration matching adapter defaults
+        get_object_or_404(Room, uuid=room_uuid)
+        return Response(
+            {
+                "typing_events": True,
+                "read_events": True,
+                "reactions": True,
+                "uploads": True,
+            }
+        )
