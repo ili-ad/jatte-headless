@@ -54,7 +54,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **listeners**                                | ✅ | 🔲 |
 | **markRead**                                 | ✅ | ✅ |
 | **markUnread**                               | ✅ | ✅ |
-| **members**                                  | 🔲 | 🔲 |
+| **members**                                  | ✅ | ✅ |
 | **messageComposer**                          | 🔲 | 🔲 |
 | **messages**                                 | ✅ | ✅ |
 | **muteStatus**                               | 🔲 | 🔲 |

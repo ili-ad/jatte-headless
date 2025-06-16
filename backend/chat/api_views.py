@@ -309,6 +309,22 @@ class RoomCooldownView(APIView):
         return Response({"cooldown": 0})
 
 
+class RoomMembersView(APIView):
+    """Return list of members for the given room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        names = set(room.messages.values_list("sent_by", flat=True))
+        if room.client:
+            names.add(room.client)
+        if room.agent:
+            names.add(room.agent.username)
+        return Response([{"id": name} for name in sorted(names)])
+
+
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
     authentication_classes = [SupabaseJWTAuthentication]
