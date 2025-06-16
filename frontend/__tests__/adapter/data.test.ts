@@ -1,0 +1,29 @@
+import { beforeEach, afterEach, expect, test, vi } from 'vitest';
+import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API } from '../../src/lib/stream-adapter/constants';
+
+const originalFetch = global.fetch;
+
+beforeEach(() => {
+  global.fetch = vi.fn();
+});
+
+afterEach(() => {
+  global.fetch = originalFetch;
+  vi.restoreAllMocks();
+});
+
+test('channel data includes extra server fields', async () => {
+  const rooms = [
+    { uuid: 'r1', name: 'Room 1', data: { topic: 'x' } },
+  ];
+  (global.fetch as any).mockResolvedValue({ ok: true, json: async () => rooms });
+
+  const client = new ChatClient('u1', 'jwt1');
+  const [channel] = await client.queryChannels();
+
+  expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
+    headers: { Authorization: 'Bearer jwt1' },
+  });
+  expect(channel.data).toEqual({ name: 'Room 1', topic: 'x' });
+});
