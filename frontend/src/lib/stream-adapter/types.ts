@@ -12,6 +12,7 @@ export interface Message {
   text: string;
   user_id: string;
   created_at: string;
+  event?: Record<string, unknown>;
 }
 
 /** Settings returned by `getAppSettings` */
