@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, Message
+from .models import Room, Message, Notification
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,3 +35,9 @@ class RoomSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "text", "created_at"]

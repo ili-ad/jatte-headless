@@ -9,6 +9,7 @@ export const API = {
   USERS: '/api/users/',
   USER: '/api/user/',
   USER_AGENT: '/api/core-user-agent/',
+  NOTIFICATIONS: '/api/notifications/',
 } as const;
 
 export const EVENTS = {
