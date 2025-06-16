@@ -94,12 +94,34 @@ export class Channel {
                 /* ——— composer‑level stores ——— */
                 state: new MiniStore({ quotedMessage: undefined as any }),
                 editingAuditState,
-                linkPreviewsManager: {
-                    state: new MiniStore({ previews: [] as any[] }),
-                    add: (_: string) => { },
-                    remove: (_: string) => { },
-                    clear: () => { },
-                },
+                linkPreviewsManager: (() => {
+                    const store = new MiniStore({ previews: [] as any[] });
+                    return {
+                        state: store,
+                        async add(url: string) {
+                            const res = await fetch(API.LINK_PREVIEW, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${channelRef.client['jwt']}`,
+                                },
+                                body: JSON.stringify({ url }),
+                            });
+                            if (res.ok) {
+                                const preview = await res.json();
+                                const list = store.getSnapshot().previews;
+                                store._set({ previews: [...list, preview] });
+                            }
+                        },
+                        remove(url: string) {
+                            const list = store.getSnapshot().previews;
+                            store._set({ previews: list.filter((p: any) => p.url !== url) });
+                        },
+                        clear() {
+                            store._set({ previews: [] });
+                        },
+                    };
+                })(),
                 pollComposer: {
                 state: new MiniStore({       // ✅ has .state.getLatestValue()
                     poll: undefined as any,    // nothing yet

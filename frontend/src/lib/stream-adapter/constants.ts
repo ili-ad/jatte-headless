@@ -11,6 +11,7 @@ export const API = {
   USER_AGENT: '/api/core-user-agent/',
   NOTIFICATIONS: '/api/notifications/',
   POLLS: '/api/polls/',
+  LINK_PREVIEW: '/api/link-preview/',
   COOLDOWN: '/api/rooms/',
 } as const;
 
