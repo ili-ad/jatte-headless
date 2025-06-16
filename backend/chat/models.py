@@ -91,3 +91,15 @@ class Reaction(models.Model):
 
     class Meta:
         unique_together = ("message", "user", "type")
+
+
+class PollOption(models.Model):
+    """Poll option suggestion tied to a poll id."""
+
+    poll_id = models.CharField(max_length=255)
+    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)

@@ -18,6 +18,7 @@ from .api_views import (
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    PollOptionCreateView,
 )
 
 router = DefaultRouter()
@@ -92,5 +93,10 @@ urlpatterns = [
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
         name="message-reactions",
+    ),
+    path(
+        "api/polls/<str:poll_id>/options/",
+        PollOptionCreateView.as_view(),
+        name="poll-option-create",
     ),
 ]

@@ -249,6 +249,20 @@ export class ChatClient {
         return rooms.map(r => new Channel(r.uuid, r.name ?? r.uuid, this));
     }
 
+    /** Create a poll option */
+    async createPollOption(pollId: string, option: { text: string }) {
+        const res = await fetch(`${API.POLLS}${pollId}/options/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {}),
+            },
+            body: JSON.stringify(option),
+        });
+        if (!res.ok) throw new Error('createPollOption failed');
+        return await res.json();
+    }
+
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
         return new Channel(roomUuid, roomUuid, this);
