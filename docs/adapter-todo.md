@@ -12,7 +12,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **channel**                                  | ✅ | ✅ |
 | **clear**                                    | 🔲 | 🔲 |
 | **clientID**                                 | ✅ | 🔲 |
-| **compose**                                  | 🔲 | 🔲 |
+| **compose**                                  | ✅ | 🔲 |
 | **compositionIsEmpty**                       | ✅ | 🔲 |
 | **config**                                   | ✅ | 🔲 |
 | **configState**                              | 🔲 | 🔲 |
