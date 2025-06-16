@@ -82,3 +82,15 @@ class RoomCountUnreadView(APIView):
         else:
             unread = room.messages.filter(created_at__gt=state.last_read).count()
         return Response({"unread": unread})
+
+
+class RoomLastReadView(APIView):
+    """Return the last read timestamp for the current user in a room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        state = ReadState.objects.filter(user=request.user, room=room).first()
+        last_read = state.last_read if state else None
+        return Response({"last_read": last_read})
