@@ -487,6 +487,30 @@ export class Channel {
     on = this.emitter.on as any;
     off = this.emitter.off as any;
 
+    /**
+     * Dispatch an incoming event to this channel.
+     * Supports message.new and typing events.
+     */
+    dispatchEvent(event: { type: string; message?: Message; user_id?: string }) {
+        switch (event.type) {
+            case EVENTS.MESSAGE_NEW:
+                if (event.message) {
+                    this.bump({
+                        messages: [...this._state.messages, event.message],
+                        latestMessages: [...this._state.latestMessages.slice(-49), event.message],
+                    });
+                }
+                this.emitter.emit(EVENTS.MESSAGE_NEW, event as any);
+                break;
+            case 'typing.start':
+            case 'typing.stop':
+                this.emitter.emit(event.type as any, event as any);
+                break;
+            default:
+                this.emitter.emit(event.type as any, event as any);
+        }
+    }
+
     /* internal: mutate + notify React */
     /* tiny helper that mutates state *and* notifies both stores */
     private bump(patch: Partial<typeof this._state>) {
