@@ -3,6 +3,7 @@ import { MiniStore } from '../MiniStore';
 import { buildTextComposer } from './text';
 import { buildAttachmentManager } from './attachments';
 import { buildPollComposer } from './polls';
+import { API } from '../constants';
 
 export const buildMessageComposer = (channelRef:any) => {
   const roomKey = `draft:${channelRef.cid}`;
@@ -20,7 +21,32 @@ export const buildMessageComposer = (channelRef:any) => {
       clear(){ this.state._set({ customData:{} }); },
     },
     state            : new MiniStore({ quotedMessage:undefined as any }),
-    linkPreviewsManager:{ state:new MiniStore({previews:[] as any[]}), add:()=>{},remove:()=>{},clear:()=>{} },
+    linkPreviewsManager:(() => {
+      const store = new MiniStore({ previews:[] as any[] });
+      return {
+        state: store,
+        async add(url:string){
+          const res = await fetch(API.LINK_PREVIEW, {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              Authorization:`Bearer ${channelRef.client['jwt']}`,
+            },
+            body: JSON.stringify({ url }),
+          });
+          if(res.ok){
+            const preview = await res.json();
+            const list = store.getSnapshot().previews;
+            store._set({ previews:[...list, preview] });
+          }
+        },
+        remove(url:string){
+          const list = store.getSnapshot().previews;
+          store._set({ previews:list.filter((p:any)=>p.url!==url) });
+        },
+        clear(){ store._set({ previews:[] }); },
+      };
+    })(),
 
     textComposer,
     /* simple proxies */
