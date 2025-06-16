@@ -4,6 +4,7 @@
 export interface Room {
   uuid: string;
   name?: string;
+  data?: Record<string, unknown>;
 }
 
 /** Minimal message shape our adapter works with */
