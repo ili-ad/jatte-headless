@@ -218,6 +218,11 @@ export class Channel {
                 getInputValue() { return textStore.getSnapshot().text; },
                 setInputValue(v: string) { textStore._set({ text: v }); },
                 reset() { this.textComposer.clear(); },
+
+                /** Update quoted message for replies */
+                setQuotedMessage(msg: Message | undefined) {
+                    this.state._set({ quotedMessage: msg });
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
