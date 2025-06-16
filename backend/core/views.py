@@ -10,3 +10,8 @@ def index(request):
 @api_view(["GET"])
 def about(request):
     return Response({"about": "Jatte headless backend"})
+
+
+@api_view(["GET"])
+def get_app_settings(request):
+    return Response({"file_uploads": True})
