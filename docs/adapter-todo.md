@@ -7,7 +7,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **activeChannels**                           | ✅ | ✅ |
 | **archive**                                  | ✅ | ✅ |
 | **attachmentManager**                        | 🔲 | 🔲 |
-| **axiosInstance**                            | 🔲 | 🔲 |
+| **axiosInstance**                            | ✅ | 🔲 |
 | **cid**                                      | ✅ | ✅ |
 | **channel**                                  | ✅ | ✅ |
 | **clear**                                    | 🔲 | 🔲 |
