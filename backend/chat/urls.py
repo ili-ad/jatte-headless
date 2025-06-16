@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .api_views import RoomListCreateView, RoomDetailView, RoomMessageListCreateView
+from .api_views import RoomListCreateView, RoomDetailView, RoomMessageListCreateView, RoomListAPIView
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
