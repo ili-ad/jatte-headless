@@ -70,6 +70,17 @@ class Draft(models.Model):
         unique_together = ("user", "room")
 
 
+class Notification(models.Model):
+    """Simple user notification."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        
+        
 class Reaction(models.Model):
     """Simple reaction tied to a message."""
 

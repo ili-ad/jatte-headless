@@ -195,6 +195,17 @@ export class ChatClient {
         return settings;
     }
 
+    /** fetch notifications for the current user */
+    async getNotifications() {
+        const res = await fetch(API.NOTIFICATIONS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getNotifications failed');
+        const list = await res.json() as any[];
+        this.notifications.store._set({ notifications: list });
+        return list;
+    }
+
     /** list of currently active channels */
     async getActiveChannels() {
         const res = await fetch(API.ACTIVE_ROOMS, {
