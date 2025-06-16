@@ -465,6 +465,16 @@ export class Channel {
         if (!res.ok) throw new Error('unarchive failed');
     }
 
+    /** Fetch cooldown value for this channel */
+    async cooldown() {
+        const res = await fetch(`${API.COOLDOWN}${this.roomUuid}/cooldown/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('cooldown failed');
+        const data = await res.json() as { cooldown: number };
+        return data.cooldown;
+    }
+
     /* event helpers */
     on = this.emitter.on as any;
     off = this.emitter.off as any;

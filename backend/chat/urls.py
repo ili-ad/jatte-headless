@@ -14,6 +14,7 @@ from .api_views import (
     MessageReactionsView,
     RoomArchiveView,
     RoomUnarchiveView,
+    RoomCooldownView,
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
@@ -60,6 +61,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/config/",
         RoomConfigView.as_view(),
         name="room-config",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/cooldown/",
+        RoomCooldownView.as_view(),
+        name="room-cooldown",
     ),
     path(
         "api/rooms/<str:room_uuid>/archive/",
