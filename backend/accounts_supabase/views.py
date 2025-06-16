@@ -16,6 +16,15 @@ class SyncUserView(APIView):
         return Response({"status": "ok"})
 
 
+class DisconnectUserView(APIView):
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # For now simply acknowledge the disconnect.
+        return Response({"status": "ok"})
+
+
 #---
 # # accounts/views.py
 # from rest_framework.views import APIView
