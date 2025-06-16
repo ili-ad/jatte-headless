@@ -14,6 +14,7 @@ from .api_views import (
     RoomArchiveView,
     RoomUnarchiveView,
     ActiveRoomListView,
+    RoomDraftView,
 )
 
 router = DefaultRouter()
@@ -47,6 +48,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/last_read/",
         RoomLastReadView.as_view(),
         name="room-last-read",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/draft/",
+        RoomDraftView.as_view(),
+        name="room-draft",
     ),
     path(
         "api/rooms/<str:room_uuid>/config/",

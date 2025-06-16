@@ -21,7 +21,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **contextType**                              | 🔲 | 🔲 |
 | **cooldown**                                 | 🔲 | 🔲 |
 | **countUnread**                              | ✅ | ✅ |
-| **createDraft**                              | ✅ | 🔲 |
+| **createDraft**                              | ✅ | ✅ |
 | **createPollOption**                         | 🔲 | 🔲 |
 | **customDataManager**                        | 🔲 | 🔲 |
 | **data**                                     | 🔲 | 🔲 |
