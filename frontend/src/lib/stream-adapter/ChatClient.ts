@@ -2,6 +2,8 @@ import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
+
+const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -16,7 +18,12 @@ export class ChatClient {
     /** Populated by connectUser, nulled by disconnectUser */
 
 
-    clientID = 'local-dev';
+    //oyhloh-codex/implement-adapter-surfaces-and-backend
+    /** Random identifier for this client (regenerated on connectUser) */
+    clientID: string;
+    /** Unique ID for the current connection (null until connected) */
+    connectionId: string | null = null;
+    main
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
@@ -44,6 +51,7 @@ export class ChatClient {
         private jwt: string | null = null,
     ) {
         this.user = { id: userId };
+        this.clientID = randomId();
 
         /* no-op stubs keep Stream-UI happy */
         this.threads = this.polls = {
@@ -89,6 +97,7 @@ export class ChatClient {
         this.userId = user.id;
         this.jwt = token;
         (this as any).user = { id: user.id };
+        this.clientID = `${user.id}--${randomId()}`;
         const res = await fetch(API.SYNC_USER, {
             method: 'POST',
             headers: {
@@ -97,6 +106,7 @@ export class ChatClient {
 
         });
         if (!res.ok) throw new Error('sync-user failed');
+        this.connectionId = crypto.randomUUID();
         this.emit('connection.changed', { online: true });
     }
 
@@ -115,6 +125,7 @@ export class ChatClient {
         delete (this as any).user;
         this.userId = null;
         this.jwt = null;
+        this.connectionId = null;
         this.emit('connection.changed', { online: false });
     }
 
