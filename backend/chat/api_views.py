@@ -4,7 +4,8 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 
 from accounts.authentication import SupabaseJWTAuthentication
-from .models import Room, Message
+from django.utils import timezone
+from .models import Room, Message, ReadState
 from .serializers import RoomSerializer, MessageSerializer
 
 
@@ -59,6 +60,25 @@ class RoomMarkReadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        get_object_or_404(Room, uuid=room_uuid)
-        # For now we simply acknowledge the request without storing state.
+        room = get_object_or_404(Room, uuid=room_uuid)
+        ReadState.objects.update_or_create(
+            user=request.user,
+            room=room,
+            defaults={"last_read": timezone.now()},
+        )
         return Response({"status": "ok"})
+
+
+class RoomCountUnreadView(APIView):
+    """Return number of unread messages for the current user in a room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        state = ReadState.objects.filter(user=request.user, room=room).first()
+        if state is None:
+            unread = room.messages.count()
+        else:
+            unread = room.messages.filter(created_at__gt=state.last_read).count()
+        return Response({"unread": unread})

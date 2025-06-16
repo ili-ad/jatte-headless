@@ -5,6 +5,7 @@ from .api_views import (
     RoomDetailView,
     RoomMessageListCreateView,
     RoomMarkReadView,
+    RoomCountUnreadView,
 )
 
 router = DefaultRouter()
@@ -22,5 +23,10 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/mark_read/",
         RoomMarkReadView.as_view(),
         name="room-mark-read",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/count_unread/",
+        RoomCountUnreadView.as_view(),
+        name="room-count-unread",
     ),
 ]
