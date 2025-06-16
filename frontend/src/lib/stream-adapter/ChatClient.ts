@@ -128,6 +128,15 @@ export class ChatClient {
         return chans;
     }
 
+    /** fetch global app settings */
+    async getAppSettings() {
+        const res = await fetch('/api/app-settings/', {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getAppSettings failed');
+        return res.json();
+    }
+
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
         return new Channel(roomUuid, roomUuid, this);
