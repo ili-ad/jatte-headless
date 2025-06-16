@@ -40,3 +40,6 @@ class RoomMessageListCreateView(APIView):
         message = serializer.save(created_by=request.user)
         room.messages.add(message)
         return Response(MessageSerializer(message).data, status=201)
+
+
+# New Stream Chat API endpoints below
