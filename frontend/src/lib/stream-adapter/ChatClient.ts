@@ -103,8 +103,19 @@ export class ChatClient {
     }
 
     /* ---------- event-bus helpers ---------- */
-    on = this.bus.on as any;
-    off = this.bus.off as any;
+    on = (event: string, cb: (...args: any[]) => void) => {
+        if (!this.listeners[event]) this.listeners[event] = [];
+        this.listeners[event].push(cb);
+        this.bus.on(event as any, cb);
+    };
+    off = (event: string, cb: (...args: any[]) => void) => {
+        this.bus.off(event as any, cb);
+        const arr = this.listeners[event];
+        if (arr) {
+            this.listeners[event] = arr.filter(fn => fn !== cb);
+            if (this.listeners[event].length === 0) delete this.listeners[event];
+        }
+    };
     emit = this.bus.emit.bind(this);
 
     /**
