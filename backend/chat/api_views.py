@@ -92,5 +92,5 @@ class RoomLastReadView(APIView):
     def get(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
         state = ReadState.objects.filter(user=request.user, room=room).first()
-        last_read = state.last_read if state else None
+        last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
