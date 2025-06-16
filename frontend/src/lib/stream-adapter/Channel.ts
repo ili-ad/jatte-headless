@@ -242,6 +242,8 @@ export class Channel {
 
     /* ─── getters Stream-UI expects ─── */
     get state() { return this._state; }
+    /** Convenience getter exposing current message list */
+    get messages() { return this._state.messages; }
     async getConfig() {
         const res = await fetch(`${API.ROOMS}${this.roomUuid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
