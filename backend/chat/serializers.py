@@ -3,6 +3,8 @@ from .models import Room, Message, Notification, Reaction, PollOption, Flag
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    event = serializers.SerializerMethodField()
+
     class Meta:
         model = Message
         fields = [
@@ -10,11 +12,16 @@ class MessageSerializer(serializers.ModelSerializer):
             "body",
             "sent_by",
             "created_at",
+            "deleted_at",
             "custom_data",
             "created_by",
             "reply_to",
+            "event",
         ]
         read_only_fields = ["id", "created_at", "created_by", "reply_to"]
+
+    def get_event(self, obj):
+        return obj.custom_data.get("event")
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
@@ -33,6 +40,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "agent",
             "messages",
             "url",
+            "data",
             "status",
             "created_at",
         ]
