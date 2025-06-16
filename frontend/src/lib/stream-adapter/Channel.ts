@@ -186,7 +186,21 @@ export class Channel {
 
                 /* ——— subscriptions & drafts ——— */
                 registerSubscriptions() { return () => { }; },
-                createDraft() { localStorage.setItem(roomKey, textStore.getSnapshot().text); },
+                createDraft() {
+                    const text = textStore.getSnapshot().text;
+                    localStorage.setItem(roomKey, text);
+                    const token = channelRef.client['jwt'];
+                    if (token) {
+                        fetch(`/api/rooms/${channelRef.roomUuid}/draft/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ text }),
+                        }).catch(() => { /* ignore network errors */ });
+                    }
+                },
                 discardDraft() { localStorage.removeItem(roomKey); },
 
                 // pollComposer: {
