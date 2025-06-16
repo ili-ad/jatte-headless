@@ -23,7 +23,6 @@ export class ChatClient {
     clientID: string;
     /** Unique ID for the current connection (null until connected) */
     connectionId: string | null = null;
-    main
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
