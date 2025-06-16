@@ -9,7 +9,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **attachmentManager**                        | 🔲 | 🔲 |
 | **axiosInstance**                            | 🔲 | 🔲 |
 | **channel**                                  | 🔲 | 🔲 |
-| **cid**                                      | 🔲 | 🔲 |
+| **cid**                                      | ✅ | 🔲 |
 | **clear**                                    | 🔲 | 🔲 |
 | **clientID**                                 | 🔲 | 🔲 |
 | **compose**                                  | 🔲 | 🔲 |
