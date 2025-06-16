@@ -12,6 +12,7 @@ export interface Message {
   text: string;
   user_id: string;
   created_at: string;
+  deleted_at?: string;
 }
 
 /** Settings returned by `getAppSettings` */
