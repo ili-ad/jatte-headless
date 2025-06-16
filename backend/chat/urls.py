@@ -5,6 +5,7 @@ from .api_views import (
     RoomDetailView,
     RoomMessageListCreateView,
     RoomMarkReadView,
+    RoomMarkUnreadView,
     RoomCountUnreadView,
     RoomLastReadView,
     MessageDetailView,
@@ -25,6 +26,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/mark_read/",
         RoomMarkReadView.as_view(),
         name="room-mark-read",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/mark_unread/",
+        RoomMarkUnreadView.as_view(),
+        name="room-mark-unread",
     ),
     path(
         "api/rooms/<str:room_uuid>/count_unread/",
