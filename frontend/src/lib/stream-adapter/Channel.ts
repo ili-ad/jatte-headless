@@ -399,6 +399,15 @@ export class Channel {
         });
     }
 
+    /** Archive this channel */
+    async archive() {
+        const res = await fetch(`/api/rooms/${this.roomUuid}/archive/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('archive failed');
+    }
+
     /* event helpers */
     on = this.emitter.on as any;
     off = this.emitter.off as any;
