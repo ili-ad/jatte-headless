@@ -13,7 +13,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **clear**                                    | 🔲 | 🔲 |
 | **clientID**                                 | ✅ | 🔲 |
 | **compose**                                  | 🔲 | 🔲 |
-| **compositionIsEmpty**                       | 🔲 | 🔲 |
+| **compositionIsEmpty**                       | ✅ | 🔲 |
 | **config**                                   | 🔲 | 🔲 |
 | **configState**                              | 🔲 | 🔲 |
 | **connectUser**                              | ✅ | ✅ |
