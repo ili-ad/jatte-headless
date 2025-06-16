@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Room, Message, Notification, Reaction
+from .models import Room, Message, Notification, Reaction, PollOption
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -52,3 +52,12 @@ class ReactionSerializer(serializers.ModelSerializer):
         model = Reaction
         fields = ["id", "type", "user_id", "created_at"]
         read_only_fields = ["id", "user_id", "created_at"]
+
+
+class PollOptionSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = PollOption
+        fields = ["id", "poll_id", "text", "user_id", "created_at"]
+        read_only_fields = ["id", "poll_id", "user_id", "created_at"]
