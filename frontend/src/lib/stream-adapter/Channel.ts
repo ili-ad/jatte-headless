@@ -414,6 +414,29 @@ export class Channel {
         return me ? new Date(me.last_read) : undefined;
     }
 
+    /** Fetch read states for this channel */
+    async read() {
+        const res = await fetch(`/api/rooms/${this.uuid}/read/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('read failed');
+        const list = (await res.json()) as {
+            user: string;
+            last_read: string;
+            unread_messages: number;
+        }[];
+        const map: Record<string, { last_read: string; unread_messages: number; user: { id: string } }> = {};
+        for (const item of list) {
+            map[item.user] = {
+                last_read: item.last_read,
+                unread_messages: item.unread_messages,
+                user: { id: item.user },
+            };
+        }
+        this.bump({ read: map });
+        return map;
+    }
+
     /* ─── main lifecycle ─── */
     /** Fetch initial state without opening a websocket */
     async query() {
