@@ -108,6 +108,17 @@ class Flag(models.Model):
         unique_together = ("message", "user")
 
 
+class Poll(models.Model):
+    """Poll entity for pollComposer."""
+
+    question = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+
 class PollOption(models.Model):
     """Poll option suggestion tied to a poll id."""
 
@@ -120,6 +131,18 @@ class PollOption(models.Model):
         ordering = ("created_at",)
 
 
+class Pin(models.Model):
+    """Message pin by a user."""
+
+    message = models.ForeignKey(Message, related_name="pins", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        unique_together = ("message", "user")
+
+
 class UserMute(models.Model):
     """Record that `user` muted `target`."""
 
@@ -129,3 +152,14 @@ class UserMute(models.Model):
 
     class Meta:
         unique_together = ("user", "target")
+
+
+class RoomMute(models.Model):
+    """Record that `user` muted `room`."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "room")

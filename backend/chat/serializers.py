@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Room, Message, Notification, Reaction, PollOption, Flag
+from .models import Room, Message, Notification, Reaction, PollOption, Poll, Flag
+from .models import Pin
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -72,6 +73,15 @@ class FlagSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user_id", "created_at"]
 
 
+class PinSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = Pin
+        fields = ["id", "user_id", "created_at"]
+        read_only_fields = ["id", "user_id", "created_at"]
+
+
 class PollOptionSerializer(serializers.ModelSerializer):
     user_id = serializers.ReadOnlyField(source="user.username")
 
@@ -79,3 +89,12 @@ class PollOptionSerializer(serializers.ModelSerializer):
         model = PollOption
         fields = ["id", "poll_id", "text", "user_id", "created_at"]
         read_only_fields = ["id", "poll_id", "user_id", "created_at"]
+
+
+class PollSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.username")
+
+    class Meta:
+        model = Poll
+        fields = ["id", "question", "user_id", "created_at"]
+        read_only_fields = ["id", "user_id", "created_at"]

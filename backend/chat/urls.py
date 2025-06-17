@@ -8,18 +8,23 @@ from .api_views import (
     RoomMarkUnreadView,
     RoomCountUnreadView,
     RoomLastReadView,
+    RoomReadView,
     RoomConfigView,
     MessageDetailView,
     MessageRepliesView,
     MessageReactionsView,
     MessageFlagView,
+    MessagePinView,
     RoomArchiveView,
     RoomUnarchiveView,
     RoomCooldownView,
     RoomMembersView,
+    RoomPinnedMessagesView,
+    RoomQueryView,
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    MutedChannelListView,
     LinkPreviewView,
     PollOptionCreateView,
     RoomHideView,
@@ -27,6 +32,8 @@ from .api_views import (
     ReactionDetailView,
     MuteStatusView,
     MessageRestoreView,
+    MutedUsersView,
+    MuteUserView,
 )
 
 router = DefaultRouter()
@@ -62,6 +69,11 @@ urlpatterns = [
         name="room-last-read",
     ),
     path(
+        "api/rooms/<str:room_uuid>/read/",
+        RoomReadView.as_view(),
+        name="room-read",
+    ),
+    path(
         "api/rooms/<str:room_uuid>/draft/",
         RoomDraftView.as_view(),
         name="room-draft",
@@ -80,6 +92,16 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/members/",
         RoomMembersView.as_view(),
         name="room-members",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/pinned/",
+        RoomPinnedMessagesView.as_view(),
+        name="room-pinned-messages",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/query/",
+        RoomQueryView.as_view(),
+        name="room-query",
     ),
     path(
         "api/rooms/<str:room_uuid>/archive/",
@@ -117,6 +139,7 @@ urlpatterns = [
         name="message-replies",
     ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
+    path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
@@ -129,9 +152,24 @@ urlpatterns = [
         name="message-flag",
     ),
     path(
+        "api/messages/<int:message_id>/pin/",
+        MessagePinView.as_view(),
+        name="message-pin",
+    ),
+    path(
         "api/messages/<int:message_id>/reactions/<int:reaction_id>/",
         ReactionDetailView.as_view(),
         name="reaction-detail",
+    ),
+    path(
+        "api/polls/",
+        PollListCreateView.as_view(),
+        name="poll-create",
+    ),
+    path(
+        "api/polls/<str:poll_id>/",
+        PollDetailView.as_view(),
+        name="poll-detail",
     ),
     path(
         "api/polls/<str:poll_id>/options/",
@@ -139,8 +177,18 @@ urlpatterns = [
         name="poll-option-create",
     ),
     path(
+        "api/muted-users/",
+        MutedUsersView.as_view(),
+        name="muted-users",
+    ),
+    path(
         "api/mute-status/<str:target_username>/",
         MuteStatusView.as_view(),
         name="mute-status",
+    ),
+    path(
+        "api/mute/<str:target_username>/",
+        MuteUserView.as_view(),
+        name="user-mute",
     ),
 ]
