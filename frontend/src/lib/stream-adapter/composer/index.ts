@@ -11,7 +11,7 @@ export const buildMessageComposer = (channelRef:any) => {
   return {
     contextType:'message', tag:'root',
     attachmentManager: buildAttachmentManager(),
-    pollComposer     : buildPollComposer(),
+    pollComposer     : buildPollComposer(channelRef.client),
     customDataManager: {
       state:new MiniStore({ customData:{} as Record<string, unknown> }),
       set(k:string,v:unknown){

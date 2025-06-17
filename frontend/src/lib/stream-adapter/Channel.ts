@@ -125,13 +125,37 @@ export class Channel {
                     };
                 })(),
                 pollComposer: {
-                state: new MiniStore({       // ✅ has .state.getLatestValue()
-                    poll: undefined as any,    // nothing yet
+                state: new MiniStore({
+                    poll: undefined as any,
                 }),
-                /* helpers the UI *might* call later – leave as no-ops */
-                create          : () => {},  // “add poll” button
-                remove          : () => {},
-                reset           : () => {},
+                async create(question: string, options: string[] = []) {
+                    const res = await fetch(API.POLLS, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${channelRef.client['jwt']}`,
+                        },
+                        body: JSON.stringify({ question, options }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.state._set({ poll: data.poll });
+                    }
+                },
+                async remove() {
+                    const poll = this.state.getSnapshot().poll;
+                    if (!poll) return;
+                    await fetch(`${API.POLLS}${poll.id}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            Authorization: `Bearer ${channelRef.client['jwt']}`,
+                        },
+                    }).catch(() => { /* ignore */ });
+                    this.state._set({ poll: undefined });
+                },
+                reset() {
+                    this.state._set({ poll: undefined });
+                },
                 },
 
                 customDataManager: {
@@ -544,8 +568,10 @@ export class Channel {
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
+        const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
         const payload: any = { text };
         if (Object.keys(custom).length) payload.custom_data = custom;
+        if (poll) payload.poll = poll;
         const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
@@ -569,6 +595,7 @@ export class Channel {
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
 
         this.messageComposer.customDataManager.clear();
+        this.messageComposer.pollComposer.state._set({ poll: undefined as any });
 
         return msg;
     }

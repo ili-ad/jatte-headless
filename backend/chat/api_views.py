@@ -9,7 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, Pin, UserMute, RoomMute
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Poll, Flag, Pin, UserMute, RoomMute
 
 from .serializers import (
     RoomSerializer,
@@ -17,6 +17,7 @@ from .serializers import (
     NotificationSerializer,
     ReactionSerializer,
     PollOptionSerializer,
+    PollSerializer,
     FlagSerializer,
     PinSerializer,
 )
@@ -272,6 +273,36 @@ class PollOptionCreateView(APIView):
             user=request.user,
         )
         return Response({"poll_option": PollOptionSerializer(option).data}, status=201)
+
+
+class PollListCreateView(APIView):
+    """Create a new poll."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PollSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll = Poll.objects.create(
+            question=serializer.validated_data["question"],
+            user=request.user,
+        )
+        for text in request.data.get("options", []):
+            PollOption.objects.create(poll_id=str(poll.id), text=text, user=request.user)
+        return Response({"poll": PollSerializer(poll).data}, status=201)
+
+
+class PollDetailView(APIView):
+    """Delete a poll."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, poll_id):
+        poll = get_object_or_404(Poll, id=poll_id)
+        poll.delete()
+        return Response(status=204)
 
 class RoomConfigView(APIView):
     """Return configuration flags for the given room."""
