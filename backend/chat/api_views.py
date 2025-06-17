@@ -648,6 +648,10 @@ class RoomTruncateView(APIView):
     def post(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
         room.messages.clear()
+        data = room.data or {}
+        data["truncated"] = True
+        room.data = data
+        room.save(update_fields=["data"])
         return Response({"status": "ok"})
 
 
