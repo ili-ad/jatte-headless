@@ -10,7 +10,7 @@ export const buildMessageComposer = (channelRef:any) => {
   const textComposer = buildTextComposer();
   return {
     contextType:'message', tag:'root',
-    attachmentManager: buildAttachmentManager(),
+    attachmentManager: buildAttachmentManager({ jwt: channelRef.client['jwt'] }),
     pollComposer     : buildPollComposer(channelRef.client),
     customDataManager: {
       state:new MiniStore({ customData:{} as Record<string, unknown> }),
