@@ -280,7 +280,17 @@ export class Channel {
                 },
 
                 /* ——— subscriptions & drafts ——— */
-                registerSubscriptions() { return () => { }; },
+                registerSubscriptions() {
+                    const handler = this.logStateUpdateTimestamp;
+                    const unsubs = [
+                        textStore.subscribe(handler),
+                        this.attachmentManager.state.subscribe(handler),
+                        this.linkPreviewsManager.state.subscribe(handler),
+                        this.pollComposer.state.subscribe(handler),
+                        this.customDataManager.state.subscribe(handler),
+                    ];
+                    return () => { unsubs.forEach(fn => fn()); };
+                },
                 createDraft() {
                     const text = textStore.getSnapshot().text;
                     localStorage.setItem(getRoomKey(), text);
