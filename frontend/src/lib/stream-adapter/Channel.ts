@@ -369,6 +369,9 @@ export class Channel {
     /** Whether this channel is hidden */
     get hidden() { return !!this.data.hidden; }
 
+    /** Human readable channel name if provided */
+    get name() { return this.data.name; }
+
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
