@@ -366,6 +366,24 @@ export class ChatClient {
         return await res.json();
     }
 
+    /** Recover state after a lost connection */
+    async recoverStateOnReconnect() {
+        const res = await fetch(API.RECOVER_STATE, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('recoverStateOnReconnect failed');
+        const data = await res.json() as {
+            rooms: Room[];
+            notifications: any[];
+        };
+        const chans = data.rooms.map(
+            r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {})
+        );
+        this.stateStore._set({ channels: chans });
+        this.notifications.store._set({ notifications: data.notifications });
+        return { channels: chans, notifications: data.notifications };
+    }
+
     /** create / retrieve single channel for <Channel channel={…}> */
     channel(_: 'messaging', roomUuid: string) {
         return new Channel(0, roomUuid, roomUuid, this, {});

@@ -34,6 +34,7 @@ from .api_views import (
     MessageRestoreView,
     MutedUsersView,
     MuteUserView,
+    RecoverStateView,
 )
 
 router = DefaultRouter()
@@ -191,4 +192,5 @@ urlpatterns = [
         MuteUserView.as_view(),
         name="user-mute",
     ),
+    path("api/recover-state/", RecoverStateView.as_view(), name="recover-state"),
 ]
