@@ -79,7 +79,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **registerSubscriptions**                    | ✅ | 🔲 |
 | **reminders**                                | ✅ | ✅ |
 | **restore**                                  | ✅ | ✅ |
-| **sendAction**                               | 🔲 | 🔲 |
+| **sendAction**                               | ✅ | ✅ |
 | **sendMessage**                              | ✅ | ✅ |
 | **sendReaction**                             | ✅ | ✅ |
 | **setQuotedMessage**                         | ✅ | 🔲 |
