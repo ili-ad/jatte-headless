@@ -681,6 +681,20 @@ export class Channel {
         return await res.json();
     }
 
+    /** Send an action for a message */
+    async sendAction(messageId: string, action: Record<string, unknown>) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/actions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.client['jwt']}`,
+            },
+            body: JSON.stringify(action),
+        });
+        if (!res.ok) throw new Error('sendAction failed');
+        return await res.json();
+    }
+
     /** Flag a message for moderation */
     async flagMessage(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/flag/`, {
