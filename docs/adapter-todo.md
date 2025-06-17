@@ -106,7 +106,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **userToken**                                | ✅ | ✅ |
 | **visible**                                  | 🔲 | 🔲 |
 | **watch**                                    | ✅ | ✅ |
-| **wsPromise**                                | 🔲 | 🔲 |
+| **wsPromise**                                | ✅ | ✅ |
 
 ### How to tick items
 * When a **front-end shim** is fully implemented & covered by tests → change the adapter column to **✅**.

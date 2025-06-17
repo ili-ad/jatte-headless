@@ -45,6 +45,7 @@ from .api_views import (
     RecoverStateView,
     TextComposerView,
     SubarrayView,
+    WsAuthView,
 )
 
 router = DefaultRouter()
@@ -227,4 +228,5 @@ urlpatterns = [
     path("api/recover-state/", RecoverStateView.as_view(), name="recover-state"),
     path("api/text-composer/", TextComposerView.as_view(), name="text-composer"),
     path("api/subarray/", SubarrayView.as_view(), name="subarray"),
+    path("api/ws-auth/", WsAuthView.as_view(), name="ws-auth"),
 ]
