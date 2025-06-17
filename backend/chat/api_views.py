@@ -193,6 +193,11 @@ class RoomDraftView(APIView):
         draft = Draft.objects.filter(user=request.user, room=room).first()
         return Response({"text": draft.text if draft else ""})
 
+    def delete(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        Draft.objects.filter(user=request.user, room=room).delete()
+        return Response({"status": "ok"})
+
 
 class MessageDetailView(APIView):
     """Retrieve, update or delete a single message."""
