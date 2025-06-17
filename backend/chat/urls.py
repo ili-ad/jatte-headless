@@ -26,6 +26,7 @@ from .api_views import (
     RoomShowView,
     ReactionDetailView,
     MuteStatusView,
+    MessageRestoreView,
 )
 
 router = DefaultRouter()
@@ -104,6 +105,11 @@ urlpatterns = [
         "api/messages/<int:message_id>/",
         MessageDetailView.as_view(),
         name="message-detail",
+    ),
+    path(
+        "api/messages/<int:message_id>/restore/",
+        MessageRestoreView.as_view(),
+        name="message-restore",
     ),
     path(
         "api/messages/<int:message_id>/replies/",
