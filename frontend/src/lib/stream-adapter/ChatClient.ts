@@ -29,6 +29,9 @@ export class ChatClient {
     /** Whether the client finished initialization */
     initialized = false;
 
+    /** Whether to auto recover channel state after reconnect */
+    recoverStateOnReconnect = true;
+
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
