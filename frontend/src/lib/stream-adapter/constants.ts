@@ -18,6 +18,7 @@ export const API = {
   MUTED_CHANNELS: '/api/muted-channels/',
   MUTE_USER: '/api/mute/',
   UNMUTE_USER: '/api/unmute/',
+  RECOVER_STATE: '/api/recover-state/',
 } as const;
 
 export const EVENTS = {
