@@ -14,6 +14,9 @@ from .models import (
 
 class MessageSerializer(serializers.ModelSerializer):
     event = serializers.SerializerMethodField()
+    reply_to = serializers.PrimaryKeyRelatedField(
+        queryset=Message.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Message
@@ -28,7 +31,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "reply_to",
             "event",
         ]
-        read_only_fields = ["id", "created_at", "created_by", "reply_to"]
+        read_only_fields = ["id", "created_at", "created_by"]
 
     def get_event(self, obj):
         return obj.custom_data.get("event")
