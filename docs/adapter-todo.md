@@ -85,7 +85,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **setQuotedMessage**                         | ✅ | 🔲 |
 | **setUserAgent**                             | ✅ | ✅ |
 | **state**                                    | ✅ | 🔲 |
-| **subarray**                                 | 🔲 | 🔲 |
+| **subarray**                                 | ✅ | ✅ |
 | **tag**                                      | 🔲 | 🔲 |
 | **textComposer**                             | 🔲 | 🔲 |
 | **threadId**                                 | 🔲 | 🔲 |

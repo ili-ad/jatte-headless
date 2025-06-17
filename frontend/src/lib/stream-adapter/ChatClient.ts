@@ -425,4 +425,22 @@ export class ChatClient {
     getClient() {
         return this;
     }
+
+    /**
+     * Return a slice of the provided array.
+     * This mirrors TypedArray.subarray from Stream's SDK.
+     */
+    async subarray<T>(arr: T[], start: number, end?: number): Promise<T[]> {
+        const res = await fetch(API.SUBARRAY, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {}),
+            },
+            body: JSON.stringify({ array: arr, start, end }),
+        });
+        if (!res.ok) throw new Error('subarray failed');
+        const data = await res.json() as { result: T[] };
+        return data.result;
+    }
 }
