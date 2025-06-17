@@ -150,6 +150,16 @@ urlpatterns = [
         name="reaction-detail",
     ),
     path(
+        "api/polls/",
+        PollListCreateView.as_view(),
+        name="poll-create",
+    ),
+    path(
+        "api/polls/<str:poll_id>/",
+        PollDetailView.as_view(),
+        name="poll-detail",
+    ),
+    path(
         "api/polls/<str:poll_id>/options/",
         PollOptionCreateView.as_view(),
         name="poll-option-create",
