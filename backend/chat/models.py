@@ -120,6 +120,18 @@ class PollOption(models.Model):
         ordering = ("created_at",)
 
 
+class Pin(models.Model):
+    """Message pin by a user."""
+
+    message = models.ForeignKey(Message, related_name="pins", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        unique_together = ("message", "user")
+
+
 class UserMute(models.Model):
     """Record that `user` muted `target`."""
 

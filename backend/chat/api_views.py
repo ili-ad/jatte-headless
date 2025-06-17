@@ -9,7 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute, RoomMute
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, Pin, UserMute, RoomMute
 
 from .serializers import (
     RoomSerializer,
@@ -18,6 +18,7 @@ from .serializers import (
     ReactionSerializer,
     PollOptionSerializer,
     FlagSerializer,
+    PinSerializer,
 )
 
 
@@ -243,6 +244,18 @@ class ReactionDetailView(APIView):
         return Response(status=204)
 
 
+class MessagePinView(APIView):
+    """Pin a message."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        pin, _ = Pin.objects.get_or_create(message=msg, user=request.user)
+        return Response({"pin": PinSerializer(pin).data}, status=201)
+
+
 
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
@@ -338,8 +351,6 @@ class RoomQueryView(APIView):
         room = get_object_or_404(Room, uuid=room_uuid)
         messages = MessageSerializer(room.messages.all(), many=True).data
         names = set(room.messages.values_list("sent_by", flat=True))
-        if room.client:
-            names.add(room.client)
         if room.agent:
             names.add(room.agent.username)
         members = [{"id": name} for name in sorted(names)]
