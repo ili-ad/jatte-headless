@@ -9,6 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
+import uuid
 import json
 from django.http import QueryDict
 from .models import (
@@ -604,6 +605,18 @@ class UnmuteUserView(APIView):
         target = get_object_or_404(get_user_model(), username=target_username)
         UserMute.objects.filter(user=request.user, target=target).delete()
         return Response({"status": "ok"})
+
+
+class AttachmentUploadView(APIView):
+    """Create a simple attachment record."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        name = request.data.get("name", "")
+        att_id = uuid.uuid4()
+        return Response({"attachment": {"id": str(att_id), "name": name}}, status=201)
       
       
 class LinkPreviewView(APIView):
