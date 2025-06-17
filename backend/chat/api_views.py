@@ -651,6 +651,18 @@ class RoomShowView(APIView):
         return Response({"status": "ok"})
 
 
+class RoomVisibleView(APIView):
+    """Return whether a room is visible (not hidden)."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        hidden = (room.data or {}).get("hidden", False)
+        return Response({"visible": not hidden})
+
+
 class RoomTruncateView(APIView):
     """Remove all messages from a room."""
 

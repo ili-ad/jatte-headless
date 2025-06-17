@@ -34,6 +34,7 @@ from .api_views import (
     PollOptionCreateView,
     RoomHideView,
     RoomShowView,
+    RoomVisibleView,
     ReactionDetailView,
     MuteStatusView,
     MessageRestoreView,
@@ -138,6 +139,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/show/",
         RoomShowView.as_view(),
         name="room-show",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/visible/",
+        RoomVisibleView.as_view(),
+        name="room-visible",
     ),
     path(
         "api/messages/<int:message_id>/",

@@ -431,6 +431,9 @@ export class Channel {
     /** Whether this channel is hidden */
     get hidden() { return !!this.data.hidden; }
 
+    /** Whether this channel is visible */
+    get visible() { return !this.hidden; }
+
     /** Whether this channel has been truncated */
     get truncated() { return !!this.data.truncated; }
 
