@@ -305,6 +305,24 @@ class MessagePinView(APIView):
         return Response({"pin": PinSerializer(pin).data}, status=201)
 
 
+class MessageActionView(APIView):
+    """Record an action on a message."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        data = request.data or {}
+        custom = msg.custom_data or {}
+        actions = custom.get("actions", [])
+        actions.append(data)
+        custom["actions"] = actions
+        msg.custom_data = custom
+        msg.save(update_fields=["custom_data"])
+        return Response({"action": data}, status=201)
+
+
 
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
