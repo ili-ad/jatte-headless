@@ -9,7 +9,21 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Poll, Flag, Pin, UserMute, RoomMute
+from .models import (
+    Room,
+    Message,
+    ReadState,
+    Draft,
+    Notification,
+    Reaction,
+    PollOption,
+    Poll,
+    Flag,
+    Pin,
+    UserMute,
+    RoomMute,
+    Reminder,
+)
 
 from .serializers import (
     RoomSerializer,
@@ -20,6 +34,7 @@ from .serializers import (
     PollSerializer,
     FlagSerializer,
     PinSerializer,
+    ReminderSerializer,
 )
 
 
@@ -458,6 +473,28 @@ class NotificationListView(APIView):
         notes = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notes, many=True)
         return Response(serializer.data)
+
+
+class ReminderListCreateView(APIView):
+    """List or create reminders for the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        reminders = Reminder.objects.filter(user=request.user)
+        serializer = ReminderSerializer(reminders, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ReminderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reminder = Reminder.objects.create(
+            user=request.user,
+            text=serializer.validated_data["text"],
+            remind_at=serializer.validated_data["remind_at"],
+        )
+        return Response({"reminder": ReminderSerializer(reminder).data}, status=201)
 
 
 class MutedChannelListView(APIView):
