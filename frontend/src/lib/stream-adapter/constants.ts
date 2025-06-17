@@ -14,6 +14,7 @@ export const API = {
   LINK_PREVIEW: '/api/link-preview/',
   COOLDOWN: '/api/rooms/',
   MUTE_STATUS: '/api/mute-status/',
+  MUTED_USERS: '/api/muted-users/',
 } as const;
 
 export const EVENTS = {
