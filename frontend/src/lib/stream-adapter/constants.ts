@@ -15,6 +15,8 @@ export const API = {
   COOLDOWN: '/api/rooms/',
   MUTE_STATUS: '/api/mute-status/',
   MUTED_CHANNELS: '/api/muted-channels/',
+  MUTE_USER: '/api/mute/',
+  UNMUTE_USER: '/api/unmute/',
 } as const;
 
 export const EVENTS = {
