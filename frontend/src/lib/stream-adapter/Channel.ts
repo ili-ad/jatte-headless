@@ -1,8 +1,9 @@
 import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
-import type { Message, ChatEvents } from './types';   // ⬅ add this
+import type { Message, ChatEvents } from './types';
 import { ChatClient } from './ChatClient';
 import { API, EVENTS } from './constants';
+import { buildAttachmentManager } from './composer/attachments';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -88,14 +89,8 @@ export class Channel {
                 contextType: 'message' as const,
                 tag: 'root',
 
-                /* ——— attachment manager stub ——— */
-                attachmentManager: {
-                    state: new MiniStore({ attachments: [] as any[] }),
-                    availableUploadSlots: 10,
-                    addFiles: (_: File[]) => { },
-                    removeAttachment: (_: string) => { },
-                    replaceAttachment: (_o: any, _n: any) => { },
-                },
+                /* ——— attachment manager ——— */
+                attachmentManager: buildAttachmentManager({ jwt: channelRef.client['jwt'] }),
 
                 /* ——— composer‑level stores ——— */
                 state: new MiniStore({

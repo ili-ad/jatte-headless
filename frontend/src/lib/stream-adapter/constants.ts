@@ -24,6 +24,7 @@ export const API = {
   REFRESH_TOKEN: '/api/refresh-token/',
   SUBARRAY: '/api/subarray/',
   WS_AUTH: '/api/ws-auth/',
+  ATTACHMENTS: '/api/attachments/',
 } as const;
 
 export const EVENTS = {
