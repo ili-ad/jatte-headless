@@ -42,7 +42,7 @@ export class ChatClient {
 
     /* feature-module placeholders Stream-UI imports & tears-down */
     threads   !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
-    polls     !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
+    polls     !: { store: MiniStore<{ polls: any[] }>; registerSubscriptions(): void; unregisterSubscriptions(): void };
     reminders !: {
         registerSubscriptions(): void; unregisterSubscriptions(): void;
         initTimers(): void; clearTimers(): void;
@@ -84,7 +84,12 @@ export class ChatClient {
         this.clientID = randomId();
 
         /* no-op stubs keep Stream-UI happy */
-        this.threads = this.polls = {
+        this.threads = {
+            registerSubscriptions() {/* noop */ },
+            unregisterSubscriptions() {/* noop */ },
+        };
+        this.polls = {
+            store: new MiniStore({ polls: [] as any[] }),
             registerSubscriptions() {/* noop */ },
             unregisterSubscriptions() {/* noop */ },
         };
@@ -271,6 +276,17 @@ export class ChatClient {
         if (!res.ok) throw new Error('getNotifications failed');
         const list = await res.json() as any[];
         this.notifications.store._set({ notifications: list });
+        return list;
+    }
+
+    /** fetch list of polls */
+    async getPolls() {
+        const res = await fetch(API.POLLS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getPolls failed');
+        const list = await res.json() as any[];
+        this.polls.store._set({ polls: list });
         return list;
     }
 

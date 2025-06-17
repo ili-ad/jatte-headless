@@ -276,10 +276,15 @@ class PollOptionCreateView(APIView):
 
 
 class PollListCreateView(APIView):
-    """Create a new poll."""
+    """List or create polls."""
 
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        polls = Poll.objects.all()
+        serializer = PollSerializer(polls, many=True)
+        return Response(serializer.data)
 
     def post(self, request):
         serializer = PollSerializer(data=request.data)
