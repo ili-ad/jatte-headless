@@ -1,6 +1,15 @@
 from rest_framework import serializers
-from .models import Room, Message, Notification, Reaction, PollOption, Poll, Flag
-from .models import Pin
+from .models import (
+    Room,
+    Message,
+    Notification,
+    Reaction,
+    PollOption,
+    Poll,
+    Flag,
+    Reminder,
+    Pin,
+)
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -98,3 +107,10 @@ class PollSerializer(serializers.ModelSerializer):
         model = Poll
         fields = ["id", "question", "user_id", "created_at"]
         read_only_fields = ["id", "user_id", "created_at"]
+
+
+class ReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reminder
+        fields = ["id", "text", "remind_at", "created_at"]
+        read_only_fields = ["id", "created_at"]

@@ -44,6 +44,7 @@ export class ChatClient {
     threads   !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
     polls     !: { store: MiniStore<{ polls: any[] }>; registerSubscriptions(): void; unregisterSubscriptions(): void };
     reminders !: {
+        store: MiniStore<{ reminders: any[] }>;
         registerSubscriptions(): void; unregisterSubscriptions(): void;
         initTimers(): void; clearTimers(): void;
     };
@@ -94,6 +95,7 @@ export class ChatClient {
             unregisterSubscriptions() {/* noop */ },
         };
         this.reminders = {
+            store: new MiniStore({ reminders: [] as any[] }),
             registerSubscriptions() {/* noop */ },
             unregisterSubscriptions() {/* noop */ },
             initTimers() {/* noop */ },
@@ -287,6 +289,17 @@ export class ChatClient {
         if (!res.ok) throw new Error('getPolls failed');
         const list = await res.json() as any[];
         this.polls.store._set({ polls: list });
+        return list;
+    }
+
+    /** fetch list of reminders */
+    async getReminders() {
+        const res = await fetch(API.REMINDERS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getReminders failed');
+        const list = await res.json() as any[];
+        this.reminders.store._set({ reminders: list });
         return list;
     }
 
