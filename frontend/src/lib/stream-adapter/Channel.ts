@@ -747,6 +747,15 @@ export class Channel {
         if (!res.ok) throw new Error('pin failed');
     }
 
+    /** Unpin a message */
+    async unpin(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/unpin/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('unpin failed');
+    }
+
     /** Fetch pinned messages for this channel */
     async pinnedMessages() {
         const res = await fetch(`/api/rooms/${this.uuid}/pinned/`, {
