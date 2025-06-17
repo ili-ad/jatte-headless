@@ -86,7 +86,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **setUserAgent**                             | ✅ | ✅ |
 | **state**                                    | ✅ | 🔲 |
 | **subarray**                                 | ✅ | ✅ |
-| **tag**                                      | ✅ | 🔲 | <!--TODO-backend-->
+| **tag**                                      | ✅ | ✅ |
 | **textComposer**                             | 🔲 | 🔲 |
 | **threadId**                                 | 🔲 | 🔲 |
 | **threads**                                  | 🔲 | 🔲 |
