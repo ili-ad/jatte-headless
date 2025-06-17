@@ -10,7 +10,7 @@ import { API, EVENTS } from './constants';
 
 export class Channel {
     readonly id: number;
-    readonly uuid: string;
+    readonly uuid!: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
@@ -349,12 +349,13 @@ export class Channel {
 
     constructor(
         id: number,
-        private uuid: string,
+        uuid: string,
         roomName: string,
         private client: ChatClient,
         extraData: Record<string, unknown> = {},
     ) {
         this.id = id;
+        this.uuid = uuid;
         this.cid = `messaging:${this.uuid}`;
         this.data = { name: roomName, ...extraData };
     }
@@ -416,7 +417,7 @@ export class Channel {
                 });
             }
 
-            const memRes = await fetch(`${API.ROOMS}${this.roomUuid}/members/`, {
+            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -615,7 +616,7 @@ export class Channel {
 
     /** Hide this channel */
     async hide() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/hide/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/hide/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -625,7 +626,7 @@ export class Channel {
 
     /** Show this channel */
     async show() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/show/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/show/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
