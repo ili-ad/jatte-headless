@@ -108,6 +108,17 @@ class Flag(models.Model):
         unique_together = ("message", "user")
 
 
+class Poll(models.Model):
+    """Poll entity for pollComposer."""
+
+    question = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+
 class PollOption(models.Model):
     """Poll option suggestion tied to a poll id."""
 
