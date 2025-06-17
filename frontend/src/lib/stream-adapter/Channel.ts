@@ -391,6 +391,18 @@ export class Channel {
                         this.setEditedMessage(undefined);
                     }
                 },
+
+                /** Clear composer state and discard any stored draft */
+                clear() {
+                    this.initState();
+                    const token = channelRef.client['jwt'];
+                    if (token) {
+                        fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${token}` },
+                        }).catch(() => { /* ignore network errors */ });
+                    }
+                },
             };
         })(),   // end of IIFE
     };         // ←———————— END of _state object
