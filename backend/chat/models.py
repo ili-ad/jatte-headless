@@ -129,3 +129,14 @@ class UserMute(models.Model):
 
     class Meta:
         unique_together = ("user", "target")
+
+
+class RoomMute(models.Model):
+    """Record that `user` muted `room`."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "room")

@@ -294,6 +294,19 @@ export class ChatClient {
         return rooms.map(r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {}));
     }
 
+    /** list of muted channels for the current user */
+    async getMutedChannels() {
+        const res = await fetch(API.MUTED_CHANNELS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getMutedChannels failed');
+        const rooms = await res.json() as Room[];
+        this.mutedChannels = rooms.map(
+            r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {})
+        );
+        return this.mutedChannels;
+    }
+
     /** Check if a given user is muted */
     async muteStatus(userId: string) {
         const res = await fetch(`${API.MUTE_STATUS}${userId}/`, {
@@ -302,6 +315,15 @@ export class ChatClient {
         if (!res.ok) throw new Error('muteStatus failed');
         const data = await res.json() as { muted: boolean };
         return data.muted;
+    }
+
+    /** Mute a user */
+    async muteUser(userId: string) {
+        const res = await fetch(`${API.MUTE_USER}${userId}/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('muteUser failed');
     }
 
     /** Create a poll option */
