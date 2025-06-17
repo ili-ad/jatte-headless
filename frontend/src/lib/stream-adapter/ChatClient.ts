@@ -355,6 +355,15 @@ export class ChatClient {
         if (!res.ok) throw new Error('muteUser failed');
     }
 
+    /** Unmute a user */
+    async unmuteUser(userId: string) {
+        const res = await fetch(`${API.UNMUTE_USER}${userId}/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('unmuteUser failed');
+    }
+
     /** Pin a message globally */
     async pinMessage(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
