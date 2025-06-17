@@ -137,4 +137,14 @@ urlpatterns = [
         MuteStatusView.as_view(),
         name="mute-status",
     ),
+    path(
+        "api/mute/<str:target_username>/",
+        MuteUserView.as_view(),
+        name="mute-user",
+    ),
+    path(
+        "api/unmute/<str:target_username>/",
+        UnmuteUserView.as_view(),
+        name="unmute-user",
+    ),
 ]

@@ -292,6 +292,26 @@ export class ChatClient {
         return data.muted;
     }
 
+    /** Mute a user */
+    async muteUser(userId: string) {
+        const res = await fetch(`${API.MUTE_USER}${userId}/`, {
+            method: 'POST',
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('muteUser failed');
+        return await res.json();
+    }
+
+    /** Unmute a user */
+    async unmuteUser(userId: string) {
+        const res = await fetch(`${API.UNMUTE_USER}${userId}/`, {
+            method: 'POST',
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('unmuteUser failed');
+        return await res.json();
+    }
+
     /** Create a poll option */
     async createPollOption(pollId: string, option: { text: string }) {
         const res = await fetch(`${API.POLLS}${pollId}/options/`, {
