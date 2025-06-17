@@ -92,7 +92,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **threads**                                  | ✅ | ✅ |
 | **toggleShowReplyInChannel**                 | ✅ | 🔲 |
 | **tokenManager**                             | ✅ | ✅ |
-| **truncate**                                 | 🔲 | 🔲 |
+| **truncate**                                 | ✅ | ✅ |
 | **truncated**                                | 🔲 | 🔲 |
 | **type**                                     | 🔲 | 🔲 |
 | **unarchive**                                | ✅ | ✅ |
