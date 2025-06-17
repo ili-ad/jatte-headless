@@ -8,14 +8,12 @@ import { API, EVENTS } from './constants';
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
 
+
 export class Channel {
     readonly id: number;
     readonly uuid!: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
-
-    private socket?: WebSocket;
-    private emitter = mitt<ChatEvents>();
 
     /* channel-local state object */
     private _state = {

@@ -58,9 +58,9 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **messageComposer**                          | ✅ | ✅ |
 | **messages**                                 | ✅ | ✅ |
 | **muteStatus**                               | ✅ | ✅ |
-| **muteUser**                                 | 🔲 | 🔲 |
-| **mutedChannels**                            | 🔲 | 🔲 |
-| **mutedUsers**                               | 🔲 | 🔲 |
+| **muteUser**                                 | ✅ | ✅ |
+| **mutedChannels**                            | ✅ | ✅ |
+| **mutedUsers**                               | ✅ | ✅ |
 | **name**                                     | 🔲 | 🔲 |
 | **notifications**                            | ✅ | ✅ |
 | **off**                                      | ✅ | 🔲 |
