@@ -22,6 +22,15 @@ class TruncateRoomAPITests(APITestCase):
         self.assertEqual(room.messages.count(), 0)
         self.assertEqual(res.data["status"], "ok")
 
+    def test_truncate_room_sets_truncated_flag(self):
+        room = Room.objects.create(uuid="r1", client="c1", data={})
+        token = self.make_token()
+        url = reverse("room-truncate", kwargs={"room_uuid": room.uuid})
+        res = self.client.post(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 200)
+        room.refresh_from_db()
+        self.assertTrue(room.data.get("truncated"))
+
     def test_truncate_room_requires_auth(self):
         room = Room.objects.create(uuid="r1", client="c1")
         url = reverse("room-truncate", kwargs={"room_uuid": room.uuid})

@@ -431,6 +431,9 @@ export class Channel {
     /** Whether this channel is hidden */
     get hidden() { return !!this.data.hidden; }
 
+    /** Whether this channel has been truncated */
+    get truncated() { return !!this.data.truncated; }
+
     /** Human readable channel name if provided */
     get name() { return this.data.name; }
 
@@ -828,6 +831,7 @@ export class Channel {
         });
         if (!res.ok) throw new Error('truncate failed');
         this.bump({ messages: [], latestMessages: [] });
+        this.data.truncated = true;
     }
 
     /** Fetch cooldown value for this channel */
