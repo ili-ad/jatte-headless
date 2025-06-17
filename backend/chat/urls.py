@@ -27,6 +27,8 @@ from .api_views import (
     NotificationListView,
     MutedChannelListView,
     LinkPreviewView,
+    PollListCreateView,
+    PollDetailView,
     PollOptionCreateView,
     RoomHideView,
     RoomShowView,

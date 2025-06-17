@@ -21,3 +21,9 @@ def get_app_settings(request):
 def get_user_agent(request):
     """Return the User-Agent string sent by the client."""
     return Response({"user_agent": request.META.get("HTTP_USER_AGENT", "")})
+
+
+@api_view(["GET"])
+def get_tag(request):
+    """Return a constant tag value for tests."""
+    return Response({"tag": "root"})
