@@ -21,6 +21,7 @@ export const API = {
   MUTE_USER: '/api/mute/',
   UNMUTE_USER: '/api/unmute/',
   RECOVER_STATE: '/api/recover-state/',
+  REFRESH_TOKEN: '/api/refresh-token/',
   SUBARRAY: '/api/subarray/',
 } as const;
 
