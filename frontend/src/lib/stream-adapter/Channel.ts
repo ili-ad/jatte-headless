@@ -15,6 +15,8 @@ export class Channel {
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
+    private roomUuid!: string;
+
     private socket?: WebSocket;
     private emitter = mitt<ChatEvents>();
 
@@ -372,6 +374,7 @@ export class Channel {
 
     initialized = false;
 
+
     constructor(
         id: number,
         uuid: string,
@@ -381,6 +384,7 @@ export class Channel {
     ) {
         this.id = id;
         this.uuid = uuid;
+        this.roomUuid = uuid;
         this.cid = `messaging:${this.uuid}`;
         this.data = { name: roomName, ...extraData };
     }
@@ -630,6 +634,21 @@ export class Channel {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('deleteMessage failed');
+        const updated = await res.json() as Message;
+        this.bump({
+            messages: this._state.messages.map(m => m.id === messageId ? updated : m),
+            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? updated : m),
+        });
+        return updated;
+    }
+
+    /** Restore a previously deleted message */
+    async restore(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/restore/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('restore failed');
         const updated = await res.json() as Message;
         this.bump({
             messages: this._state.messages.map(m => m.id === messageId ? updated : m),
