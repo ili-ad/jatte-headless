@@ -326,6 +326,16 @@ export class ChatClient {
         if (!res.ok) throw new Error('muteUser failed');
     }
 
+    /** Pin a message globally */
+    async pinMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('pinMessage failed');
+        return await res.json();
+    }
+
     /** Create a poll option */
     async createPollOption(pollId: string, option: { text: string }) {
         const res = await fetch(`${API.POLLS}${pollId}/options/`, {

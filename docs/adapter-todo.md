@@ -66,7 +66,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **off**                                      | ✅ | 🔲 |
 | **on**                                       | ✅ | 🔲 |
 | **pin**                                      | ✅ | ✅ |
-| **pinMessage**                               | 🔲 | 🔲 |
+| **pinMessage**                               | ✅ | ✅ |
 | **pinnedMessages**                           | 🔲 | 🔲 |
 | **pollComposer**                             | 🔲 | 🔲 |
 | **polls**                                    | 🔲 | 🔲 |
