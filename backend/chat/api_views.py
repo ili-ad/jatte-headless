@@ -552,3 +552,17 @@ class RoomShowView(APIView):
         return Response({"status": "ok"})
 
 
+class RecoverStateView(APIView):
+    """Return basic state for reconnect recovery."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        rooms = Room.objects.filter(status=Room.ACTIVE)
+        room_data = RoomSerializer(rooms, many=True).data
+        notes = Notification.objects.filter(user=request.user)
+        note_data = NotificationSerializer(notes, many=True).data
+        return Response({"rooms": room_data, "notifications": note_data})
+
+
