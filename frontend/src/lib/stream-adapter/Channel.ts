@@ -10,7 +10,6 @@ import { API, EVENTS } from './constants';
 
 export class Channel {
     readonly id: number;
-    readonly uuid!: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
@@ -349,7 +348,7 @@ export class Channel {
 
     constructor(
         id: number,
-        uuid: string,
+        public readonly uuid: string,
         roomName: string,
         private client: ChatClient,
         extraData: Record<string, unknown> = {},
