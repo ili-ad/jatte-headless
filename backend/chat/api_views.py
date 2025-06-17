@@ -311,6 +311,18 @@ class MessagePinView(APIView):
         return Response({"pin": PinSerializer(pin).data}, status=201)
 
 
+class MessageUnpinView(APIView):
+    """Remove the current user's pin from a message."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        Pin.objects.filter(message=msg, user=request.user).delete()
+        return Response(status=204)
+
+
 class MessageActionView(APIView):
     """Record an action on a message."""
 

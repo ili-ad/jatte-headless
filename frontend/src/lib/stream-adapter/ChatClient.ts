@@ -431,6 +431,15 @@ export class ChatClient {
         return await res.json();
     }
 
+    /** Unpin a message globally */
+    async unpinMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/unpin/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('unpinMessage failed');
+    }
+
     /** Create a poll option */
     async createPollOption(pollId: string, option: { text: string }) {
         const res = await fetch(`${API.POLLS}${pollId}/options/`, {
