@@ -8,6 +8,7 @@ from .api_views import (
     RoomMarkUnreadView,
     RoomCountUnreadView,
     RoomLastReadView,
+    RoomReadView,
     RoomConfigView,
     MessageDetailView,
     MessageRepliesView,
@@ -65,6 +66,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/last_read/",
         RoomLastReadView.as_view(),
         name="room-last-read",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/read/",
+        RoomReadView.as_view(),
+        name="room-read",
     ),
     path(
         "api/rooms/<str:room_uuid>/draft/",
