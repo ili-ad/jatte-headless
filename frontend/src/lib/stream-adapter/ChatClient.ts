@@ -35,6 +35,9 @@ export class ChatClient {
     mutedUsers: unknown[] = [];
     listeners: Record<string, any[]> = {};
 
+    /** Minimal client.state stub holding fetched users */
+    state = { users: {} as Record<string, User> };
+
     /** global stores Stream-UI subscribes to */
     readonly stateStore = new MiniStore({ channels: [] as Channel[] });
     readonly settingsStore = new MiniStore<AppSettings | null>(null);
@@ -193,7 +196,10 @@ export class ChatClient {
         });
         if (!res.ok) throw new Error('sync-user failed');
         const body = await res.json().catch(() => null);
-        if (body) this._user = body;
+        if (body) {
+            this._user = body;
+            this.state.users[String(body.id)] = body;
+        }
         this.connectionId = crypto.randomUUID();
         this.initialized = true;
         this.disconnected = false;
@@ -243,7 +249,10 @@ export class ChatClient {
         const res = await fetch(API.USERS, {
             headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
         });
-        return res.ok ? await res.json() as User[] : [];
+        if (!res.ok) return [];
+        const list = await res.json() as User[];
+        for (const u of list) this.state.users[String(u.id)] = u;
+        return list;
     }
 
     /** Fetch the currently authenticated user */
@@ -255,6 +264,7 @@ export class ChatClient {
         const info = await res.json() as User;
         (this as any).user = { id: String(info.id) };
         this._user = info;
+        this.state.users[String(info.id)] = info;
         return info;
     }
 
