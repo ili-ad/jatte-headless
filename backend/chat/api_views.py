@@ -373,6 +373,17 @@ class MuteStatusView(APIView):
         return Response({"muted": muted})
 
 
+class MutedUsersView(APIView):
+    """Return list of users muted by the current user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = UserMute.objects.filter(user=request.user).select_related("target")
+        data = [{"id": m.target.id, "username": m.target.username} for m in qs]
+        return Response(data)
+
+      
 class MuteUserView(APIView):
     """Mute the given user for the current user."""
 
@@ -383,7 +394,7 @@ class MuteUserView(APIView):
         target = get_object_or_404(get_user_model(), username=target_username)
         UserMute.objects.get_or_create(user=request.user, target=target)
         return Response({"status": "ok"})
-
+      
       
 class LinkPreviewView(APIView):
     """Return basic metadata for a URL."""
