@@ -23,6 +23,7 @@ export const API = {
   RECOVER_STATE: '/api/recover-state/',
   REFRESH_TOKEN: '/api/refresh-token/',
   SUBARRAY: '/api/subarray/',
+  WS_AUTH: '/api/ws-auth/',
 } as const;
 
 export const EVENTS = {
