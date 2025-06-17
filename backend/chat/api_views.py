@@ -82,9 +82,13 @@ class RoomMessageListCreateView(APIView):
             cd["event"] = event
             data["custom_data"] = cd
 
+        parent_id = data.pop("reply_to", None)
         serializer = MessageSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        message = serializer.save(created_by=request.user)
+        reply_to = None
+        if parent_id is not None:
+            reply_to = get_object_or_404(Message, id=parent_id)
+        message = serializer.save(created_by=request.user, reply_to=reply_to)
         room.messages.add(message)
         return Response(MessageSerializer(message).data, status=201)
 

@@ -30,6 +30,22 @@ class SendMessageAPITests(APITestCase):
         msg = room.messages.first()
         self.assertEqual(msg.custom_data, {"foo": 1})
 
+    def test_send_message_reply_to(self):
+        room = Room.objects.create(uuid="r1", client="c1")
+        parent = Message.objects.create(body="parent", sent_by="u2")
+        room.messages.add(parent)
+        token = self.make_token()
+        url = reverse("room-messages", kwargs={"room_uuid": room.uuid})
+        res = self.client.post(
+            url,
+            {"text": "reply", "reply_to": parent.id},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        self.assertEqual(res.status_code, 201)
+        msg = room.messages.order_by("id").last()
+        self.assertEqual(msg.reply_to, parent)
+
     def test_send_message_requires_auth(self):
         room = Room.objects.create(uuid="r1", client="c1")
         url = reverse("room-messages", kwargs={"room_uuid": room.uuid})

@@ -348,11 +348,19 @@ export class Channel {
                 /** Currently edited message, if any */
                 editedMessage: undefined as Message | undefined,
 
+                /** Parent message id for thread replies */
+                threadId: undefined as string | undefined,
+
                 /** Set the message being edited and sync text composer */
                 setEditedMessage(msg: Message | undefined) {
                     (this as any).editedMessage = msg;
                     const text = msg ? msg.text : '';
                     textStore._set({ text });
+                },
+
+                /** Set the current thread id */
+                setThreadId(id: string | undefined) {
+                    (this as any).threadId = id;
                 },
 
                 /** Reset composer state optionally from an existing message */
@@ -612,6 +620,8 @@ export class Channel {
         const payload: any = { text };
         if (Object.keys(custom).length) payload.custom_data = custom;
         if (poll) payload.poll = poll;
+        const threadId = this.messageComposer.threadId;
+        if (threadId) payload.reply_to = threadId;
         const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
