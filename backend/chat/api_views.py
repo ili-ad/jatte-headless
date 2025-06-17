@@ -341,6 +341,19 @@ class RoomMembersView(APIView):
         return Response([{"id": name} for name in sorted(names)])
 
 
+class RoomPinnedMessagesView(APIView):
+    """Return messages pinned in the given room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        msgs = room.messages.filter(pins__isnull=False).distinct()
+        serializer = MessageSerializer(msgs, many=True)
+        return Response(serializer.data)
+
+
 class RoomQueryView(APIView):
     """Return initial messages and members for a room."""
 
