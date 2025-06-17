@@ -18,6 +18,7 @@ from .api_views import (
     RoomUnarchiveView,
     RoomCooldownView,
     RoomMembersView,
+    RoomPinnedMessagesView,
     RoomQueryView,
     ActiveRoomListView,
     RoomDraftView,
@@ -84,6 +85,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/members/",
         RoomMembersView.as_view(),
         name="room-members",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/pinned/",
+        RoomPinnedMessagesView.as_view(),
+        name="room-pinned-messages",
     ),
     path(
         "api/rooms/<str:room_uuid>/query/",
