@@ -688,6 +688,25 @@ export class Channel {
         return updated;
     }
 
+    /** Update a message's text */
+    async updateMessage(messageId: string, text: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.client['jwt']}`,
+            },
+            body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error('updateMessage failed');
+        const updated = await res.json() as Message;
+        this.bump({
+            messages: this._state.messages.map(m => m.id === messageId ? updated : m),
+            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? updated : m),
+        });
+        return updated;
+    }
+
     /** Restore a previously deleted message */
     async restore(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/restore/`, {
