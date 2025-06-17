@@ -32,6 +32,7 @@ export class ChatClient {
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
+    mutedUsers: unknown[] = [];
     listeners: Record<string, any[]> = {};
 
     /** global stores Stream-UI subscribes to */
@@ -41,7 +42,7 @@ export class ChatClient {
 
     /* feature-module placeholders Stream-UI imports & tears-down */
     threads   !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
-    polls     !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
+    polls     !: { store: MiniStore<{ polls: any[] }>; registerSubscriptions(): void; unregisterSubscriptions(): void };
     reminders !: {
         registerSubscriptions(): void; unregisterSubscriptions(): void;
         initTimers(): void; clearTimers(): void;
@@ -83,7 +84,12 @@ export class ChatClient {
         this.clientID = randomId();
 
         /* no-op stubs keep Stream-UI happy */
-        this.threads = this.polls = {
+        this.threads = {
+            registerSubscriptions() {/* noop */ },
+            unregisterSubscriptions() {/* noop */ },
+        };
+        this.polls = {
+            store: new MiniStore({ polls: [] as any[] }),
             registerSubscriptions() {/* noop */ },
             unregisterSubscriptions() {/* noop */ },
         };
@@ -273,6 +279,28 @@ export class ChatClient {
         return list;
     }
 
+    /** fetch list of polls */
+    async getPolls() {
+        const res = await fetch(API.POLLS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getPolls failed');
+        const list = await res.json() as any[];
+        this.polls.store._set({ polls: list });
+        return list;
+    }
+
+    /** fetch list of users muted by the current user */
+    async getMutedUsers() {
+        const res = await fetch(API.MUTED_USERS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getMutedUsers failed');
+        const list = await res.json() as any[];
+        this.mutedUsers = list;
+        return list;
+    }
+
     /** list of currently active channels */
     async getActiveChannels() {
         const res = await fetch(API.ACTIVE_ROOMS, {
@@ -280,6 +308,19 @@ export class ChatClient {
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
         return rooms.map(r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {}));
+    }
+
+    /** list of muted channels for the current user */
+    async getMutedChannels() {
+        const res = await fetch(API.MUTED_CHANNELS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getMutedChannels failed');
+        const rooms = await res.json() as Room[];
+        this.mutedChannels = rooms.map(
+            r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {})
+        );
+        return this.mutedChannels;
     }
 
     /** Check if a given user is muted */
@@ -290,6 +331,25 @@ export class ChatClient {
         if (!res.ok) throw new Error('muteStatus failed');
         const data = await res.json() as { muted: boolean };
         return data.muted;
+    }
+
+    /** Mute a user */
+    async muteUser(userId: string) {
+        const res = await fetch(`${API.MUTE_USER}${userId}/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('muteUser failed');
+    }
+
+    /** Pin a message globally */
+    async pinMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.jwt}` },
+        });
+        if (!res.ok) throw new Error('pinMessage failed');
+        return await res.json();
     }
 
     /** Create a poll option */

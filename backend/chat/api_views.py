@@ -9,7 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Poll, Flag, Pin, UserMute, RoomMute
 
 from .serializers import (
     RoomSerializer,
@@ -17,7 +17,9 @@ from .serializers import (
     NotificationSerializer,
     ReactionSerializer,
     PollOptionSerializer,
+    PollSerializer,
     FlagSerializer,
+    PinSerializer,
 )
 
 
@@ -126,6 +128,27 @@ class RoomLastReadView(APIView):
         state = ReadState.objects.filter(user=request.user, room=room).first()
         last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
+
+
+class RoomReadView(APIView):
+    """Return read states for all users in the room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        states = ReadState.objects.filter(room=room).select_related("user")
+        data = []
+        for st in states:
+            unread = room.messages.filter(created_at__gt=st.last_read).count()
+            data.append(
+                {
+                    "user": st.user.username,
+                    "last_read": st.last_read.isoformat(),
+                    "unread_messages": unread,
+                }
+            )
+        return Response(data)
 
 
 class RoomDraftView(APIView):
@@ -255,6 +278,18 @@ class ReactionDetailView(APIView):
         return Response(status=204)
 
 
+class MessagePinView(APIView):
+    """Pin a message."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        pin, _ = Pin.objects.get_or_create(message=msg, user=request.user)
+        return Response({"pin": PinSerializer(pin).data}, status=201)
+
+
 
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
@@ -271,6 +306,41 @@ class PollOptionCreateView(APIView):
             user=request.user,
         )
         return Response({"poll_option": PollOptionSerializer(option).data}, status=201)
+
+
+class PollListCreateView(APIView):
+    """List or create polls."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        polls = Poll.objects.all()
+        serializer = PollSerializer(polls, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = PollSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        poll = Poll.objects.create(
+            question=serializer.validated_data["question"],
+            user=request.user,
+        )
+        for text in request.data.get("options", []):
+            PollOption.objects.create(poll_id=str(poll.id), text=text, user=request.user)
+        return Response({"poll": PollSerializer(poll).data}, status=201)
+
+
+class PollDetailView(APIView):
+    """Delete a poll."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, poll_id):
+        poll = get_object_or_404(Poll, id=poll_id)
+        poll.delete()
+        return Response(status=204)
 
 class RoomConfigView(APIView):
     """Return configuration flags for the given room."""
@@ -340,6 +410,35 @@ class RoomMembersView(APIView):
         return Response([{"id": name} for name in sorted(names)])
 
 
+class RoomPinnedMessagesView(APIView):
+    """Return messages pinned in the given room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        msgs = room.messages.filter(pins__isnull=False).distinct()
+        serializer = MessageSerializer(msgs, many=True)
+        return Response(serializer.data)
+
+
+class RoomQueryView(APIView):
+    """Return initial messages and members for a room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        messages = MessageSerializer(room.messages.all(), many=True).data
+        names = set(room.messages.values_list("sent_by", flat=True))
+        if room.agent:
+            names.add(room.agent.username)
+        members = [{"id": name} for name in sorted(names)]
+        return Response({"messages": messages, "members": members})
+
+
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
     authentication_classes = [SupabaseJWTAuthentication]
@@ -361,6 +460,19 @@ class NotificationListView(APIView):
         return Response(serializer.data)
 
 
+class MutedChannelListView(APIView):
+    """Return channels muted by the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        mutes = RoomMute.objects.filter(user=request.user)
+        rooms = [m.room for m in mutes]
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+
 class MuteStatusView(APIView):
     """Return whether the current user muted the given user."""
     authentication_classes = [SupabaseJWTAuthentication]
@@ -371,6 +483,29 @@ class MuteStatusView(APIView):
         muted = UserMute.objects.filter(user=request.user, target=target).exists()
         return Response({"muted": muted})
 
+
+class MutedUsersView(APIView):
+    """Return list of users muted by the current user."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = UserMute.objects.filter(user=request.user).select_related("target")
+        data = [{"id": m.target.id, "username": m.target.username} for m in qs]
+        return Response(data)
+
+      
+class MuteUserView(APIView):
+    """Mute the given user for the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, target_username):
+        target = get_object_or_404(get_user_model(), username=target_username)
+        UserMute.objects.get_or_create(user=request.user, target=target)
+        return Response({"status": "ok"})
+      
       
 class LinkPreviewView(APIView):
     """Return basic metadata for a URL."""

@@ -8,9 +8,10 @@ import { API, EVENTS } from './constants';
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
 
+
 export class Channel {
     readonly id: number;
-    readonly uuid: string;
+    readonly uuid!: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
@@ -126,13 +127,37 @@ export class Channel {
                     };
                 })(),
                 pollComposer: {
-                state: new MiniStore({       // ✅ has .state.getLatestValue()
-                    poll: undefined as any,    // nothing yet
+                state: new MiniStore({
+                    poll: undefined as any,
                 }),
-                /* helpers the UI *might* call later – leave as no-ops */
-                create          : () => {},  // “add poll” button
-                remove          : () => {},
-                reset           : () => {},
+                async create(question: string, options: string[] = []) {
+                    const res = await fetch(API.POLLS, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${channelRef.client['jwt']}`,
+                        },
+                        body: JSON.stringify({ question, options }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.state._set({ poll: data.poll });
+                    }
+                },
+                async remove() {
+                    const poll = this.state.getSnapshot().poll;
+                    if (!poll) return;
+                    await fetch(`${API.POLLS}${poll.id}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            Authorization: `Bearer ${channelRef.client['jwt']}`,
+                        },
+                    }).catch(() => { /* ignore */ });
+                    this.state._set({ poll: undefined });
+                },
+                reset() {
+                    this.state._set({ poll: undefined });
+                },
                 },
 
                 customDataManager: {
@@ -349,6 +374,7 @@ export class Channel {
 
     initialized = false;
 
+
     constructor(
         id: number,
         uuid: string,
@@ -392,7 +418,72 @@ export class Channel {
         return me ? new Date(me.last_read) : undefined;
     }
 
+    /** Fetch read states for this channel */
+    async read() {
+        const res = await fetch(`/api/rooms/${this.uuid}/read/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('read failed');
+        const list = (await res.json()) as {
+            user: string;
+            last_read: string;
+            unread_messages: number;
+        }[];
+        const map: Record<string, { last_read: string; unread_messages: number; user: { id: string } }> = {};
+        for (const item of list) {
+            map[item.user] = {
+                last_read: item.last_read,
+                unread_messages: item.unread_messages,
+                user: { id: item.user },
+            };
+        }
+        this.bump({ read: map });
+        return map;
+    }
+
     /* ─── main lifecycle ─── */
+    /** Fetch initial state without opening a websocket */
+    async query() {
+        try {
+            const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (res.ok) {
+                const first: Message[] = await res.json();
+                const me = this.client.user.id;
+                if (me) {
+                    this.bump({
+                        messages: first,
+                        latestMessages: first,
+                        read: {
+                            ...this._state.read,
+                            [me]: {
+                                last_read: new Date().toISOString(),
+                                last_read_message_id: first.at(-1)?.id,
+                                unread_messages: 0,
+                            },
+                        },
+                    });
+                } else {
+                    this.bump({ messages: first, latestMessages: first });
+                }
+            }
+
+            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (memRes.ok) {
+                const list = (await memRes.json()) as { id: string }[];
+                const map: Record<string, { user: { id: string } }> = {};
+                for (const m of list) map[m.id] = { user: { id: m.id } };
+                this.bump({ members: map });
+            }
+        } catch {
+            /* ignore network errors */
+        }
+        this.initialized = true;
+    }
+
     async watch() {
         if (this.socket) return;
         this.client.activeChannels[this.cid] = this;
@@ -420,7 +511,7 @@ export class Channel {
                 });
             }
 
-            const memRes = await fetch(`${API.ROOMS}${this.roomUuid}/members/`, {
+            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -504,8 +595,10 @@ export class Channel {
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
+        const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
         const payload: any = { text };
         if (Object.keys(custom).length) payload.custom_data = custom;
+        if (poll) payload.poll = poll;
         const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
@@ -529,6 +622,7 @@ export class Channel {
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
 
         this.messageComposer.customDataManager.clear();
+        this.messageComposer.pollComposer.state._set({ poll: undefined as any });
 
         return msg;
     }
@@ -587,6 +681,26 @@ export class Channel {
         return await res.json();
     }
 
+    /** Pin a message */
+    async pin(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('pin failed');
+    }
+
+    /** Fetch pinned messages for this channel */
+    async pinnedMessages() {
+        const res = await fetch(`/api/rooms/${this.uuid}/pinned/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('pinnedMessages failed');
+        const list = await res.json() as Message[];
+        this.bump({ pinnedMessages: list });
+        return list;
+    }
+
     /** Fetch reactions for a given message */
     async queryReactions(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
@@ -634,7 +748,7 @@ export class Channel {
 
     /** Hide this channel */
     async hide() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/hide/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/hide/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -644,7 +758,7 @@ export class Channel {
 
     /** Show this channel */
     async show() {
-        const res = await fetch(`/api/rooms/${this.roomUuid}/show/`, {
+        const res = await fetch(`/api/rooms/${this.uuid}/show/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
