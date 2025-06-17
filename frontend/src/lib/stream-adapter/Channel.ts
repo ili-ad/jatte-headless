@@ -96,7 +96,10 @@ export class Channel {
                 },
 
                 /* ——— composer‑level stores ——— */
-                state: new MiniStore({ quotedMessage: undefined as any }),
+                state: new MiniStore({
+                    quotedMessage: undefined as any,
+                    showReplyInChannel: false,
+                }),
                 editingAuditState,
                 linkPreviewsManager: (() => {
                     const store = new MiniStore({ previews: [] as any[] });
@@ -363,6 +366,17 @@ export class Channel {
                     (this as any).threadId = id;
                 },
 
+                /** Toggle whether replies are shown in-channel */
+                toggleShowReplyInChannel() {
+                    const cur = this.state.getSnapshot().showReplyInChannel;
+                    this.state._set({ showReplyInChannel: !cur });
+                },
+
+                /** Current flag for showing replies in-channel */
+                get showReplyInChannel() {
+                    return this.state.getSnapshot().showReplyInChannel;
+                },
+
                 /** Reset composer state optionally from an existing message */
                 initState({ composition }: { composition?: Message } = {}) {
                     this.attachmentManager.state._set({ attachments: [] });
@@ -622,6 +636,9 @@ export class Channel {
         if (poll) payload.poll = poll;
         const threadId = this.messageComposer.threadId;
         if (threadId) payload.reply_to = threadId;
+        if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
+            payload.show_in_channel = true;
+        }
         const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
