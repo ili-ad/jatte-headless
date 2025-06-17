@@ -20,6 +20,7 @@ from .api_views import (
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    MutedChannelListView,
     LinkPreviewView,
     PollOptionCreateView,
     RoomHideView,
@@ -112,6 +113,7 @@ urlpatterns = [
         name="message-replies",
     ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
+    path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
