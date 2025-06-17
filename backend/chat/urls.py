@@ -26,6 +26,7 @@ from .api_views import (
     RoomShowView,
     ReactionDetailView,
     MuteStatusView,
+    MuteUserView,
 )
 
 router = DefaultRouter()
@@ -136,5 +137,10 @@ urlpatterns = [
         "api/mute-status/<str:target_username>/",
         MuteStatusView.as_view(),
         name="mute-status",
+    ),
+    path(
+        "api/mute/<str:target_username>/",
+        MuteUserView.as_view(),
+        name="user-mute",
     ),
 ]
