@@ -9,7 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute, RoomMute
 
 from .serializers import (
     RoomSerializer,
@@ -346,6 +346,19 @@ class NotificationListView(APIView):
     def get(self, request):
         notes = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notes, many=True)
+        return Response(serializer.data)
+
+
+class MutedChannelListView(APIView):
+    """Return channels muted by the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        mutes = RoomMute.objects.filter(user=request.user)
+        rooms = [m.room for m in mutes]
+        serializer = RoomSerializer(rooms, many=True)
         return Response(serializer.data)
 
 
