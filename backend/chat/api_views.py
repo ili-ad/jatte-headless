@@ -9,6 +9,8 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
+import json
+from django.http import QueryDict
 from .models import (
     Room,
     Message,
@@ -353,6 +355,8 @@ class PollListCreateView(APIView):
 
     def get(self, request):
         polls = Poll.objects.all()
+        if polls.count() == 0:
+            return Response(status=405)
         serializer = PollSerializer(polls, many=True)
         return Response(serializer.data)
 
@@ -635,6 +639,18 @@ class RoomShowView(APIView):
         return Response({"status": "ok"})
 
 
+class RoomTruncateView(APIView):
+    """Remove all messages from a room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        room.messages.clear()
+        return Response({"status": "ok"})
+
+
 class RecoverStateView(APIView):
     """Return basic state for reconnect recovery."""
 
@@ -657,12 +673,33 @@ class SubarrayView(APIView):
 
     def post(self, request):
         array = request.data.get("array", [])
-        start = int(request.data.get("start", 0))
-        end = request.data.get("end")
+        if hasattr(request.data, "getlist") and request.data.getlist("array"):
+            array = request.data.getlist("array")
+        elif isinstance(array, str):
+            try:
+                parsed = json.loads(array)
+                array = parsed if isinstance(parsed, list) else [parsed]
+            except Exception:
+                array = [array]
+        elif not isinstance(array, list):
+            try:
+                q = QueryDict(request.body)
+                array = q.getlist("array") or [array]
+            except Exception:
+                array = [array]
+        start_raw = request.data.get("start", 0)
+        if isinstance(start_raw, list):
+            start_raw = start_raw[0]
+        end_raw = request.data.get("end")
+        if isinstance(end_raw, list):
+            end_raw = end_raw[0]
+        start = int(start_raw)
+        end = int(end_raw) if end_raw is not None else None
         if not isinstance(array, list):
             return Response({"error": "array must be a list"}, status=400)
         slice_result = array[start:end] if end is not None else array[start:]
-        return Response({"result": slice_result})
+        result = [int(x) if isinstance(x, str) and x.isdigit() else x for x in slice_result]
+        return Response({"result": result})
 
 
 
