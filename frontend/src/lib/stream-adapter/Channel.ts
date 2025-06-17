@@ -621,6 +621,17 @@ export class Channel {
         if (!res.ok) throw new Error('pin failed');
     }
 
+    /** Fetch pinned messages for this channel */
+    async pinnedMessages() {
+        const res = await fetch(`/api/rooms/${this.uuid}/pinned/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('pinnedMessages failed');
+        const list = await res.json() as Message[];
+        this.bump({ pinnedMessages: list });
+        return list;
+    }
+
     /** Fetch reactions for a given message */
     async queryReactions(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
