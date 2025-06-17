@@ -633,3 +633,19 @@ class RecoverStateView(APIView):
         return Response({"rooms": room_data, "notifications": note_data})
 
 
+class SubarrayView(APIView):
+    """Return a slice of the given array."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        array = request.data.get("array", [])
+        start = int(request.data.get("start", 0))
+        end = request.data.get("end")
+        if not isinstance(array, list):
+            return Response({"error": "array must be a list"}, status=400)
+        slice_result = array[start:end] if end is not None else array[start:]
+        return Response({"result": slice_result})
+
+
