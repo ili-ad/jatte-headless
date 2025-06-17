@@ -9,7 +9,7 @@ from accounts.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
-from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute
+from .models import Room, Message, ReadState, Draft, Notification, Reaction, PollOption, Flag, UserMute, RoomMute
 
 from .serializers import (
     RoomSerializer,
@@ -349,6 +349,19 @@ class NotificationListView(APIView):
         return Response(serializer.data)
 
 
+class MutedChannelListView(APIView):
+    """Return channels muted by the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        mutes = RoomMute.objects.filter(user=request.user)
+        rooms = [m.room for m in mutes]
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data)
+
+
 class MuteStatusView(APIView):
     """Return whether the current user muted the given user."""
     authentication_classes = [SupabaseJWTAuthentication]
@@ -370,6 +383,18 @@ class MutedUsersView(APIView):
         data = [{"id": m.target.id, "username": m.target.username} for m in qs]
         return Response(data)
 
+      
+class MuteUserView(APIView):
+    """Mute the given user for the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, target_username):
+        target = get_object_or_404(get_user_model(), username=target_username)
+        UserMute.objects.get_or_create(user=request.user, target=target)
+        return Response({"status": "ok"})
+      
       
 class LinkPreviewView(APIView):
     """Return basic metadata for a URL."""

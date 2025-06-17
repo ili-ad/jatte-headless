@@ -354,6 +354,7 @@ export class Channel {
         extraData: Record<string, unknown> = {},
     ) {
         this.id = id;
+        this.uuid = uuid;
         this.cid = `messaging:${this.uuid}`;
         this.data = { name: roomName, ...extraData };
     }
