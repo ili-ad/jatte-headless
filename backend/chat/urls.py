@@ -21,12 +21,15 @@ from .api_views import (
     ActiveRoomListView,
     RoomDraftView,
     NotificationListView,
+    MutedChannelListView,
     LinkPreviewView,
     PollOptionCreateView,
     RoomHideView,
     RoomShowView,
     ReactionDetailView,
     MuteStatusView,
+    MutedUsersView,
+    MuteUserView,
 )
 
 router = DefaultRouter()
@@ -117,6 +120,7 @@ urlpatterns = [
         name="message-replies",
     ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
+    path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
         "api/messages/<int:message_id>/reactions/",
         MessageReactionsView.as_view(),
@@ -139,8 +143,18 @@ urlpatterns = [
         name="poll-option-create",
     ),
     path(
+        "api/muted-users/",
+        MutedUsersView.as_view(),
+        name="muted-users",
+    ),
+    path(
         "api/mute-status/<str:target_username>/",
         MuteStatusView.as_view(),
         name="mute-status",
+    ),
+    path(
+        "api/mute/<str:target_username>/",
+        MuteUserView.as_view(),
+        name="user-mute",
     ),
 ]
