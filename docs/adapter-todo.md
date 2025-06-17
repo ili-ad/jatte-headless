@@ -77,7 +77,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **read**                                     | ✅ | ✅ |
 | **recoverStateOnReconnect**                  | ✅ | ✅ |
 | **registerSubscriptions**                    | ✅ | 🔲 |
-| **reminders**                                | 🔲 | 🔲 |
+| **reminders**                                | ✅ | ✅ |
 | **restore**                                  | ✅ | ✅ |
 | **sendAction**                               | 🔲 | 🔲 |
 | **sendMessage**                              | ✅ | ✅ |
