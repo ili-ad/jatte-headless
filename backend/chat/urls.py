@@ -15,6 +15,7 @@ from .api_views import (
     MessageReactionsView,
     MessageFlagView,
     MessagePinView,
+    MessageActionView,
     RoomArchiveView,
     RoomUnarchiveView,
     RoomCooldownView,
@@ -158,6 +159,11 @@ urlpatterns = [
         "api/messages/<int:message_id>/pin/",
         MessagePinView.as_view(),
         name="message-pin",
+    ),
+    path(
+        "api/messages/<int:message_id>/actions/",
+        MessageActionView.as_view(),
+        name="message-actions",
     ),
     path(
         "api/messages/<int:message_id>/reactions/<int:reaction_id>/",
