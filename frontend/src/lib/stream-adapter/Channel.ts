@@ -820,6 +820,16 @@ export class Channel {
         this.data.hidden = false;
     }
 
+    /** Remove all messages from this channel */
+    async truncate() {
+        const res = await fetch(`/api/rooms/${this.uuid}/truncate/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('truncate failed');
+        this.bump({ messages: [], latestMessages: [] });
+    }
+
     /** Fetch cooldown value for this channel */
     async cooldown() {
         const res = await fetch(`${API.COOLDOWN}${this.uuid}/cooldown/`, {

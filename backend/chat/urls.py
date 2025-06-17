@@ -18,6 +18,7 @@ from .api_views import (
     MessageActionView,
     RoomArchiveView,
     RoomUnarchiveView,
+    RoomTruncateView,
     RoomCooldownView,
     RoomMembersView,
     RoomPinnedMessagesView,
@@ -121,6 +122,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/unarchive/",
         RoomUnarchiveView.as_view(),
         name="room-unarchive",
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/truncate/",
+        RoomTruncateView.as_view(),
+        name="room-truncate",
     ),
     path(
         "api/rooms/<str:room_uuid>/hide/",
