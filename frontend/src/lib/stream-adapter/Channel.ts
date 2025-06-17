@@ -15,6 +15,9 @@ export class Channel {
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
 
+    private socket?: WebSocket;
+    private emitter = mitt<ChatEvents>();
+
     /* channel-local state object */
     private _state = {
         messages: [] as Message[],
@@ -607,6 +610,15 @@ export class Channel {
         });
         if (!res.ok) throw new Error('flagMessage failed');
         return await res.json();
+    }
+
+    /** Pin a message */
+    async pin(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('pin failed');
     }
 
     /** Fetch reactions for a given message */
