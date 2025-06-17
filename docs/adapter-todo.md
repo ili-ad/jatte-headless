@@ -60,7 +60,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **muteStatus**                               | ✅ | ✅ |
 | **muteUser**                                 | 🔲 | 🔲 |
 | **mutedChannels**                            | 🔲 | 🔲 |
-| **mutedUsers**                               | 🔲 | 🔲 |
+| **mutedUsers**                               | ✅ | ✅ |
 | **name**                                     | 🔲 | 🔲 |
 | **notifications**                            | ✅ | ✅ |
 | **off**                                      | ✅ | 🔲 |

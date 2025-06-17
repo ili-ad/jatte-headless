@@ -32,6 +32,7 @@ export class ChatClient {
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
+    mutedUsers: unknown[] = [];
     listeners: Record<string, any[]> = {};
 
     /** global stores Stream-UI subscribes to */
@@ -270,6 +271,17 @@ export class ChatClient {
         if (!res.ok) throw new Error('getNotifications failed');
         const list = await res.json() as any[];
         this.notifications.store._set({ notifications: list });
+        return list;
+    }
+
+    /** fetch list of users muted by the current user */
+    async getMutedUsers() {
+        const res = await fetch(API.MUTED_USERS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getMutedUsers failed');
+        const list = await res.json() as any[];
+        this.mutedUsers = list;
         return list;
     }
 
