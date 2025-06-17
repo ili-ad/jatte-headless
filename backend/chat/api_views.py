@@ -727,3 +727,13 @@ class TextComposerView(APIView):
     def post(self, request):
         text = request.data.get("text", "")
         return Response({"text": text})
+
+
+class WsAuthView(APIView):
+    """Simple handshake endpoint for websocket connections."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"status": "ok"})

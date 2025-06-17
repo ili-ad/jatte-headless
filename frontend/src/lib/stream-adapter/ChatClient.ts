@@ -29,6 +29,8 @@ export class ChatClient {
     disconnected = true;
     /** Whether the client finished initialization */
     initialized = false;
+    /** Promise resolving when websocket auth completes */
+    wsPromise: Promise<void> | null = null;
 
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
     tokenManager: TokenManager;
@@ -230,6 +232,10 @@ export class ChatClient {
             this._user = body;
             this.state.users[String(body.id)] = body;
         }
+        this.wsPromise = fetch(API.WS_AUTH, {
+            headers: { Authorization: `Bearer ${token}` },
+        }).then(() => undefined);
+        await this.wsPromise;
         this.connectionId = crypto.randomUUID();
         this.initialized = true;
         this.disconnected = false;
