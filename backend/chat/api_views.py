@@ -649,3 +649,12 @@ class SubarrayView(APIView):
         return Response({"result": slice_result})
 
 
+
+class TextComposerView(APIView):
+    """Echo back posted text for tests."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        text = request.data.get("text", "")
+        return Response({"text": text})
