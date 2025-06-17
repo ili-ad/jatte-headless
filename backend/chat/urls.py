@@ -38,6 +38,7 @@ from .api_views import (
     UnmuteUserView,
     ReminderListCreateView,
     RecoverStateView,
+    SubarrayView,
 )
 
 router = DefaultRouter()
@@ -207,4 +208,5 @@ urlpatterns = [
         name="user-unmute",
     ),
     path("api/recover-state/", RecoverStateView.as_view(), name="recover-state"),
+    path("api/subarray/", SubarrayView.as_view(), name="subarray"),
 ]
