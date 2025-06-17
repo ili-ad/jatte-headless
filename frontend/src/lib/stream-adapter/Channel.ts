@@ -13,6 +13,8 @@ export class Channel {
     readonly id: number;
     readonly uuid!: string;
     readonly cid: string;
+    /** Channel type (always 'messaging' for now) */
+    readonly type: string;
     data: { name: string } & Record<string, unknown>;
 
     private roomUuid!: string;
@@ -417,7 +419,8 @@ export class Channel {
         this.id = id;
         this.uuid = uuid;
         this.roomUuid = uuid;
-        this.cid = `messaging:${this.uuid}`;
+        this.type = 'messaging';
+        this.cid = `${this.type}:${this.uuid}`;
         this.data = { name: roomName, ...extraData };
     }
 
