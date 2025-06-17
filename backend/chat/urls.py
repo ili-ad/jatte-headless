@@ -35,6 +35,7 @@ from .api_views import (
     MessageRestoreView,
     MutedUsersView,
     MuteUserView,
+    UnmuteUserView,
     ReminderListCreateView,
     RecoverStateView,
 )
@@ -199,6 +200,11 @@ urlpatterns = [
         "api/mute/<str:target_username>/",
         MuteUserView.as_view(),
         name="user-mute",
+    ),
+    path(
+        "api/unmute/<str:target_username>/",
+        UnmuteUserView.as_view(),
+        name="user-unmute",
     ),
     path("api/recover-state/", RecoverStateView.as_view(), name="recover-state"),
 ]

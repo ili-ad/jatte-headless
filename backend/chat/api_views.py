@@ -560,6 +560,18 @@ class MuteUserView(APIView):
         target = get_object_or_404(get_user_model(), username=target_username)
         UserMute.objects.get_or_create(user=request.user, target=target)
         return Response({"status": "ok"})
+
+
+class UnmuteUserView(APIView):
+    """Remove mute record for the given user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, target_username):
+        target = get_object_or_404(get_user_model(), username=target_username)
+        UserMute.objects.filter(user=request.user, target=target).delete()
+        return Response({"status": "ok"})
       
       
 class LinkPreviewView(APIView):
