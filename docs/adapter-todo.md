@@ -87,7 +87,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **state**                                    | ✅ | 🔲 |
 | **subarray**                                 | ✅ | ✅ |
 | **tag**                                      | ✅ | ✅ |
-| **textComposer**                             | 🔲 | 🔲 |
+| **textComposer**                             | ✅ | ✅ |
 | **threadId**                                 | 🔲 | 🔲 |
 | **threads**                                  | 🔲 | 🔲 |
 | **toggleShowReplyInChannel**                 | 🔲 | 🔲 |
