@@ -328,6 +328,24 @@ class RoomMembersView(APIView):
         return Response([{"id": name} for name in sorted(names)])
 
 
+class RoomQueryView(APIView):
+    """Return initial messages and members for a room."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        messages = MessageSerializer(room.messages.all(), many=True).data
+        names = set(room.messages.values_list("sent_by", flat=True))
+        if room.client:
+            names.add(room.client)
+        if room.agent:
+            names.add(room.agent.username)
+        members = [{"id": name} for name in sorted(names)]
+        return Response({"messages": messages, "members": members})
+
+
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
     authentication_classes = [SupabaseJWTAuthentication]

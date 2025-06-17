@@ -8,13 +8,12 @@ import { API, EVENTS } from './constants';
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
 
+
 export class Channel {
     readonly id: number;
+    readonly uuid!: string;
     readonly cid: string;
     data: { name: string } & Record<string, unknown>;
-
-    private socket?: WebSocket;
-    private emitter = mitt<ChatEvents>();
 
     /* channel-local state object */
     private _state = {
@@ -348,7 +347,7 @@ export class Channel {
 
     constructor(
         id: number,
-        public readonly uuid: string,
+        uuid: string,
         roomName: string,
         private client: ChatClient,
         extraData: Record<string, unknown> = {},
@@ -389,6 +388,48 @@ export class Channel {
     }
 
     /* ─── main lifecycle ─── */
+    /** Fetch initial state without opening a websocket */
+    async query() {
+        try {
+            const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (res.ok) {
+                const first: Message[] = await res.json();
+                const me = this.client.user.id;
+                if (me) {
+                    this.bump({
+                        messages: first,
+                        latestMessages: first,
+                        read: {
+                            ...this._state.read,
+                            [me]: {
+                                last_read: new Date().toISOString(),
+                                last_read_message_id: first.at(-1)?.id,
+                                unread_messages: 0,
+                            },
+                        },
+                    });
+                } else {
+                    this.bump({ messages: first, latestMessages: first });
+                }
+            }
+
+            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
+                headers: { Authorization: `Bearer ${this.client['jwt']}` },
+            });
+            if (memRes.ok) {
+                const list = (await memRes.json()) as { id: string }[];
+                const map: Record<string, { user: { id: string } }> = {};
+                for (const m of list) map[m.id] = { user: { id: m.id } };
+                this.bump({ members: map });
+            }
+        } catch {
+            /* ignore network errors */
+        }
+        this.initialized = true;
+    }
+
     async watch() {
         if (this.socket) return;
         this.client.activeChannels[this.cid] = this;
