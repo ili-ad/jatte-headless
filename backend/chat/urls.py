@@ -40,6 +40,7 @@ from .api_views import (
     MutedUsersView,
     MuteUserView,
     UnmuteUserView,
+    AttachmentUploadView,
     ReminderListCreateView,
     ThreadListView,
     RecoverStateView,
@@ -165,6 +166,7 @@ urlpatterns = [
         name="message-reactions",
     ),
     path("api/link-preview/", LinkPreviewView.as_view(), name="link-preview"),
+    path("api/attachments/", AttachmentUploadView.as_view(), name="attachments"),
     path(
         "api/messages/<int:message_id>/flag/",
         MessageFlagView.as_view(),
