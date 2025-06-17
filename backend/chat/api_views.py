@@ -519,6 +519,18 @@ class ReminderListCreateView(APIView):
         return Response({"reminder": ReminderSerializer(reminder).data}, status=201)
 
 
+class ThreadListView(APIView):
+    """Return parent messages that have replies."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        msgs = Message.objects.filter(replies__isnull=False).distinct()
+        serializer = MessageSerializer(msgs, many=True)
+        return Response(serializer.data)
+
+
 class MutedChannelListView(APIView):
     """Return channels muted by the current user."""
 

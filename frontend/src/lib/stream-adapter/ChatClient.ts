@@ -44,7 +44,17 @@ export class ChatClient {
     private bus = mitt();
 
     /* feature-module placeholders Stream-UI imports & tears-down */
-    threads   !: { registerSubscriptions(): void; unregisterSubscriptions(): void };
+    threads   !: {
+        state: MiniStore<{
+            threads: any[];
+            unseenThreadIds: string[];
+            unreadThreadCount: number;
+            pagination: { isLoadingNext: boolean };
+        }>;
+        registerSubscriptions(): void; unregisterSubscriptions(): void;
+        reload(): Promise<any>; loadNextPage(): Promise<any>;
+        activate(): void; deactivate(): void;
+    };
     polls     !: { store: MiniStore<{ polls: any[] }>; registerSubscriptions(): void; unregisterSubscriptions(): void };
     reminders !: {
         store: MiniStore<{ reminders: any[] }>;
@@ -87,11 +97,21 @@ export class ChatClient {
         if (userId) this._user = { id: userId } as any;
         this.clientID = randomId();
 
-        /* no-op stubs keep Stream-UI happy */
+        /* Basic threads manager */
         this.threads = {
+            state: new MiniStore({
+                threads: [] as Message[],
+                unseenThreadIds: [] as string[],
+                unreadThreadCount: 0,
+                pagination: { isLoadingNext: false },
+            }),
             registerSubscriptions() {/* noop */ },
             unregisterSubscriptions() {/* noop */ },
-        };
+            async reload() { await (this as any).getThreads(); },
+            async loadNextPage() { await (this as any).getThreads(); },
+            activate() {/* noop */ },
+            deactivate() {/* noop */ },
+        } as any;
         this.polls = {
             store: new MiniStore({ polls: [] as any[] }),
             registerSubscriptions() {/* noop */ },
@@ -310,6 +330,22 @@ export class ChatClient {
         if (!res.ok) throw new Error('getReminders failed');
         const list = await res.json() as any[];
         this.reminders.store._set({ reminders: list });
+        return list;
+    }
+
+    /** fetch list of threads */
+    async getThreads() {
+        const res = await fetch(API.THREADS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getThreads failed');
+        const list = await res.json() as any[];
+        this.threads.state._set({
+            threads: list,
+            unseenThreadIds: [],
+            unreadThreadCount: 0,
+            pagination: { isLoadingNext: false },
+        });
         return list;
     }
 

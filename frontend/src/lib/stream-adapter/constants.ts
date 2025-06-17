@@ -12,6 +12,7 @@ export const API = {
   NOTIFICATIONS: '/api/notifications/',
   POLLS: '/api/polls/',
   REMINDERS: '/api/reminders/',
+  THREADS: '/api/threads/',
   LINK_PREVIEW: '/api/link-preview/',
   COOLDOWN: '/api/rooms/',
   MUTE_STATUS: '/api/mute-status/',
