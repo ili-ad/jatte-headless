@@ -36,9 +36,13 @@ class MessageSerializer(serializers.ModelSerializer):
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
     cid = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
 
     def get_cid(self, obj: Room) -> str:
         return f"messaging:{obj.uuid}"
+
+    def get_name(self, obj: Room) -> str | None:
+        return obj.data.get("name") if obj.data else None
 
     class Meta:
         model = Room
@@ -46,6 +50,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "id",
             "uuid",
             "cid",
+            "name",
             "client",
             "agent",
             "messages",
