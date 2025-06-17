@@ -2,6 +2,7 @@ import mitt from 'mitt';
 import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
+import { TokenManager } from './tokenManager';
 
 const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User, Message } from './types';
@@ -30,6 +31,7 @@ export class ChatClient {
     initialized = false;
 
     private userAgent = 'custom-chat-client/0.0.1 stream-chat-react-adapter';
+    tokenManager: TokenManager;
     activeChannels: Record<string, any> = {};
     mutedChannels: unknown[] = [];
     mutedUsers: unknown[] = [];
@@ -96,6 +98,7 @@ export class ChatClient {
         this.user = { id: userId };
         if (userId) this._user = { id: userId } as any;
         this.clientID = randomId();
+        this.tokenManager = new TokenManager(jwt || undefined);
 
         /* Basic threads manager */
         this.threads = {
@@ -187,6 +190,12 @@ export class ChatClient {
         }
     }
 
+    async refreshToken() {
+        const newToken = await this.tokenManager.refreshToken(API.REFRESH_TOKEN);
+        this.jwt = newToken;
+        return newToken;
+    }
+
     /** Return the currently connected user's ID, if any */
     get userID() {
         return this.userId;
@@ -205,6 +214,7 @@ export class ChatClient {
     async connectUser(user: { id: string }, token: string): Promise<void> {
         this.userId = user.id;
         this.jwt = token;
+        await this.tokenManager.setTokenOrProvider(token);
         (this as any).user = { id: user.id };
         this.clientID = `${user.id}--${randomId()}`;
         const res = await fetch(API.SYNC_USER, {
@@ -242,6 +252,7 @@ export class ChatClient {
         this._user = null;
         this.userId = null;
         this.jwt = null;
+        this.tokenManager.reset();
         this.connectionId = null;
         this.initialized = false;
         this.disconnected = true;

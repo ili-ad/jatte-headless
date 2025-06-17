@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from accounts.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
 from django.utils import timezone
+from django.conf import settings
+import jwt
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
@@ -65,6 +67,19 @@ class CurrentUserView(APIView):
     def get(self, request):
         user = request.user
         return Response({"id": user.id, "username": user.username})
+
+
+class RefreshTokenView(APIView):
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        token = jwt.encode(
+            {"sub": request.user.username, "email": request.user.email},
+            settings.SUPABASE_JWT_SECRET,
+            algorithm="HS256",
+        )
+        return Response({"token": token})
 
 
 #---
