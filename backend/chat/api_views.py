@@ -130,6 +130,27 @@ class RoomLastReadView(APIView):
         return Response({"last_read": last_read})
 
 
+class RoomReadView(APIView):
+    """Return read states for all users in the room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, room_uuid):
+        room = get_object_or_404(Room, uuid=room_uuid)
+        states = ReadState.objects.filter(room=room).select_related("user")
+        data = []
+        for st in states:
+            unread = room.messages.filter(created_at__gt=st.last_read).count()
+            data.append(
+                {
+                    "user": st.user.username,
+                    "last_read": st.last_read.isoformat(),
+                    "unread_messages": unread,
+                }
+            )
+        return Response(data)
+
+
 class RoomDraftView(APIView):
     """Save and retrieve message drafts."""
     authentication_classes = [SupabaseJWTAuthentication]
