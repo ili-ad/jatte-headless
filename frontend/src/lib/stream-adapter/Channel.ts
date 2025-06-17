@@ -309,6 +309,10 @@ export class Channel {
                 },
                 discardDraft() { localStorage.removeItem(getRoomKey()); logDraftUpdateTimestamp(); },
 
+                /** Current draft text */
+                get draft() { return textStore.getSnapshot().text; },
+                set draft(v: string) { textStore._set({ text: v }); },
+
                 // pollComposer: {
                 // state: new MiniStore({            // shape is all Stream-UI needs
                 //     question: '', options: [] as any[],
