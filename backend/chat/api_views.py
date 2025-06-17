@@ -199,6 +199,18 @@ class MessageDetailView(APIView):
         return Response(MessageSerializer(msg).data)
 
 
+class MessageRestoreView(APIView):
+    """Restore a previously deleted message."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id):
+        msg = get_object_or_404(Message, id=message_id)
+        msg.deleted_at = None
+        msg.save(update_fields=["deleted_at"])
+        return Response(MessageSerializer(msg).data)
+
+
 class MessageRepliesView(APIView):
     """Return replies to a given message."""
     authentication_classes = [SupabaseJWTAuthentication]
