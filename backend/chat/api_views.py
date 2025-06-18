@@ -804,6 +804,22 @@ class HasSendableDataView(APIView):
         return Response({"has_sendable_data": has_data})
 
 
+class InitStateView(APIView):
+    """Return default composer state for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "text": "",
+            "attachments": [],
+            "poll": None,
+            "custom_data": {},
+            "quoted_message": None,
+        })
+
+
 class DispatchEventView(APIView):
     """Echo back posted event for tests."""
 
