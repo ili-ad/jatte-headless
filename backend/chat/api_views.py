@@ -760,6 +760,16 @@ class TextComposerView(APIView):
         return Response({"text": text})
 
 
+class ComposeView(APIView):
+    """Echo back posted composition for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        return Response({"composition": request.data})
+
+
 class EditingAuditStateView(APIView):
     """Echo back posted editing audit state for tests."""
 
