@@ -907,3 +907,13 @@ class IntroMessageView(APIView):
 
     def get(self, request):
         return Response({"id": uuid.uuid4().hex, "custom_type": "channel.intro"})
+
+
+class ListenersView(APIView):
+    """Return available event listeners."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"listeners": ["message.new", "settings.updated"]})
