@@ -14,6 +14,7 @@ export interface Message {
   text: string;
   user_id: string;
   created_at: string;
+  updated_at?: string;
   event?: Record<string, unknown>;
   deleted_at?: string;
 }
