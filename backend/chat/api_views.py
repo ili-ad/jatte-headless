@@ -418,6 +418,19 @@ class RoomConfigView(APIView):
             }
         )
 
+class RoomConfigStateView(APIView):
+    """Return message composer configuration for the room."""
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, room_uuid):
+        get_object_or_404(Room, uuid=room_uuid)
+        return Response({
+            "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
+            "text": {"enabled": True},
+            "multipleUploads": True,
+            "isUploadEnabled": True,
+        })
+
 
 class RoomArchiveView(APIView):
     """Archive a room by setting its status to CLOSED."""
