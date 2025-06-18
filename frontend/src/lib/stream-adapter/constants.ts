@@ -28,6 +28,7 @@ export const API = {
   EDITING_AUDIT_STATE: '/api/editing-audit-state/',
   WS_AUTH: '/api/ws-auth/',
   ATTACHMENTS: '/api/attachments/',
+  DISCONNECTED: '/api/disconnected/',
 } as const;
 
 export const EVENTS = {
