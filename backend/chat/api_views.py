@@ -917,3 +917,14 @@ class ListenersView(APIView):
 
     def get(self, request):
         return Response({"listeners": ["message.new", "settings.updated"]})
+
+
+class OffView(APIView):
+    """Echo back the event listener to remove."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        event = request.data.get("event")
+        return Response({"event": event})
