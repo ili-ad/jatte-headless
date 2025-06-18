@@ -13,6 +13,7 @@ from .api_views import (
     MessageDetailView,
     MessageRepliesView,
     MessageReactionsView,
+    RoomConfigStateView,
     MessageFlagView,
     MessagePinView,
     MessageUnpinView,
@@ -96,6 +97,7 @@ urlpatterns = [
         RoomConfigView.as_view(),
         name="room-config",
     ),
+    path("api/rooms/<str:room_uuid>/config-state/", RoomConfigStateView.as_view(), name="room-config-state"),
     path(
         "api/rooms/<str:room_uuid>/cooldown/",
         RoomCooldownView.as_view(),
