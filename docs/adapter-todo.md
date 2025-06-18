@@ -31,7 +31,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **disconnectUser**                           | ✅ | ✅ |
 | **disconnected**                             | ✅ | 🔲 |
 | **dispatchEvent**                            | ✅ | 🔲 |
-| **draft**                                    | ✅ | 🔲 |
+| **draft**                                    | ✅ | ✅ |
 | **editedMessage**                            | 🔲 | 🔲 |
 | **editingAuditState**                        | 🔲 | 🔲 |
 | **editedMessage**                            | ✅ | ✅ |

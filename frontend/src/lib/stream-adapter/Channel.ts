@@ -313,6 +313,20 @@ export class Channel {
                 get draft() { return textStore.getSnapshot().text; },
                 set draft(v: string) { textStore._set({ text: v }); },
 
+                /** Fetch draft from the backend and sync local state */
+                async getDraft() {
+                    const token = channelRef.client['jwt'];
+                    if (!token) return '';
+                    const res = await fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) throw new Error('getDraft failed');
+                    const data = await res.json().catch(() => ({ text: '' }));
+                    const text = typeof data.text === 'string' ? data.text : '';
+                    textStore._set({ text });
+                    return text;
+                },
+
                 // pollComposer: {
                 // state: new MiniStore({            // shape is all Stream-UI needs
                 //     question: '', options: [] as any[],
