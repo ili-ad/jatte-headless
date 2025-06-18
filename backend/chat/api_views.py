@@ -939,3 +939,13 @@ class OnView(APIView):
     def post(self, request):
         event = request.data.get("event")
         return Response({"event": event})
+
+
+class RegisterSubscriptionsView(APIView):
+    """Echo back posted subscriptions for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        return Response({"subscriptions": request.data})
