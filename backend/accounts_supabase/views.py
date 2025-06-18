@@ -9,6 +9,7 @@ from accounts_supabase.models import UserProfile
 from django.utils import timezone
 from django.conf import settings
 import jwt
+import uuid
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
@@ -29,6 +30,16 @@ class SessionView(APIView):
         # Log timestamp for debugging stale tokens
         print(f"disconnect at {timezone.now()} for {request.user}")
         return Response(status=204)
+
+
+class ClientIDView(APIView):
+    """Return a random client identifier."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"client_id": uuid.uuid4().hex})
 
 
 class UserAgentView(APIView):
