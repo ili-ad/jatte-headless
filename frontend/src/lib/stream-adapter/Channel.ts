@@ -745,6 +745,20 @@ export class Channel {
         return updated;
     }
 
+    /** Fetch a single message by id and update local state */
+    async editedMessage(messageId: string) {
+        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('editedMessage failed');
+        const msg = await res.json() as Message;
+        this.bump({
+            messages: this._state.messages.map(m => m.id === messageId ? msg : m),
+            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? msg : m),
+        });
+        return msg;
+    }
+
     /** Restore a previously deleted message */
     async restore(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/restore/`, {
