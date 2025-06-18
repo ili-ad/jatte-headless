@@ -173,6 +173,19 @@ export class Channel {
 
                 logStateUpdateTimestamp,
                 logDraftUpdateTimestamp,
+                async sendEditingAuditState() {
+                    const token = channelRef.client['jwt'];
+                    if (!token) return;
+                    const { draftUpdate, stateUpdate } = editingAuditState.getSnapshot().lastChange;
+                    await fetch(API.EDITING_AUDIT_STATE, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ draft_update: draftUpdate, state_update: stateUpdate }),
+                    }).catch(() => { /* ignore network errors */ });
+                },
 
                 /* ------------- text‑composer impl ------------------- */
                 textComposer: {
@@ -306,8 +319,13 @@ export class Channel {
                         }).catch(() => { /* ignore network errors */ });
                     }
                     logDraftUpdateTimestamp();
+                    this.sendEditingAuditState();
                 },
-                discardDraft() { localStorage.removeItem(getRoomKey()); logDraftUpdateTimestamp(); },
+                discardDraft() { 
+                    localStorage.removeItem(getRoomKey()); 
+                    logDraftUpdateTimestamp(); 
+                    this.sendEditingAuditState(); 
+                },
 
                 /** Current draft text */
                 get draft() { return textStore.getSnapshot().text; },
