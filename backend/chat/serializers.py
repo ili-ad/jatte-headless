@@ -43,6 +43,7 @@ class RoomSerializer(serializers.ModelSerializer):
     cid = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
+    visible = serializers.SerializerMethodField()
 
     def get_cid(self, obj: Room) -> str:
         return f"messaging:{obj.uuid}"
@@ -52,6 +53,10 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj: Room) -> str:
         return "messaging"
+
+    def get_visible(self, obj: Room) -> bool:
+        data = obj.data or {}
+        return not data.get("hidden", False)
 
     class Meta:
         model = Room
@@ -66,6 +71,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "messages",
             "url",
             "data",
+            "visible",
             "status",
             "created_at",
         ]
