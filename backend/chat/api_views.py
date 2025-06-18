@@ -828,3 +828,13 @@ class ConnectionIDView(APIView):
 
     def get(self, request):
         return Response({"connection_id": uuid.uuid4().hex})
+
+
+class ContextTypeView(APIView):
+    """Return message composer context type."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"context_type": "message"})
