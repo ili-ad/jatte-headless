@@ -46,6 +46,7 @@ from .api_views import (
     ThreadListView,
     RecoverStateView,
     TextComposerView,
+    EditingAuditStateView,
     SubarrayView,
     WsAuthView,
 )
@@ -231,6 +232,7 @@ urlpatterns = [
     ),
     path("api/recover-state/", RecoverStateView.as_view(), name="recover-state"),
     path("api/text-composer/", TextComposerView.as_view(), name="text-composer"),
+    path("api/editing-audit-state/", EditingAuditStateView.as_view(), name="editing-audit-state"),
     path("api/subarray/", SubarrayView.as_view(), name="subarray"),
     path("api/ws-auth/", WsAuthView.as_view(), name="ws-auth"),
 ]
