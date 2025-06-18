@@ -29,6 +29,7 @@ export const API = {
   WS_AUTH: '/api/ws-auth/',
   ATTACHMENTS: '/api/attachments/',
   DISCONNECTED: '/api/disconnected/',
+  DISPATCH_EVENT: '/api/dispatch-event/',
 } as const;
 
 export const EVENTS = {
