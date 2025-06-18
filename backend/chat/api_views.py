@@ -820,6 +820,16 @@ class InitStateView(APIView):
         })
 
 
+class StateView(APIView):
+    """Return a minimal state object for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"users": []})
+
+
 class DispatchEventView(APIView):
     """Echo back posted event for tests."""
 
