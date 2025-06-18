@@ -928,3 +928,14 @@ class OffView(APIView):
     def post(self, request):
         event = request.data.get("event")
         return Response({"event": event})
+
+
+class OnView(APIView):
+    """Echo back the event listener to add."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        event = request.data.get("event")
+        return Response({"event": event})
