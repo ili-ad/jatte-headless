@@ -770,6 +770,18 @@ class ComposeView(APIView):
         return Response({"composition": request.data})
 
 
+class CompositionIsEmptyView(APIView):
+    """Return whether posted text is empty after trimming."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        text = request.data.get("text", "")
+        is_empty = str(text).strip() == ""
+        return Response({"is_empty": is_empty})
+
+
 class EditingAuditStateView(APIView):
     """Echo back posted editing audit state for tests."""
 
