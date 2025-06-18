@@ -760,6 +760,18 @@ class TextComposerView(APIView):
         return Response({"text": text})
 
 
+class EditingAuditStateView(APIView):
+    """Echo back posted editing audit state for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        draft_update = request.data.get("draft_update")
+        state_update = request.data.get("state_update")
+        return Response({"draft_update": draft_update, "state_update": state_update})
+
+
 class WsAuthView(APIView):
     """Simple handshake endpoint for websocket connections."""
 

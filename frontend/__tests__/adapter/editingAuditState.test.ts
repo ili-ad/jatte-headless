@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API } from '../../src/lib/stream-adapter/constants';
 
 const originalFetch = global.fetch;
 
@@ -27,4 +28,5 @@ test('editingAuditState updates on text and draft changes', () => {
   const last = composer.editingAuditState.getSnapshot().lastChange;
   expect(last.draftUpdate).not.toBeNull();
   expect(last.stateUpdate).toBe(last.draftUpdate);
+  expect(global.fetch).toHaveBeenCalledWith(API.EDITING_AUDIT_STATE, expect.objectContaining({ method: 'POST' }));
 });
