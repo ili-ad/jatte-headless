@@ -32,6 +32,7 @@ export const API = {
   INITIALIZED: '/api/initialized/',
   LISTENERS: '/api/listeners/',
   DISPATCH_EVENT: '/api/dispatch-event/',
+  REGISTER_SUBSCRIPTIONS: '/api/register-subscriptions/',
 } as const;
 
 export const EVENTS = {

@@ -1,5 +1,18 @@
-import { expect, test, vi } from 'vitest';
+import { expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
+import { API } from '../../src/lib/stream-adapter/constants';
+
+let originalFetch: any;
+
+beforeEach(() => {
+  originalFetch = global.fetch;
+  global.fetch = vi.fn(() => Promise.resolve({ ok: true }));
+});
+
+afterEach(() => {
+  global.fetch = originalFetch;
+  vi.restoreAllMocks();
+});
 
 /** ensure registerSubscriptions wires store listeners */
 test('registerSubscriptions subscribes and unsubscribes', () => {
@@ -15,4 +28,9 @@ test('registerSubscriptions subscribes and unsubscribes', () => {
   unsubscribe();
   composer.customDataManager.set('bar', 2);
   expect(spy).toHaveBeenCalledTimes(1);
+
+  expect(global.fetch).toHaveBeenCalledWith(API.REGISTER_SUBSCRIPTIONS, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer jwt1' },
+  });
 });
