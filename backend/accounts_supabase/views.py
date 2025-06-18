@@ -20,6 +20,7 @@ class SyncUserView(APIView):
         user = request.user
         UserProfile.objects.get_or_create(user=user)
         request.session['disconnected'] = False
+        request.session['initialized'] = True
         return Response({"id": user.id, "username": user.username})
 
 
@@ -31,6 +32,7 @@ class SessionView(APIView):
         # Log timestamp for debugging stale tokens
         print(f"disconnect at {timezone.now()} for {request.user}")
         request.session['disconnected'] = True
+        request.session['initialized'] = False
         return Response(status=204)
 
 
@@ -104,6 +106,17 @@ class DisconnectedView(APIView):
     def get(self, request):
         val = request.session.get("disconnected", True)
         return Response({"disconnected": bool(val)})
+
+
+class InitializedView(APIView):
+    """Return whether the current user is marked as initialized."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        val = request.session.get("initialized", False)
+        return Response({"initialized": bool(val)})
 
 
 #---
