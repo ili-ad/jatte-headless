@@ -848,3 +848,14 @@ class ContextTypeView(APIView):
 
     def get(self, request):
         return Response({"context_type": "message"})
+
+
+class GetClientView(APIView):
+    """Return basic client information for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({"client": {"id": user.id, "username": user.username}})
