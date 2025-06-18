@@ -25,13 +25,14 @@ class MessageSerializer(serializers.ModelSerializer):
             "body",
             "sent_by",
             "created_at",
+            "updated_at",
             "deleted_at",
             "custom_data",
             "created_by",
             "reply_to",
             "event",
         ]
-        read_only_fields = ["id", "created_at", "created_by"]
+        read_only_fields = ["id", "created_at", "updated_at", "created_by"]
 
     def get_event(self, obj):
         return obj.custom_data.get("event")
