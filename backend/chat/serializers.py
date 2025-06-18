@@ -27,6 +27,7 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "show_in_channel",
             "custom_data",
             "created_by",
             "reply_to",
