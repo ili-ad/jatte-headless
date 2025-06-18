@@ -782,6 +782,28 @@ class CompositionIsEmptyView(APIView):
         return Response({"is_empty": is_empty})
 
 
+class HasSendableDataView(APIView):
+    """Return whether posted composition includes sendable data."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        text = request.data.get("text", "")
+        attachments = request.data.get("attachments", [])
+        poll = request.data.get("poll")
+        custom = request.data.get("custom_data", {}) or {}
+        if hasattr(request.data, "getlist") and request.data.getlist("attachments"):
+            attachments = request.data.getlist("attachments")
+        has_data = (
+            str(text).strip() != ""
+            or len(attachments) > 0
+            or bool(poll)
+            or (isinstance(custom, dict) and len(custom.keys()) > 0)
+        )
+        return Response({"has_sendable_data": has_data})
+
+
 class DispatchEventView(APIView):
     """Echo back posted event for tests."""
 
