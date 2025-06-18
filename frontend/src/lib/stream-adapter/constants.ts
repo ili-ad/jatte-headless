@@ -30,6 +30,7 @@ export const API = {
   ATTACHMENTS: '/api/attachments/',
   DISCONNECTED: '/api/disconnected/',
   INITIALIZED: '/api/initialized/',
+  LISTENERS: '/api/listeners/',
   DISPATCH_EVENT: '/api/dispatch-event/',
 } as const;
 

@@ -438,6 +438,16 @@ export class ChatClient {
         return this.mutedChannels;
     }
 
+    /** fetch list of supported event listeners */
+    async getListeners() {
+        const res = await fetch(API.LISTENERS, {
+            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+        });
+        if (!res.ok) throw new Error('getListeners failed');
+        const data = await res.json() as { listeners: string[] };
+        return data.listeners;
+    }
+
     /** Check if a given user is muted */
     async muteStatus(userId: string) {
         const res = await fetch(`${API.MUTE_STATUS}${userId}/`, {
