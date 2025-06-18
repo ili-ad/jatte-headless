@@ -302,6 +302,13 @@ export class Channel {
                         this.pollComposer.state.subscribe(handler),
                         this.customDataManager.state.subscribe(handler),
                     ];
+                    const token = channelRef.client['jwt'];
+                    if (token) {
+                        fetch(API.REGISTER_SUBSCRIPTIONS, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}` },
+                        }).catch(() => { /* ignore network errors */ });
+                    }
                     return () => { unsubs.forEach(fn => fn()); };
                 },
                 createDraft() {
