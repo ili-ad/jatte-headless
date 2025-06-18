@@ -897,3 +897,13 @@ class GetClientView(APIView):
     def get(self, request):
         user = request.user
         return Response({"client": {"id": user.id, "username": user.username}})
+
+
+class IntroMessageView(APIView):
+    """Return an intro message structure."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"id": uuid.uuid4().hex, "custom_type": "channel.intro"})
