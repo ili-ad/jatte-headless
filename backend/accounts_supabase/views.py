@@ -19,6 +19,7 @@ class SyncUserView(APIView):
     def post(self, request):
         user = request.user
         UserProfile.objects.get_or_create(user=user)
+        request.session['disconnected'] = False
         return Response({"id": user.id, "username": user.username})
 
 
@@ -29,6 +30,7 @@ class SessionView(APIView):
     def delete(self, request):
         # Log timestamp for debugging stale tokens
         print(f"disconnect at {timezone.now()} for {request.user}")
+        request.session['disconnected'] = True
         return Response(status=204)
 
 
@@ -91,6 +93,17 @@ class RefreshTokenView(APIView):
             algorithm="HS256",
         )
         return Response({"token": token})
+
+
+class DisconnectedView(APIView):
+    """Return whether the current user is marked as disconnected."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        val = request.session.get("disconnected", True)
+        return Response({"disconnected": bool(val)})
 
 
 #---
