@@ -1,6 +1,7 @@
 export const API = {
   SYNC_USER: '/api/sync-user/',
   SESSION: '/api/session/',
+  CLIENT_ID: '/api/client-id/',
   ROOMS: '/api/rooms/',
   ACTIVE_ROOMS: '/api/rooms/active/',
   MESSAGES: '/api/messages/',

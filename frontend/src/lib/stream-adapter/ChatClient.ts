@@ -219,6 +219,19 @@ export class ChatClient {
         await this.tokenManager.setTokenOrProvider(token);
         (this as any).user = { id: user.id };
         this.clientID = `${user.id}--${randomId()}`;
+        try {
+            const cidRes = await fetch(API.CLIENT_ID, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (cidRes.ok) {
+                const cidBody = await cidRes.json().catch(() => null);
+                if (cidBody && cidBody.client_id) {
+                    this.clientID = `${user.id}--${cidBody.client_id}`;
+                }
+            }
+        } catch {
+            /* ignore network errors */
+        }
         const res = await fetch(API.SYNC_USER, {
             method: 'POST',
             headers: {
