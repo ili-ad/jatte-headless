@@ -34,3 +34,11 @@ class CreateDraftAPITests(APITestCase):
         url = reverse("room-draft", kwargs={"room_uuid": room.uuid})
         res = self.client.put(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 405)
+
+    def test_get_empty_draft(self):
+        room = Room.objects.create(uuid="r2", client="c1")
+        token = self.make_token()
+        url = reverse("room-draft", kwargs={"room_uuid": room.uuid})
+        res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["text"], "")
