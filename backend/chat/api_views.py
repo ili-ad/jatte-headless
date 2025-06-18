@@ -782,6 +782,16 @@ class CompositionIsEmptyView(APIView):
         return Response({"is_empty": is_empty})
 
 
+class DispatchEventView(APIView):
+    """Echo back posted event for tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        return Response({"event": request.data})
+
+
 class EditingAuditStateView(APIView):
     """Echo back posted editing audit state for tests."""
 
