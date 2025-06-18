@@ -8,7 +8,7 @@ beforeEach(() => {
   global.fetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
-      json: async () => ({ id: 'm1', text: 'edited', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' }),
+      json: async () => ({ id: 'm1', text: 'edited', user_id: 'u1', created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:01:00Z' }),
     })
   );
 });
@@ -38,5 +38,7 @@ test('updateMessage PUTs to backend and updates state', async () => {
   });
 
   expect(channel.state.messages[0].text).toBe('edited');
+  expect(channel.state.messages[0].updated_at).toBe('2025-01-01T00:01:00Z');
   expect(result.text).toBe('edited');
+  expect(result.updated_at).toBe('2025-01-01T00:01:00Z');
 });

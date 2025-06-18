@@ -18,7 +18,7 @@ afterEach(() => {
 
 test('watch fetches messages and opens websocket', async () => {
   const messages = [
-    { id: 'm1', text: 'hi', user_id: 'u2', created_at: '2025-01-01T00:00:00Z' },
+    { id: 'm1', text: 'hi', user_id: 'u2', created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z' },
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => messages });
 
@@ -32,6 +32,7 @@ test('watch fetches messages and opens websocket', async () => {
   });
   expect(channel.initialized).toBe(true);
   expect(channel.state.latestMessages).toEqual(messages);
+  expect(channel.state.latestMessages[0].updated_at).toBe('2025-01-01T00:00:00Z');
   expect((global as any).WebSocket).toHaveBeenCalledWith(
     'ws://localhost:8000/ws/room1/?token=jwt1'
   );
