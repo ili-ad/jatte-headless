@@ -33,6 +33,7 @@ export const API = {
   LISTENERS: '/api/listeners/',
   DISPATCH_EVENT: '/api/dispatch-event/',
   REGISTER_SUBSCRIPTIONS: '/api/register-subscriptions/',
+  QUOTED_MESSAGE: '/api/quoted-message/',
 } as const;
 
 export const EVENTS = {
