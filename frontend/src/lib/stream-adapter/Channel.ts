@@ -396,6 +396,17 @@ export class Channel {
                 /** Update quoted message for replies */
                 setQuotedMessage(msg: Message | undefined) {
                     this.state._set({ quotedMessage: msg });
+                    const token = channelRef.client['jwt'];
+                    if (token) {
+                        fetch(API.QUOTED_MESSAGE, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ quoted_message: msg ?? null }),
+                        }).catch(() => { /* ignore network errors */ });
+                    }
                 },
 
                 /** Currently edited message, if any */

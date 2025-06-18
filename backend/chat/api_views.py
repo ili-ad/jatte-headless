@@ -842,6 +842,21 @@ class EditingAuditStateView(APIView):
         return Response({"draft_update": draft_update, "state_update": state_update})
 
 
+class QuotedMessageView(APIView):
+    """Store and retrieve quoted message for the current user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        request.session['quoted_message'] = request.data.get('quoted_message')
+        return Response({"status": "ok"})
+
+    def get(self, request):
+        msg = request.session.get('quoted_message')
+        return Response({"quoted_message": msg})
+
+
 class AxiosTestView(APIView):
     """Simple endpoint used by axiosInstance tests."""
 
