@@ -352,6 +352,16 @@ export class Channel {
                     isUploadEnabled: true,
                 }),
                 get config() { return this.configState.getLatestValue(); },
+                async getConfigState() {
+                    const token = channelRef.client["jwt"];
+                    const res = await fetch(`/api/rooms/${channelRef.uuid}/config-state/`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) throw new Error("getConfigState failed");
+                    const data = await res.json().catch(() => ({}));
+                    this.configState._set(data);
+                    return this.configState.getLatestValue();
+                },
 
                 /* ——— simple passthrough helpers ——— */
                 getInputValue() { return textStore.getSnapshot().text; },
