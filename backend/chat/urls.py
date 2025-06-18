@@ -48,6 +48,7 @@ from .api_views import (
     TextComposerView,
     EditingAuditStateView,
     SubarrayView,
+    AxiosTestView,
     WsAuthView,
 )
 
@@ -234,5 +235,6 @@ urlpatterns = [
     path("api/text-composer/", TextComposerView.as_view(), name="text-composer"),
     path("api/editing-audit-state/", EditingAuditStateView.as_view(), name="editing-audit-state"),
     path("api/subarray/", SubarrayView.as_view(), name="subarray"),
+    path("api/test/", AxiosTestView.as_view(), name="axios-test"),
     path("api/ws-auth/", WsAuthView.as_view(), name="ws-auth"),
 ]

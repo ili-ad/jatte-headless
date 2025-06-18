@@ -772,6 +772,22 @@ class EditingAuditStateView(APIView):
         return Response({"draft_update": draft_update, "state_update": state_update})
 
 
+class AxiosTestView(APIView):
+    """Simple endpoint used by axiosInstance tests."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"method": "GET"})
+
+    def post(self, request):
+        return Response({"method": "POST", "data": request.data})
+
+    def delete(self, request):
+        return Response({"method": "DELETE"})
+
+
 class WsAuthView(APIView):
     """Simple handshake endpoint for websocket connections."""
 
