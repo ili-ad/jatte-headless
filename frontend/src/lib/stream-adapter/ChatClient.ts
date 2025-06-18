@@ -167,6 +167,17 @@ export class ChatClient {
                 (chan as any).dispatchEvent(event);
             }
         }
+        const token = this.jwt;
+        if (token) {
+            fetch(API.DISPATCH_EVENT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(event),
+            }).catch(() => { /* ignore network errors */ });
+        }
         this.emit(event.type as any, event as any);
     }
 
