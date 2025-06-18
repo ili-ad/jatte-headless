@@ -14,7 +14,7 @@ _Keep this file as the single source-of-truth for surface coverage._
 | **clientID**                                 | ✅ | ✅ |
 | **compose**                                  | ✅ | ✅ |
 | **compositionIsEmpty**                       | ✅ | ✅ |
-| **config**                                   | ✅ | 🔲 |
+| **config**                                   | ✅ | ✅ |
 | **configState**                              | ✅ | ✅ |
 | **connectUser**                              | ✅ | ✅ |
 | **connectionId**                             | ✅ | 🔲 |
