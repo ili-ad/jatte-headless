@@ -23,6 +23,7 @@ export const API = {
   RECOVER_STATE: '/api/recover-state/',
   REFRESH_TOKEN: '/api/refresh-token/',
   SUBARRAY: '/api/subarray/',
+  EDITING_AUDIT_STATE: '/api/editing-audit-state/',
   WS_AUTH: '/api/ws-auth/',
   ATTACHMENTS: '/api/attachments/',
 } as const;
