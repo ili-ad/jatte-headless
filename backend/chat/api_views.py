@@ -818,3 +818,13 @@ class WsAuthView(APIView):
 
     def get(self, request):
         return Response({"status": "ok"})
+
+
+class ConnectionIDView(APIView):
+    """Return a random connection identifier."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({"connection_id": uuid.uuid4().hex})

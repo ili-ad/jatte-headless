@@ -249,7 +249,22 @@ export class ChatClient {
             headers: { Authorization: `Bearer ${token}` },
         }).then(() => undefined);
         await this.wsPromise;
-        this.connectionId = crypto.randomUUID();
+        try {
+            const cidRes = await fetch(API.CONNECTION_ID, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (cidRes.ok) {
+                const cidBody = await cidRes.json().catch(() => null);
+                if (cidBody && cidBody.connection_id) {
+                    this.connectionId = cidBody.connection_id;
+                }
+            }
+        } catch {
+            /* ignore network errors */
+        }
+        if (!this.connectionId) {
+            this.connectionId = crypto.randomUUID();
+        }
         this.initialized = true;
         this.disconnected = false;
         this.emit('connection.changed', { online: true });
