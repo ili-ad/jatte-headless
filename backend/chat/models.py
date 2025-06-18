@@ -12,6 +12,7 @@ class Message(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     custom_data = models.JSONField(default=dict, blank=True)
+    show_in_channel = models.BooleanField(default=False)
     reply_to = models.ForeignKey(
         'self', blank=True, null=True, on_delete=models.CASCADE, related_name='replies'
     )
