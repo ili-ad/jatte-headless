@@ -6,7 +6,7 @@
 |-----|---------------------------------------------------------------------------------------------------------------------------------------------|-------|--------|
 | 0A  | Ensure backend & frontend deps installed (pip/pnpm; Redis running)                                                                          | human | ✅ |
 | B1  | **ASGI bootstrap (≈ 20)** – `asgi.py` → `ProtocolTypeRouter`; add empty `chat/routing.py`                                                   | Codex | ☐ |
-| B2  | **Channel layer config (≈ 5)** – add `CHANNEL_LAYERS` Redis settings in `settings.py`                                                        | Codex | ☐ |
+| B2  | **Channel layer config (≈ 5)** – add `CHANNEL_LAYERS` Redis settings in `settings.py`                                                        | Codex | ✅ |
 | B3  | **Models: Channel & Message (≤ 80)** – minimal fields; migrations                                                                           | Codex | ☐ |
 | B4  | **JWT token endpoint (≈ 40)** – DRF Simple-JWT at `/api/token/`                                                                              | Codex | ☐ |
 | B5  | **WebSocket consumer skeleton** – connect / disconnect / `receive_json` dispatcher *(implemented in PR #12)*                                 | Codex | ✅ |
