@@ -1,7 +1,8 @@
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.utils import timezone
 
-from .models import Channel, Message
+from .models import Channel, Message, ReadState
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -32,6 +33,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     "event_type": "message.new",
                 },
             )
+        elif event_type == "markRead":
+            user = content.get("user", "")
+            await self._mark_read(user)
+            await self.send_json({"type": "markRead", "status": "ok"})
+        elif event_type == "countUnread":
+            user = content.get("user", "")
+            count = await self._count_unread(user)
+            await self.send_json({"type": "unread.count", "unread": count})
 
     async def broadcast(self, event):
         await self.send_json(
@@ -51,3 +60,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         channel = Channel.objects.get(uuid=self.channel_uuid)
         msg = Message.objects.create(channel=channel, sent_by=user, body=text)
         return msg
+
+    @sync_to_async
+    def _mark_read(self, user):
+        channel = Channel.objects.get(uuid=self.channel_uuid)
+        ReadState.objects.update_or_create(
+            user=user,
+            channel=channel,
+            defaults={"last_read": timezone.now()},
+        )
+
+    @sync_to_async
+    def _count_unread(self, user):
+        channel = Channel.objects.get(uuid=self.channel_uuid)
+        state = ReadState.objects.filter(user=user, channel=channel).first()
+        if state is None:
+            return channel.messages.count()
+        return channel.messages.filter(created_at__gt=state.last_read).count()
