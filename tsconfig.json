@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "stream-chat": ["libs/chat-shim"]
+    },
+    "types": ["@types/stream-chat"]
+  }
+}
