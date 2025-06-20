@@ -15,11 +15,11 @@ afterEach(() => {
 
 test('getPolls fetches list and updates store', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => [{ id: 'p1' }] });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getPolls();
 
   expect(global.fetch).toHaveBeenCalledWith(API.POLLS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual([{ id: 'p1' }]);
   expect(client.polls.store.getSnapshot().polls).toEqual([{ id: 'p1' }]);

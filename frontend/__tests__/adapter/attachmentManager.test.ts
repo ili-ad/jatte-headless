@@ -18,14 +18,14 @@ test('addFiles posts each file and stores attachments', async () => {
     ok: true,
     json: async () => ({ attachment: { id: 'a1', name: 'f1' } }),
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const mgr: any = client.channel('messaging', 'r1').messageComposer.attachmentManager;
   await mgr.addFiles([{ name: 'f1' } as any]);
   expect(global.fetch).toHaveBeenCalledWith(API.ATTACHMENTS, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ name: 'f1' }),
   });
@@ -33,7 +33,7 @@ test('addFiles posts each file and stores attachments', async () => {
 });
 
 test('remove and replace update state', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const mgr: any = client.channel('messaging', 'r1').messageComposer.attachmentManager;
   const a = { id: 'a1', name: 'x' };
   const b = { id: 'a2', name: 'y' };

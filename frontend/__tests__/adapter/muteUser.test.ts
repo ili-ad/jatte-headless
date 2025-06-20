@@ -14,10 +14,10 @@ afterEach(() => {
 });
 
 test('muteUser posts to backend endpoint', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   await client.muteUser('u2');
   expect(global.fetch).toHaveBeenCalledWith(`${API.MUTE_USER}u2/`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 });

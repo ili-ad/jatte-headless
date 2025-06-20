@@ -17,7 +17,7 @@ test('disconnected flag toggles on connect and disconnect', async () => {
   const client = new ChatClient(null, null);
   expect(client.disconnected).toBe(true);
 
-  await client.connectUser({ id: 'u1' }, 'jwt1');
+  await client.connectUser({ id: 'u1' }, 'jwt-test');
   expect(client.disconnected).toBe(false);
 
   client.disconnectUser();

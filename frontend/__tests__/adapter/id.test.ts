@@ -17,11 +17,11 @@ test('channel id reflects server id', async () => {
   const rooms = [{ id: 1, uuid: 'r1', name: 'Room 1' }];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => rooms });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const [channel] = await client.queryChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.id).toBe(1);
 });

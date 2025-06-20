@@ -19,13 +19,13 @@ test('getConfig fetches room config', async () => {
     json: async () => ({ typing_events: true }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const cfg = await channel.getConfig();
   expect(global.fetch).toHaveBeenCalledWith(
     `${API.ROOMS}room1/config/`,
-    { headers: { Authorization: `Bearer jwt1` } }
+    { headers: { Authorization: `Bearer jwt-test` } }
   );
   expect(cfg).toEqual({ typing_events: true });
 });

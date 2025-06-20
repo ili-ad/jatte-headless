@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 test('clear resets composer and deletes draft', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const comp: any = channel.messageComposer;
 
@@ -29,7 +29,7 @@ test('clear resets composer and deletes draft', () => {
   expect(comp.customDataManager.state.getSnapshot().customData).toEqual({});
   expect(global.fetch).toHaveBeenCalledWith(`${API.ROOMS}room1/draft/`, {
     method: 'DELETE',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 });
 

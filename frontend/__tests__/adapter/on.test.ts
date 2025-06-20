@@ -3,7 +3,7 @@ import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 import { EVENTS } from '../../src/lib/stream-adapter/constants';
 
 test('on registers event listener', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const spy = vi.fn();
   client.on(EVENTS.MESSAGE_NEW, spy);
 

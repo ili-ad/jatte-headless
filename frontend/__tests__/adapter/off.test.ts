@@ -5,7 +5,7 @@ import { EVENTS } from '../../src/lib/stream-adapter/constants';
 // off.test.ts - ensures off removes listener
 
 test('off removes event listener', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const spy = vi.fn();
   client.on(EVENTS.MESSAGE_NEW, spy);
   client.off(EVENTS.MESSAGE_NEW, spy);

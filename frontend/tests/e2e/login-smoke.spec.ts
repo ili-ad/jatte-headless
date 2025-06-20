@@ -9,7 +9,7 @@ async function setupRoutes(page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        access_token: 'jwt1',
+        access_token: 'jwt-test',
         token_type: 'bearer',
         user: { id: '1', email: user.email },
         refresh_token: 'refresh',

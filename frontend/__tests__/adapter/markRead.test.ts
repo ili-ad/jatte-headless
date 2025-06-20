@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 test('markRead posts to backend and updates state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   // populate messages so lastId exists
   (channel.state as any).latestMessages = [
@@ -26,7 +26,7 @@ test('markRead posts to backend and updates state', async () => {
 
   expect(global.fetch).toHaveBeenCalledWith(
     `${API.ROOMS}room1/mark_read/`,
-    { method: 'POST', headers: { Authorization: 'Bearer jwt1' } },
+    { method: 'POST', headers: { Authorization: 'Bearer jwt-test' } },
   );
   const read = channel.state.read['u1'];
   expect(read.unread_messages).toBe(0);

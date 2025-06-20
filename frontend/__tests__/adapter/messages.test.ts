@@ -22,13 +22,13 @@ test('messages getter reflects fetched history', async () => {
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => msgs });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.watch();
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.ROOMS}room1/messages/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.messages).toEqual(msgs);
 });

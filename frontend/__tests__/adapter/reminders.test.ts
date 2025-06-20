@@ -18,10 +18,10 @@ test('getReminders fetches list and updates store', async () => {
     ok: true,
     json: async () => [{ id: 1, text: 'rem', remind_at: '2025-01-01T00:00:00Z' }],
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getReminders();
   expect(global.fetch).toHaveBeenCalledWith(API.REMINDERS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual([{ id: 1, text: 'rem', remind_at: '2025-01-01T00:00:00Z' }]);
   expect(client.reminders.store.getSnapshot().reminders.length).toBe(1);

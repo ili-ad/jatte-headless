@@ -14,12 +14,12 @@ afterEach(() => {
 });
 
 test('disconnectUser clears state and notifies backend', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   client.disconnectUser();
 
   expect(global.fetch).toHaveBeenCalledWith(API.SESSION, {
     method: 'DELETE',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 
   expect((client as any).user).toBeUndefined();

@@ -17,13 +17,13 @@ test('getDraft fetches saved draft and updates text', async () => {
     ok: true,
     json: async () => ({ text: 'hello' }),
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const text = await (channel.messageComposer as any).getDraft();
 
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/draft/', {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(text).toBe('hello');
   expect(channel.messageComposer.textComposer.state.getSnapshot().text).toBe('hello');

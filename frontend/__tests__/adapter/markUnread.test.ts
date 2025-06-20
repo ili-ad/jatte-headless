@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 test('markUnread posts to backend and clears read state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   (channel.state as any).read['u1'] = {
     last_read: '2025-01-01T00:00:00Z',
@@ -24,7 +24,7 @@ test('markUnread posts to backend and clears read state', async () => {
 
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/mark_unread/', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.state.read['u1']).toBeUndefined();
 });

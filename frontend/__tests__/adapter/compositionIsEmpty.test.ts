@@ -3,7 +3,7 @@ import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 
 /** Ensure compositionIsEmpty reflects text composer state */
 test('compositionIsEmpty mirrors text composer', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   // initially empty
