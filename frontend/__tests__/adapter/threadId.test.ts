@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 test('sendMessage includes reply_to when threadId is set', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   channel.messageComposer.setThreadId('p1');
 
@@ -27,7 +27,7 @@ test('sendMessage includes reply_to when threadId is set', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hi', reply_to: 'p1' }),
   });

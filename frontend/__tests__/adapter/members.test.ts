@@ -21,15 +21,15 @@ test('members are fetched on watch', async () => {
     .mockResolvedValueOnce({ ok: true, json: async () => [] })
     .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'u1' }, { id: 'u2' }] });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   await channel.watch();
 
   expect(global.fetch).toHaveBeenNthCalledWith(1, `${API.ROOMS}room1/messages/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(global.fetch).toHaveBeenNthCalledWith(2, `${API.ROOMS}room1/members/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.members).toEqual({
     u1: { user: { id: 'u1' } },

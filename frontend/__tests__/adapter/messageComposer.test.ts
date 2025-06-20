@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 test('submit sends message and clears text', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const eventSpy = vi.fn();
@@ -32,7 +32,7 @@ test('submit sends message and clears text', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hello' }),
   });

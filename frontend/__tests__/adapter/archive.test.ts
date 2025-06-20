@@ -13,13 +13,13 @@ afterEach(() => {
 });
 
 test('archive posts to backend endpoint', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.archive();
 
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/archive/', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 });

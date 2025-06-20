@@ -26,11 +26,11 @@ test('recoverStateOnReconnect fetches state and updates stores', async () => {
     })
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const result = await client.recoverStateOnReconnect();
 
   expect(global.fetch).toHaveBeenCalledWith(API.RECOVER_STATE, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(client.stateStore.getSnapshot().channels.length).toBe(1);
   expect(client.notifications.store.getSnapshot().notifications.length).toBe(1);

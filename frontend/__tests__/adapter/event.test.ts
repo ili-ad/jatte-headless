@@ -28,7 +28,7 @@ test('watch preserves event field on messages', async () => {
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => messages });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   await channel.watch();
   expect(channel.messages[0].event?.type).toBe('member.added');
@@ -46,7 +46,7 @@ test('sendMessage stores event field from response', async () => {
     }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   await channel.sendMessage({ text: 'hi' });
 

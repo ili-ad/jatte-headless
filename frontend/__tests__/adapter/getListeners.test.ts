@@ -15,10 +15,10 @@ afterEach(() => {
 
 test('getListeners fetches available listeners', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ listeners: ['message.new'] }) });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getListeners();
   expect(global.fetch).toHaveBeenCalledWith(API.LISTENERS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual(['message.new']);
 });

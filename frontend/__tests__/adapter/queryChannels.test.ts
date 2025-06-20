@@ -24,11 +24,11 @@ test('queryChannels fetches rooms and updates state', async () => {
     json: async () => rooms,
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channels = await client.queryChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 
   expect(channels).toHaveLength(2);

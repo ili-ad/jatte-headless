@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 test('toggleShowReplyInChannel toggles state and affects sendMessage', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   expect(channel.messageComposer.showReplyInChannel).toBe(false);
@@ -31,7 +31,7 @@ test('toggleShowReplyInChannel toggles state and affects sendMessage', async () 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hi', show_in_channel: true }),
   });

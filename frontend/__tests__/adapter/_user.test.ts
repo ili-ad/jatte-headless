@@ -16,7 +16,7 @@ afterEach(() => {
 test('_user populated on connectUser and cleared on disconnectUser', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ id: 1, username: 'u1' }) });
   const client = new ChatClient(null, null);
-  await client.connectUser({ id: 'u1' }, 'jwt1');
+  await client.connectUser({ id: 'u1' }, 'jwt-test');
   expect(global.fetch).toHaveBeenCalledWith(API.SYNC_USER, expect.anything());
   expect((client as any)._user.username).toBe('u1');
 

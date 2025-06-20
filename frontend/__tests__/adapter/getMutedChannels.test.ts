@@ -17,11 +17,11 @@ test('getMutedChannels fetches muted rooms and updates client list', async () =>
   const rooms = [{ id: 1, uuid: 'r1', name: 'Room 1' }];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => rooms });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channels = await client.getMutedChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.MUTED_CHANNELS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channels).toHaveLength(1);
   expect(client.mutedChannels).toHaveLength(1);

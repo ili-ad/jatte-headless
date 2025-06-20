@@ -19,13 +19,13 @@ test('getAppSettings fetches settings from backend', async () => {
     json: async () => ({ file_uploads: true }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const spy = vi.fn();
   client.on(EVENTS.SETTINGS_UPDATED, spy);
   const settings = await client.getAppSettings();
 
   expect(global.fetch).toHaveBeenCalledWith(API.APP_SETTINGS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(settings).toEqual({ file_uploads: true });
   expect(client.settingsStore.getSnapshot()).toEqual({ file_uploads: true });

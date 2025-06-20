@@ -20,11 +20,11 @@ test('client.state stores users from queryUsers', async () => {
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => users });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   await client.queryUsers();
 
   expect(global.fetch).toHaveBeenCalledWith(API.USERS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(client.state.users['1'].username).toBe('u1');
   expect(client.state.users['2'].username).toBe('u2');
@@ -32,8 +32,8 @@ test('client.state stores users from queryUsers', async () => {
 
 test('client.state stores user from getUser', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ id: 3, username: 'me' }) });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   await client.getUser();
-  expect(global.fetch).toHaveBeenCalledWith(API.USER, { headers: { Authorization: 'Bearer jwt1' } });
+  expect(global.fetch).toHaveBeenCalledWith(API.USER, { headers: { Authorization: 'Bearer jwt-test' } });
   expect(client.state.users['3'].username).toBe('me');
 });

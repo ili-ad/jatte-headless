@@ -16,12 +16,12 @@ afterEach(() => {
 test('queryReactions fetches reactions list', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => [{ id: 1 }] });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const res = await channel.queryReactions('m1');
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.MESSAGES}m1/reactions/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 
   expect(res).toEqual([{ id: 1 }]);

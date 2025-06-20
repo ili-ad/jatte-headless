@@ -18,7 +18,7 @@ test('add posts to backend and stores preview', async () => {
     ok: true,
     json: async () => ({ url: 'https://x.com', title: 'x' }),
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const mgr: any = channel.messageComposer.linkPreviewsManager;
   await mgr.add('https://x.com');
@@ -26,7 +26,7 @@ test('add posts to backend and stores preview', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ url: 'https://x.com' }),
   });
@@ -36,7 +36,7 @@ test('add posts to backend and stores preview', async () => {
 });
 
 test('remove and clear update state', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const mgr: any = client.channel('messaging', 'room1').messageComposer.linkPreviewsManager;
   mgr.state._set({ previews: [{ url: 'a' }, { url: 'b' }] });
   mgr.remove('a');
