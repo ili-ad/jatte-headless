@@ -5,8 +5,8 @@
 
 | ID  | Description (≤ LOC)                                                                                                               | Owner | Status |
 |-----|----------------------------------------------------------------------------------------------------------------------------------|-------|--------|
-| A1  | **Install supabase-js & helper (≈20)** – `pnpm add @supabase/supabase-js`; add `src/lib/supabaseClient.ts`                        | Codex | ☐ |
-| A2  | **Login page (≈50)** – email+password `/login`; stores `session` in context                                                       | Codex | ☐ |
+| A1  | **Install supabase-js & helper (≈20)** – `pnpm add @supabase/supabase-js`; add `src/lib/supabaseClient.ts`                        | Codex | ✅ |
+| A2  | **Login page (≈50)** – email+password `/login`; stores `session` in context                                                       | Codex | ✅ |
 | A3  | **DRF SupabaseJWTAuthentication (≈80)** – validate Bearer JWT via Supabase JWKS                                                   | Codex | ☐ |
 | A4  | **Secure /api/token/ (≈40)** – requires Supabase auth; returns `StreamChat.devToken(user.id)`                                     | Codex | ☐ |
 | A5  | **Token fetch hook (≈30)** – uses `supabase.auth.getSession()`; fetches `/api/token/` with auth header                            | Codex | ☐ |
