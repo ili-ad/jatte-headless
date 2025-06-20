@@ -33,7 +33,8 @@ test('watch fetches messages and opens websocket', async () => {
   expect(channel.initialized).toBe(true);
   expect(channel.state.latestMessages).toEqual(messages);
   expect(channel.state.latestMessages[0].updated_at).toBe('2025-01-01T00:00:00Z');
+  const wsRoot = process.env.NEXT_PUBLIC_WS_URL as string;
   expect((global as any).WebSocket).toHaveBeenCalledWith(
-    'ws://localhost:8000/ws/room1/?token=jwt1'
+    `${wsRoot}/ws/room1/?token=jwt1`
   );
 });
