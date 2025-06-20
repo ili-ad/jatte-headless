@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, serializers
 from django.contrib.auth import get_user_model
-from accounts.authentication import SupabaseJWTAuthentication
+from jatte.auth.supabase import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
 from django.utils import timezone
 from django.conf import settings

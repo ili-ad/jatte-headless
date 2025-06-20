@@ -2,7 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from accounts.authentication import SupabaseJWTAuthentication
+from jatte.auth.supabase import SupabaseJWTAuthentication
 from accounts.models import UserProfile
 
 class SyncUserView(APIView):
