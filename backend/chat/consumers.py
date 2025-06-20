@@ -1,134 +1,54 @@
-import json
-
 from asgiref.sync import sync_to_async
-from channels.generic.websocket import AsyncWebsocketConsumer
-
-from django.utils.timesince import timesince
-
-from django.contrib.auth import get_user_model
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from .models import Room, Message
-from .templatetags.chatextras import initials
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
-        self.user = self.scope['user']
-
-        # Join room group
-        await self.get_room()
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        self.room_uuid = self.scope["url_route"]["kwargs"]["room_uuid"]
+        self.group_name = f"chat_{self.room_uuid}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # Inform user
-        if getattr(self.user, "is_staff", False):
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def receive_json(self, content, **kwargs):
+        event_type = content.get("type")
+        if event_type == "channel.watch":
+            messages = await self._get_messages()
+            await self.send_json({"type": "channel.watch", "messages": messages})
+        elif event_type == "sendMessage":
+            text = content.get("text", "")
+            user = content.get("user", "")
+            msg = await self._create_message(user, text)
             await self.channel_layer.group_send(
-                self.room_group_name,
+                self.group_name,
                 {
-                    'type': 'users_update'
-                }
-            )
-    
-    
-    async def disconnect(self, close_code):
-        # Leave room
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-
-        if not getattr(self.user, "is_staff", False):
-            await self.set_room_closed()
-
-
-    async def receive(self, text_data):
-        # Receive message from WebSocket (front end)
-        text_data_json = json.loads(text_data)
-        type = text_data_json['type']
-        message = text_data_json['message']
-        name = text_data_json['name']
-        agent = text_data_json.get('agent', '')
-
-        print('Receive:', type)
-
-        if type == 'message':
-            new_message = await self.create_message(name, message, agent)
-
-            # Send message to group / room
-            await self.channel_layer.group_send(
-                self.room_group_name, {
-                    'type': 'chat_message',
-                    'message': message,
-                    'name': name,
-                    'agent': agent,
-                    'initials': initials(name),
-                    'created_at': timesince(new_message.created_at),
-                }
-            )
-        elif type == 'update':
-            print('is update')
-            # Send update to the room
-            await self.channel_layer.group_send(
-                self.room_group_name, {
-                    'type': 'writing_active',
-                    'message': message,
-                    'name': name,
-                    'agent': agent,
-                    'initials': initials(name),
-                }
+                    "type": "broadcast",
+                    "text": msg.body,
+                    "user": msg.sent_by,
+                    "event_type": "message.new",
+                },
             )
 
-    
-    async def chat_message(self, event):
-        # Send message to WebSocket (front end)
-        await self.send(text_data=json.dumps({
-            'type': event['type'],
-            'message': event['message'],
-            'name': event['name'],
-            'agent': event['agent'],
-            'initials': event['initials'],
-            'created_at': event['created_at'],
-        }))
-
-    
-    async def writing_active(self, event):
-        # Send writing is active to room
-        await self.send(text_data=json.dumps({
-            'type': event['type'],
-            'message': event['message'],
-            'name': event['name'],
-            'agent': event['agent'],
-            'initials': event['initials'],
-        }))
-    
-
-    async def users_update(self, event):
-        # Send information to the web socket (front end)
-        await self.send(text_data=json.dumps({
-            'type': 'users_update'
-        }))
-
-    
-    @sync_to_async
-    def get_room(self):
-        self.room = Room.objects.get(uuid=self.room_name)
-
-    
-    @sync_to_async
-    def set_room_closed(self):
-        self.room = Room.objects.get(uuid=self.room_name)
-        self.room.status = Room.CLOSED
-        self.room.save()
-
+    async def broadcast(self, event):
+        await self.send_json(
+            {"type": event.get("event_type", "message.new"), "text": event["text"], "user": event["user"]}
+        )
 
     @sync_to_async
-    def create_message(self, sent_by, message, agent):
-        message = Message.objects.create(body=message, sent_by=sent_by)
+    def _get_messages(self):
+        room = Room.objects.get(uuid=self.room_uuid)
+        return [
+            {"id": m.id, "text": m.body, "user": m.sent_by}
+            for m in room.messages.order_by("id")
+        ]
 
-        if agent:
-            User = get_user_model()
-            message.created_by = User.objects.get(pk=agent)
-            message.save()
-        
-        self.room.messages.add(message)
-
-        return message
+    @sync_to_async
+    def _create_message(self, user, text):
+        room = Room.objects.get(uuid=self.room_uuid)
+        msg = Message.objects.create(sent_by=user, body=text)
+        room.messages.add(msg)
+        return msg
