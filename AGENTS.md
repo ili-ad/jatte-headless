@@ -10,7 +10,7 @@
 | A3  | **DRF SupabaseJWTAuthentication (≈80)** – validate Bearer JWT via Supabase JWKS                                                   | Codex | ☐ |
 | A4  | **Secure /api/token/ (≈40)** – requires Supabase auth; returns `StreamChat.devToken(user.id)`                                     | Codex | ☐ |
 | A5  | **Token fetch hook (≈30)** – uses `supabase.auth.getSession()`; fetches `/api/token/` with auth header                            | Codex | ☐ |
-| A6  | **ChatProvider update (≈20)** – connect/disconnect on session change, remove dev hacks                                            | Codex | ☐ |
+| A6  | **ChatProvider update (≈20)** – connect/disconnect on session change, remove dev hacks                                            | Codex | ✅ |
 | A7  | **Delete hard-coded USER_ID/TOKEN & WS URL (≈15)** – replace with env-vars or session props                                       | Codex | ☐ |
 | A8  | **Playwright e2e: login → hello-world (≤100)** – fills login form, expects echo                                                   | human | ☐ |
 | S3  | Re-enable JWT auth in unit tests, drop dummy `"jwt1"` tokens                                                                      | human | ☐ |

@@ -4,6 +4,7 @@ import { ReactNode, createContext, useContext, useEffect, useState } from 'react
 import type { StreamChat, Channel } from 'stream-chat';
 import { getStreamClient } from './getStreamClient';
 import { getToken } from './getToken';
+import { useSession } from './SessionProvider';
 
 interface ChatContextValue {
   client: StreamChat | null;
@@ -17,10 +18,16 @@ export function useChat() {
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  const { session } = useSession();
   const [client] = useState<StreamChat>(() => getStreamClient());
   const [channel, setChannel] = useState<Channel | null>(null);
 
   useEffect(() => {
+    if (!session) {
+      setChannel(null);
+      client.disconnectUser();
+      return;
+    }
     let mounted = true;
     getToken()
       .then(({ userID, userToken }) => client.connectUser({ id: userID }, userToken))
@@ -36,16 +43,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       mounted = false;
       client.disconnectUser();
     };
-  }, [client]);
+  }, [client, session]);
 
   useEffect(() => {
     if (!channel) return;
-    const logEvent = (e: any) => console.log('channel event', e);
     const handleNew = () => channel.markRead();
-    channel.on('*', logEvent);
     channel.on('message.new', handleNew);
     return () => {
-      channel.off('*', logEvent);
       channel.off('message.new', handleNew);
     };
   }, [channel]);
