@@ -1,21 +1,40 @@
+// next.config.ts
+
+// @ts-nocheck
 import type { NextConfig } from 'next';
-import path from 'path';
+import type { Configuration } from 'webpack';
+const path = require('path');
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@iliad/stream-ui'],
-
-  /** ⬇️  THIS LINE tells Next to continue even with ESLint errors */
+  //transpilePackages: ['@iliad/stream-ui'],
+  transpilePackages: [],
   eslint: { ignoreDuringBuilds: true },
 
-  webpack(cfg) {
+  webpack(cfg: Configuration) {
     cfg.resolve ??= {};
     cfg.resolve.alias ??= {};
-    cfg.resolve.alias['@iliad/stream-ui'] = path.resolve(
-      __dirname,
-      './stubs/stream-ui',
-    );
+
+    /* ↓ cast so TS knows we’re on the object variant */
+    // (cfg.resolve.alias as Record<string, string>)['@iliad/stream-ui'] =
+    //   path.resolve(__dirname, '../libs/stream-ui/dist/index.browser.cjs');
+
+    cfg.resolve.alias = {
+      ...cfg.resolve.alias,
+      '@iliad/stream-ui': path.resolve(__dirname, './stubs/stream-ui'),
+    };
+
+    
     return cfg;
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
+      },
+    ];
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

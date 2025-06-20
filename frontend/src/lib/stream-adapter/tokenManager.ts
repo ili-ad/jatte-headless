@@ -1,3 +1,5 @@
+///home/iliad/dev/jatte-headless/frontend/src/lib/stream-adapter/tokenManager.ts
+
 export class TokenManager {
   loadTokenPromise: Promise<string> | null = null;
   type: 'static' | 'provider' = 'static';
