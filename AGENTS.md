@@ -22,7 +22,7 @@
 | F6  | **Event logger + markRead (≈ 20)** – `channel.on("message.new", () => channel.markRead())`                                                  | Codex | ✅ |
 | F7  | **Smoke-test page (≈ 10)** – Next route `/demo` mounts provider & scaffold; shows “hello world” round-trip                                  | Codex | ✅ |
 | S1  | Manual smoke-test instructions (curl + WS)                                                                                                  | human | ✅ |
-| S2  | Auth-less harness – set `AllowAny`; fixture disables auth in tests                                                                          | human | ☐ |
+| S2  | Auth-less harness – set `AllowAny`; fixture disables auth in tests                                                                          | human | ✅ |
 | S3  | Re-enable JWT auth & update tests at Phase-1 kickoff                                                                                        | human | ☐ |
 
 **Phase 0 is done** (“Dave Matthews → hello world”) when every ☐ above is ✅.
