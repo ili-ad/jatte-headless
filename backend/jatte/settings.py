@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -63,6 +64,23 @@ INSTALLED_APPS = [
     'chat',
     'core',
 ]
+
+# REST framework configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+# Use Supabase signing key for JWT tokens so they work with existing
+# `SupabaseJWTAuthentication` used throughout the project.
+SIMPLE_JWT = {
+    'SIGNING_KEY': SUPABASE_JWT_SECRET,
+    'ALGORITHM': 'HS256',
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
