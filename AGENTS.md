@@ -18,7 +18,7 @@
 | F2  | **Token fetch utility (≈ 30)** – `lib/getToken.ts` hits `/api/token` and returns `{userID,userToken}`                                       | Codex | ✅ |
 | F3  | **ChatProvider (≈ 40)** – React Context; `client.connectUser(...)`; exports `{client, channel}`                                             | Codex | ✅ |
 | F4  | **Default channel bootstrap (≈ 30)** – `client.channel("messaging","general").watch()`; save to context                                     | Codex | ☐ |
-| F5  | **UI scaffold (≤ 50)** – `<Chat><Channel><Window><MessageList/><MessageInput/></Window></Channel></Chat>`                                   | Codex | ☐ |
+| F5  | **UI scaffold (≤ 50)** – `<Chat><Channel><Window><MessageList/><MessageInput/></Window></Channel></Chat>`                                   | Codex | ✅ |
 | F6  | **Event logger + markRead (≈ 20)** – `channel.on("message.new", () => channel.markRead())`                                                  | Codex | ☐ |
 | F7  | **Smoke-test page (≈ 10)** – Next route `/demo` mounts provider & scaffold; shows “hello world” round-trip                                  | Codex | ☐ |
 | S1  | Manual smoke-test instructions (curl + WS)                                                                                                  | human | ✅ |
