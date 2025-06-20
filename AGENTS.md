@@ -14,7 +14,7 @@
 | B7  | **Command: sendMessage** – persist message, broadcast `message.new` *(implemented in PR #12)*                                               | Codex | ✅ |
 | B8  | **Command: markRead & countUnread (≈ 80)** – per-user read tracking                                                                         | Codex | ☐ |
 | B9  | **Backend unit tests** – `channels.testing.WebsocketCommunicator` *(implemented in PR #12)*                                                  | Codex | ✅ |
-| F1  | **Env & SDK wrapper (≈ 20)** – `.env.local`; `lib/getStreamClient.ts` memoises `StreamChat.getInstance(...)`                                | Codex | ☐ |
+| F1  | **Env & SDK wrapper (≈ 20)** – `.env.local`; `lib/getStreamClient.ts` memoises `StreamChat.getInstance(...)`                                | Codex | ✅ |
 | F2  | **Token fetch utility (≈ 30)** – `lib/getToken.ts` hits `/api/token` and returns `{userID,userToken}`                                       | Codex | ☐ |
 | F3  | **ChatProvider (≈ 40)** – React Context; `client.connectUser(...)`; exports `{client, channel}`                                             | Codex | ☐ |
 | F4  | **Default channel bootstrap (≈ 30)** – `client.channel("messaging","general").watch()`; save to context                                     | Codex | ☐ |
