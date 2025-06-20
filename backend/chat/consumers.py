@@ -1,13 +1,13 @@
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from .models import Room, Message
+from .models import Channel, Message
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        self.room_uuid = self.scope["url_route"]["kwargs"]["room_uuid"]
-        self.group_name = f"chat_{self.room_uuid}"
+        self.channel_uuid = self.scope["url_route"]["kwargs"]["channel_uuid"]
+        self.group_name = f"chat_{self.channel_uuid}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
@@ -40,15 +40,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     @sync_to_async
     def _get_messages(self):
-        room = Room.objects.get(uuid=self.room_uuid)
+        channel = Channel.objects.get(uuid=self.channel_uuid)
         return [
             {"id": m.id, "text": m.body, "user": m.sent_by}
-            for m in room.messages.order_by("id")
+            for m in channel.messages.order_by("id")
         ]
 
     @sync_to_async
     def _create_message(self, user, text):
-        room = Room.objects.get(uuid=self.room_uuid)
-        msg = Message.objects.create(sent_by=user, body=text)
-        room.messages.add(msg)
+        channel = Channel.objects.get(uuid=self.channel_uuid)
+        msg = Message.objects.create(channel=channel, sent_by=user, body=text)
         return msg
