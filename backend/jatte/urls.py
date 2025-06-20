@@ -5,7 +5,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 urlpatterns = [
     path('', include('accounts_supabase.urls')),
     path('', include('core.urls')),
-    path('', include('chat.urls')),
     path('admin/', admin.site.urls),
 ]
 
