@@ -641,8 +641,12 @@ export class Channel {
         this.initialized = true;
 
         /* web-socket for live updates */
+        const wsRoot = process.env.NEXT_PUBLIC_WS_URL;
+        if (!wsRoot) {
+            throw new Error('NEXT_PUBLIC_WS_URL is not set');
+        }
         this.socket = new WebSocket(
-            `ws://localhost:8000/ws/${this.uuid}/?token=${this.client['jwt']}`,
+            `${wsRoot}/ws/${this.uuid}/?token=${this.client['jwt']}`,
         );
         this.socket.onmessage = (ev) => {
             try {
