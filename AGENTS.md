@@ -16,7 +16,7 @@
 | B9  | **Backend unit tests** – `channels.testing.WebsocketCommunicator` *(implemented in PR #12)*                                                  | Codex | ✅ |
 | F1  | **Env & SDK wrapper (≈ 20)** – `.env.local`; `lib/getStreamClient.ts` memoises `StreamChat.getInstance(...)`                                | Codex | ✅ |
 | F2  | **Token fetch utility (≈ 30)** – `lib/getToken.ts` hits `/api/token` and returns `{userID,userToken}`                                       | Codex | ✅ |
-| F3  | **ChatProvider (≈ 40)** – React Context; `client.connectUser(...)`; exports `{client, channel}`                                             | Codex | ☐ |
+| F3  | **ChatProvider (≈ 40)** – React Context; `client.connectUser(...)`; exports `{client, channel}`                                             | Codex | ✅ |
 | F4  | **Default channel bootstrap (≈ 30)** – `client.channel("messaging","general").watch()`; save to context                                     | Codex | ☐ |
 | F5  | **UI scaffold (≤ 50)** – `<Chat><Channel><Window><MessageList/><MessageInput/></Window></Channel></Chat>`                                   | Codex | ☐ |
 | F6  | **Event logger + markRead (≈ 20)** – `channel.on("message.new", () => channel.markRead())`                                                  | Codex | ☐ |
