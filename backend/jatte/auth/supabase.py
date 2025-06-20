@@ -1,3 +1,4 @@
+# backend/jatte/auth/supabase.py
 import jwt
 from jwt import PyJWKClient
 from jwt.exceptions import PyJWTError
@@ -7,7 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import authentication, exceptions
 
 
-class SupabaseJWTAuthentication(authentication.BaseAuthentication):
+class Old_Maybe_Delete_SupabaseJWTAuthentication(authentication.BaseAuthentication):
     """Authenticate requests using Supabase-issued JWT tokens."""
 
     def __init__(self):

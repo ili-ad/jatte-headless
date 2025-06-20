@@ -1,4 +1,4 @@
-#accounts/authentication.py
+#backend/accounts_supabase/authentication.py
 
 import jwt
 from jwt.exceptions import PyJWTError, InvalidTokenError

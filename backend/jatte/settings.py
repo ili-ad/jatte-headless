@@ -73,13 +73,24 @@ INSTALLED_APPS = [
 
 # REST framework configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+     "DEFAULT_AUTHENTICATION_CLASSES": (
+         "accounts_supabase.authentication.SupabaseJWTAuthentication",
+         #"jatte.auth.supabase.SupabaseJWTAuthentication",
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
-    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ), 
 }
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': (
+#         'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     ),
+#     'DEFAULT_PERMISSION_CLASSES': (
+#         'rest_framework.permissions.AllowAny',
+#     ),
+# }
 
 # Use Supabase signing key for JWT tokens so they work with existing
 # `SupabaseJWTAuthentication` used throughout the project.
@@ -129,7 +140,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+#SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL")
+SUPABASE_JWKS_URL = "https://sdworjgexjuxhpzvkwht.supabase.co/auth/v1/keys"
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators

@@ -1,4 +1,5 @@
 {
+  "name": "jatte-headless",
   "private": true,
   "workspaces": [
     "frontend",
