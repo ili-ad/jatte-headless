@@ -30,3 +30,38 @@ async def test_websocket_send_message():
     msg = await sync_to_async(channel.messages.first)()
     assert msg.body == "hello"
     assert msg.sent_by == "u1"
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_mark_read_and_count_unread():
+    channel = await sync_to_async(Channel.objects.create)(uuid="r2", client="c1")
+    await sync_to_async(channel.messages.create)(sent_by="u2", body="hi")
+    await sync_to_async(channel.messages.create)(sent_by="u2", body="there")
+
+    communicator = WebsocketCommunicator(application, f"/ws/{channel.uuid}/")
+    connected, _ = await communicator.connect()
+    assert connected
+
+    await communicator.send_json_to({"type": "countUnread", "user": "u1"})
+    data = await communicator.receive_json_from()
+    assert data["type"] == "unread.count"
+    assert data["unread"] == 2
+
+    await communicator.send_json_to({"type": "markRead", "user": "u1"})
+    data = await communicator.receive_json_from()
+    assert data["type"] == "markRead"
+    assert data["status"] == "ok"
+
+    await communicator.send_json_to({"type": "countUnread", "user": "u1"})
+    data = await communicator.receive_json_from()
+    assert data["unread"] == 0
+
+    await communicator.send_json_to({"type": "sendMessage", "text": "new", "user": "u2"})
+    await communicator.receive_json_from()
+
+    await communicator.send_json_to({"type": "countUnread", "user": "u1"})
+    data = await communicator.receive_json_from()
+    assert data["unread"] == 1
+
+    await communicator.disconnect()

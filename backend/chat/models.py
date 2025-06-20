@@ -31,3 +31,16 @@ class Message(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.sent_by}"
+
+
+class ReadState(models.Model):
+    """Track the last read timestamp per user per channel."""
+
+    channel = models.ForeignKey(
+        Channel, related_name="read_states", on_delete=models.CASCADE
+    )
+    user = models.CharField(max_length=255)
+    last_read = models.DateTimeField()
+
+    class Meta:
+        unique_together = ("user", "channel")
