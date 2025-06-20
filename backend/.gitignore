@@ -3,3 +3,6 @@
 */*/*.pyc
 node_modules
 .env
+#db sits in backend now
+/backend/db.sqlite3
+/backend/static/
