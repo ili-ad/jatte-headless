@@ -3,7 +3,6 @@ import os
 import django
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 from channels.auth import AuthMiddlewareStack
 
@@ -14,7 +13,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jatte.settings")
 django.setup()
 
 # 3️⃣  Now it’s safe to import anything that touches auth/models
-from accounts_supabase.middleware import SupabaseJWTAuthMiddleware  # adjust path if needed
 from chat import routing
 
 django_asgi_application = get_asgi_application()
