@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 test('customDataManager set and clear modify state', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const mgr = channel.messageComposer.customDataManager as any;
   mgr.set('foo', 1);
@@ -28,7 +28,7 @@ test('sendMessage includes custom_data payload', async () => {
     ok: true,
     json: async () => ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z', custom_data: { foo: 1 } }),
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   channel.messageComposer.customDataManager.set('foo', 1);
 
@@ -38,7 +38,7 @@ test('sendMessage includes custom_data payload', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hello', custom_data: { foo: 1 } }),
   });

@@ -14,13 +14,13 @@ afterEach(() => {
 
 test('pinnedMessages fetches list and updates state', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => [{ id: 'p1' }] });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const list = await channel.pinnedMessages();
 
   expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/pinned/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(list).toEqual([{ id: 'p1' }]);
   expect(channel.state.pinnedMessages).toEqual([{ id: 'p1' }]);

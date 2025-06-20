@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 test('createDraft saves current text to localStorage and posts draft', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   channel.messageComposer.textComposer.setText('draft message');
 
@@ -31,7 +31,7 @@ test('createDraft saves current text to localStorage and posts draft', () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'draft message' }),
   });

@@ -22,7 +22,7 @@ const sampleMessage = {
 };
 
 test('setQuotedMessage updates composer state and posts message', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   channel.messageComposer.setQuotedMessage(sampleMessage as any);
@@ -31,7 +31,7 @@ test('setQuotedMessage updates composer state and posts message', () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ quoted_message: sampleMessage }),
   });
@@ -42,7 +42,7 @@ test('setQuotedMessage updates composer state and posts message', () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ quoted_message: null }),
   });

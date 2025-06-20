@@ -19,7 +19,7 @@ test('sendMessage posts message, updates state, and emits event', async () => {
     json: async () => ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-06-15T00:00:00Z' }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const eventSpy = vi.fn();
@@ -31,7 +31,7 @@ test('sendMessage posts message, updates state, and emits event', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hello' }),
   });

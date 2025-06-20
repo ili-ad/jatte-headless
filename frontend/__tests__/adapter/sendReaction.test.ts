@@ -19,7 +19,7 @@ test('sendReaction posts reaction to API', async () => {
     json: async () => ({ id: 1, type: 'like', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.sendReaction('m1', 'like');
@@ -28,7 +28,7 @@ test('sendReaction posts reaction to API', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ type: 'like' }),
   });

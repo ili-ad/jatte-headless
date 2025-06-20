@@ -16,7 +16,7 @@ afterEach(() => {
 
 /** ensure registerSubscriptions wires store listeners */
 test('registerSubscriptions subscribes and unsubscribes', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const composer: any = channel.messageComposer;
   const spy = vi.spyOn(composer, 'logStateUpdateTimestamp');
@@ -31,6 +31,6 @@ test('registerSubscriptions subscribes and unsubscribes', () => {
 
   expect(global.fetch).toHaveBeenCalledWith(API.REGISTER_SUBSCRIPTIONS, {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 });

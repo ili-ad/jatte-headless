@@ -9,7 +9,7 @@ const sampleMessage = {
 };
 
 test('setEditedMessage updates composer state', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   channel.messageComposer.setEditedMessage(sampleMessage as any);

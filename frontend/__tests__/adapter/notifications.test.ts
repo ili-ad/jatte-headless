@@ -22,11 +22,11 @@ test('notifications store populated via getNotifications', async () => {
     json: async () => notes,
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getNotifications();
 
   expect(global.fetch).toHaveBeenCalledWith(API.NOTIFICATIONS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual(notes);
   expect(client.notifications.store.getSnapshot().notifications).toEqual(notes);

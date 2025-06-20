@@ -14,12 +14,12 @@ afterEach(() => {
 });
 
 test('setUserAgent updates returned user agent and posts to backend', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   client.setUserAgent('my-agent/1.0');
 
   expect(global.fetch).toHaveBeenCalledWith(API.USER_AGENT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt1' },
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt-test' },
     body: JSON.stringify({ user_agent: 'my-agent/1.0' }),
   });
   expect(client.getUserAgent()).toBe('my-agent/1.0');

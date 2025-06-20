@@ -16,14 +16,14 @@ afterEach(() => {
 test('deleteReaction sends DELETE to API', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.deleteReaction('m1', 'r1');
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.MESSAGES}m1/reactions/r1/`, {
     method: 'DELETE',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 });
 

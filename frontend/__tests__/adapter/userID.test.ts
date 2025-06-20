@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 test('userID reflects constructor value', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   expect(client.userID).toBe('u1');
 });
 

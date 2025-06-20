@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 test('dispatchEvent forwards message.new to channel and client', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   // mark as active channel so dispatchEvent can find it
   client.activeChannels[channel.cid] = channel as any;
@@ -32,7 +32,7 @@ test('dispatchEvent forwards message.new to channel and client', () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ type: EVENTS.MESSAGE_NEW, cid: channel.cid, message }),
   });
@@ -43,7 +43,7 @@ test('dispatchEvent forwards message.new to channel and client', () => {
 });
 
 test('dispatchEvent forwards typing events', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   client.activeChannels[channel.cid] = channel as any;
 
@@ -58,7 +58,7 @@ test('dispatchEvent forwards typing events', () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ type: 'typing.start', cid: channel.cid, user_id: 'u2' }),
   });

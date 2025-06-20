@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 test('editedMessage fetches message and updates state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   (channel.state as any).messages = [
     { id: 'm1', text: 'old', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' },
@@ -34,7 +34,7 @@ test('editedMessage fetches message and updates state', async () => {
   const msg = await (channel as any).editedMessage('m1');
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.MESSAGES}m1/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.state.messages[0].text).toBe('edited');
   expect(msg.id).toBe('m1');

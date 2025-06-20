@@ -14,12 +14,12 @@ afterEach(() => {
 });
 
 test('subarray posts to backend and returns slice', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const result = await client.subarray([1,2,3,4], 1, 3);
 
   expect(global.fetch).toHaveBeenCalledWith(API.SUBARRAY, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt1' },
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt-test' },
     body: JSON.stringify({ array: [1,2,3,4], start: 1, end: 3 }),
   });
   expect(result).toEqual([2,3]);

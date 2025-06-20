@@ -19,12 +19,12 @@ test('axiosInstance.get wraps fetch', async () => {
     json: async () => ({ ok: true }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const result = await client.axiosInstance.get('/api/test', { headers: { 'X-Test': '1' } });
 
   expect(global.fetch).toHaveBeenCalledWith('/api/test', {
     method: 'GET',
-    headers: { Authorization: 'Bearer jwt1', 'X-Test': '1' },
+    headers: { Authorization: 'Bearer jwt-test', 'X-Test': '1' },
   });
   expect(result).toEqual({ data: { ok: true }, status: 200, statusText: 'OK' });
 });

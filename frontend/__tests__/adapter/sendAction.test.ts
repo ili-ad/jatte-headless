@@ -19,7 +19,7 @@ test('sendAction posts action to API', async () => {
     json: async () => ({ ok: true }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.sendAction('m1', { vote: 'yes' });
@@ -28,7 +28,7 @@ test('sendAction posts action to API', async () => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ vote: 'yes' }),
   });

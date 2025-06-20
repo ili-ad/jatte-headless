@@ -19,14 +19,14 @@ test('createPollOption posts option to API', async () => {
     json: async () => ({ poll_option: { id: 'opt1' } }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.createPollOption('p1', { text: 'hi' });
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.POLLS}p1/options/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'hi' }),
   });

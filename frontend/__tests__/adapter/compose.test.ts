@@ -3,7 +3,7 @@ import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 
 /** Ensure compose builds a message when text is present */
 test('compose returns local message payload', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   // empty text -> undefined

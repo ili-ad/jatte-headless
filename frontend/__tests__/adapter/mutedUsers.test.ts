@@ -17,11 +17,11 @@ test('getMutedUsers fetches muted users', async () => {
   const users = [{ id: 2, username: 'u2' }];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => users });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getMutedUsers();
 
   expect(global.fetch).toHaveBeenCalledWith(API.MUTED_USERS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual(users);
   expect(client.mutedUsers).toEqual(users);
