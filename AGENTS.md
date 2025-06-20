@@ -1,37 +1,56 @@
-# Agents backlog – **Phase 0 (MVP chat)**
+
+# Phase 0.5 – Supabase auth foundation
 
 > One ticket ≈ 100 LOC. Mark ✅ when completed. Human will merge onto main.
 
-| ID  | Description (≤ LOC)                                                                                                                         | Owner | Status |
-|-----|---------------------------------------------------------------------------------------------------------------------------------------------|-------|--------|
-| 0A  | Ensure backend & frontend deps installed (pip/pnpm; Redis running)                                                                          | human | ✅ |
-| B1  | **ASGI bootstrap (≈ 20)** – `asgi.py` → `ProtocolTypeRouter`; add empty `chat/routing.py`                                                   | Codex | ✅ |
-| B2  | **Channel layer config (≈ 5)** – add `CHANNEL_LAYERS` Redis settings in `settings.py`                                                        | Codex | ✅ |
-| B3  | **Models: Channel & Message (≤ 80)** – minimal fields; migrations                                                                           | Codex | ✅ |
-| B4  | **JWT token endpoint (≈ 40)** – DRF Simple-JWT at `/api/token/`                                                                              | Codex | ✅ |
-| B5  | **WebSocket consumer skeleton** – connect / disconnect / `receive_json` dispatcher *(implemented in PR #12)*                                 | Codex | ✅ |
-| B6  | **Command: channel.watch** – create/fetch channel, group add, return `initialized` payload *(implemented in PR #12)*                        | Codex | ✅ |
-| B7  | **Command: sendMessage** – persist message, broadcast `message.new` *(implemented in PR #12)*                                               | Codex | ✅ |
-| B8  | **Command: markRead & countUnread (≈ 80)** – per-user read tracking                                                                         | Codex | ✅ |
-| B9  | **Backend unit tests** – `channels.testing.WebsocketCommunicator` *(implemented in PR #12)*                                                  | Codex | ✅ |
-| F1  | **Env & SDK wrapper (≈ 20)** – `.env.local`; `lib/getStreamClient.ts` memoises `StreamChat.getInstance(...)`                                | Codex | ✅ |
-| F2  | **Token fetch utility (≈ 30)** – `lib/getToken.ts` hits `/api/token` and returns `{userID,userToken}`                                       | Codex | ✅ |
-| F3  | **ChatProvider (≈ 40)** – React Context; `client.connectUser(...)`; exports `{client, channel}`                                             | Codex | ✅ |
-| F4  | **Default channel bootstrap (≈ 30)** – `client.channel("messaging","general").watch()`; save to context                                     | Codex | ✅ |
-| F5  | **UI scaffold (≤ 50)** – `<Chat><Channel><Window><MessageList/><MessageInput/></Window></Channel></Chat>`                                   | Codex | ✅ |
-| F6  | **Event logger + markRead (≈ 20)** – `channel.on("message.new", () => channel.markRead())`                                                  | Codex | ✅ |
-| F7  | **Smoke-test page (≈ 10)** – Next route `/demo` mounts provider & scaffold; shows “hello world” round-trip                                  | Codex | ✅ |
-| S1  | Manual smoke-test instructions (curl + WS)                                                                                                  | human | ✅ |
-| S2  | Auth-less harness – set `AllowAny`; fixture disables auth in tests                                                                          | human | ✅ |
-| S3  | Re-enable JWT auth & update tests at Phase-1 kickoff                                                                                        | human | ☐ |
+| ID  | Description (≤ LOC)                                                                                                               | Owner | Status |
+|-----|----------------------------------------------------------------------------------------------------------------------------------|-------|--------|
+| A1  | **Install supabase-js & helper (≈20)** – `pnpm add @supabase/supabase-js`; add `src/lib/supabaseClient.ts`                        | Codex | ☐ |
+| A2  | **Login page (≈50)** – email+password `/login`; stores `session` in context                                                       | Codex | ☐ |
+| A3  | **DRF SupabaseJWTAuthentication (≈80)** – validate Bearer JWT via Supabase JWKS                                                   | Codex | ☐ |
+| A4  | **Secure /api/token/ (≈40)** – requires Supabase auth; returns `StreamChat.devToken(user.id)`                                     | Codex | ☐ |
+| A5  | **Token fetch hook (≈30)** – uses `supabase.auth.getSession()`; fetches `/api/token/` with auth header                            | Codex | ☐ |
+| A6  | **ChatProvider update (≈20)** – connect/disconnect on session change, remove dev hacks                                            | Codex | ☐ |
+| A7  | **Delete hard-coded USER_ID/TOKEN & WS URL (≈15)** – replace with env-vars or session props                                       | Codex | ☐ |
+| A8  | **Playwright e2e: login → hello-world (≤100)** – fills login form, expects echo                                                   | human | ☐ |
+| S3  | Re-enable JWT auth in unit tests, drop dummy `"jwt1"` tokens                                                                      | human | ☐ |
 
-**Phase 0 is done** (“Dave Matthews → hello world”) when every ☐ above is ✅.
+Phase 0.5 is complete when every ☐ above is ✅ and the e2e test passes.
+
+
+**Phase 0.5 is done** (“Dave Matthews → hello world”) when every ☐ above is ✅.
 
 ---
 
-## Phase 0 implementation ticket (for Codex)
+## Phase 0.5 implementation ticket (for Codex)
 
-* **Target branch:** `feat/phase0-chat`
-* **Touch files:** `chat/consumers.py`, `chat/routing.py`, `chat/tests/test_websocket.py`
-* **Assumptions:** SQLite dev DB, auth *disabled* (`AllowAny`), room already exists via `POST /api/rooms/`.
-* **Acceptance:** pytest passes – create room → WS connect → `channel.watch` → `sendMessage` → receive `message.new`.
+* **Commit target:** `main`   <!-- solo-dev: no feature branches -->
+* **Touch files (expected):**
+  * `frontend/src/lib/supabaseClient.ts`
+  * `frontend/src/app/login/page.tsx`
+  * `frontend/src/lib/getToken.ts`                <!-- replaces dev helper -->
+  * `frontend/src/lib/ChatProvider.tsx`
+  * `backend/jatte/auth/supabase.py`              <!-- new DRF auth class -->
+  * `backend/chat/views.py`                       <!-- secure `/api/token/` -->
+  * **tests**  
+    * `backend/chat/tests/test_supabase_auth.py`  
+    * `frontend/tests/e2e/login-smoke.spec.ts`
+* **Env assumptions:**
+
+NEXT_PUBLIC_SUPABASE_URL=…
+NEXT_PUBLIC_SUPABASE_ANON_KEY=…
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
+SUPABASE_JWT_SECRET=super-secret
+REDIS_HOST=localhost
+
+SQLite dev DB; Redis running at `${REDIS_HOST}`.
+* **Acceptance (CI must pass):**
+1. **Unit tests**  
+   * Valid Supabase JWT → `/api/token/` → `200 {userID,userToken}`  
+   * Chat consumer echoes `message.new` when connected with that token.
+2. **Playwright e2e**  
+   * Fill `/login` with test creds → redirected to `/demo` → sees “hello world”.
+3. No `AllowAny` outside Supabase login/signup views.
+4. No hard-coded user IDs, tokens, or `localhost` strings remain in source.
+
+> ✅ Merge to `main` when every checklist item above is green.
