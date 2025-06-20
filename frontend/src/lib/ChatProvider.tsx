@@ -38,6 +38,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
   }, [client]);
 
+  useEffect(() => {
+    if (!channel) return;
+    const logEvent = (e: any) => console.log('channel event', e);
+    const handleNew = () => channel.markRead();
+    channel.on('*', logEvent);
+    channel.on('message.new', handleNew);
+    return () => {
+      channel.off('*', logEvent);
+      channel.off('message.new', handleNew);
+    };
+  }, [channel]);
+
   return (
     <ChatContext.Provider value={{ client, channel }}>
       {children}
