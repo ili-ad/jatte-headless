@@ -2,14 +2,14 @@ import pytest
 from asgiref.sync import sync_to_async
 from channels.testing import WebsocketCommunicator
 from jatte.asgi import application
-from chat.models import Room
+from chat.models import Channel
 
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
 async def test_websocket_send_message():
-    room = await sync_to_async(Room.objects.create)(uuid="r1", client="c1")
-    communicator = WebsocketCommunicator(application, f"/ws/{room.uuid}/")
+    channel = await sync_to_async(Channel.objects.create)(uuid="r1", client="c1")
+    communicator = WebsocketCommunicator(application, f"/ws/{channel.uuid}/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -25,8 +25,8 @@ async def test_websocket_send_message():
     assert event["user"] == "u1"
 
     await communicator.disconnect()
-    count = await sync_to_async(room.messages.count)()
+    count = await sync_to_async(channel.messages.count)()
     assert count == 1
-    msg = await sync_to_async(room.messages.first)()
+    msg = await sync_to_async(channel.messages.first)()
     assert msg.body == "hello"
     assert msg.sent_by == "u1"
