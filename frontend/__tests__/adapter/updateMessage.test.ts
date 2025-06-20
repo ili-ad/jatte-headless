@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 test('updateMessage PUTs to backend and updates state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   (channel.state as any).messages = [
     { id: 'm1', text: 'old', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' },
@@ -32,7 +32,7 @@ test('updateMessage PUTs to backend and updates state', async () => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer jwt1',
+      Authorization: 'Bearer jwt-test',
     },
     body: JSON.stringify({ text: 'edited' }),
   });

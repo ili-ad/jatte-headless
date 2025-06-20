@@ -22,19 +22,19 @@ test('watch fetches messages and opens websocket', async () => {
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => messages });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.watch();
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.ROOMS}room1/messages/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.initialized).toBe(true);
   expect(channel.state.latestMessages).toEqual(messages);
   expect(channel.state.latestMessages[0].updated_at).toBe('2025-01-01T00:00:00Z');
   const wsRoot = process.env.NEXT_PUBLIC_WS_URL as string;
   expect((global as any).WebSocket).toHaveBeenCalledWith(
-    `${wsRoot}/ws/room1/?token=jwt1`
+    `${wsRoot}/ws/room1/?token=jwt-test`
   );
 });

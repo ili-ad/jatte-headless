@@ -18,7 +18,7 @@ afterEach(() => {
 
 test('clientID generated on connectUser includes user id', async () => {
   const client = new ChatClient();
-  await client.connectUser({ id: 'u1' }, 'jwt1');
+  await client.connectUser({ id: 'u1' }, 'jwt-test');
 
   // clientID should now start with the user id and a separator
   expect(client.clientID).toMatch(/^u1--/);

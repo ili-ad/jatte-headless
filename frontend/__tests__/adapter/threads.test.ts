@@ -15,11 +15,11 @@ afterEach(() => {
 
 test('getThreads fetches list and updates store', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => [{ id: 't1' }] });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getThreads();
 
   expect(global.fetch).toHaveBeenCalledWith(API.THREADS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(res).toEqual([{ id: 't1' }]);
   expect(client.threads.state.getSnapshot().threads).toEqual([{ id: 't1' }]);

@@ -20,13 +20,13 @@ test('read fetches states and updates channel', async () => {
       { user: 'u2', last_read: '2025-01-02T00:00:00Z', unread_messages: 1 },
     ],
   });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const map = await channel.read();
 
   expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/read/`, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(map.u2.unread_messages).toBe(1);
   expect(channel.state.read.u1.last_read).toBe('2025-01-01T00:00:00Z');

@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 test('channel.visible reflects hidden status', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   expect(channel.visible).toBe(true);

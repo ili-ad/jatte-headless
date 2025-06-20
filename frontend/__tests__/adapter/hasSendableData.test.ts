@@ -3,7 +3,7 @@ import { ChatClient } from '../../src/lib/stream-adapter/ChatClient';
 
 /** Ensure hasSendableData reflects composer state */
 test('hasSendableData returns true when text or other data present', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const comp: any = channel.messageComposer;
 

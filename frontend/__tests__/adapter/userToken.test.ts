@@ -13,8 +13,8 @@ afterEach(() => {
 });
 
 test('userToken reflects constructor value', () => {
-  const client = new ChatClient('u1', 'jwt1');
-  expect(client.userToken).toBe('jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
+  expect(client.userToken).toBe('jwt-test');
 });
 
 test('userToken updates on connectUser and clears on disconnectUser', async () => {

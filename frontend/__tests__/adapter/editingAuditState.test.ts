@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 test('editingAuditState updates on text and draft changes', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const composer: any = channel.messageComposer;
   const initial = composer.editingAuditState.getSnapshot().lastChange.stateUpdate;

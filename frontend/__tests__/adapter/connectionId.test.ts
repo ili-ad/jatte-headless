@@ -17,14 +17,14 @@ afterEach(() => {
 });
 
 test('connectUser sets connectionId', async () => {
-  const client = new ChatClient('u1', 'jwt1');
-  await client.connectUser({ id: 'u1' }, 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
+  await client.connectUser({ id: 'u1' }, 'jwt-test');
   expect(global.fetch).toHaveBeenCalledWith(API.CONNECTION_ID, expect.anything());
   expect(client.connectionId).toBe('c123');
 });
 
 test('disconnectUser clears connectionId', () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   client.connectionId = 'abc';
   client.disconnectUser();
   expect(client.connectionId).toBeNull();

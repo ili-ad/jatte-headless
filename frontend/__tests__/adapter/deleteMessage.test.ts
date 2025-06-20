@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 test('deleteMessage calls backend and updates state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   (channel.state as any).messages = [
     { id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' },
@@ -36,7 +36,7 @@ test('deleteMessage calls backend and updates state', async () => {
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.MESSAGES}m1/`, {
     method: 'DELETE',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.state.messages[0].deleted_at).toBe('2025-01-01T01:00:00Z');
   expect(result.deleted_at).toBe('2025-01-01T01:00:00Z');

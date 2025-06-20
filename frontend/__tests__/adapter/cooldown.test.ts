@@ -19,13 +19,13 @@ test('cooldown fetches cooldown value', async () => {
     json: async () => ({ cooldown: 5 }),
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   const cd = await channel.cooldown();
   expect(global.fetch).toHaveBeenCalledWith(
     `${API.COOLDOWN}room1/cooldown/`,
-    { headers: { Authorization: `Bearer jwt1` } }
+    { headers: { Authorization: `Bearer jwt-test` } }
   );
   expect(cd).toBe(5);
 });

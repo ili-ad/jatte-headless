@@ -13,20 +13,20 @@ afterEach(() => {
 });
 
 test('hide posts to backend and sets hidden', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
 
   await channel.hide();
 
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/hide/', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.hidden).toBe(true);
 });
 
 test('show posts to backend and clears hidden', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   channel.data.hidden = true;
 
@@ -34,7 +34,7 @@ test('show posts to backend and clears hidden', async () => {
 
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/show/', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.hidden).toBe(false);
 });

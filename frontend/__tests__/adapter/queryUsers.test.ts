@@ -24,11 +24,11 @@ test('queryUsers fetches users list', async () => {
     json: async () => users,
   });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const res = await client.queryUsers();
 
   expect(global.fetch).toHaveBeenCalledWith(API.USERS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
 
   expect(res).toEqual(users);

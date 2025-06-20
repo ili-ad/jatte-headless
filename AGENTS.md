@@ -13,7 +13,7 @@
 | A6  | **ChatProvider update (≈20)** – connect/disconnect on session change, remove dev hacks                                            | Codex | ✅ |
 | A7  | **Delete hard-coded USER_ID/TOKEN & WS URL (≈15)** – replace with env-vars or session props                                       | Codex | ✅ |
 | A8  | **Playwright e2e: login → hello-world (≤100)** – fills login form, expects echo                                                   | human | ✅ |
-| S3  | Re-enable JWT auth in unit tests, drop dummy `"jwt1"` tokens                                                                      | human | ☐ |
+| S3  | Re-enable JWT auth in unit tests, drop dummy `"jwt1"` tokens                                                                      | human | ✅ |
 
 Phase 0.5 is complete when every ☐ above is ✅ and the e2e test passes.
 

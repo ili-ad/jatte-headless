@@ -15,8 +15,8 @@ afterEach(() => {
 
 test('muteStatus fetches mute state', async () => {
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ muted: true }) });
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const result = await client.muteStatus('u2');
-  expect(global.fetch).toHaveBeenCalledWith(`${API.MUTE_STATUS}u2/`, { headers: { Authorization: 'Bearer jwt1' } });
+  expect(global.fetch).toHaveBeenCalledWith(`${API.MUTE_STATUS}u2/`, { headers: { Authorization: 'Bearer jwt-test' } });
   expect(result).toBe(true);
 });

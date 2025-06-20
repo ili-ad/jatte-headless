@@ -19,11 +19,11 @@ test('channel data includes extra server fields', async () => {
   ];
   (global.fetch as any).mockResolvedValue({ ok: true, json: async () => rooms });
 
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const [channel] = await client.queryChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.ROOMS, {
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.data).toEqual({ name: 'Room 1', topic: 'x' });
 });

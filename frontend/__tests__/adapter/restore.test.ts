@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 test('restore posts to backend and updates state', async () => {
-  const client = new ChatClient('u1', 'jwt1');
+  const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   (channel.state as any).messages = [
     { id: 'm1', text: 'hi', user_id: 'u1', created_at: '2025-01-01T00:00:00Z', deleted_at: '2025-01-01T01:00:00Z' },
@@ -30,7 +30,7 @@ test('restore posts to backend and updates state', async () => {
 
   expect(global.fetch).toHaveBeenCalledWith(`${API.MESSAGES}m1/restore/`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt1' },
+    headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(channel.state.messages[0].deleted_at).toBeUndefined();
   expect(result.id).toBe('m1');
