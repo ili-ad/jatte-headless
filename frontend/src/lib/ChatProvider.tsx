@@ -25,9 +25,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     getToken()
       .then(({ userID, userToken }) => client.connectUser({ id: userID }, userToken))
       .then(() => {
+        const chan = client.channel('messaging', 'general');
+        return chan.watch().then(() => chan);
+      })
+      .then((chan) => {
         if (!mounted) return;
-        // channel will be initialized in a later ticket
-        setChannel(null);
+        setChannel(chan);
       });
     return () => {
       mounted = false;
