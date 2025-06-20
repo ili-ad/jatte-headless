@@ -1,3 +1,5 @@
+#backend/jatte/settings.py
+
 """
 Django settings for jatte project.
 
@@ -14,7 +16,8 @@ from pathlib import Path
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+#BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent  # only two parents
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,7 +32,7 @@ SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 AUTH_USER_MODEL = 'accounts_supabase.CustomUser'
 
