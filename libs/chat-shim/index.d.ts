@@ -50,7 +50,12 @@ declare module 'stream-chat' {
     fetch(url: string): Promise<LinkPreview>;
   }
   export type isVoteAnswer = any;
-  export type FixedSizeQueueCache = any;
+  export class FixedSizeQueueCache<T> {
+    constructor(limit: number);
+    enqueue(item: T): void;
+    dequeue(): T | undefined;
+    readonly size: number;
+  }
   export type MessageComposer = any;
   export type VotingVisibility = any;
   export type BaseSearchSource = any;
