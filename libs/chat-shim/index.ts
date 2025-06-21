@@ -358,3 +358,21 @@ export function replaceWordWithEntity<T extends string>(text: T, word: string, e
   return (String(text).replace(word, entity) as any) as T;
 }
 
+/* ------------------------------- alerts -------------------------------- */
+
+export type ToastNotification = {
+  type: 'toast';
+  text: string;
+};
+
+export type BannerNotification = {
+  type: 'banner';
+  text: string;
+};
+
+export type Notification = ToastNotification | BannerNotification;
+
+export interface NotificationManagerState {
+  notifications: Notification[];
+}
+
