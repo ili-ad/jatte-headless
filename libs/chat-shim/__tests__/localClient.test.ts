@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import WS from 'jest-websocket-mock';
 import { LocalChatClient } from '../index';
 
