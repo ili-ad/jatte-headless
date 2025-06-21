@@ -106,6 +106,18 @@ declare module 'stream-chat' {
     word: string,
     entity: string
   ): T;
+  export type ToastNotification = {
+    type: 'toast';
+    text: string;
+  };
+  export type BannerNotification = {
+    type: 'banner';
+    text: string;
+  };
+  export type Notification = ToastNotification | BannerNotification;
+  export interface NotificationManagerState {
+    notifications: Notification[];
+  }
   export type StreamChat = any;
 }
 

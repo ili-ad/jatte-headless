@@ -163,8 +163,6 @@ declare module 'stream-chat' {
   export type EditingAuditState = any;
   export type EventHandler = any;
   export type MessageLabel = any;
-  export type Notification = any;
-  export type NotificationManagerState = any;
   export type Poll = any;
   export type PollAnswer = any;
   export type PollState = any;
