@@ -1,0 +1,64 @@
+name: channels
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    # ─── env is visible to *all* steps ────────────────────────────────
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # ---------- JS deps ----------
+      - name: Install root deps
+        run: pnpm install --frozen-lockfile
+      - name: Install front-end deps
+        run: pnpm --filter frontend install --frozen-lockfile
+
+      # ---------- cache browsers ----------
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-pw-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers (first run only)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter frontend exec playwright install --with-deps
+
+      # ---------- start backend ----------
+      - name: Start Daphne
+        run: |
+          pnpm --filter backend exec python manage.py migrate --noinput
+          pnpm --filter backend exec daphne -p 8000 jatte.asgi:application &
+          echo $! > daphne.pid
+      - name: Wait for port 8000
+        run: npx wait-on tcp:8000
+
+      # ---------- tests ----------
+      - name: Unit tests
+        run: pnpm test
+      - name: Playwright e2e
+        run: pnpm --filter frontend exec playwright test
+
+      # ---------- tidy up ----------
+      - name: Stop Daphne
+        if: always()
+        run: kill $(cat daphne.pid) || true
