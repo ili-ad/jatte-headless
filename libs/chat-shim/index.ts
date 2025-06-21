@@ -96,3 +96,35 @@ export const getLocalClient = () => StreamChat.getInstance();
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
+
+/* ------------------------------ helpers -------------------------------- */
+
+const _nameFrom = (a: any): string =>
+  (
+    a?.name ||
+    a?.title ||
+    a?.filename ||
+    a?.asset_url ||
+    ''
+  ).toLowerCase();
+
+const _hasExt = (a: any, exts: string[]) =>
+  exts.some(ext => _nameFrom(a).endsWith(ext));
+
+export const isImageAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^image\/(jpeg|jpg|png|gif)/.test(mime)) return true;
+  return _hasExt(a, ['.jpeg', '.jpg', '.png', '.gif']);
+};
+
+export const isVideoAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^video\/(mp4|webm)/.test(mime)) return true;
+  return _hasExt(a, ['.mp4', '.webm']);
+};
+
+export const isAudioAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^audio\/(mp3|mpeg|wav)/.test(mime)) return true;
+  return _hasExt(a, ['.mp3', '.wav']);
+};
