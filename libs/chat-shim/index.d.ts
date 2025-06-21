@@ -23,20 +23,23 @@ declare module 'stream-chat' {
   export type Event    = any;
   export type Reaction = any;
   export type UserResponse = any;
-  export type isAudioAttachment = any;
-  export type isFileAttachment = any;
-  export type isImageAttachment = any;
+
+  export function isAudioAttachment(a: any): boolean;
+  export function isFileAttachment(a: any): boolean;
+  export function isImageAttachment(a: any): boolean;
+  export function isScrapedContent(a: any): boolean;
+  export function isVideoAttachment(a: any): boolean;
   export type isScrapedContent = any;
   export type isVideoAttachment = any;
-  export type isVoiceRecordingAttachment = any;
+  export function isVoiceRecordingAttachment(a: any): boolean;
   //export type  = any;
-  export type localMessageToNewMessagePayload = any;
+  export function localMessageToNewMessagePayload(local: LocalMessage): Message;
   export type ChannelSearchSource = any;
   export type MessageSearchSource = any;
   export type SearchController = any;
   export type UserSearchSource = any;
   export type StateStore = any;
-  export type formatMessage = any;
+  export function formatMessage(text: string): string;
   export interface LinkPreview {
     url: string;
     title: string;
@@ -47,13 +50,6 @@ declare module 'stream-chat' {
     fetch(url: string): Promise<LinkPreview>;
   }
   export type isVoteAnswer = any;
-  export type isLocalAttachment = any;
-  export type isLocalAudioAttachment = any;
-  export type isLocalFileAttachment = any;
-  export type isLocalImageAttachment = any;
-  export type isLocalVideoAttachment = any;
-  export type isLocalVoiceRecordingAttachment = any;
-  export type isLocalUploadAttachment = any;
   export type FixedSizeQueueCache = any;
   export type MessageComposer = any;
   export type VotingVisibility = any;

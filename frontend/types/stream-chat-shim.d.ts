@@ -56,7 +56,7 @@ declare module 'stream-chat' {
   //export type isVideoAttachment = any;
   //export type isVoiceRecordingAttachment = any;
   //export type  = any;
-  export type localMessageToNewMessagePayload = any;
+  export function localMessageToNewMessagePayload(local: LocalMessage): Message;
   export type ChannelSearchSource = any;
   export type MessageSearchSource = any;
   export type SearchController = any;
@@ -188,7 +188,7 @@ declare module 'stream-chat' {
   export function isLocalVoiceRecordingAttachment(a:any): boolean;
   
 
-  export function formatMessage(...a:any[]): string;
+  export function formatMessage(text: string): string;
   export function getTokenizedSuggestionDisplayName(...a:any[]): string;
   export function getTriggerCharWithToken(...a:any[]): string;
   export function insertItemWithTrigger<T>(s:T): T;
