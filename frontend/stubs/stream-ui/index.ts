@@ -1,7 +1,10 @@
 // Ultra-minimal stub for MVP build
-export { Chat }         from '../../../libs/stream-ui/src/components/Chat';
-export { Channel }      from '../../../libs/stream-ui/src/components/Channel';
-export { Window }       from '../../../libs/stream-ui/src/components/Window';
-export { MessageList }  from '../../../libs/stream-ui/src/components/MessageList';
-export { MessageInput } from '../../../libs/stream-ui/src/components/MessageInput';
+// Provide tiny React components so the demo compiles without the real package
+import React from 'react';
+
+export const Chat = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children);
+export const Channel = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children);
+export const Window = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children);
+export const MessageList = () => null;
+export const MessageInput = () => null;
 export default {};
