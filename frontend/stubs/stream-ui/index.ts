@@ -1,7 +1,7 @@
 // Ultra-minimal stub for MVP build
-export const Chat = ({ children }: any) => children;
-export const Channel = ({ children }: any) => children;
-export const Window  = ({ children }: any) => children;
-export const MessageList  = () => null;
-export const MessageInput = () => null;
+export { Chat }         from '../../../libs/stream-ui/src/components/Chat';
+export { Channel }      from '../../../libs/stream-ui/src/components/Channel';
+export { Window }       from '../../../libs/stream-ui/src/components/Window';
+export { MessageList }  from '../../../libs/stream-ui/src/components/MessageList';
+export { MessageInput } from '../../../libs/stream-ui/src/components/MessageInput';
 export default {};

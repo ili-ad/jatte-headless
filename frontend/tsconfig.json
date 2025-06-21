@@ -19,10 +19,13 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
+    "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@iliad/stream-ui": ["./types/stream-ui-shim"]
-    }
+      "@/*": ["lib/*", "src/*"],
+      "@iliad/stream-ui": ["./types/stream-ui-shim"],
+      "stream-chat": ["../libs/chat-shim"],
+    },
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "../libs/stream-ui"]
