@@ -18,8 +18,7 @@
     "mml-react": "0.4.7",
     "next": "15.3.3",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "stream-chat": "^9.6.0"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -27,6 +26,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "stream-chat": "^9.6.0",
     "@types/webpack": "5.28.5",
     "browserslist": "^4.25.0",
     "caniuse-lite": "^1.0.30001723",
