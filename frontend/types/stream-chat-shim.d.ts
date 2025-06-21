@@ -181,7 +181,7 @@ declare module 'stream-chat' {
   export function isLocalVoiceRecordingAttachment(a:any): boolean;
   
 
-  export function formatMessage(...a:any[]): string;
+  export function formatMessage(text: string): string;
   export function getTokenizedSuggestionDisplayName(...a:any[]): string;
   export function getTriggerCharWithToken(...a:any[]): string;
   export function insertItemWithTrigger<T>(s:T): T;

@@ -39,7 +39,7 @@ declare module 'stream-chat' {
   export type SearchController = any;
   export type UserSearchSource = any;
   export type StateStore = any;
-  export type formatMessage = any;
+  export function formatMessage(text: string): string;
   export type LinkPreviewsManager = any;
   export type isVoteAnswer = any;
   export type FixedSizeQueueCache = any;
