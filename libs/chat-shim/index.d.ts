@@ -56,7 +56,16 @@ declare module 'stream-chat' {
     dequeue(): T | undefined;
     readonly size: number;
   }
-  export type MessageComposer = any;
+  export interface MessageComposerState {
+    text: string;
+    attachments: any[];
+  }
+  export class MessageComposer {
+    state: MessageComposerState;
+    reset(): void;
+    setText(text: string): void;
+    addAttachment(att: any): void;
+  }
   export type VotingVisibility = any;
   export type BaseSearchSource = any;
   export type getTokenizedSuggestionDisplayName = any;
