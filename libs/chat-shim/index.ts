@@ -92,6 +92,22 @@ export class StreamChat extends LocalChatClient {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
+/* ---------------------------------- utils --------------------------------- */
+
+export class FixedSizeQueueCache<T> {
+  private items: T[] = [];
+  constructor(private limit: number) {}
+  enqueue(item: T) {
+    this.items.push(item);
+    if (this.items.length > this.limit) this.items.shift();
+  }
+  dequeue(): T | undefined {
+    return this.items.shift();
+  }
+  get size() { return this.items.length; }
+  toArray() { return [...this.items]; }
+}
+
 
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
