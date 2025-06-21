@@ -49,7 +49,20 @@ declare module 'stream-chat' {
     constructor(limit?: number);
     fetch(url: string): Promise<LinkPreview>;
   }
-  export type isVoteAnswer = any;
+  export type PollVote = {
+    id: string;
+    poll_id: string;
+    created_at: string;
+    updated_at: string;
+    option_id?: string;
+    user?: UserResponse;
+    user_id?: string;
+  };
+  export type PollAnswer = Omit<PollVote, 'option_id'> & {
+    answer_text: string;
+    is_answer: boolean;
+  };
+  export function isVoteAnswer(vote: PollVote | PollAnswer): vote is PollAnswer;
   export class FixedSizeQueueCache<T> {
     constructor(limit: number);
     enqueue(item: T): void;
@@ -66,7 +79,10 @@ declare module 'stream-chat' {
     setText(text: string): void;
     addAttachment(att: any): void;
   }
-  export type VotingVisibility = any;
+  export enum VotingVisibility {
+    anonymous = 'anonymous',
+    public = 'public',
+  }
   export type BaseSearchSource = any;
   export type getTokenizedSuggestionDisplayName = any;
   export type getTriggerCharWithToken = any;

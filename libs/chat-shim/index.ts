@@ -300,3 +300,28 @@ export class MessageComposer {
     this.state.attachments.push(att);
   }
 }
+
+export enum VotingVisibility {
+  anonymous = 'anonymous',
+  public = 'public',
+}
+
+export type PollVote = {
+  id: string;
+  poll_id: string;
+  created_at: string;
+  updated_at: string;
+  option_id?: string;
+  user?: UserResponse;
+  user_id?: string;
+};
+
+export type PollAnswer = Omit<PollVote, 'option_id'> & {
+  answer_text: string;
+  is_answer: boolean;
+};
+
+export const isVoteAnswer = (
+  vote: PollVote | PollAnswer
+): vote is PollAnswer => !!(vote as PollAnswer).answer_text;
+
