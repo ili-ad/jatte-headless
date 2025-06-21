@@ -1,0 +1,32 @@
+name: channels
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  channels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install -r backend/requirements.txt
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          cd backend
+          nohup daphne jatte.asgi:application &
+      - name: A5-scan
+        run: node scripts/list-stream-imports.ts | tee /dev/tty | (! grep -q ^$)
+      - run: pnpm test
+      - run: pnpm --filter frontend exec playwright install --with-deps
+      - run: pnpm --filter frontend exec playwright test
