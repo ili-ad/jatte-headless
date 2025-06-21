@@ -63,7 +63,15 @@ declare module 'stream-chat' {
   export type UserSearchSource = any;
   export type StateStore = any;
   //export type formatMessage = any;
-  export type LinkPreviewsManager = any;
+  export interface LinkPreview {
+    url: string;
+    title: string;
+    [k: string]: any;
+  }
+  export class LinkPreviewsManager {
+    constructor(limit?: number);
+    fetch(url: string): Promise<LinkPreview>;
+  }
   export type isVoteAnswer = any;
   //export type isLocalAttachment = any;
   //export type isLocalAudioAttachment = any;
@@ -131,7 +139,6 @@ declare module 'stream-chat' {
   export type LocalImageAttachment = any;
   export type AnyLocalAttachment = any;
   export type LocalUploadAttachment = any;
-  export type LinkPreview = any;
   export type LinkPreviewsManagerState = any;
   export type MessageComposerState = any;
   export type UpdatedMessage = any;
@@ -187,7 +194,6 @@ declare module 'stream-chat' {
   export function insertItemWithTrigger<T>(s:T): T;
   export function replaceWordWithEntity<T>(s:T): T;
 
-  export class LinkPreviewsManager {}
   export class MessageComposer {}
   export class FixedSizeQueueCache {}
   export class SearchController {}
