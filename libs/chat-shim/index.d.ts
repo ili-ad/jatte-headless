@@ -40,7 +40,15 @@ declare module 'stream-chat' {
   export type UserSearchSource = any;
   export type StateStore = any;
   export function formatMessage(text: string): string;
-  export type LinkPreviewsManager = any;
+  export interface LinkPreview {
+    url: string;
+    title: string;
+    [k: string]: any;
+  }
+  export class LinkPreviewsManager {
+    constructor(limit?: number);
+    fetch(url: string): Promise<LinkPreview>;
+  }
   export type isVoteAnswer = any;
   export type FixedSizeQueueCache = any;
   export type MessageComposer = any;
