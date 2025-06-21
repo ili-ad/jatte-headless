@@ -23,11 +23,13 @@ declare module 'stream-chat' {
   export type Event    = any;
   export type Reaction = any;
   export type UserResponse = any;
-  export type isAudioAttachment = any;
+
+  export function isAudioAttachment(a: any): boolean;
   export function isFileAttachment(a: any): boolean;
-  export type isImageAttachment = any;
+  export function isImageAttachment(a: any): boolean;
   export function isScrapedContent(a: any): boolean;
-  export type isVideoAttachment = any;
+  export function isVideoAttachment(a: any): boolean;
+  export type isScrapedContent = any;
   export type isVoiceRecordingAttachment = any;
   //export type  = any;
   export type localMessageToNewMessagePayload = any;
