@@ -85,9 +85,20 @@ declare module 'stream-chat' {
   }
   export type BaseSearchSource = any;
   export type getTokenizedSuggestionDisplayName = any;
-  export type getTriggerCharWithToken = any;
-  export type insertItemWithTrigger = any;
-  export type replaceWordWithEntity = any;
+  export function getTriggerCharWithToken(
+    text: string,
+    triggers?: string[]
+  ): string;
+  export function insertItemWithTrigger<T>(
+    text: T,
+    item: string,
+    triggers?: string[]
+  ): T;
+  export function replaceWordWithEntity<T>(
+    text: T,
+    word: string,
+    entity: string
+  ): T;
   export type StreamChat = any;
 }
 
