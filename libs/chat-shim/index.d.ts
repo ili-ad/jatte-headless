@@ -49,6 +49,9 @@ declare module 'stream-chat' {
     constructor(limit?: number);
     fetch(url: string): Promise<LinkPreview>;
   }
+  export interface LinkPreviewsManagerState {
+    previews: Map<string, LinkPreview>;
+  }
   export type PollVote = {
     id: string;
     poll_id: string;
