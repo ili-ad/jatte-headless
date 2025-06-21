@@ -73,13 +73,6 @@ declare module 'stream-chat' {
     fetch(url: string): Promise<LinkPreview>;
   }
   export function isVoteAnswer(vote: PollVote | PollAnswer): vote is PollAnswer;
-  //export type isLocalAttachment = any;
-  //export type isLocalAudioAttachment = any;
-  //export type isLocalFileAttachment = any;
-  //export type isLocalImageAttachment = any;
-  //export type isLocalVideoAttachment = any;
-  //export type isLocalVoiceRecordingAttachment = any;
-  //export type isLocalUploadAttachment = any;
   export interface MessageComposerState {
     text: string;
     attachments: any[];
