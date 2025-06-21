@@ -256,3 +256,24 @@ export const isAudioAttachment = (a: any): boolean => {
   if (/^audio\/(mp3|mpeg|wav)/.test(mime)) return true;
   return _hasExt(a, ['.mp3', '.wav']);
 };
+
+/* ------------------------- fixed size queue cache ----------------------- */
+
+export class FixedSizeQueueCache<T> {
+  private items: T[] = [];
+
+  constructor(private limit: number) {}
+
+  enqueue(item: T) {
+    this.items.push(item);
+    if (this.items.length > this.limit) this.items.shift();
+  }
+
+  dequeue(): T | undefined {
+    return this.items.shift();
+  }
+
+  get size() {
+    return this.items.length;
+  }
+}
