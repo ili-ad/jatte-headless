@@ -277,3 +277,26 @@ export class FixedSizeQueueCache<T> {
     return this.items.length;
   }
 }
+
+/* --------------------------- message composer -------------------------- */
+
+export interface MessageComposerState {
+  text: string;
+  attachments: any[];
+}
+
+export class MessageComposer {
+  state: MessageComposerState = { text: '', attachments: [] };
+
+  reset() {
+    this.state = { text: '', attachments: [] };
+  }
+
+  setText(text: string) {
+    this.state.text = text;
+  }
+
+  addAttachment(att: any) {
+    this.state.attachments.push(att);
+  }
+}
