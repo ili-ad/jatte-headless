@@ -75,6 +75,37 @@ export class LocalChatClient {
   setUserAgent() {/* no-op */}
 }
 
+/* ------------------------- Link preview manager ------------------------- */
+
+export interface LinkPreview {
+  url: string;
+  title: string;
+  [k: string]: any;
+}
+
+export class LinkPreviewsManager {
+  private cache = new Map<string, LinkPreview>();
+
+  constructor(private limit = 100) {}
+
+  async fetch(url: string): Promise<LinkPreview> {
+    const cached = this.cache.get(url);
+    if (cached) {
+      this.cache.delete(url);
+      this.cache.set(url, cached);
+      return cached;
+    }
+    const resp = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+    const data: LinkPreview = await resp.json();
+    this.cache.set(url, data);
+    if (this.cache.size > this.limit) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    return data;
+  }
+}
+
 /* --------------------------- compatibility stub -------------------------- */
 /** Return the *same* LocalChatClient for any api-key – good enough for local */
 let _singleton: StreamChat | undefined;
