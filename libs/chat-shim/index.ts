@@ -96,3 +96,47 @@ export const getLocalClient = () => StreamChat.getInstance();
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
+
+/* ----------------------------- attachments ------------------------------ */
+
+const IMG_RX = /\.(?:jpe?g|png|gif)$/i;
+const VID_RX = /\.(?:mp4|webm)$/i;
+const AUD_RX = /\.(?:mp3|wav)$/i;
+
+const getMime = (a: any) =>
+  (a?.mime_type || a?.file?.type || '').toLowerCase();
+
+const getName = (a: any) =>
+  (a?.file?.name || '').toLowerCase();
+
+export const isLocalAttachment = (a: any): boolean => {
+  if (!a) return false;
+  const hasFile = typeof File !== 'undefined' && a.file instanceof File;
+  return hasFile || a.state === 'uploading';
+};
+
+export const isLocalUploadAttachment = (a: any): boolean =>
+  isLocalAttachment(a) && a.state === 'uploading';
+
+export const isLocalImageAttachment = (a: any): boolean =>
+  isLocalAttachment(a) &&
+  (getMime(a).startsWith('image/') || IMG_RX.test(getName(a)));
+
+export const isLocalVideoAttachment = (a: any): boolean =>
+  isLocalAttachment(a) &&
+  (getMime(a).startsWith('video/') || VID_RX.test(getName(a)));
+
+export const isLocalAudioAttachment = (a: any): boolean =>
+  isLocalAttachment(a) &&
+  (getMime(a).startsWith('audio/') || AUD_RX.test(getName(a)));
+
+export const isLocalVoiceRecordingAttachment = (a: any): boolean =>
+  isLocalAudioAttachment(a) && Array.isArray(a.waveform);
+
+export const isLocalFileAttachment = (a: any): boolean =>
+  isLocalAttachment(a) &&
+  !(
+    isLocalImageAttachment(a) ||
+    isLocalVideoAttachment(a) ||
+    isLocalAudioAttachment(a)
+  );
