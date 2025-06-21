@@ -32,6 +32,13 @@ declare module 'stream-chat' {
   export type isScrapedContent = any;
   export type isVideoAttachment = any;
   export function isVoiceRecordingAttachment(a: any): boolean;
+  export function isLocalAttachment(a: any): boolean;
+  export function isLocalUploadAttachment(a: any): boolean;
+  export function isLocalImageAttachment(a: any): boolean;
+  export function isLocalVideoAttachment(a: any): boolean;
+  export function isLocalAudioAttachment(a: any): boolean;
+  export function isLocalVoiceRecordingAttachment(a: any): boolean;
+  export function isLocalFileAttachment(a: any): boolean;
   //export type  = any;
   export function localMessageToNewMessagePayload(local: LocalMessage): Message;
   export type ChannelSearchSource = any;
