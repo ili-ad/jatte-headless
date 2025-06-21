@@ -46,7 +46,12 @@ declare module 'stream-chat' {
   export type isLocalVideoAttachment = any;
   export type isLocalVoiceRecordingAttachment = any;
   export type isLocalUploadAttachment = any;
-  export type FixedSizeQueueCache = any;
+  /** Simple fixed length FIFO queue */
+  export class FixedSizeQueueCache<T> {
+    constructor(limit: number)
+    enqueue(item: T): void
+    dequeue(): T | undefined
+  }
   export type MessageComposer = any;
   export type VotingVisibility = any;
   export type BaseSearchSource = any;

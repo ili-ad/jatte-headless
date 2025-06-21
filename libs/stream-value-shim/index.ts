@@ -25,5 +25,4 @@ export const replaceWordWithEntity            = (s:any)=>s;
 /* tiny empty classes */
 export class LinkPreviewsManager {}
 export class MessageComposer      {}
-export class FixedSizeQueueCache  {}
 export class SearchController     {}
