@@ -1,9 +1,11 @@
+// tsconfig.json (repository root)
 {
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "stream-chat": ["libs/chat-shim"]
+      "@/*": ["frontend/lib/*", "frontend/src/*"],
+      "stream-chat": ["libs/chat-shim"],
     },
-    "types": ["@types/stream-chat", "@types/jest"]
+    "types": ["node", "react"]
   }
 }
