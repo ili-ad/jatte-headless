@@ -1,14 +1,14 @@
-import { StreamChat } from 'stream-chat';
+import { getLocalClient } from 'stream-chat';
+import type { StreamChat } from 'stream-chat';
 
 let client: StreamChat | null = null;
 
-export function getStreamClient(): StreamChat {
+export const getStreamClient = (): StreamChat => {
   if (!client) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      throw new Error('NEXT_PUBLIC_API_URL is not set');
-    }
-    client = StreamChat.getInstance(apiUrl);
+    const key = process.env.NEXT_PUBLIC_STREAM_KEY;
+    client = key
+      ? (StreamChat as any).getInstance(key)
+      : (getLocalClient() as unknown as StreamChat);
   }
   return client;
-}
+};
