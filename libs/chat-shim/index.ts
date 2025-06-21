@@ -92,6 +92,31 @@ export class StreamChat extends LocalChatClient {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
+/* --------------------------- value helpers ---------------------------- */
+
+/** Return true when attachment originated from link preview scraping */
+export function isScrapedContent(a: any): boolean {
+  return !!a?.og_scrape_url;
+}
+
+function hasExt(name: string | undefined, exts: string[]): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return exts.some(e => n.endsWith(e));
+}
+
+/** Fallback detection for generic file attachments */
+export function isFileAttachment(a: any): boolean {
+  const mime = (a?.mime_type ?? '').toLowerCase();
+  const name = (a?.name ?? a?.fallback ?? '').toLowerCase();
+
+  const isImage = mime.startsWith('image/') || hasExt(name, ['.jpg', '.jpeg', '.png', '.gif']);
+  const isVideo = mime.startsWith('video/') || hasExt(name, ['.mp4', '.webm']);
+  const isAudio = mime.startsWith('audio/') || hasExt(name, ['.mp3', '.wav']);
+
+  return !(isImage || isVideo || isAudio || isScrapedContent(a));
+}
+
 
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
