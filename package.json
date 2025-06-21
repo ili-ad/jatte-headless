@@ -16,5 +16,8 @@
   },
   "scripts": {
     "test": "turbo run test && jest"
+  },
+  "dependencies": {
+    "emoji-dictionary": "1.0.12"
   }
 }
