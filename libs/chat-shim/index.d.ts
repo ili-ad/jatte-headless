@@ -33,7 +33,7 @@ declare module 'stream-chat' {
   export type isVideoAttachment = any;
   export function isVoiceRecordingAttachment(a: any): boolean;
   //export type  = any;
-  export type localMessageToNewMessagePayload = any;
+  export function localMessageToNewMessagePayload(local: LocalMessage): Message;
   export type ChannelSearchSource = any;
   export type MessageSearchSource = any;
   export type SearchController = any;

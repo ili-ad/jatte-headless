@@ -92,6 +92,15 @@ export class StreamChat extends LocalChatClient {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
+/** Convert a LocalMessage (client-side representation) into the payload sent
+ *  when creating a new message. Maps `id` → `tmp_id` and attaches
+ *  `user: { id }`. Any remaining fields are copied over unchanged.
+ */
+export function localMessageToNewMessagePayload(local: any): any {
+  const { id, user_id, ...rest } = local ?? {};
+  return { ...rest, tmp_id: id, user: { id: user_id } };
+}
+
 /* --------------------------- value helpers ---------------------------- */
 
 /** Return true when attachment originated from link preview scraping */

@@ -6,6 +6,6 @@
       "@/*": ["frontend/lib/*", "frontend/src/*"],
       "stream-chat": ["libs/chat-shim"],
     },
-    "types": ["node", "react"]
+    "types": ["node", "react", "jest"]
   }
 }
