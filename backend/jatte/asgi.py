@@ -13,7 +13,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jatte.settings")
 django.setup()
 
 # 3️⃣  Now it’s safe to import anything that touches auth/models
-from chat import routing
+from chat.routing import websocket_urlpatterns
 
 django_asgi_application = get_asgi_application()
 
@@ -22,8 +22,8 @@ django_asgi_application = get_asgi_application()
 application = ProtocolTypeRouter(
     {
         "http": django_asgi_application,
-        "websocket": AuthMiddlewareStack(           # 👈 add this wrapper
-            URLRouter(routing.websocket_urlpatterns)
+        "websocket": AuthMiddlewareStack(
+            URLRouter(websocket_urlpatterns)
         ),
     }
 )
