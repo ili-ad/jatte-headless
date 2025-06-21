@@ -4,6 +4,6 @@
     "paths": {
       "stream-chat": ["libs/chat-shim"]
     },
-    "types": ["@types/stream-chat"]
+    "types": ["@types/stream-chat", "@types/jest"]
   }
 }
