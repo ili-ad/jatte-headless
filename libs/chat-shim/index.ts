@@ -100,7 +100,7 @@ export class LinkPreviewsManager {
     this.cache.set(url, data);
     if (this.cache.size > this.limit) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey) this.cache.delete(firstKey);
     }
     return data;
   }
@@ -179,6 +179,8 @@ export const isVoiceRecordingAttachment = (a: any): boolean =>
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
+
+export type UserResponse = any;
 
 
 /* ----------------------------- attachments ------------------------------ */
@@ -324,4 +326,27 @@ export type PollAnswer = Omit<PollVote, 'option_id'> & {
 export const isVoteAnswer = (
   vote: PollVote | PollAnswer
 ): vote is PollAnswer => !!(vote as PollAnswer).answer_text;
+
+
+export function getTriggerCharWithToken(
+  text: string,
+  triggers = ['@', '/']
+): string {
+  const words = text.split(/\s+/);
+  for (let i = words.length - 1; i >= 0; i--) {
+    const w = words[i];
+    if (w && triggers.includes(w[0])) return w;
+  }
+  return '';
+}
+
+export function insertItemWithTrigger<T extends string>(text: T, item: string, triggers = ['@', '/']): T {
+  const token = getTriggerCharWithToken(String(text), triggers);
+  if (!token) return text;
+  return (String(text).replace(token, token[0] + item + ' ') as any) as T;
+}
+
+export function replaceWordWithEntity<T extends string>(text: T, word: string, entity: string): T {
+  return (String(text).replace(word, entity) as any) as T;
+}
 
