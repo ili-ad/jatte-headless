@@ -6,14 +6,6 @@ export const isVideoAttachment             = (_a: any): _a is any => false;
 export const isVoiceRecordingAttachment    = (_a: any): _a is any => false;
 export const isScrapedContent              = (_a: any): _a is any => false;
 export const isLocalAttachment             = (_a: any): _a is any => false;
-//export const isLocalUploadAttachment       = (_a: any): _a is any => false;
-
-export const isLocalAudioAttachment          = () => false;
-export const isLocalFileAttachment           = () => false;
-export const isLocalImageAttachment          = () => false;
-export const isLocalVideoAttachment          = () => false;
-export const isLocalVoiceRecordingAttachment = () => false;
-export const isLocalUploadAttachment         = () => false;
 
 /* text-composer helpers */
 export const formatMessage                    = (..._a: any[]) => '';
