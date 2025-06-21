@@ -92,6 +92,19 @@ export class StreamChat extends LocalChatClient {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
+
+export function formatMessage(text: string): string {
+  const linkified = text.replace(/https?:\/+[^\s]+/g, url =>
+    `<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`
+  );
+  const emoji = require('emoji-dictionary');
+  return linkified.replace(/:([a-z0-9_+-]+):/gi, (m, name) => {
+    const ch = emoji.getUnicode(name);
+    return ch || m;
+  });
+}
+
+
 /** Convert a LocalMessage (client-side representation) into the payload sent
  *  when creating a new message. Maps `id` → `tmp_id` and attaches
  *  `user: { id }`. Any remaining fields are copied over unchanged.
@@ -131,7 +144,6 @@ export function isFileAttachment(a: any): boolean {
 export const isVoiceRecordingAttachment = (a: any): boolean =>
   !!a && typeof a.mime_type === 'string' &&
   a.mime_type.startsWith('audio/') && Array.isArray((a as any).waveform);
-
 
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
