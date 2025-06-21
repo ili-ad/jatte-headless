@@ -80,7 +80,6 @@ declare module 'stream-chat' {
   //export type isLocalVideoAttachment = any;
   //export type isLocalVoiceRecordingAttachment = any;
   //export type isLocalUploadAttachment = any;
-  export type FixedSizeQueueCache = any;
   export type MessageComposer = any;
   export type VotingVisibility = any;
   export type BaseSearchSource = any;
@@ -195,7 +194,6 @@ declare module 'stream-chat' {
   export function replaceWordWithEntity<T>(s:T): T;
 
   export class MessageComposer {}
-  export class FixedSizeQueueCache {}
   export class SearchController {}
 
 
