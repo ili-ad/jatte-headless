@@ -22,11 +22,16 @@ jobs:
           python-version: '3.10'
       - run: pip install -r backend/requirements.txt
       - run: pnpm install --frozen-lockfile
+      - name: Install front-end deps
+        run: pnpm --filter frontend install --frozen-lockfile
       - run: |
           cd backend
           nohup daphne jatte.asgi:application &
       - name: A5-scan
         run: node scripts/list-stream-imports.ts | tee /dev/tty | (! grep -q ^$)
       - run: pnpm test
-      - run: pnpm --filter frontend exec playwright install --with-deps
+      - name: Install Playwright browsers
+        run: pnpm --filter frontend exec playwright install --with-deps
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
       - run: pnpm --filter frontend exec playwright test
