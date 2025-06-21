@@ -96,3 +96,24 @@ export const getLocalClient = () => StreamChat.getInstance();
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
+
+export interface MessageComposerState {
+  text: string;
+  attachments: any[];
+}
+
+export class MessageComposer {
+  state: MessageComposerState;
+  constructor() {
+    this.state = { text: "", attachments: [] };
+  }
+  reset() {
+    this.state = { text: "", attachments: [] };
+  }
+  setText(text: string) {
+    this.state.text = text;
+  }
+  addAttachment(att: any) {
+    this.state.attachments.push(att);
+  }
+}

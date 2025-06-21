@@ -73,7 +73,13 @@ declare module 'stream-chat' {
   //export type isLocalVoiceRecordingAttachment = any;
   //export type isLocalUploadAttachment = any;
   export type FixedSizeQueueCache = any;
-  export type MessageComposer = any;
+export interface MessageComposerState { text: string; attachments: any[]; }
+  export class MessageComposer {
+    state: MessageComposerState;
+    reset(): void;
+    setText(text: string): void;
+    addAttachment(att: any): void;
+  }
   export type VotingVisibility = any;
   export type BaseSearchSource = any;
   //export type getTokenizedSuggestionDisplayName = any;
@@ -133,7 +139,6 @@ declare module 'stream-chat' {
   export type LocalUploadAttachment = any;
   export type LinkPreview = any;
   export type LinkPreviewsManagerState = any;
-  export type MessageComposerState = any;
   export type UpdatedMessage = any;
   export type MessageComposerConfig = any;
   export type AttachmentManagerState = any;
@@ -188,7 +193,6 @@ declare module 'stream-chat' {
   export function replaceWordWithEntity<T>(s:T): T;
 
   export class LinkPreviewsManager {}
-  export class MessageComposer {}
   export class FixedSizeQueueCache {}
   export class SearchController {}
 

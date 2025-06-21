@@ -47,7 +47,13 @@ declare module 'stream-chat' {
   export type isLocalVoiceRecordingAttachment = any;
   export type isLocalUploadAttachment = any;
   export type FixedSizeQueueCache = any;
-  export type MessageComposer = any;
+export interface MessageComposerState { text: string; attachments: any[]; }
+  export class MessageComposer {
+    state: MessageComposerState;
+    reset(): void;
+    setText(text: string): void;
+    addAttachment(att: any): void;
+  }
   export type VotingVisibility = any;
   export type BaseSearchSource = any;
   export type getTokenizedSuggestionDisplayName = any;
