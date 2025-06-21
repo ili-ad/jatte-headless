@@ -106,6 +106,10 @@ export class LinkPreviewsManager {
   }
 }
 
+export interface LinkPreviewsManagerState {
+  previews: Map<string, LinkPreview>;
+}
+
 /* --------------------------- compatibility stub -------------------------- */
 /** Return the *same* LocalChatClient for any api-key – good enough for local */
 let _singleton: StreamChat | undefined;
