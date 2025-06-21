@@ -101,6 +101,70 @@ export function localMessageToNewMessagePayload(local: any): any {
   return { ...rest, tmp_id: id, user: { id: user_id } };
 }
 
+/* --------------------------- value helpers ---------------------------- */
+
+/** Return true when attachment originated from link preview scraping */
+export function isScrapedContent(a: any): boolean {
+  return !!a?.og_scrape_url;
+}
+
+function hasExt(name: string | undefined, exts: string[]): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return exts.some(e => n.endsWith(e));
+}
+
+/** Fallback detection for generic file attachments */
+export function isFileAttachment(a: any): boolean {
+  const mime = (a?.mime_type ?? '').toLowerCase();
+  const name = (a?.name ?? a?.fallback ?? '').toLowerCase();
+
+  const isImage = mime.startsWith('image/') || hasExt(name, ['.jpg', '.jpeg', '.png', '.gif']);
+  const isVideo = mime.startsWith('video/') || hasExt(name, ['.mp4', '.webm']);
+  const isAudio = mime.startsWith('audio/') || hasExt(name, ['.mp3', '.wav']);
+
+  return !(isImage || isVideo || isAudio || isScrapedContent(a));
+}
+
+
+/* --------------------------- attachment helpers ------------------------- */
+export const isVoiceRecordingAttachment = (a: any): boolean =>
+  !!a && typeof a.mime_type === 'string' &&
+  a.mime_type.startsWith('audio/') && Array.isArray((a as any).waveform);
+
+
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
+
+/* ------------------------------ helpers -------------------------------- */
+
+const _nameFrom = (a: any): string =>
+  (
+    a?.name ||
+    a?.title ||
+    a?.filename ||
+    a?.asset_url ||
+    ''
+  ).toLowerCase();
+
+const _hasExt = (a: any, exts: string[]) =>
+  exts.some(ext => _nameFrom(a).endsWith(ext));
+
+export const isImageAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^image\/(jpeg|jpg|png|gif)/.test(mime)) return true;
+  return _hasExt(a, ['.jpeg', '.jpg', '.png', '.gif']);
+};
+
+export const isVideoAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^video\/(mp4|webm)/.test(mime)) return true;
+  return _hasExt(a, ['.mp4', '.webm']);
+};
+
+export const isAudioAttachment = (a: any): boolean => {
+  const mime = (a?.mime_type || '').toLowerCase();
+  if (/^audio\/(mp3|mpeg|wav)/.test(mime)) return true;
+  return _hasExt(a, ['.mp3', '.wav']);
+};
