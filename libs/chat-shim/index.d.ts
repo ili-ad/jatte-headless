@@ -42,13 +42,6 @@ declare module 'stream-chat' {
   export type formatMessage = any;
   export type LinkPreviewsManager = any;
   export type isVoteAnswer = any;
-  export type isLocalAttachment = any;
-  export type isLocalAudioAttachment = any;
-  export type isLocalFileAttachment = any;
-  export type isLocalImageAttachment = any;
-  export type isLocalVideoAttachment = any;
-  export type isLocalVoiceRecordingAttachment = any;
-  export type isLocalUploadAttachment = any;
   export type FixedSizeQueueCache = any;
   export type MessageComposer = any;
   export type VotingVisibility = any;
