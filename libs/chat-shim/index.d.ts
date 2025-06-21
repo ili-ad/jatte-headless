@@ -52,6 +52,10 @@ declare module 'stream-chat' {
   export interface LinkPreviewsManagerState {
     previews: Map<string, LinkPreview>;
   }
+
+  export interface AttachmentManagerState {
+    attachments: any[];
+  }
   export type PollVote = {
     id: string;
     poll_id: string;

@@ -159,7 +159,6 @@ declare module 'stream-chat' {
   export type AnyLocalAttachment = any;
   export type LocalUploadAttachment = any;
   export type UpdatedMessage = any;
-  export type AttachmentManagerState = any;
   export type ChannelResponse = any;
   export type EditingAuditState = any;
   export type EventHandler = any;
