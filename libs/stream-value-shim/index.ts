@@ -1,5 +1,7 @@
 // libs/stream-value-shim/index.ts
 export const isFileAttachment              = (_a: any): _a is any => false;
+export const isImageAttachment             = (_a: any): _a is any => false;
+export const isVideoAttachment             = (_a: any): _a is any => false;
 export const isVoiceRecordingAttachment    = (_a: any): _a is any => false;
 export const isScrapedContent              = (_a: any): _a is any => false;
 export const isLocalAttachment             = (_a: any): _a is any => false;

@@ -118,6 +118,12 @@ export function isFileAttachment(a: any): boolean {
 }
 
 
+/* --------------------------- attachment helpers ------------------------- */
+export const isVoiceRecordingAttachment = (a: any): boolean =>
+  !!a && typeof a.mime_type === 'string' &&
+  a.mime_type.startsWith('audio/') && Array.isArray((a as any).waveform);
+
+
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;

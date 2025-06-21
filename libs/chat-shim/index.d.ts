@@ -30,7 +30,8 @@ declare module 'stream-chat' {
   export function isScrapedContent(a: any): boolean;
   export function isVideoAttachment(a: any): boolean;
   export type isScrapedContent = any;
-  export type isVoiceRecordingAttachment = any;
+  export type isVideoAttachment = any;
+  export function isVoiceRecordingAttachment(a: any): boolean;
   //export type  = any;
   export type localMessageToNewMessagePayload = any;
   export type ChannelSearchSource = any;
