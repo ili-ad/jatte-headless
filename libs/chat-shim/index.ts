@@ -189,6 +189,10 @@ export type UserResponse = any;
 
 /* ----------------------------- attachments ------------------------------ */
 
+export interface AttachmentManagerState {
+  attachments: any[];
+}
+
 const IMG_RX = /\.(?:jpe?g|png|gif)$/i;
 const VID_RX = /\.(?:mp4|webm)$/i;
 const AUD_RX = /\.(?:mp3|wav)$/i;
