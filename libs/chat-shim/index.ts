@@ -92,6 +92,17 @@ export class StreamChat extends LocalChatClient {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
+export function formatMessage(text: string): string {
+  const linkified = text.replace(/https?:\/+[^\s]+/g, url =>
+    `<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`
+  );
+  const emoji = require('emoji-dictionary');
+  return linkified.replace(/:([a-z0-9_+-]+):/gi, (m, name) => {
+    const ch = emoji.getUnicode(name);
+    return ch || m;
+  });
+}
+
 
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
