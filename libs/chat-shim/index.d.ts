@@ -24,9 +24,9 @@ declare module 'stream-chat' {
   export type Reaction = any;
   export type UserResponse = any;
   export type isAudioAttachment = any;
-  export type isFileAttachment = any;
+  export function isFileAttachment(a: any): boolean;
   export type isImageAttachment = any;
-  export type isScrapedContent = any;
+  export function isScrapedContent(a: any): boolean;
   export type isVideoAttachment = any;
   export type isVoiceRecordingAttachment = any;
   //export type  = any;
