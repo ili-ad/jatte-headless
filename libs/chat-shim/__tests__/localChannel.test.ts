@@ -5,8 +5,8 @@ import { LocalChatClient } from '../index';
 describe('LocalChannel', () => {
   let server: WS;
   beforeEach(() => {
-    server = new WS('ws://localhost:8000/ws/chat/?token=jwt', { jsonProtocol: true });
-    (global as any).location = { hostname: 'localhost' };
+    server = new WS('ws://localhost/ws/messaging:general/?token=jwt', { jsonProtocol: true });
+    (global as any).location = { host: 'localhost' };
   });
   afterEach(() => {
     WS.clean();
