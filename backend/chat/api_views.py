@@ -97,7 +97,11 @@ class RoomMessageListCreateView(APIView):
         room.messages.add(message)
         Draft.objects.filter(user=request.user, room=room).delete()
         try:
-            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             r.delete(f"draft:{request.user.username}:{room.uuid}")
         except Exception:
             pass
@@ -195,7 +199,11 @@ class RoomDraftView(APIView):
             defaults={"text": text},
         )
         try:
-            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             r.set(f"draft:{request.user.username}:{room.uuid}", text, ex=86400)
         except Exception:
             pass
@@ -205,7 +213,11 @@ class RoomDraftView(APIView):
         room = get_object_or_404(Room, uuid=room_uuid)
         text = None
         try:
-            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             text = r.get(f"draft:{request.user.username}:{room.uuid}")
         except Exception:
             pass
@@ -218,7 +230,11 @@ class RoomDraftView(APIView):
         room = get_object_or_404(Room, uuid=room_uuid)
         Draft.objects.filter(user=request.user, room=room).delete()
         try:
-            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             r.delete(f"draft:{request.user.username}:{room.uuid}")
         except Exception:
             pass
@@ -1014,7 +1030,11 @@ class ConnectionIDView(APIView):
             import redis
             from django.conf import settings
 
-            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r = redis.Redis(
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                decode_responses=True,
+            )
             r.set(f"cid:{cid}", request.user.username, ex=60)
         except Exception:
             pass
