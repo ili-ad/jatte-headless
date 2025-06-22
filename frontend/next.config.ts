@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   //transpilePackages: ['@iliad/stream-ui'],
   transpilePackages: [],
   eslint: { ignoreDuringBuilds: true },
+  // avoid redirecting away from trailing slashes so Django endpoints work
+  skipTrailingSlashRedirect: true,
 
 
 webpack(cfg) {
