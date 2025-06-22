@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
-from accounts_supabase.authentication import SupabaseJWTAuthentication
+from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from django.utils import timezone
 
 from urllib.parse import urlparse
@@ -47,7 +47,7 @@ from .serializers import (
 class RoomListCreateView(generics.ListCreateAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "uuid"
 
@@ -55,13 +55,13 @@ class RoomListCreateView(generics.ListCreateAPIView):
 class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "uuid"
 
 
 class RoomMessageListCreateView(APIView):
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -109,7 +109,7 @@ class RoomMessageListCreateView(APIView):
 
 class RoomMarkReadView(APIView):
     """Mark all messages in a room as read for the current user."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -124,7 +124,7 @@ class RoomMarkReadView(APIView):
 
 class RoomMarkUnreadView(APIView):
     """Clear the read state for the current user in a room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -135,7 +135,7 @@ class RoomMarkUnreadView(APIView):
 
 class RoomCountUnreadView(APIView):
     """Return number of unread messages for the current user in a room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -150,7 +150,7 @@ class RoomCountUnreadView(APIView):
 
 class RoomLastReadView(APIView):
     """Return the last read timestamp for the current user in a room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -162,7 +162,7 @@ class RoomLastReadView(APIView):
 
 class RoomReadView(APIView):
     """Return read states for all users in the room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -183,7 +183,7 @@ class RoomReadView(APIView):
 
 class RoomDraftView(APIView):
     """Save and retrieve message drafts."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -227,7 +227,7 @@ class RoomDraftView(APIView):
 
 class MessageDetailView(APIView):
     """Retrieve, update or delete a single message."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
@@ -254,7 +254,7 @@ class MessageDetailView(APIView):
 
 class MessageRestoreView(APIView):
     """Restore a previously deleted message."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
@@ -266,7 +266,7 @@ class MessageRestoreView(APIView):
 
 class MessageRepliesView(APIView):
     """Return replies to a given message."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
@@ -277,7 +277,7 @@ class MessageRepliesView(APIView):
 
 class MessageReactionsView(APIView):
     """List or create reactions for a message."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
@@ -301,7 +301,7 @@ class MessageReactionsView(APIView):
 class MessageFlagView(APIView):
     """Flag a message for moderation."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
@@ -314,7 +314,7 @@ class MessageFlagView(APIView):
 class ReactionDetailView(APIView):
     """Delete a single reaction."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 
@@ -334,7 +334,7 @@ class ReactionDetailView(APIView):
 class MessagePinView(APIView):
     """Pin a message."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
@@ -346,7 +346,7 @@ class MessagePinView(APIView):
 class MessageUnpinView(APIView):
     """Remove the current user's pin from a message."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, message_id):
@@ -358,7 +358,7 @@ class MessageUnpinView(APIView):
 class MessageActionView(APIView):
     """Record an action on a message."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
@@ -377,7 +377,7 @@ class MessageActionView(APIView):
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, poll_id):
@@ -394,7 +394,7 @@ class PollOptionCreateView(APIView):
 class PollListCreateView(APIView):
     """List or create polls."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -419,7 +419,7 @@ class PollListCreateView(APIView):
 class PollDetailView(APIView):
     """Delete a poll."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, poll_id):
@@ -430,7 +430,7 @@ class PollDetailView(APIView):
 class RoomConfigView(APIView):
     """Return basic metadata for the given room."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, cid: str):
@@ -450,7 +450,7 @@ class RoomConfigView(APIView):
 class RoomMessagesView(APIView):
     """Return paginated messages for the given room cid."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, cid: str):
@@ -486,7 +486,7 @@ class RoomMessagesView(APIView):
 
 class RoomConfigStateView(APIView):
     """Return message composer configuration for the room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request, room_uuid):
         get_object_or_404(Room, uuid=room_uuid)
@@ -500,7 +500,7 @@ class RoomConfigStateView(APIView):
 
 class RoomArchiveView(APIView):
     """Archive a room by setting its status to CLOSED."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -512,7 +512,7 @@ class RoomArchiveView(APIView):
 
 class RoomUnarchiveView(APIView):
     """Reopen a previously archived room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -524,7 +524,7 @@ class RoomUnarchiveView(APIView):
 
 class RoomCooldownView(APIView):
     """Return cooldown seconds for the given room."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -535,7 +535,7 @@ class RoomCooldownView(APIView):
 class RoomMembersView(APIView):
     """Return list of members for the given room."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -551,7 +551,7 @@ class RoomMembersView(APIView):
 class RoomMembersCIDView(APIView):
     """Return paginated members for the room identified by cid."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, cid: str):
@@ -588,7 +588,7 @@ class RoomMembersCIDView(APIView):
 class RoomPinnedMessagesView(APIView):
     """Return messages pinned in the given room."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -601,7 +601,7 @@ class RoomPinnedMessagesView(APIView):
 class RoomQueryView(APIView):
     """Return initial messages and members for a room."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
@@ -616,7 +616,7 @@ class RoomQueryView(APIView):
 
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = RoomSerializer
 
@@ -626,7 +626,7 @@ class ActiveRoomListView(generics.ListAPIView):
 
 class NotificationListView(APIView):
     """Return notifications for the current user."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -638,7 +638,7 @@ class NotificationListView(APIView):
 class ReminderListCreateView(APIView):
     """List or create reminders for the current user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -660,7 +660,7 @@ class ReminderListCreateView(APIView):
 class ThreadListView(APIView):
     """Return parent messages that have replies."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -672,7 +672,7 @@ class ThreadListView(APIView):
 class MutedChannelListView(APIView):
     """Return channels muted by the current user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -684,7 +684,7 @@ class MutedChannelListView(APIView):
 
 class MuteStatusView(APIView):
     """Return whether the current user muted the given user."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, target_username):
@@ -695,7 +695,7 @@ class MuteStatusView(APIView):
 
 class MutedUsersView(APIView):
     """Return list of users muted by the current user."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -707,7 +707,7 @@ class MutedUsersView(APIView):
 class MuteUserView(APIView):
     """Mute the given user for the current user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, target_username):
@@ -719,7 +719,7 @@ class MuteUserView(APIView):
 class UnmuteUserView(APIView):
     """Remove mute record for the given user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, target_username):
@@ -731,7 +731,7 @@ class UnmuteUserView(APIView):
 class AttachmentUploadView(APIView):
     """Create a simple attachment record."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -743,7 +743,7 @@ class AttachmentUploadView(APIView):
 class LinkPreviewView(APIView):
     """Return basic metadata for a URL."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -758,7 +758,7 @@ class LinkPreviewView(APIView):
 class RoomHideView(APIView):
     """Mark a room as hidden for the current user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -773,7 +773,7 @@ class RoomHideView(APIView):
 class RoomShowView(APIView):
     """Unhide a room previously hidden."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -788,7 +788,7 @@ class RoomShowView(APIView):
 class RoomTruncateView(APIView):
     """Remove all messages from a room."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
@@ -804,7 +804,7 @@ class RoomTruncateView(APIView):
 class RecoverStateView(APIView):
     """Return basic state for reconnect recovery."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -818,7 +818,7 @@ class RecoverStateView(APIView):
 class SubarrayView(APIView):
     """Return a slice of the given array."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -855,7 +855,7 @@ class SubarrayView(APIView):
 
 class TextComposerView(APIView):
     """Echo back posted text for tests."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -866,7 +866,7 @@ class TextComposerView(APIView):
 class ComposeView(APIView):
     """Echo back posted composition for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -876,7 +876,7 @@ class ComposeView(APIView):
 class CompositionIsEmptyView(APIView):
     """Return whether posted text is empty after trimming."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -888,7 +888,7 @@ class CompositionIsEmptyView(APIView):
 class HasSendableDataView(APIView):
     """Return whether posted composition includes sendable data."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -910,7 +910,7 @@ class HasSendableDataView(APIView):
 class InitStateView(APIView):
     """Return default composer state for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -926,7 +926,7 @@ class InitStateView(APIView):
 class StateView(APIView):
     """Return a minimal state object for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -936,7 +936,7 @@ class StateView(APIView):
 class DispatchEventView(APIView):
     """Echo back posted event for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -946,7 +946,7 @@ class DispatchEventView(APIView):
 class EditingAuditStateView(APIView):
     """Echo back posted editing audit state for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -958,7 +958,7 @@ class EditingAuditStateView(APIView):
 class QuotedMessageView(APIView):
     """Store and retrieve quoted message for the current user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -973,7 +973,7 @@ class QuotedMessageView(APIView):
 class AxiosTestView(APIView):
     """Simple endpoint used by axiosInstance tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -989,7 +989,7 @@ class AxiosTestView(APIView):
 class WsAuthView(APIView):
     """Simple handshake endpoint for websocket connections."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -999,7 +999,7 @@ class WsAuthView(APIView):
 class ConnectionIDView(APIView):
     """Return a stable connection identifier for the session."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1025,7 +1025,7 @@ class ConnectionIDView(APIView):
 class ContextTypeView(APIView):
     """Return message composer context type."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1035,7 +1035,7 @@ class ContextTypeView(APIView):
 class GetClientView(APIView):
     """Return basic client information for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1046,7 +1046,7 @@ class GetClientView(APIView):
 class IntroMessageView(APIView):
     """Return an intro message structure."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1056,7 +1056,7 @@ class IntroMessageView(APIView):
 class ListenersView(APIView):
     """Return available event listeners."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -1066,7 +1066,7 @@ class ListenersView(APIView):
 class OffView(APIView):
     """Echo back the event listener to remove."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -1077,7 +1077,7 @@ class OffView(APIView):
 class OnView(APIView):
     """Echo back the event listener to add."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -1088,7 +1088,7 @@ class OnView(APIView):
 class RegisterSubscriptionsView(APIView):
     """Echo back posted subscriptions for tests."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
