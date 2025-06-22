@@ -2,6 +2,8 @@
 /* -------------------------------- Channel -------------------------------- */
 
 export class LocalChannel {
+  readonly type: string;
+  readonly id: string;
   private listeners = new Map<string, Set<(ev: any) => void>>();
   /** Minimal state object mimicking Stream's ChannelState */
   readonly state: {
@@ -22,6 +24,9 @@ export class LocalChannel {
   readonly stateStore: StateStore<typeof this.state>;
 
   constructor(readonly cid: string, private sock: WebSocket) {
+    const [type, id] = cid.split(':');
+    this.type = type;
+    this.id = id ?? '';
     this.state = {
       messages: [],
       messagePagination: { hasPrev: false, hasNext: false },
