@@ -11,4 +11,22 @@ describe('MessageComposer', () => {
     expect(mc.state.text).toBe('');
     expect(mc.state.attachments).toEqual([]);
   });
+
+  test('attachment manager adds files', async () => {
+    const mc = new MessageComposer();
+    const file = new File(['x'], 'a.txt', { type: 'text/plain' });
+    await mc.attachmentManager.addFiles([file]);
+    const list = mc.attachmentManager.state.getLatestValue().attachments;
+    expect(list.length).toBe(1);
+  });
+
+  test('link previews manager stores fetched previews', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ url: 'http://x', title: 'X' }),
+    }) as any;
+    const mc = new MessageComposer();
+    await mc.linkPreviewsManager.add('http://x');
+    const map = mc.linkPreviewsManager.state.getLatestValue().previews;
+    expect(map.get('http://x')).toEqual({ url: 'http://x', title: 'X' });
+  });
 });
