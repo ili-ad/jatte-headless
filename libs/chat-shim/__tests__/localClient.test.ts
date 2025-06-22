@@ -30,4 +30,11 @@ describe('LocalChatClient', () => {
 
     expect(received).toEqual([{ type: 'message.new', cid: 'messaging:general', text: 'pong' }]);
   });
+
+  test('getUserAgent and setUserAgent', () => {
+    const client = new LocalChatClient();
+    expect(client.getUserAgent()).toBe('local-chat-client/0.0.1 stream-chat-react-adapter');
+    client.setUserAgent('my-agent/1.0');
+    expect(client.getUserAgent()).toBe('my-agent/1.0');
+  });
 });
