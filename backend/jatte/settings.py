@@ -29,12 +29,23 @@ SECRET_KEY = 'django-insecure-%v$gh67imza=0$i%pky!jxpk*@%t+x-w$lw5lmwbvj)+#p=r#g
 
 # Secret key used by Supabase to sign JWTs
 SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
+if SUPABASE_JWT_SECRET == 'changeme':
+    print("[settings] WARNING: SUPABASE_JWT_SECRET not set")
+elif os.environ.get("PRINT_JWT_SECRET"):
+    print(
+        "[settings] SUPABASE_JWT_SECRET:",
+        SUPABASE_JWT_SECRET[:8] + ("..." if len(SUPABASE_JWT_SECRET) > 8 else ""),
+        f"(len {len(SUPABASE_JWT_SECRET)})",
+    )
 
 # Base Supabase project URL used to fetch JWKS for verifying incoming JWTs
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
 SUPABASE_JWKS_URL = (
     f"{SUPABASE_URL.rstrip('/')}/auth/v1/keys" if SUPABASE_URL else None
 )
+if os.environ.get("PRINT_JWT_SECRET"):
+    print("[settings] SUPABASE_URL:", SUPABASE_URL)
+    print("[settings] SUPABASE_JWKS_URL:", SUPABASE_JWKS_URL)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
