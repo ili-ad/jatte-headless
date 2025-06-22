@@ -43,4 +43,11 @@ describe('LocalChatClient', () => {
     expect(typeof client.threads.registerSubscriptions).toBe('function');
     expect(typeof client.threads.unregisterSubscriptions).toBe('function');
   });
+
+  test('has polls store and register/unregister stubs', () => {
+    const client = new LocalChatClient();
+    expect(Array.isArray(client.polls.store.getState().polls)).toBe(true);
+    expect(typeof client.polls.registerSubscriptions).toBe('function');
+    expect(typeof client.polls.unregisterSubscriptions).toBe('function');
+  });
 });

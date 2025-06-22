@@ -106,6 +106,13 @@ export class LocalChatClient {
     unregisterSubscriptions() {/* noop */},
   };
 
+  /** Minimal polls helper expected by Stream UI */
+  polls = {
+    store: new StateStore<{ polls: any[] }>({ polls: [] }),
+    registerSubscriptions() {/* noop */},
+    unregisterSubscriptions() {/* noop */},
+  };
+
   devToken(uid: string) { return `${uid}.devtoken`; }
   getUserAgent() { return this.userAgent; }
   setUserAgent(ua: string) { this.userAgent = ua; }
@@ -434,6 +441,26 @@ export class MessageComposer {
 export enum VotingVisibility {
   anonymous = 'anonymous',
   public = 'public',
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  user_id?: string;
+  created_at?: string;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  text: string;
+  user_id?: string;
+  created_at?: string;
+}
+
+export interface PollState {
+  poll: Poll;
+  options: PollOption[];
 }
 
 export type PollVote = {
