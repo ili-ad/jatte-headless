@@ -22,10 +22,10 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path("api/ws-auth", api.ws_auth, name="ws-auth"),
-    path("api/connection-id", api.connection_id, name="connection-id"),
+    path("api/ws-auth/", api.ws_auth, name="ws-auth"),
+    path("api/connection-id/", api.connection_id, name="connection-id"),
     path("api/register-subscriptions/", api.register_subscriptions, name="register-subscriptions"),
-    path("api/editing-audit-state", api.editing_audit_state, name="editing-audit-state"),
+    path("api/editing-audit-state/", api.editing_audit_state, name="editing-audit-state"),
     path("api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"),
     path("api/rooms/<str:cid>/messages/", RoomMessagesView.as_view(), name="room-messages-cid"),
     path("api/rooms/<str:cid>/config/", RoomConfigView.as_view(), name="room-config"),

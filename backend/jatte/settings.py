@@ -109,9 +109,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Disable Django's automatic slash-appending behavior. The optional
-# trailing-slash patterns in `urls.py` will handle old bookmarks.
-APPEND_SLASH = False
+# Keep Django's automatic slash-appending behaviour so the React kit
+# can consistently call API endpoints with trailing slashes.
+APPEND_SLASH = True
 
 ROOT_URLCONF = 'jatte.urls'
 
