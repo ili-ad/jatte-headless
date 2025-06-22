@@ -2,13 +2,14 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import type { StreamChat, Channel } from 'stream-chat';
+import type { ChatClient } from './stream-adapter';
+import type { Channel } from './stream-adapter/Channel';
 import { getStreamClient } from './getStreamClient';
 import { getToken } from './getToken';
 import { useSession } from './SessionProvider';
 
 interface ChatContextValue {
-  client: StreamChat | null;
+  client: ChatClient | null;
   channel: Channel | null;
 }
 
@@ -20,7 +21,7 @@ export function useChat() {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
-  const [client] = useState<StreamChat>(() => getStreamClient());
+  const [client] = useState<ChatClient>(() => getStreamClient());
   const [channel, setChannel] = useState<Channel | null>(null);
 
   useEffect(() => {
