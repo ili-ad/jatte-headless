@@ -1,4 +1,6 @@
 // libs/chat-shim/index.ts
+import { useSyncExternalStore } from 'react';
+
 /* -------------------------------- Channel -------------------------------- */
 
 export class ChannelState {
@@ -780,6 +782,13 @@ export class StateStore<T = any> {
 
   /** rxjs-compat alias */
   next = this.dispatch.bind(this);
+}
+
+/** React hook that subscribes to a StateStore and returns its latest value */
+export function useStateStore<T>(store: StateStore<T>): T {
+  return useSyncExternalStore(store.subscribe.bind(store),
+    store.getLatestValue.bind(store),
+    store.getLatestValue.bind(store));
 }
 
 /* ------------------------------------------------------------------ */
