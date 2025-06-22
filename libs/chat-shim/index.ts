@@ -121,6 +121,13 @@ export class LocalChatClient {
   /** Minimal reminders helper expected by Stream UI */
   reminders = new ReminderManager();
 
+  /** Minimal notifications helper expected by Stream UI */
+  notifications = {
+    store: new StateStore<{ notifications: any[] }>({ notifications: [] }),
+    registerSubscriptions() {/* noop */},
+    unregisterSubscriptions() {/* noop */},
+  };
+
   devToken(uid: string) { return `${uid}.devtoken`; }
   getUserAgent() { return this.userAgent; }
   setUserAgent(ua: string) { this.userAgent = ua; }
