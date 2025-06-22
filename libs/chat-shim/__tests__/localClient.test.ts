@@ -50,4 +50,13 @@ describe('LocalChatClient', () => {
     expect(typeof client.polls.registerSubscriptions).toBe('function');
     expect(typeof client.polls.unregisterSubscriptions).toBe('function');
   });
+
+  test('has reminders store and scheduler stubs', () => {
+    const client = new LocalChatClient();
+    expect(Array.isArray(client.reminders.store.getState().reminders)).toBe(true);
+    expect(typeof client.reminders.registerSubscriptions).toBe('function');
+    expect(typeof client.reminders.unregisterSubscriptions).toBe('function');
+    expect(typeof client.reminders.initTimers).toBe('function');
+    expect(typeof client.reminders.clearTimers).toBe('function');
+  });
 });

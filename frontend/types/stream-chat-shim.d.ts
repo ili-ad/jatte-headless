@@ -144,9 +144,6 @@ declare module 'stream-chat' {
   export type Thread = any;
   export type ThreadManagerState = any;
   export type LocalVoiceRecordingAttachment = any;
-  export type Reminder = any;
-  export type ReminderState = any;
-  export type ReminderManagerState = any;
   export type ReactionResponse = any;
   export type ReactionSort = any;
   export type User = any;

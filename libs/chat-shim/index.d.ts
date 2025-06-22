@@ -16,6 +16,7 @@ declare module 'stream-chat' {
       registerSubscriptions(): void;
       unregisterSubscriptions(): void;
     };
+    reminders: ReminderManager;
   }
 
   /** Compatibility singleton (mimics StreamChat.getInstance) */
@@ -165,6 +166,29 @@ declare module 'stream-chat' {
     is_answer: boolean;
   };
   export function isVoteAnswer(vote: PollVote | PollAnswer): vote is PollAnswer;
+
+  export interface Reminder {
+    id: string;
+    text: string;
+    remind_at: string;
+  }
+
+  export interface ReminderState {
+    reminder: Reminder;
+    timer?: ReturnType<typeof setTimeout>;
+  }
+
+  export interface ReminderManagerState {
+    reminders: ReminderState[];
+  }
+
+  export class ReminderManager {
+    readonly store: StateStore<ReminderManagerState>;
+    registerSubscriptions(): void;
+    unregisterSubscriptions(): void;
+    initTimers(): void;
+    clearTimers(): void;
+  }
   export class FixedSizeQueueCache<T> {
     constructor(limit: number);
     enqueue(item: T): void;
