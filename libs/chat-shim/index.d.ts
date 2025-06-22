@@ -11,6 +11,11 @@ declare module 'stream-chat' {
       registerSubscriptions(): void;
       unregisterSubscriptions(): void;
     };
+    polls: {
+      store: StateStore<{ polls: any[] }>;
+      registerSubscriptions(): void;
+      unregisterSubscriptions(): void;
+    };
   }
 
   /** Compatibility singleton (mimics StreamChat.getInstance) */
@@ -128,6 +133,23 @@ declare module 'stream-chat' {
 
   export interface AttachmentManagerState {
     attachments: any[];
+  }
+  export interface Poll {
+    id: string;
+    question: string;
+    user_id?: string;
+    created_at?: string;
+  }
+  export interface PollOption {
+    id: string;
+    poll_id: string;
+    text: string;
+    user_id?: string;
+    created_at?: string;
+  }
+  export interface PollState {
+    poll: Poll;
+    options: PollOption[];
   }
   export type PollVote = {
     id: string;

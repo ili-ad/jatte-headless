@@ -163,13 +163,6 @@ declare module 'stream-chat' {
   export type EditingAuditState = any;
   export type EventHandler = any;
   export type MessageLabel = any;
-  export type Poll = any;
-  export type PollAnswer = any;
-  export type PollState = any;
-  export type PollOption = any;
-  export type PollOptionVotesQueryParams = any;
-  export type PollComposerState = any;
-  export type PollAnswersQueryParams = any;
   export type ReactionGroupResponse = any;
   export type CommandResponse = any;
   export type SearchSourceState = any;
