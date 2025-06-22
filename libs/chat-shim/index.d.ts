@@ -134,6 +134,7 @@ declare module 'stream-chat' {
     partialNext(patch: Partial<T>): void;
     next(patch: Partial<T>): void;
   }
+  export function useStateStore<T>(store: StateStore<T>): T;
   export function formatMessage(text: string): string;
   export interface LinkPreview {
     url: string;
