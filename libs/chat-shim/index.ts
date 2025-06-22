@@ -556,26 +556,77 @@ export class StateStore<T = any> {
     this.state = { ...this.state, ...patch };
     this.listeners.forEach((l) => l());
   }
+
+  /** stream-ui alias */
+  partialNext(patch: Partial<T>) {
+    this.dispatch(patch);
+  }
+
+  /** rxjs-compat alias */
+  next = this.dispatch.bind(this);
 }
 
-/** All three search-source classes just expose a common interface the
- *  React SDK expects (`query`).  They never hit the network in our
- *  local build, so a no-op is fine. */
-export class ChannelSearchSource {
-  constructor(_client: any) {}
-  query() { return Promise.resolve([]); }
-}
-export class MessageSearchSource extends ChannelSearchSource {}
-export class UserSearchSource    extends ChannelSearchSource {}
+/* ------------------------------------------------------------------ */
+/*  Search helpers                                                     */
+/* ------------------------------------------------------------------ */
 
-/** The controller juggles multiple sources.  A stub that forwards its
- *  methods is enough for now. */
+export interface SearchSourceState {
+  isLoading: boolean;
+}
+
+export enum SearchSourceType {
+  channel = 'channel',
+  message = 'message',
+  user = 'user',
+}
+
+export interface SearchSource {
+  type: SearchSourceType;
+  state: StateStore<SearchSourceState>;
+  query(text: string): Promise<any[]>;
+}
+
+export abstract class BaseSearchSource implements SearchSource {
+  readonly state = new StateStore<SearchSourceState>({ isLoading: false });
+  abstract type: SearchSourceType;
+  constructor(protected client: any) {}
+  async query(_text: string): Promise<any[]> {
+    return [];
+  }
+}
+
+export class ChannelSearchSource extends BaseSearchSource {
+  type = SearchSourceType.channel;
+}
+export class MessageSearchSource extends BaseSearchSource {
+  type = SearchSourceType.message;
+}
+export class UserSearchSource extends BaseSearchSource {
+  type = SearchSourceType.user;
+}
+
+export interface SearchControllerState {
+  focusedMessage?: any;
+  sources: SearchSource[];
+}
+
+/** Controller that manages multiple search sources */
 export class SearchController {
-  constructor(private sources: any[]) {}
-  async query(...args: any[]) {
-    const results = await Promise.all(
-      this.sources.map(s => s.query(...args))
-    );
+  readonly state: StateStore<SearchControllerState>;
+  readonly _internalState: StateStore<SearchControllerState>;
+
+  constructor(opts: { sources?: SearchSource[] } = {}) {
+    const sources = opts.sources ?? [];
+    this.state = new StateStore<SearchControllerState>({
+      focusedMessage: undefined,
+      sources,
+    });
+    this._internalState = this.state;
+  }
+
+  async query(query: string) {
+    const { sources } = this.state.getLatestValue();
+    const results = await Promise.all(sources.map((s) => s.query(query)));
     return results.flat();
   }
 }
