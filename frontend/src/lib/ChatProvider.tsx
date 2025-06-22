@@ -32,7 +32,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     let mounted = true;
     getToken()
-      .then(({ userID, userToken }) => client.connectUser({ id: userID }, userToken))
+      .then(({ userID, userToken }) =>
+        client.connectUser({ id: userID }, userToken, session.access_token)
+      )
       .then(() => {
         const chan = client.channel('messaging', 'general');
         return chan.watch().then(() => chan);

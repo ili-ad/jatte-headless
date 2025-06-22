@@ -17,6 +17,7 @@ export class ChatClient {
     readonly user: { id: string | null };
     /** copy of the full user object returned from backend */
     _user: User | null = null;
+    private authToken: string | null = null;
     private emitter = mitt<ChatEvents>();
     /* ---------- fields Stream-UI pokes at ---------- */
     /** Populated by connectUser, nulled by disconnectUser */
@@ -177,7 +178,7 @@ export class ChatClient {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${this.authToken}`,
                 },
                 body: JSON.stringify(event),
             }).catch(() => { /* ignore network errors */ });
@@ -186,7 +187,7 @@ export class ChatClient {
     }
 
     private buildHeaders(extra: Record<string, string> = {}) {
-        return this.jwt ? { Authorization: `Bearer ${this.jwt}`, ...extra } : extra;
+        return this.authToken ? { Authorization: `Bearer ${this.authToken}`, ...extra } : extra;
     }
 
     getUserAgent() {
@@ -195,12 +196,12 @@ export class ChatClient {
 
     setUserAgent(ua: string) {
         this.userAgent = ua;
-        if (this.jwt) {
+        if (this.authToken) {
             apiFetch(API.USER_AGENT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${this.jwt}`,
+                    Authorization: `Bearer ${this.authToken}`,
                 },
                 body: JSON.stringify({ user_agent: ua }),
             }).catch(() => { /* ignore network errors */ });
@@ -228,15 +229,16 @@ export class ChatClient {
      * Register a user and emit the same events Stream’s SDK does.
      * Resolves only on successful sync.
      */
-    async connectUser(user: { id: string }, token: string): Promise<void> {
+    async connectUser(user: { id: string }, token: string, authToken?: string): Promise<void> {
         this.userId = user.id;
         this.jwt = token;
+        this.authToken = authToken ?? token;
         await this.tokenManager.setTokenOrProvider(token);
         (this as any).user = { id: user.id };
         this.clientID = `${user.id}--${randomId()}`;
         try {
             const cidRes = await apiFetch(API.CLIENT_ID, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${this.authToken}` },
             });
             if (cidRes.ok) {
                 const cidBody = await cidRes.json().catch(() => null);
@@ -250,7 +252,7 @@ export class ChatClient {
         const res = await apiFetch(API.SYNC_USER, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${this.authToken}`,
             },
 
         });
@@ -261,12 +263,12 @@ export class ChatClient {
             this.state.users[String(body.id)] = body;
         }
         this.wsPromise = apiFetch(API.WS_AUTH, {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${this.authToken}` },
         }).then(() => undefined);
         await this.wsPromise;
         try {
             const cidRes = await apiFetch(API.CONNECTION_ID, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${this.authToken}` },
             });
             if (cidRes.ok) {
                 const cidBody = await cidRes.json().catch(() => null);
@@ -291,7 +293,7 @@ export class ChatClient {
         if (token) {
             apiFetch(API.SESSION, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${this.authToken}` },
             }).catch(() => { /* ignore network errors */ });
         }
 
@@ -301,6 +303,7 @@ export class ChatClient {
         this._user = null;
         this.userId = null;
         this.jwt = null;
+        this.authToken = null;
         this.tokenManager.reset();
         this.connectionId = null;
         this.initialized = false;
@@ -313,7 +316,7 @@ export class ChatClient {
     /** fetch list of channels for <ChannelList> */
     async queryChannels() {
         const res = await apiFetch(API.ROOMS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
 
@@ -327,7 +330,7 @@ export class ChatClient {
     /** fetch list of users */
     async queryUsers() {
         const res = await apiFetch(API.USERS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) return [];
         const list = await res.json() as User[];
@@ -338,7 +341,7 @@ export class ChatClient {
     /** Fetch the currently authenticated user */
     async getUser() {
         const res = await apiFetch(API.USER, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('user fetch failed');
         const info = await res.json() as User;
@@ -351,7 +354,7 @@ export class ChatClient {
     /** fetch global app settings */
     async getAppSettings(): Promise<AppSettings> {
         const res = await apiFetch(API.APP_SETTINGS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getAppSettings failed');
         const settings: AppSettings = await res.json();
@@ -363,7 +366,7 @@ export class ChatClient {
     /** fetch notifications for the current user */
     async getNotifications() {
         const res = await apiFetch(API.NOTIFICATIONS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getNotifications failed');
         const list = await res.json() as any[];
@@ -374,7 +377,7 @@ export class ChatClient {
     /** fetch list of polls */
     async getPolls() {
         const res = await apiFetch(API.POLLS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getPolls failed');
         const list = await res.json() as any[];
@@ -385,7 +388,7 @@ export class ChatClient {
     /** fetch list of reminders */
     async getReminders() {
         const res = await apiFetch(API.REMINDERS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getReminders failed');
         const list = await res.json() as any[];
@@ -396,7 +399,7 @@ export class ChatClient {
     /** fetch list of threads */
     async getThreads() {
         const res = await apiFetch(API.THREADS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getThreads failed');
         const list = await res.json() as any[];
@@ -412,7 +415,7 @@ export class ChatClient {
     /** fetch list of users muted by the current user */
     async getMutedUsers() {
         const res = await apiFetch(API.MUTED_USERS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getMutedUsers failed');
         const list = await res.json() as any[];
@@ -423,7 +426,7 @@ export class ChatClient {
     /** list of currently active channels */
     async getActiveChannels() {
         const res = await apiFetch(API.ACTIVE_ROOMS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         const rooms = res.ok ? (await res.json() as Room[]) : [];
         return rooms.map(r => new Channel(r.id, r.uuid, r.name ?? r.uuid, this, r.data || {}));
@@ -432,7 +435,7 @@ export class ChatClient {
     /** list of muted channels for the current user */
     async getMutedChannels() {
         const res = await apiFetch(API.MUTED_CHANNELS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getMutedChannels failed');
         const rooms = await res.json() as Room[];
@@ -445,7 +448,7 @@ export class ChatClient {
     /** fetch list of supported event listeners */
     async getListeners() {
         const res = await apiFetch(API.LISTENERS, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('getListeners failed');
         const data = await res.json() as { listeners: string[] };
@@ -455,7 +458,7 @@ export class ChatClient {
     /** Check if a given user is muted */
     async muteStatus(userId: string) {
         const res = await fetch(`${API.MUTE_STATUS}${userId}/`, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('muteStatus failed');
         const data = await res.json() as { muted: boolean };
@@ -466,7 +469,7 @@ export class ChatClient {
     async muteUser(userId: string) {
         const res = await fetch(`${API.MUTE_USER}${userId}/`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${this.jwt}` },
+            headers: { Authorization: `Bearer ${this.authToken}` },
         });
         if (!res.ok) throw new Error('muteUser failed');
     }
@@ -475,7 +478,7 @@ export class ChatClient {
     async unmuteUser(userId: string) {
         const res = await fetch(`${API.UNMUTE_USER}${userId}/`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${this.jwt}` },
+            headers: { Authorization: `Bearer ${this.authToken}` },
         });
         if (!res.ok) throw new Error('unmuteUser failed');
     }
@@ -484,7 +487,7 @@ export class ChatClient {
     async pinMessage(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${this.jwt}` },
+            headers: { Authorization: `Bearer ${this.authToken}` },
         });
         if (!res.ok) throw new Error('pinMessage failed');
         return await res.json();
@@ -494,7 +497,7 @@ export class ChatClient {
     async unpinMessage(messageId: string) {
         const res = await fetch(`${API.MESSAGES}${messageId}/unpin/`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${this.jwt}` },
+            headers: { Authorization: `Bearer ${this.authToken}` },
         });
         if (!res.ok) throw new Error('unpinMessage failed');
     }
@@ -505,7 +508,7 @@ export class ChatClient {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {}),
+                ...(this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {}),
             },
             body: JSON.stringify(option),
         });
@@ -516,7 +519,7 @@ export class ChatClient {
     /** Recover state after a lost connection */
     async recoverStateOnReconnect() {
         const res = await apiFetch(API.RECOVER_STATE, {
-            headers: this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {},
+            headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('recoverStateOnReconnect failed');
         const data = await res.json() as {
@@ -550,7 +553,7 @@ export class ChatClient {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(this.jwt ? { Authorization: `Bearer ${this.jwt}` } : {}),
+                ...(this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {}),
             },
             body: JSON.stringify({ array: arr, start, end }),
         });
