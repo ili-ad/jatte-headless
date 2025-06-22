@@ -446,6 +446,44 @@ class RoomConfigView(APIView):
 
         return Response({"name": name, "type": room_type, "muted": muted})
 
+
+class RoomMessagesView(APIView):
+    """Return paginated messages for the given room cid."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, cid: str):
+        try:
+            _, room_uuid = cid.split(":", 1)
+        except ValueError:
+            return Response({"detail": "Invalid cid"}, status=400)
+
+        room = get_object_or_404(Room, uuid=room_uuid)
+
+        limit_param = request.query_params.get("limit")
+        try:
+            limit = int(limit_param) if limit_param is not None else 20
+        except ValueError:
+            return Response({"detail": "Invalid limit"}, status=400)
+        limit = max(1, min(limit, 100))
+
+        before = request.query_params.get("before")
+        qs = room.messages.order_by("-id")
+        if before:
+            try:
+                before_id = int(before)
+            except ValueError:
+                return Response({"detail": "Invalid cursor"}, status=400)
+            qs = qs.filter(id__lt=before_id)
+
+        msgs = list(qs[: limit + 1])
+        has_more = len(msgs) > limit
+        msgs = msgs[:limit]
+        next_cursor = msgs[-1].id if has_more else None
+        serializer = MessageSerializer(msgs, many=True)
+        return Response({"messages": serializer.data, "next": next_cursor})
+
 class RoomConfigStateView(APIView):
     """Return message composer configuration for the room."""
     authentication_classes = [SupabaseJWTAuthentication]

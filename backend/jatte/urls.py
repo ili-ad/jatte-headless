@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
 from chat.views import TokenView  # real view
-from chat.api_views import RoomDraftView, RoomConfigView, RoomConfigStateView
+from chat.api_views import RoomDraftView, RoomConfigView, RoomConfigStateView, RoomMessagesView
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
@@ -21,6 +21,7 @@ urlpatterns += [
     path("api/register-subscriptions/", api.register_subscriptions, name="register-subscriptions"),
     path("api/editing-audit-state", api.editing_audit_state, name="editing-audit-state"),
     path("api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"),
+    path("api/rooms/<str:cid>/messages/", RoomMessagesView.as_view(), name="room-messages-cid"),
     path("api/rooms/<str:cid>/config/", RoomConfigView.as_view(), name="room-config"),
     path("api/rooms/<str:room_uuid>/config-state/", RoomConfigStateView.as_view(), name="room-config-state"),
 ]
