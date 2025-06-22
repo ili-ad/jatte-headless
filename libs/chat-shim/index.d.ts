@@ -33,6 +33,8 @@ declare module 'stream-chat' {
 
   /** Channel objects the UI works with (aliased to our LocalChannel). */
   export class LocalChannel {
+    readonly type: string;
+    readonly id: string;
     readonly cid: string;
     readonly state: {
       messages: any[];
