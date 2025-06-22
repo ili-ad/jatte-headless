@@ -201,6 +201,11 @@ declare module 'stream-chat' {
   export function replaceWordWithEntity<T>(s:T): T;
 
   export class SearchController {}
+  export class StateStore<T = any>      { /* no-op */ }
+  export class ChannelSearchSource      { /* no-op */ }
+  export class MessageSearchSource      { /* no-op */ }
+  export class UserSearchSource         { /* no-op */ }
+  export class SearchController         { /* no-op */ }
 
 
 

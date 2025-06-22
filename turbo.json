@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "pipeline": {
+    "dev": {
+      "dependsOn": ["^dev"],
+      "outputs": [],
+      "script": "turbo-dev"
+    },    
     "build": { "outputs": [".next/**", "dist/**"] },
     "test":  { "outputs": [] }
   }

@@ -16,8 +16,12 @@ webpack(cfg) {
   cfg.resolve.alias ??= {};
 
   // existing aliases … -------------------------------------------------
-  (cfg.resolve.alias as Record<string,string>)['@iliad/stream-ui'] =
-    path.resolve(__dirname, './stubs/stream-ui');
+  // (cfg.resolve.alias as Record<string,string>)['@iliad/stream-ui'] =
+  //   path.resolve(__dirname, './stubs/stream-ui');
+
+  // WITH the real kit ⬇︎
+  (cfg.resolve.alias as any)['@iliad/stream-ui'] = 'stream-chat-react';
+
   (cfg.resolve.alias as Record<string,string>)['stream-chat'] =
     path.resolve(__dirname, '../libs/chat-shim');
 

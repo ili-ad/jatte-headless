@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import 'stream-chat-react/dist/css/v2/index.css'; // ← v1 if you prefer
 import { SessionProvider } from "@/lib/SessionProvider";
+
 
 export const metadata: Metadata = {
   title: "Create Next App",

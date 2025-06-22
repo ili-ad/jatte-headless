@@ -8,3 +8,4 @@ export const Window = ({ children }: { children?: React.ReactNode }) => React.cr
 export const MessageList = () => null;
 export const MessageInput = () => null;
 export default {};
+export * from 'stream-chat-react';
