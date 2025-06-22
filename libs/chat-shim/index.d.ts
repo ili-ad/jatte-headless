@@ -7,6 +7,10 @@ declare module 'stream-chat' {
     devToken(uid: string): string;
     getUserAgent(): string;
     setUserAgent(ua: string): void;
+    threads: {
+      registerSubscriptions(): void;
+      unregisterSubscriptions(): void;
+    };
   }
 
   /** Compatibility singleton (mimics StreamChat.getInstance) */

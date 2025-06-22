@@ -100,6 +100,12 @@ export class LocalChatClient {
   listeners: Record<string, Handler[]> = {};
   mutedChannels: any[] = [];
 
+  /** Minimal threads helper expected by Stream UI */
+  threads = {
+    registerSubscriptions() {/* noop */},
+    unregisterSubscriptions() {/* noop */},
+  };
+
   devToken(uid: string) { return `${uid}.devtoken`; }
   getUserAgent() { return this.userAgent; }
   setUserAgent(ua: string) { this.userAgent = ua; }
