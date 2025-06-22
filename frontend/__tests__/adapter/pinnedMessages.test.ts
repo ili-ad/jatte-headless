@@ -19,8 +19,11 @@ test('pinnedMessages fetches list and updates state', async () => {
 
   const list = await channel.pinnedMessages();
 
-  expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/pinned/`, {
-    headers: { Authorization: 'Bearer jwt-test' },
+  expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/pinned`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(list).toEqual([{ id: 'p1' }]);
   expect(channel.state.pinnedMessages).toEqual([{ id: 'p1' }]);

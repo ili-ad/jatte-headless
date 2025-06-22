@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // avoid redirecting away from trailing slashes so Django endpoints work
   skipTrailingSlashRedirect: true,
+  trailingSlash: false,
 
 
 webpack(cfg) {

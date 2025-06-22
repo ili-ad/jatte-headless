@@ -21,7 +21,10 @@ test('getActiveChannels fetches active rooms', async () => {
   const channels = await client.getActiveChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.ACTIVE_ROOMS, {
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(channels).toHaveLength(1);
   expect(channels[0].cid).toBe('messaging:r1');

@@ -18,7 +18,10 @@ test('getListeners fetches available listeners', async () => {
   const client = new ChatClient('u1', 'jwt-test');
   const res = await client.getListeners();
   expect(global.fetch).toHaveBeenCalledWith(API.LISTENERS, {
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(res).toEqual(['message.new']);
 });

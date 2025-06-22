@@ -21,7 +21,10 @@ test('getMutedChannels fetches muted rooms and updates client list', async () =>
   const channels = await client.getMutedChannels();
 
   expect(global.fetch).toHaveBeenCalledWith(API.MUTED_CHANNELS, {
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(channels).toHaveLength(1);
   expect(client.mutedChannels).toHaveLength(1);
