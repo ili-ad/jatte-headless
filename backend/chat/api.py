@@ -66,7 +66,23 @@ def connection_id(request):
             )
         except jwt.PyJWTError:
             return Response(status=403)
-    return Response({"connection_id": "local"})
+
+    cid = request.session.get("connection_id")
+    if not cid:
+        from .utils import generate_snowflake
+
+        cid = str(generate_snowflake())
+        request.session["connection_id"] = cid
+
+    try:
+        import redis
+
+        r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+        r.set(f"cid:{cid}", request.user.username, ex=60)
+    except Exception:
+        pass
+
+    return Response({"connection_id": cid})
 
 @csrf_exempt
 def ok(_request):

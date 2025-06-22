@@ -15,6 +15,28 @@ class ConnectionIDAPITests(APITestCase):
         cid = res.data["connection_id"]
         self.assertTrue(isinstance(cid, str) and len(cid) > 0)
 
+    def test_connection_id_stable_same_session(self):
+        token = self.make_token()
+        url = reverse("connection-id")
+        res1 = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res1.status_code, 200)
+        cid1 = res1.data["connection_id"]
+        res2 = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res2.status_code, 200)
+        cid2 = res2.data["connection_id"]
+        self.assertEqual(cid1, cid2)
+
+    def test_connection_id_unique_across_sessions(self):
+        token = self.make_token()
+        url = reverse("connection-id")
+        res1 = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        cid1 = res1.data["connection_id"]
+        # new client simulates new session
+        other = self.client_class()
+        res2 = other.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        cid2 = res2.data["connection_id"]
+        self.assertNotEqual(cid1, cid2)
+
     def test_connection_id_requires_auth(self):
         url = reverse("connection-id")
         res = self.client.get(url)
