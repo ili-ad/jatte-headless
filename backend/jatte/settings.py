@@ -48,10 +48,22 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+# Allow REDIS_HOST to include a port via "host:port" or use a separate
+# REDIS_PORT environment variable. This mirrors common Redis configuration
+# strings and avoids connection errors like "localhost:6379:6379" when the
+# host variable already includes the port.
+REDIS_PORT = 6379
+if ":" in REDIS_HOST:
+    host, port = REDIS_HOST.rsplit(":", 1)
+    REDIS_HOST = host
+    REDIS_PORT = int(port)
+else:
+    REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [(REDIS_HOST, 6379)]},
+        "CONFIG": {"hosts": [(REDIS_HOST, REDIS_PORT)]},
     }
 }
 

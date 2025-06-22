@@ -77,7 +77,11 @@ def connection_id(request):
     try:
         import redis
 
-        r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+        r = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            decode_responses=True,
+        )
         r.set(f"cid:{cid}", request.user.username, ex=60)
     except Exception:
         pass
