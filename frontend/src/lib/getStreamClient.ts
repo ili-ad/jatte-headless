@@ -1,14 +1,11 @@
-import { getLocalClient, StreamChat } from 'stream-chat';
+import { ChatClient } from './stream-adapter';
 
 
-let client: StreamChat | null = null;
+let client: ChatClient | null = null;
 
-export const getStreamClient = (): StreamChat => {
+export const getStreamClient = (): ChatClient => {
   if (!client) {
-    const key = process.env.NEXT_PUBLIC_STREAM_KEY;
-    client = key
-      ? StreamChat.getInstance(key)
-      : getLocalClient();
+    client = new ChatClient();
   }
   return client;
 };
