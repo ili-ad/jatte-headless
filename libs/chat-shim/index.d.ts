@@ -125,7 +125,6 @@ declare module 'stream-chat' {
   export interface NotificationManagerState {
     notifications: Notification[];
   }
-  export type StreamChat = any;
 }
 
 
