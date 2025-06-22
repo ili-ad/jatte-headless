@@ -1,6 +1,7 @@
 #backend/accounts_supabase/authentication.py
 
 import jwt
+from jwt import PyJWKClient
 from jwt.exceptions import PyJWTError, InvalidTokenError
 from django.conf import settings
 from rest_framework import authentication, exceptions
@@ -34,8 +35,20 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
                 options={"verify_aud": False},
                 leeway=30,   # allow 30-second clock skew
             )
-        except PyJWTError as e:
-            raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
+        except PyJWTError:
+            jwks_url = settings.SUPABASE_JWKS_URL
+            if not jwks_url:
+                raise exceptions.AuthenticationFailed("Invalid token")
+            try:
+                signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+                decoded = jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=["RS256"],
+                    options={"verify_aud": False},
+                )
+            except PyJWTError as e:
+                raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
 
         uid = decoded.get("sub")
         if not uid:
