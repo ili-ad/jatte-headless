@@ -509,9 +509,44 @@ export interface NotificationManagerState {
 
 export class StateStore<T = any> {
   private state: T;
-  constructor(init: T) { this.state = init; }
-  getState()            { return this.state; }
-  setState(next: T)     { this.state = next; }
+  private listeners = new Set<() => void>();
+
+  constructor(init: T) {
+    this.state = init;
+  }
+
+  getState() {
+    return this.state;
+  }
+
+  /** subscribe to state changes */
+  subscribe(cb: () => void) {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  }
+
+  /** subscribe to a slice of the state */
+  subscribeWithSelector<O>(selector: (v: T) => O, cb: () => void) {
+    let prev = selector(this.state);
+    return this.subscribe(() => {
+      const next = selector(this.state);
+      if (next !== prev) {
+        prev = next;
+        cb();
+      }
+    });
+  }
+
+  /** latest state snapshot for hooks */
+  getLatestValue() {
+    return this.state;
+  }
+
+  /** dispatch a partial state update */
+  dispatch(patch: Partial<T>) {
+    this.state = { ...this.state, ...patch };
+    this.listeners.forEach((l) => l());
+  }
 }
 
 /** All three search-source classes just expose a common interface the

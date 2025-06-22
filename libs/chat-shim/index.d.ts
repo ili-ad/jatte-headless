@@ -45,7 +45,14 @@ declare module 'stream-chat' {
   export type MessageSearchSource = any;
   export type SearchController = any;
   export type UserSearchSource = any;
-  export type StateStore = any;
+  export class StateStore<T = any> {
+    constructor(init: T);
+    getState(): T;
+    getLatestValue(): T;
+    subscribe(cb: () => void): () => void;
+    subscribeWithSelector<O>(selector: (v: T) => O, cb: () => void): () => void;
+    dispatch(patch: Partial<T>): void;
+  }
   export function formatMessage(text: string): string;
   export interface LinkPreview {
     url: string;
