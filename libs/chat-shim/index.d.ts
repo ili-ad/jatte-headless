@@ -209,6 +209,7 @@ declare module 'stream-chat' {
     constructor(limit: number);
     enqueue(item: T): void;
     dequeue(): T | undefined;
+    peek(): T | undefined;
     readonly size: number;
   }
   export interface MessageComposerState {
