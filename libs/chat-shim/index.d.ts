@@ -21,6 +21,11 @@ declare module 'stream-chat' {
       unregisterSubscriptions(): void;
     };
     reminders: ReminderManager;
+    notifications: {
+      store: StateStore<{ notifications: any[] }>;
+      registerSubscriptions(): void;
+      unregisterSubscriptions(): void;
+    };
   }
 
   /** Compatibility singleton (mimics StreamChat.getInstance) */
