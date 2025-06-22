@@ -113,6 +113,9 @@ export class LocalChatClient {
     unregisterSubscriptions() {/* noop */},
   };
 
+  /** Minimal reminders helper expected by Stream UI */
+  reminders = new ReminderManager();
+
   devToken(uid: string) { return `${uid}.devtoken`; }
   getUserAgent() { return this.userAgent; }
   setUserAgent(ua: string) { this.userAgent = ua; }
@@ -481,6 +484,54 @@ export type PollAnswer = Omit<PollVote, 'option_id'> & {
 export const isVoteAnswer = (
   vote: PollVote | PollAnswer
 ): vote is PollAnswer => !!(vote as PollAnswer).answer_text;
+
+/* ------------------------------ reminders ------------------------------ */
+
+export interface Reminder {
+  id: string;
+  text: string;
+  remind_at: string;
+}
+
+export interface ReminderState {
+  reminder: Reminder;
+  timer?: ReturnType<typeof setTimeout>;
+}
+
+export interface ReminderManagerState {
+  reminders: ReminderState[];
+}
+
+/** Minimal manager that schedules timeouts for reminders */
+export class ReminderManager {
+  readonly store = new StateStore<ReminderManagerState>({ reminders: [] });
+  private timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  registerSubscriptions() {/* noop */}
+  unregisterSubscriptions() {/* noop */}
+
+  /** schedule timers for all reminders in the store */
+  initTimers() {
+    this.clearTimers();
+    const { reminders } = this.store.getLatestValue();
+    for (const r of reminders) {
+      const delay = new Date(r.reminder.remind_at).getTime() - Date.now();
+      const t = setTimeout(() => {
+        this.timers.delete(r.reminder.id);
+      }, Math.max(0, delay));
+      r.timer = t;
+      this.timers.set(r.reminder.id, t);
+    }
+  }
+
+  /** clear all scheduled reminders */
+  clearTimers() {
+    for (const t of this.timers.values()) clearTimeout(t);
+    this.timers.clear();
+    const { reminders } = this.store.getLatestValue();
+    for (const r of reminders) r.timer = undefined;
+  }
+}
 
 
 export function getTriggerCharWithToken(
