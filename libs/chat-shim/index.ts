@@ -93,6 +93,7 @@ export class LocalChatClient {
   private sock!: WebSocket;
   private channels = new Map<string, LocalChannel>();
   private userId = 'anonymous';
+  private userAgent = 'local-chat-client/0.0.1 stream-chat-react-adapter';
   /** properties stream-chat-react pokes at */
   clientID = '';
   activeChannels: Record<string, LocalChannel> = {};
@@ -100,7 +101,8 @@ export class LocalChatClient {
   mutedChannels: any[] = [];
 
   devToken(uid: string) { return `${uid}.devtoken`; }
-  setUserAgent() {/* no-op */}
+  getUserAgent() { return this.userAgent; }
+  setUserAgent(ua: string) { this.userAgent = ua; }
 
   /* ------------------------------------------------------------------- */
   /*  ░░ 2.   tiny event-bus so  stream-chat-react  can  .on/.off()      */
