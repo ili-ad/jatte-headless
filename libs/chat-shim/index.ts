@@ -147,11 +147,12 @@ export class LocalChatClient {
   /*  ░░ 3.   ultra-thin “state” & “user” objects the hook assumes exist */
   /* ------------------------------------------------------------------- */
 
-  /** Stream’s SDK keeps run-time data in `client.state`; giving it a stub
-      (with at least `mutes`) prevents  Object.entries(undefined)  errors. */
-  readonly state = { mutes: [] as any[] };
+  /** Stream’s SDK keeps run-time data in `client.state`. */
+  state = { channels: new Map<string, any>() };
   /** Filled once connectUser() succeeds so Chat context has `client.user` */
-  user: { id: string } | null = null;
+  user: { id: string } | undefined;
+  /** Connection indicator the SDK's hooks peek at */
+  wsConnection = { online: false };
   getState = () => this.state;   // some helper hooks call this
 
   /* ------------------------------------------------------------------- */
@@ -164,6 +165,9 @@ export class LocalChatClient {
     this.activeChannels = {};
     this.listeners = {};
     this.mutedChannels = [];
+
+    this.user = undefined;
+    this.wsConnection.online = false;
 
     /* 4-a ► open WebSocket connection */
     this.sock = new WebSocket(
@@ -179,15 +183,21 @@ export class LocalChatClient {
 
     /* 4-c ► expose minimal user object & broadcast “online” */
     this.user = { id: this.userId };
+    this.wsConnection.online = true;
     this.emit('connection.changed', { online: true });
   }
 
-  channel(type: string, id: string) {
-    const cid = `${type}:${id}`;
+  async queryUsers() {
+    return { users: this.user ? [this.user] : [] };
+  }
+
+  channel(type: string, id?: string) {
+    const cid = `${type}:${id ?? 'local'}`;
     if (!this.channels.has(cid)) {
       const chan = new LocalChannel(cid, this.sock);
       this.channels.set(cid, chan);
       this.activeChannels[cid] = chan;
+      (this.state.channels as Map<string, any>).set(cid, chan);
     }
     return this.channels.get(cid)!;
   }
@@ -198,7 +208,9 @@ export class LocalChatClient {
     this.activeChannels = {};
     this.listeners = {};
     this.mutedChannels = [];
-    this.user = null;
+    this.state.channels.clear();
+    this.user = undefined;
+    this.wsConnection.online = false;
     this.userId = 'anonymous';
     this.clientID = '';
     this.emit('connection.changed', { online: false });
