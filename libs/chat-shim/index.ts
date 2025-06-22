@@ -47,6 +47,11 @@ export class LocalChatClient {
   private sock!: WebSocket;
   private channels = new Map<string, LocalChannel>();
   private userId = 'anonymous';
+  /** properties stream-chat-react pokes at */
+  clientID = '';
+  activeChannels: Record<string, LocalChannel> = {};
+  listeners: Record<string, Handler[]> = {};
+  mutedChannels: any[] = [];
 
   devToken(uid: string) { return `${uid}.devtoken`; }
   setUserAgent() {/* no-op */}
@@ -59,9 +64,18 @@ export class LocalChatClient {
   on   = (evt: string, cb: Handler) => {
     if (!this.bus.has(evt)) this.bus.set(evt, new Set());
     this.bus.get(evt)!.add(cb);
+    if (!this.listeners[evt]) this.listeners[evt] = [];
+    this.listeners[evt].push(cb);
     return { unsubscribe: () => this.off(evt, cb) };
   };
-  off  = (evt: string, cb: Handler) => this.bus.get(evt)?.delete(cb);
+  off  = (evt: string, cb: Handler) => {
+    this.bus.get(evt)?.delete(cb);
+    const arr = this.listeners[evt];
+    if (arr) {
+      this.listeners[evt] = arr.filter(fn => fn !== cb);
+      if (this.listeners[evt].length === 0) delete this.listeners[evt];
+    }
+  };
   private emit = (evt: string, data: any) =>
     this.bus.get(evt)?.forEach(cb => cb(data));
 
@@ -82,6 +96,10 @@ export class LocalChatClient {
 
   async connectUser(user: { id: string }, jwt: string) {
     this.userId = user.id;
+    this.clientID = `${user.id}--${Math.random().toString(36).slice(2)}`;
+    this.activeChannels = {};
+    this.listeners = {};
+    this.mutedChannels = [];
 
     /* 4-a ► open WebSocket connection */
     this.sock = new WebSocket(
@@ -103,7 +121,9 @@ export class LocalChatClient {
   channel(type: string, id: string) {
     const cid = `${type}:${id}`;
     if (!this.channels.has(cid)) {
-      this.channels.set(cid, new LocalChannel(cid, this.sock));
+      const chan = new LocalChannel(cid, this.sock);
+      this.channels.set(cid, chan);
+      this.activeChannels[cid] = chan;
     }
     return this.channels.get(cid)!;
   }
@@ -111,6 +131,12 @@ export class LocalChatClient {
   disconnectUser() {
     this.sock?.close();
     this.channels.clear();
+    this.activeChannels = {};
+    this.listeners = {};
+    this.mutedChannels = [];
+    this.user = null;
+    this.userId = 'anonymous';
+    this.clientID = '';
     this.emit('connection.changed', { online: false });
   }
 }
