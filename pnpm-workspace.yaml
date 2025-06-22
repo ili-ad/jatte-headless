@@ -1,5 +1,12 @@
-# pnpm-workspace.yaml  (repo root)
 packages:
-  - 'frontend'
-  - 'backend'
-  - 'docs'
+  - frontend
+  - backend
+  - docs
+
+ignoredBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - esbuild
