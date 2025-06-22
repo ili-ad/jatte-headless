@@ -211,13 +211,14 @@ export class Channel {
                     /** ⇢ ACTUAL send logic */
                     async submit() {
                         const draft = textStore.getSnapshot().text.trim();
-                        if (!draft) return;
+                        const userId = channelRef.client.user?.id;
+                        if (!draft || !userId) return;
 
                         /* 🔸 optimistic echo so the list updates immediately */
                         const localMsg: Message = {
                             id: `local-${Date.now()}`,
                             text: draft,
-                            user_id: channelRef.client.user.id!,
+                            user_id: userId,
                             created_at: new Date().toISOString(),
                         };
                         channelRef.bump({
@@ -262,12 +263,15 @@ export class Channel {
                 async compose() {
                     if (this.compositionIsEmpty) return undefined;
 
+                    const userId = channelRef.client.user?.id;
+                    if (!userId) return undefined;
+
                     const text = this.textComposer.state.getSnapshot().text.trim();
                     const now = new Date().toISOString();
                     const localMessage: Message = {
                         id: `local-${Date.now()}`,
                         text,
-                        user_id: channelRef.client.user.id!,
+                        user_id: userId,
                         created_at: now,
                     };
 
@@ -526,11 +530,15 @@ export class Channel {
     }
 
     countUnread() {
-        const me = this._state.read[this.client.user.id!];
+        const userId = this.client.user?.id;
+        if (!userId) return 0;
+        const me = this._state.read[userId];
         return me ? me.unread_messages : 0;
     }
     lastRead() {
-        const me = this._state.read[this.client.user.id!];
+        const userId = this.client.user?.id;
+        if (!userId) return undefined;
+        const me = this._state.read[userId];
         return me ? new Date(me.last_read) : undefined;
     }
 
@@ -566,7 +574,7 @@ export class Channel {
             });
             if (res.ok) {
                 const first: Message[] = await res.json();
-                const me = this.client.user.id;
+                const me = this.client.user?.id;
                 if (me) {
                     this.bump({
                         messages: first,
@@ -611,7 +619,7 @@ export class Channel {
             });
             if (res.ok) {
                 const first: Message[] = await res.json();
-                const me = this.client.user.id;
+                const me = this.client.user?.id;
                 if (!me) return;
                 this.bump({
                     messages: first,
@@ -672,7 +680,7 @@ export class Channel {
     }
 
     async markRead() {
-        const me = this.client.user.id;
+        const me = this.client.user?.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
         if (me) {
             apiFetch(`/rooms/${this.uuid}/mark_read`, {
@@ -697,7 +705,7 @@ export class Channel {
     }
 
     async markUnread() {
-        const me = this.client.user.id;
+        const me = this.client.user?.id;
         if (me) {
             apiFetch(`/rooms/${this.uuid}/mark_unread`, {
                 method: 'POST',
