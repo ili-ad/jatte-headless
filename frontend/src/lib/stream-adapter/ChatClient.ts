@@ -457,7 +457,7 @@ export class ChatClient {
 
     /** Check if a given user is muted */
     async muteStatus(userId: string) {
-        const res = await fetch(`${API.MUTE_STATUS}${userId}/`, {
+        const res = await apiFetch(`${API.MUTE_STATUS}${userId}/`, {
             headers: this.jwt ? { Authorization: `Bearer ${this.authToken}` } : {},
         });
         if (!res.ok) throw new Error('muteStatus failed');
@@ -467,7 +467,7 @@ export class ChatClient {
 
     /** Mute a user */
     async muteUser(userId: string) {
-        const res = await fetch(`${API.MUTE_USER}${userId}/`, {
+        const res = await apiFetch(`${API.MUTE_USER}${userId}/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.authToken}` },
         });
@@ -476,7 +476,7 @@ export class ChatClient {
 
     /** Unmute a user */
     async unmuteUser(userId: string) {
-        const res = await fetch(`${API.UNMUTE_USER}${userId}/`, {
+        const res = await apiFetch(`${API.UNMUTE_USER}${userId}/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.authToken}` },
         });
@@ -485,7 +485,7 @@ export class ChatClient {
 
     /** Pin a message globally */
     async pinMessage(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/pin/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.authToken}` },
         });
@@ -495,7 +495,7 @@ export class ChatClient {
 
     /** Unpin a message globally */
     async unpinMessage(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/unpin/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/unpin/`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${this.authToken}` },
         });
@@ -504,7 +504,7 @@ export class ChatClient {
 
     /** Create a poll option */
     async createPollOption(pollId: string, option: { text: string }) {
-        const res = await fetch(`${API.POLLS}${pollId}/options/`, {
+        const res = await apiFetch(`${API.POLLS}${pollId}/options/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
