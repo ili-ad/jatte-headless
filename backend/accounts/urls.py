@@ -1,7 +1,7 @@
 #accounts/urls.py
-from django.urls import path
+from django.urls import re_path
 from .views import SyncUserView
 
 urlpatterns = [
-    path('api/sync-user/', SyncUserView.as_view(), name='sync-user'),
+    re_path(r'^api/sync-user/?$', SyncUserView.as_view(), name='sync-user'),
 ]

@@ -25,7 +25,7 @@ test('read fetches states and updates channel', async () => {
 
   const map = await channel.read();
 
-  expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/read/`, {
+  expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/room1/read`, {
     headers: { Authorization: 'Bearer jwt-test' },
   });
   expect(map.u2.unread_messages).toBe(1);

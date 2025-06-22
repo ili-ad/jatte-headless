@@ -23,7 +23,7 @@ test('clientID generated on connectUser includes user id', async () => {
   // clientID should now start with the user id and a separator
   expect(client.clientID).toMatch(/^u1--/);
 
-  expect(global.fetch).toHaveBeenCalledWith(API.CLIENT_ID, expect.anything());
-  expect(global.fetch).toHaveBeenCalledWith(API.SYNC_USER, expect.anything());
+  expect(global.fetch).toHaveBeenCalledWith(`/api${API.CLIENT_ID}`, expect.anything());
+  expect(global.fetch).toHaveBeenCalledWith(`/api${API.SYNC_USER}`, expect.anything());
   expect(client.clientID).toBe('u1--x123');
 });

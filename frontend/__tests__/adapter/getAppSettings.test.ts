@@ -25,7 +25,10 @@ test('getAppSettings fetches settings from backend', async () => {
   const settings = await client.getAppSettings();
 
   expect(global.fetch).toHaveBeenCalledWith(API.APP_SETTINGS, {
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(settings).toEqual({ file_uploads: true });
   expect(client.settingsStore.getSnapshot()).toEqual({ file_uploads: true });
