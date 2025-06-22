@@ -69,3 +69,14 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
             user.save(update_fields=["supabase_uid"])
 
         return (user, None)
+
+class DevTokenOrJWTAuthentication(SupabaseJWTAuthentication):
+    def authenticate(self, request):
+        auth = super().authenticate(request)
+        if auth:
+            return auth
+        if settings.DEBUG:
+            if request.headers.get("Authorization") == "Bearer devtoken":
+                from django.contrib.auth.models import AnonymousUser
+                return (AnonymousUser(), None)
+        return None
