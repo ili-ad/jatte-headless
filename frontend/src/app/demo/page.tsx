@@ -4,6 +4,7 @@
 
 import { ChatProvider, useChat } from '@/lib/ChatProvider';
 import ChatUI from '@/lib/ChatUI';
+import ChatGuard from '@/components/ChatGuard';
 import { useEffect } from 'react';
 
 function HelloWorldSender() {
@@ -19,7 +20,9 @@ export default function DemoPage() {
   return (
     <ChatProvider>
       <HelloWorldSender />
-      <ChatUI />
+      <ChatGuard>
+        <ChatUI />
+      </ChatGuard>
     </ChatProvider>
   );
 }
