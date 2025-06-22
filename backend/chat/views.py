@@ -16,7 +16,7 @@ class TokenView(APIView):
     permission_classes     = [IsAuthenticated]          # or AllowAny while debugging
 
     def get(self, request):
-        uid = str(request.user.id)
+        uid = request.user.id
         header   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
         payload  = base64.urlsafe_b64encode(
                      json.dumps({"user_id": uid}).encode()

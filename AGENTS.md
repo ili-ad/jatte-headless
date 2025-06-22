@@ -23,7 +23,7 @@
 
 | ☐/◔/✔︎ | Endpoint / WS topic                         | Owner agent      | Deliverable                                              | Acceptance tests                                                      |
 | ------ | ------------------------------------------- | ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
-| ☐      | **`GET /api/ws-auth`**                      | `auth-agent`     | Signed WS URL & JWT validation                           | curl returns **200** JSON `{auth, expires}`; tampered token → **403** |
+| ✔︎     | **`GET /api/ws-auth`**                      | `auth-agent`     | Signed WS URL & JWT validation                           | curl returns **200** JSON `{auth, expires}`; tampered token → **403** |
 | ☐      | **`GET /api/connection-id`**                | `presence-agent` | 64‑bit snowflake id + redis heartbeat                    | Jest: id is stable for same session, unique across sessions           |
 | ☐      | **`POST /api/register-subscriptions`**      | `notify-agent`   | Push‑subscription DB & VAPID key mgmt                    | Cypress: service‑worker receives push                                 |
 | ☐      | **`POST /api/editing-audit-state`**         | `collab-agent`   | OT cursor + “user is typing” broadcasts                  | WS event `editing.state` visible to peers                             |
