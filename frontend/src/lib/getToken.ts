@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { apiFetch } from './api'
 
 export interface TokenData {
   userID: string
@@ -10,7 +11,7 @@ export async function getToken(): Promise<TokenData> {
   const session = data.session
   if (!session) throw new Error('not authenticated')
 
-  const res = await fetch('/api/token/', {
+  const res = await apiFetch('token', {
     headers: { Authorization: `Bearer ${session.access_token}` },
   })
   if (!res.ok) {

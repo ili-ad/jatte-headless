@@ -18,9 +18,12 @@ test('hide posts to backend and sets hidden', async () => {
 
   await channel.hide();
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/hide/', {
+  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/hide', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(channel.hidden).toBe(true);
 });
@@ -32,9 +35,12 @@ test('show posts to backend and clears hidden', async () => {
 
   await channel.show();
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/show/', {
+  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/show', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(channel.hidden).toBe(false);
 });

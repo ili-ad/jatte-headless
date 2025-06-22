@@ -3,6 +3,7 @@ import { MiniStore } from './MiniStore';
 import type { Message, ChatEvents } from './types';
 import { ChatClient } from './ChatClient';
 import { API, EVENTS } from './constants';
+import { apiFetch } from '../api';
 import { buildAttachmentManager } from './composer/attachments';
 
 /* ──────────────────────────────────────────────────────────────── */
@@ -316,7 +317,7 @@ export class Channel {
                     localStorage.setItem(getRoomKey(), text);
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
+                        apiFetch(`/rooms/${channelRef.uuid}/draft`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -342,7 +343,7 @@ export class Channel {
                 async getDraft() {
                     const token = channelRef.client['jwt'];
                     if (!token) return '';
-                    const res = await fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
+                    const res = await apiFetch(`/rooms/${channelRef.uuid}/draft`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (!res.ok) throw new Error('getDraft failed');
@@ -379,7 +380,7 @@ export class Channel {
                 get config() { return this.configState.getLatestValue(); },
                 async getConfigState() {
                     const token = channelRef.client["jwt"];
-                    const res = await fetch(`/api/rooms/${channelRef.uuid}/config-state/`, {
+                    const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (!res.ok) throw new Error("getConfigState failed");
@@ -461,7 +462,7 @@ export class Channel {
                     this.initState();
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        fetch(`/api/rooms/${channelRef.uuid}/draft/`, {
+                        apiFetch(`/rooms/${channelRef.uuid}/draft`, {
                             method: 'DELETE',
                             headers: { Authorization: `Bearer ${token}` },
                         }).catch(() => { /* ignore network errors */ });
@@ -535,7 +536,7 @@ export class Channel {
 
     /** Fetch read states for this channel */
     async read() {
-        const res = await fetch(`/api/rooms/${this.uuid}/read/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/read`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('read failed');
@@ -674,7 +675,7 @@ export class Channel {
         const me = this.client.user.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
         if (me) {
-            fetch(`/api/rooms/${this.uuid}/mark_read/`, {
+            apiFetch(`/rooms/${this.uuid}/mark_read`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
@@ -698,7 +699,7 @@ export class Channel {
     async markUnread() {
         const me = this.client.user.id;
         if (me) {
-            fetch(`/api/rooms/${this.uuid}/mark_unread/`, {
+            apiFetch(`/rooms/${this.uuid}/mark_unread`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
@@ -872,7 +873,7 @@ export class Channel {
 
     /** Fetch pinned messages for this channel */
     async pinnedMessages() {
-        const res = await fetch(`/api/rooms/${this.uuid}/pinned/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/pinned`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('pinnedMessages failed');
@@ -910,7 +911,7 @@ export class Channel {
 
     /** Archive this channel */
     async archive() {
-        const res = await fetch(`/api/rooms/${this.uuid}/archive/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/archive`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -919,7 +920,7 @@ export class Channel {
 
     /** Unarchive this channel */
     async unarchive() {
-        const res = await fetch(`/api/rooms/${this.uuid}/unarchive/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/unarchive`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -928,7 +929,7 @@ export class Channel {
 
     /** Hide this channel */
     async hide() {
-        const res = await fetch(`/api/rooms/${this.uuid}/hide/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/hide`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -938,7 +939,7 @@ export class Channel {
 
     /** Show this channel */
     async show() {
-        const res = await fetch(`/api/rooms/${this.uuid}/show/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/show`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -948,7 +949,7 @@ export class Channel {
 
     /** Remove all messages from this channel */
     async truncate() {
-        const res = await fetch(`/api/rooms/${this.uuid}/truncate/`, {
+        const res = await apiFetch(`/rooms/${this.uuid}/truncate/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });

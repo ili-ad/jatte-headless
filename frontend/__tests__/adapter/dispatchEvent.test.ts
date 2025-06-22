@@ -28,7 +28,7 @@ test('dispatchEvent forwards message.new to channel and client', () => {
 
   client.dispatchEvent({ type: EVENTS.MESSAGE_NEW, cid: channel.cid, message });
 
-  expect(global.fetch).toHaveBeenCalledWith(API.DISPATCH_EVENT, {
+  expect(global.fetch).toHaveBeenCalledWith(`/api${API.DISPATCH_EVENT}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ test('dispatchEvent forwards typing events', () => {
 
   client.dispatchEvent({ type: 'typing.start', cid: channel.cid, user_id: 'u2' });
 
-  expect(global.fetch).toHaveBeenCalledWith(API.DISPATCH_EVENT, {
+  expect(global.fetch).toHaveBeenCalledWith(`/api${API.DISPATCH_EVENT}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

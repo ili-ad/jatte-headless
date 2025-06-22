@@ -20,9 +20,15 @@ test('wsPromise is set and awaited during connectUser', async () => {
   expect(client.wsPromise).toBeInstanceOf(Promise);
   expect(global.fetch).toHaveBeenCalledWith(API.SYNC_USER, {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
   expect(global.fetch).toHaveBeenCalledWith(API.WS_AUTH, {
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
 });
