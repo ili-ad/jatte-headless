@@ -111,10 +111,11 @@ export class LocalChatClient {
   /*  ░░ 1.   original fields & helpers                                  */
   /* ------------------------------------------------------------------- */
 
-  private sock!: WebSocket;
+  private sockets = new Map<string, WebSocket>();
   private channels = new Map<string, LocalChannel>();
   private userId = 'anonymous';
   private userAgent = 'local-chat-client/0.0.1 stream-chat-react-adapter';
+  private jwt = '';
   /** properties stream-chat-react pokes at */
   clientID = '';
   activeChannels: Record<string, LocalChannel> = {};
@@ -189,6 +190,7 @@ export class LocalChatClient {
 
   async connectUser(user: { id: string }, jwt: string) {
     this.userId = user.id;
+    this.jwt = jwt;
     this.clientID = `${user.id}--${Math.random().toString(36).slice(2)}`;
     this.activeChannels = {};
     this.listeners = {};
@@ -197,17 +199,7 @@ export class LocalChatClient {
     this.user = undefined;
     this.wsConnection.online = false;
 
-    /* 4-a ► open WebSocket connection */
-    this.sock = new WebSocket(
-      `ws://${location.hostname}:8000/ws/chat/?token=${jwt}`
-    );
-    await new Promise(res => (this.sock.onopen = res as any));
-
-    /* 4-b ► fan-out inbound messages to channels */
-    this.sock.onmessage = ev => {
-      const data = JSON.parse(ev.data);
-      this.channels.get(data.cid)?.emit(data.type, data);
-    };
+    /* 4-a ► connections will be opened per-channel */
 
     /* 4-c ► expose minimal user object & broadcast “online” */
     this.user = { id: this.userId };
@@ -222,7 +214,14 @@ export class LocalChatClient {
   channel(type: string, id?: string) {
     const cid = `${type}:${id ?? 'local'}`;
     if (!this.channels.has(cid)) {
-      const chan = new LocalChannel(cid, this.sock, () => this.userId);
+      const url = `ws://${location.host}/ws/${cid}/?token=${this.jwt}`;
+      const sock = new WebSocket(url);
+      sock.onmessage = ev => {
+        const data = JSON.parse(ev.data);
+        this.channels.get(data.cid)?.emit(data.type, data);
+      };
+      this.sockets.set(cid, sock);
+      const chan = new LocalChannel(cid, sock, () => this.userId);
       this.channels.set(cid, chan);
       this.activeChannels[cid] = chan;
       (this.state.channels as Map<string, any>).set(cid, chan);
@@ -231,7 +230,8 @@ export class LocalChatClient {
   }
 
   disconnectUser() {
-    this.sock?.close();
+    this.sockets.forEach(s => s.close());
+    this.sockets.clear();
     this.channels.clear();
     this.activeChannels = {};
     this.listeners = {};
