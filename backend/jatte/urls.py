@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
 from chat.views import TokenView  # real view
+from chat.api_views import RoomDraftView
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
@@ -19,10 +20,7 @@ urlpatterns += [
     path("api/connection-id", api.connection_id, name="connection-id"),
     path("api/register-subscriptions/", api.register_subscriptions, name="register-subscriptions"),
     path("api/editing-audit-state", api.editing_audit_state, name="editing-audit-state"),
-    path("api/rooms/<str:cid>/draft", api.ok_post, name="room-draft"),
-    path("rooms<str:cid>/config/", api.channel_config, name="room-config"),
-    path("rooms<str:cid>/messages/", api.messages, name="room-messages"),
-    path("rooms<str:cid>/members/", api.members, name="room-members"),
+    path("api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"),
 ]
 
 # If you want the DEV stub only in DEBUG:
