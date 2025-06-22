@@ -3,8 +3,40 @@
 
 export class LocalChannel {
   private listeners = new Map<string, Set<(ev: any) => void>>();
+  /** Minimal state object mimicking Stream's ChannelState */
+  readonly state: {
+    messages: any[];
+    messagePagination: { hasPrev: boolean; hasNext: boolean };
+    read: Record<string, any>;
+    watchers: Record<string, any>;
+    members: Record<string, any>;
+    pinnedMessages: any[];
+    typing: Record<string, any>;
+    threads: Record<string, any[]>;
+    addMessageSorted(msg: any): void;
+    filterErrorMessages(): void;
+    removeMessage(msg: any): void;
+  };
 
-  constructor(readonly cid: string, private sock: WebSocket) {}
+  constructor(readonly cid: string, private sock: WebSocket) {
+    this.state = {
+      messages: [],
+      messagePagination: { hasPrev: false, hasNext: false },
+      read: {},
+      watchers: {},
+      members: {},
+      pinnedMessages: [],
+      typing: {},
+      threads: {},
+      addMessageSorted: (msg: any) => { this.state.messages.push(msg); },
+      filterErrorMessages: () => {
+        this.state.messages = this.state.messages.filter(m => m.type !== 'error');
+      },
+      removeMessage: (msg: any) => {
+        this.state.messages = this.state.messages.filter(m => m.id !== msg.id);
+      },
+    };
+  }
 
   async watch() {
     return this;                   // SDK returns a promise → UI awaits it
