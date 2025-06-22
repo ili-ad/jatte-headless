@@ -1,22 +1,26 @@
 import { FixedSizeQueueCache } from '../index';
 
 describe('FixedSizeQueueCache', () => {
-  test('maintains a fixed number of items', () => {
-    const q = new FixedSizeQueueCache<number>(2);
-    q.enqueue(1);
-    q.enqueue(2);
-    q.enqueue(3);
-    expect(q.size).toBe(2);
-    expect(q.dequeue()).toBe(2);
-    expect(q.dequeue()).toBe(3);
-    expect(q.dequeue()).toBeUndefined();
+  test('evicts oldest items when limit exceeded', () => {
+    const dispose = jest.fn();
+    const cache = new FixedSizeQueueCache<number, string>(2, { dispose });
+    cache.add(1, 'a');
+    cache.add(2, 'b');
+    cache.add(3, 'c');
+    expect(cache.peek(1)).toBeUndefined();
+    expect(cache.get(2)).toBe('b');
+    expect(cache.get(3)).toBe('c');
+    expect(dispose).toHaveBeenCalledWith(1, 'a');
   });
 
-  test('peek returns the first item without removing', () => {
-    const q = new FixedSizeQueueCache<number>(3);
-    q.enqueue(5);
-    q.enqueue(6);
-    expect(q.peek()).toBe(5);
-    expect(q.size).toBe(2);
+  test('get moves item to front', () => {
+    const cache = new FixedSizeQueueCache<string, number>(2);
+    cache.add('a', 1);
+    cache.add('b', 2);
+    cache.get('a');
+    cache.add('c', 3);
+    expect(cache.peek('b')).toBeUndefined();
+    expect(cache.peek('a')).toBe(1);
+    expect(cache.peek('c')).toBe(3);
   });
 });
