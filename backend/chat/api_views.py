@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from accounts_supabase.authentication import SupabaseJWTAuthentication
 from django.utils import timezone
@@ -12,6 +13,7 @@ from urllib.parse import urlparse
 import uuid
 import json
 from django.http import QueryDict
+import redis
 from .models import (
     Room,
     Message,
@@ -93,6 +95,12 @@ class RoomMessageListCreateView(APIView):
             reply_to = get_object_or_404(Message, id=parent_id)
         message = serializer.save(created_by=request.user, reply_to=reply_to)
         room.messages.add(message)
+        Draft.objects.filter(user=request.user, room=room).delete()
+        try:
+            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r.delete(f"draft:{request.user.username}:{room.uuid}")
+        except Exception:
+            pass
         return Response(MessageSerializer(message).data, status=201)
 
 
@@ -186,16 +194,34 @@ class RoomDraftView(APIView):
             room=room,
             defaults={"text": text},
         )
+        try:
+            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r.set(f"draft:{request.user.username}:{room.uuid}", text, ex=86400)
+        except Exception:
+            pass
         return Response({"status": "ok"})
 
     def get(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
-        draft = Draft.objects.filter(user=request.user, room=room).first()
-        return Response({"text": draft.text if draft else ""})
+        text = None
+        try:
+            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            text = r.get(f"draft:{request.user.username}:{room.uuid}")
+        except Exception:
+            pass
+        if text is None:
+            draft = Draft.objects.filter(user=request.user, room=room).first()
+            text = draft.text if draft else ""
+        return Response({"text": text})
 
     def delete(self, request, room_uuid):
         room = get_object_or_404(Room, uuid=room_uuid)
         Draft.objects.filter(user=request.user, room=room).delete()
+        try:
+            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r.delete(f"draft:{request.user.username}:{room.uuid}")
+        except Exception:
+            pass
         return Response({"status": "ok"})
 
 
