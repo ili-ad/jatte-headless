@@ -61,7 +61,14 @@ declare module 'stream-chat' {
   export type MessageSearchSource = any;
   export type SearchController = any;
   export type UserSearchSource = any;
-  export type StateStore = any;
+  export class StateStore<T = any> {
+    constructor(init: T);
+    getState(): T;
+    getLatestValue(): T;
+    subscribe(cb: () => void): () => void;
+    subscribeWithSelector<O>(selector: (v: T) => O, cb: () => void): () => void;
+    dispatch(patch: Partial<T>): void;
+  }
   //export type formatMessage = any;
   export interface LinkPreview {
     url: string;
@@ -201,11 +208,9 @@ declare module 'stream-chat' {
   export function replaceWordWithEntity<T>(s:T): T;
 
   export class SearchController {}
-  export class StateStore<T = any>      { /* no-op */ }
   export class ChannelSearchSource      { /* no-op */ }
   export class MessageSearchSource      { /* no-op */ }
   export class UserSearchSource         { /* no-op */ }
-  export class SearchController         { /* no-op */ }
 
 
 
