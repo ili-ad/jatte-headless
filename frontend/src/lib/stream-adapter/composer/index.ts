@@ -54,12 +54,15 @@ export const buildMessageComposer = (channelRef:any) => {
     async compose(){
       if(this.compositionIsEmpty) return undefined;
 
+      const userId = channelRef.client.user?.id;
+      if(!userId) return undefined;
+
       const text=textComposer.state.getSnapshot().text.trim();
       const now=new Date().toISOString();
       const localMessage={
         id:`local-${Date.now()}`,
         text,
-        user_id:channelRef.client.user.id!,
+        user_id:userId,
         created_at:now,
       };
       return { localMessage, message: localMessage, sendOptions:{} };
