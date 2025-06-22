@@ -110,7 +110,7 @@ urlpatterns = [
         name="room-draft",
     ),
     path(
-        "api/rooms/<str:room_uuid>/config/",
+        "api/rooms/<str:cid>/config/",
         RoomConfigView.as_view(),
         name="room-config",
     ),
