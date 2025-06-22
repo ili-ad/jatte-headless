@@ -205,12 +205,11 @@ declare module 'stream-chat' {
     initTimers(): void;
     clearTimers(): void;
   }
-  export class FixedSizeQueueCache<T> {
-    constructor(limit: number);
-    enqueue(item: T): void;
-    dequeue(): T | undefined;
-    peek(): T | undefined;
-    readonly size: number;
+  export class FixedSizeQueueCache<K, T> {
+    constructor(size: number, options?: { dispose: (key: K, value: T) => void });
+    add(key: K, value: T): void;
+    peek(key: K): T | undefined;
+    get(key: K): T | undefined;
   }
   export interface MessageComposerState {
     text: string;
