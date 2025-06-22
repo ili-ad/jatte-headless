@@ -11,4 +11,12 @@ describe('FixedSizeQueueCache', () => {
     expect(q.dequeue()).toBe(3);
     expect(q.dequeue()).toBeUndefined();
   });
+
+  test('peek returns the first item without removing', () => {
+    const q = new FixedSizeQueueCache<number>(3);
+    q.enqueue(5);
+    q.enqueue(6);
+    expect(q.peek()).toBe(5);
+    expect(q.size).toBe(2);
+  });
 });

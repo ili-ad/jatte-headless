@@ -451,6 +451,10 @@ export class FixedSizeQueueCache<T> {
     return this.items.shift();
   }
 
+  peek(): T | undefined {
+    return this.items[0];
+  }
+
   get size() {
     return this.items.length;
   }
