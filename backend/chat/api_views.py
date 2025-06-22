@@ -548,6 +548,43 @@ class RoomMembersView(APIView):
         return Response([{"id": name} for name in sorted(names)])
 
 
+class RoomMembersCIDView(APIView):
+    """Return paginated members for the room identified by cid."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, cid: str):
+        try:
+            _, room_uuid = cid.split(":", 1)
+        except ValueError:
+            return Response({"detail": "Invalid cid"}, status=400)
+
+        room = get_object_or_404(Room, uuid=room_uuid)
+
+        limit_param = request.query_params.get("limit")
+        offset_param = request.query_params.get("offset")
+        try:
+            limit = int(limit_param) if limit_param is not None else 20
+            offset = int(offset_param) if offset_param is not None else 0
+        except ValueError:
+            return Response({"detail": "Invalid pagination"}, status=400)
+
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
+
+        names = set(room.messages.values_list("sent_by", flat=True))
+        if room.client:
+            names.add(room.client)
+        if room.agent:
+            names.add(room.agent.username)
+
+        sorted_names = sorted(names)
+        page = sorted_names[offset : offset + limit]
+        data = [{"id": n, "role": "member", "banned": False} for n in page]
+        return Response(data)
+
+
 class RoomPinnedMessagesView(APIView):
     """Return messages pinned in the given room."""
 
