@@ -1,13 +1,72 @@
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.conf import settings
+from jwt import PyJWKClient
+import jwt
 
-@csrf_exempt
-def ws_auth(_request):
-    return JsonResponse({"auth": "ok"})
+@api_view(["GET"])
+def ws_auth(request):
+    """Return a signed websocket URL for authenticated requests."""
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return Response(status=403)
+    token = auth.split()[1]
+    try:
+        jwt.decode(
+            token,
+            settings.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            options={"verify_aud": False},
+            leeway=30,
+        )
+    except jwt.PyJWTError:
+        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
+        try:
+            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+            jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+            )
+        except jwt.PyJWTError:
+            return Response(status=403)
 
-@csrf_exempt
-def connection_id(_request):
-    return JsonResponse({"connection_id": "local"})
+    exp = timezone.now() + timezone.timedelta(minutes=5)
+    ws_token = jwt.encode({"exp": int(exp.timestamp())}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    ws_url = f"ws://{request.get_host()}/ws/?token={ws_token}"
+    return Response({"auth": ws_url, "expires": exp.isoformat()})
+
+@api_view(["GET"])
+def connection_id(request):
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return Response(status=403)
+    token = auth.split()[1]
+    try:
+        jwt.decode(
+            token,
+            settings.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            options={"verify_aud": False},
+            leeway=30,
+        )
+    except jwt.PyJWTError:
+        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
+        try:
+            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+            jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+            )
+        except jwt.PyJWTError:
+            return Response(status=403)
+    return Response({"connection_id": "local"})
 
 @csrf_exempt
 def ok(_request):

@@ -29,7 +29,8 @@ class SupabaseAuthAPITests(APITestCase):
         with patch("jwt.PyJWKClient.fetch_data", return_value=jwks):
             res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data, {"status": "ok"})
+        self.assertIn("auth", res.data)
+        self.assertIn("expires", res.data)
 
     def test_dev_token_endpoint(self):
         priv, jwks = make_keys()
