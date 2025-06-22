@@ -18,8 +18,11 @@ test('unarchive posts to backend endpoint', async () => {
 
   await channel.unarchive();
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/unarchive/', {
+  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/unarchive', {
     method: 'POST',
-    headers: { Authorization: 'Bearer jwt-test' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer jwt-test',
+    },
   });
 });

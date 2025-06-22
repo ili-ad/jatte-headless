@@ -109,6 +109,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Disable Django's automatic slash-appending behavior. The optional
+# trailing-slash patterns in `urls.py` will handle old bookmarks.
+APPEND_SLASH = False
+
 ROOT_URLCONF = 'jatte.urls'
 
 TEMPLATES = [
