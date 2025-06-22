@@ -221,6 +221,19 @@ declare module 'stream-chat' {
   export class MessageComposer {
     contextType: 'message';
     state: MessageComposerState;
+    attachmentManager: {
+      state: StateStore<AttachmentManagerState>;
+      availableUploadSlots: number;
+      addFiles(files: File[]): Promise<void>;
+      removeAttachment(id: string): void;
+      replaceAttachment(oldAtt: any, newAtt: any): void;
+    };
+    linkPreviewsManager: {
+      state: StateStore<LinkPreviewsManagerState>;
+      add(url: string): Promise<LinkPreview>;
+      remove(url: string): void;
+      clear(): void;
+    };
     reset(): void;
     setText(text: string): void;
     addAttachment(att: any): void;

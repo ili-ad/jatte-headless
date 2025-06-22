@@ -494,6 +494,61 @@ export interface MessageComposerConfig {
 export class MessageComposer {
   contextType: 'message' = 'message';
   state: MessageComposerState = { text: '', attachments: [] };
+  attachmentManager: {
+    state: StateStore<AttachmentManagerState>;
+    availableUploadSlots: number;
+    addFiles(files: File[]): Promise<void>;
+    removeAttachment(id: string): void;
+    replaceAttachment(oldAtt: any, newAtt: any): void;
+  };
+  linkPreviewsManager: {
+    state: StateStore<LinkPreviewsManagerState>;
+    add(url: string): Promise<LinkPreview>;
+    remove(url: string): void;
+    clear(): void;
+  };
+
+  constructor(_config: MessageComposerConfig = {}) {
+    const attState = new StateStore<AttachmentManagerState>({ attachments: [] });
+    this.attachmentManager = {
+      state: attState,
+      availableUploadSlots: 10,
+      async addFiles(files: File[]) {
+        const list = [...attState.getLatestValue().attachments];
+        for (const f of files) list.push({ id: `local-${Date.now()}`, file: f });
+        attState.dispatch({ attachments: list });
+      },
+      removeAttachment(id: string) {
+        const list = attState.getLatestValue().attachments.filter(a => a.id !== id);
+        attState.dispatch({ attachments: list });
+      },
+      replaceAttachment(oldAtt: any, newAtt: any) {
+        const list = attState.getLatestValue().attachments.map(a => a === oldAtt ? newAtt : a);
+        attState.dispatch({ attachments: list });
+      },
+    };
+
+    const lpState = new StateStore<LinkPreviewsManagerState>({ previews: new Map() });
+    const manager = new LinkPreviewsManager();
+    this.linkPreviewsManager = {
+      state: lpState,
+      async add(url: string) {
+        const preview = await manager.fetch(url);
+        const map = new Map(lpState.getLatestValue().previews);
+        map.set(url, preview);
+        lpState.dispatch({ previews: map });
+        return preview;
+      },
+      remove(url: string) {
+        const map = new Map(lpState.getLatestValue().previews);
+        map.delete(url);
+        lpState.dispatch({ previews: map });
+      },
+      clear() {
+        lpState.dispatch({ previews: new Map() });
+      },
+    };
+  }
 
   reset() {
     this.state = { text: '', attachments: [] };
