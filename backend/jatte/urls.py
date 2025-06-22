@@ -10,27 +10,59 @@ from chat.api_views import (
     RoomMessagesView,
     RoomMembersCIDView,
 )
+
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
-    path('', include('accounts_supabase.urls')),
-    path('', include('core.urls')),
-    path('admin/', admin.site.urls),
-
+    path("", include("accounts_supabase.urls")),
+    path("", include("core.urls")),
+    path("admin/", admin.site.urls),
     # Canonical API paths have no trailing slash; regex allows the old form.
-    re_path(r'^api/token/?$', TokenView.as_view(), name='token-obtain'),
+    re_path(r"^api/token/?$", TokenView.as_view(), name="token-obtain"),
 ]
 
 urlpatterns += [
     path("api/ws-auth/", api.ws_auth, name="ws-auth"),
+    re_path(r"^api/ws-auth/?$", api.ws_auth),
     path("api/connection-id/", api.connection_id, name="connection-id"),
-    path("api/register-subscriptions/", api.register_subscriptions, name="register-subscriptions"),
-    path("api/editing-audit-state/", api.editing_audit_state, name="editing-audit-state"),
-    path("api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"),
-    path("api/rooms/<str:cid>/messages/", RoomMessagesView.as_view(), name="room-messages-cid"),
+    re_path(r"^api/connection-id/?$", api.connection_id),
+    path(
+        "api/register-subscriptions/",
+        api.register_subscriptions,
+        name="register-subscriptions",
+    ),
+    re_path(r"^api/register-subscriptions/?$", api.register_subscriptions),
+    path(
+        "api/editing-audit-state/", api.editing_audit_state, name="editing-audit-state"
+    ),
+    re_path(r"^api/editing-audit-state/?$", api.editing_audit_state),
+    path(
+        "api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"
+    ),
+    re_path(r"^api/rooms/(?P<room_uuid>[^/]+)/draft/?$", RoomDraftView.as_view()),
+    path(
+        "api/rooms/<str:cid>/messages/",
+        RoomMessagesView.as_view(),
+        name="room-messages-cid",
+    ),
+    re_path(r"^api/rooms/(?P<cid>[^/]+)/messages/?$", RoomMessagesView.as_view()),
     path("api/rooms/<str:cid>/config/", RoomConfigView.as_view(), name="room-config"),
-    path("api/rooms/<str:cid>/members/", RoomMembersCIDView.as_view(), name="room-members-cid"),
-    path("api/rooms/<str:room_uuid>/config-state/", RoomConfigStateView.as_view(), name="room-config-state"),
+    re_path(r"^api/rooms/(?P<cid>[^/]+)/config/?$", RoomConfigView.as_view()),
+    path(
+        "api/rooms/<str:cid>/members/",
+        RoomMembersCIDView.as_view(),
+        name="room-members-cid",
+    ),
+    re_path(r"^api/rooms/(?P<cid>[^/]+)/members/?$", RoomMembersCIDView.as_view()),
+    path(
+        "api/rooms/<str:room_uuid>/config-state/",
+        RoomConfigStateView.as_view(),
+        name="room-config-state",
+    ),
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/config-state/?$",
+        RoomConfigStateView.as_view(),
+    ),
 ]
 
 # If you want the DEV stub only in DEBUG:
