@@ -894,13 +894,29 @@ class WsAuthView(APIView):
 
 
 class ConnectionIDView(APIView):
-    """Return a random connection identifier."""
+    """Return a stable connection identifier for the session."""
 
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return Response({"connection_id": uuid.uuid4().hex})
+        cid = request.session.get("connection_id")
+        if not cid:
+            from .utils import generate_snowflake
+
+            cid = str(generate_snowflake())
+            request.session["connection_id"] = cid
+
+        try:
+            import redis
+            from django.conf import settings
+
+            r = redis.Redis(host=settings.REDIS_HOST, decode_responses=True)
+            r.set(f"cid:{cid}", request.user.username, ex=60)
+        except Exception:
+            pass
+
+        return Response({"connection_id": cid})
 
 
 class ContextTypeView(APIView):
