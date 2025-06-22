@@ -104,7 +104,7 @@ export class Channel {
                     return {
                         state: store,
                         async add(url: string) {
-                            const res = await fetch(API.LINK_PREVIEW, {
+                            const res = await apiFetch(API.LINK_PREVIEW, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export class Channel {
                     poll: undefined as any,
                 }),
                 async create(question: string, options: string[] = []) {
-                    const res = await fetch(API.POLLS, {
+                    const res = await apiFetch(API.POLLS, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export class Channel {
                 async remove() {
                     const poll = this.state.getSnapshot().poll;
                     if (!poll) return;
-                    await fetch(`${API.POLLS}${poll.id}/`, {
+                    await apiFetch(`${API.POLLS}${poll.id}/`, {
                         method: 'DELETE',
                         headers: {
                             Authorization: `Bearer ${channelRef.client['jwt']}`,
@@ -178,7 +178,7 @@ export class Channel {
                     const token = channelRef.client['jwt'];
                     if (!token) return;
                     const { draftUpdate, stateUpdate } = editingAuditState.getSnapshot().lastChange;
-                    await fetch(API.EDITING_AUDIT_STATE, {
+                    await apiFetch(API.EDITING_AUDIT_STATE, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -305,7 +305,7 @@ export class Channel {
                     ];
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        fetch(API.REGISTER_SUBSCRIPTIONS, {
+                        apiFetch(API.REGISTER_SUBSCRIPTIONS, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${token}` },
                         }).catch(() => { /* ignore network errors */ });
@@ -399,7 +399,7 @@ export class Channel {
                     this.state._set({ quotedMessage: msg });
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        fetch(API.QUOTED_MESSAGE, {
+                        apiFetch(API.QUOTED_MESSAGE, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -518,7 +518,7 @@ export class Channel {
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
-        const res = await fetch(`${API.ROOMS}${this.uuid}/config/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('getConfig failed');
@@ -561,7 +561,7 @@ export class Channel {
     /** Fetch initial state without opening a websocket */
     async query() {
         try {
-            const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -585,7 +585,7 @@ export class Channel {
                 }
             }
 
-            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -606,7 +606,7 @@ export class Channel {
 
         /* initial history + read row */
         try {
-            const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -627,7 +627,7 @@ export class Channel {
                 });
             }
 
-            const memRes = await fetch(`${API.ROOMS}${this.uuid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -724,7 +724,7 @@ export class Channel {
         if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
             payload.show_in_channel = true;
         }
-        const res = await fetch(`${API.ROOMS}${this.uuid}/messages/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -754,7 +754,7 @@ export class Channel {
 
     /** Delete a message by id */
     async deleteMessage(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -769,7 +769,7 @@ export class Channel {
 
     /** Update a message's text */
     async updateMessage(messageId: string, text: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -788,7 +788,7 @@ export class Channel {
 
     /** Fetch a single message by id and update local state */
     async editedMessage(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('editedMessage failed');
@@ -802,7 +802,7 @@ export class Channel {
 
     /** Restore a previously deleted message */
     async restore(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/restore/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/restore/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -817,7 +817,7 @@ export class Channel {
 
     /** Send a reaction to a message */
     async sendReaction(messageId: string, type: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/reactions/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -831,7 +831,7 @@ export class Channel {
 
     /** Send an action for a message */
     async sendAction(messageId: string, action: Record<string, unknown>) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/actions/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/actions/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -845,7 +845,7 @@ export class Channel {
 
     /** Flag a message for moderation */
     async flagMessage(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/flag/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/flag/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -855,7 +855,7 @@ export class Channel {
 
     /** Pin a message */
     async pin(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/pin/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/pin/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -864,7 +864,7 @@ export class Channel {
 
     /** Unpin a message */
     async unpin(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/unpin/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/unpin/`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -884,7 +884,7 @@ export class Channel {
 
     /** Fetch reactions for a given message */
     async queryReactions(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/reactions/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('queryReactions failed');
@@ -892,7 +892,7 @@ export class Channel {
     }
     /** Delete a reaction */
     async deleteReaction(messageId: string, reactionId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/reactions/${reactionId}/`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -902,7 +902,7 @@ export class Channel {
 
     /** Fetch replies to a given message */
     async getReplies(messageId: string) {
-        const res = await fetch(`${API.MESSAGES}${messageId}/replies/`, {
+        const res = await apiFetch(`${API.MESSAGES}${messageId}/replies/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('getReplies failed');
@@ -960,7 +960,7 @@ export class Channel {
 
     /** Fetch cooldown value for this channel */
     async cooldown() {
-        const res = await fetch(`${API.COOLDOWN}${this.uuid}/cooldown/`, {
+        const res = await apiFetch(`${API.COOLDOWN}${this.uuid}/cooldown/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('cooldown failed');
