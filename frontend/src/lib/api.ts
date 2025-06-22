@@ -9,6 +9,14 @@ export async function apiFetch(path: string, opts?: RequestInit) {
     headers: { 'Content-Type': 'application/json', ...(opts?.headers || {}) },
   });
   if (res.status === 401 || res.status === 403) {
+    let body = '';
+    try {
+      body = await res.clone().text();
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line no-console
+    console.warn('apiFetch auth error', { path, status: res.status, body });
     const now = Date.now();
     if (now - lastToast > 60000) {
       lastToast = now;
