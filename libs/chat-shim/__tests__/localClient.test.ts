@@ -37,4 +37,10 @@ describe('LocalChatClient', () => {
     client.setUserAgent('my-agent/1.0');
     expect(client.getUserAgent()).toBe('my-agent/1.0');
   });
+
+  test('has threads register/unregister stubs', () => {
+    const client = new LocalChatClient();
+    expect(typeof client.threads.registerSubscriptions).toBe('function');
+    expect(typeof client.threads.unregisterSubscriptions).toBe('function');
+  });
 });
