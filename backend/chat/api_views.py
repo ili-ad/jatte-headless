@@ -428,21 +428,23 @@ class PollDetailView(APIView):
         return Response(status=204)
 
 class RoomConfigView(APIView):
-    """Return configuration flags for the given room."""
+    """Return basic metadata for the given room."""
+
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request, room_uuid):
-        # For now return static configuration matching adapter defaults
-        get_object_or_404(Room, uuid=room_uuid)
-        return Response(
-            {
-                "typing_events": True,
-                "read_events": True,
-                "reactions": True,
-                "uploads": True,
-            }
-        )
+    def get(self, request, cid: str):
+        try:
+            room_type, room_uuid = cid.split(":", 1)
+        except ValueError:
+            return Response({"detail": "Invalid cid"}, status=400)
+
+        room = get_object_or_404(Room, uuid=room_uuid)
+
+        name = room.data.get("name") if room.data else None
+        muted = RoomMute.objects.filter(user=request.user, room=room).exists()
+
+        return Response({"name": name, "type": room_type, "muted": muted})
 
 class RoomConfigStateView(APIView):
     """Return message composer configuration for the room."""
