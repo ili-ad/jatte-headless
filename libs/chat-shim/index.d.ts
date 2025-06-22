@@ -58,6 +58,7 @@ declare module 'stream-chat' {
     readonly cid: string;
     readonly state: ChannelState;
     readonly stateStore: StateStore<ChannelState>;
+    readonly messageComposer: MessageComposer;
     watch(): Promise<LocalChannel>;
     sendMessage(msg: { text: string }): Promise<void>;
     on(evt: string, cb: (ev: any) => void): { unsubscribe(): void };
@@ -214,11 +215,16 @@ declare module 'stream-chat' {
     text: string;
     attachments: any[];
   }
+  export interface MessageComposerConfig {
+    [k: string]: any;
+  }
   export class MessageComposer {
+    contextType: 'message';
     state: MessageComposerState;
     reset(): void;
     setText(text: string): void;
     addAttachment(att: any): void;
+    submit(send?: (text: string) => void): void;
   }
   export enum VotingVisibility {
     anonymous = 'anonymous',

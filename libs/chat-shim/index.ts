@@ -38,6 +38,9 @@ export class LocalChannel {
   /** Minimal state object mimicking Stream's ChannelState */
   readonly state: ChannelState;
 
+  /** Minimal message composer so <MessageInput> works */
+  readonly messageComposer: MessageComposer;
+
   /** Store wrapper used by Stream UI hooks */
   readonly stateStore: StateStore<ChannelState>;
   private getUserId: () => string;
@@ -49,6 +52,13 @@ export class LocalChannel {
     this.getUserId = getUid;
     this.state = new ChannelState(patch => this.stateStore.dispatch(patch));
     this.stateStore = new StateStore(this.state);
+    this.messageComposer = new MessageComposer();
+    this.messageComposer.submit = () => {
+      const text = this.messageComposer.state.text.trim();
+      if (!text) return;
+      this.sendMessage({ text });
+      this.messageComposer.reset();
+    };
   }
 
   async watch() {
@@ -453,7 +463,12 @@ export interface MessageComposerState {
   attachments: any[];
 }
 
+export interface MessageComposerConfig {
+  [k: string]: any;
+}
+
 export class MessageComposer {
+  contextType: 'message' = 'message';
   state: MessageComposerState = { text: '', attachments: [] };
 
   reset() {
@@ -466,6 +481,14 @@ export class MessageComposer {
 
   addAttachment(att: any) {
     this.state.attachments.push(att);
+  }
+
+  /** simple helper used by LocalChannel */
+  submit(send?: (text: string) => void) {
+    const text = this.state.text.trim();
+    if (!text || !send) return;
+    send(text);
+    this.reset();
   }
 }
 
