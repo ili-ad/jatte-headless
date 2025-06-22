@@ -103,3 +103,34 @@ def members(_request, cid):
 @csrf_exempt
 def messages(_request, cid):
     return JsonResponse({"messages": []})
+
+
+@api_view(["POST"])
+def register_subscriptions(request):
+    """Register web push subscriptions and echo them back."""
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return Response(status=403)
+    token = auth.split()[1]
+    try:
+        jwt.decode(
+            token,
+            settings.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            options={"verify_aud": False},
+            leeway=30,
+        )
+    except jwt.PyJWTError:
+        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
+        try:
+            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+            jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+            )
+        except jwt.PyJWTError:
+            return Response(status=403)
+
+    return Response({"subscriptions": request.data})
