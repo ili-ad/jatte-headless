@@ -65,10 +65,38 @@ declare module 'stream-chat' {
   export function isLocalFileAttachment(a: any): boolean;
   //export type  = any;
   export function localMessageToNewMessagePayload(local: LocalMessage): Message;
-  export type ChannelSearchSource = any;
-  export type MessageSearchSource = any;
-  export type SearchController = any;
-  export type UserSearchSource = any;
+  export interface SearchSourceState {
+    isLoading: boolean;
+  }
+  export enum SearchSourceType {
+    channel = 'channel',
+    message = 'message',
+    user = 'user',
+  }
+  export interface SearchSource {
+    type: SearchSourceType;
+    state: StateStore<SearchSourceState>;
+    query(text: string): Promise<any[]>;
+  }
+  export abstract class BaseSearchSource implements SearchSource {
+    readonly state: StateStore<SearchSourceState>;
+    abstract type: SearchSourceType;
+    constructor(client: any);
+    query(text: string): Promise<any[]>;
+  }
+  export class ChannelSearchSource extends BaseSearchSource {}
+  export class MessageSearchSource extends BaseSearchSource {}
+  export class UserSearchSource extends BaseSearchSource {}
+  export interface SearchControllerState {
+    focusedMessage?: any;
+    sources: SearchSource[];
+  }
+  export class SearchController {
+    readonly state: StateStore<SearchControllerState>;
+    readonly _internalState: StateStore<SearchControllerState>;
+    constructor(opts?: { sources?: SearchSource[] });
+    query(query: string): Promise<any[]>;
+  }
   export class StateStore<T = any> {
     constructor(init: T);
     getState(): T;
@@ -76,6 +104,8 @@ declare module 'stream-chat' {
     subscribe(cb: () => void): () => void;
     subscribeWithSelector<O>(selector: (v: T) => O, cb: () => void): () => void;
     dispatch(patch: Partial<T>): void;
+    partialNext(patch: Partial<T>): void;
+    next(patch: Partial<T>): void;
   }
   export function formatMessage(text: string): string;
   export interface LinkPreview {
@@ -128,7 +158,6 @@ declare module 'stream-chat' {
     anonymous = 'anonymous',
     public = 'public',
   }
-  export type BaseSearchSource = any;
   export type getTokenizedSuggestionDisplayName = any;
   export function getTriggerCharWithToken(
     text: string,
