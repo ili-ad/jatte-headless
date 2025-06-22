@@ -1,54 +1,53 @@
 // libs/chat-shim/index.ts
 /* -------------------------------- Channel -------------------------------- */
 
+export class ChannelState {
+  messages: any[] = [];
+  messagePagination = { hasPrev: false, hasNext: false };
+  read: Record<string, any> = {};
+  watchers: Record<string, any> = {};
+  members: Record<string, any> = {};
+  pinnedMessages: any[] = [];
+  typing: Record<string, any> = {};
+  threads: Record<string, any[]> = {} as any;
+
+  constructor(private notify: (patch: Partial<ChannelState>) => void = () => {}) {}
+
+  addMessageSorted(msg: any) {
+    this.messages.push(msg);
+    this.notify({ messages: this.messages });
+  }
+  filterErrorMessages() {
+    this.messages = this.messages.filter(m => m.type !== 'error');
+    this.notify({ messages: this.messages });
+  }
+  removeMessage(msg: any) {
+    this.messages = this.messages.filter(m => m.id !== msg.id);
+    this.notify({ messages: this.messages });
+  }
+  countUnread(userId: string) {
+    const me = this.read[userId];
+    return me ? me.unread_messages : 0;
+  }
+}
+
 export class LocalChannel {
   readonly type: string;
   readonly id: string;
   private listeners = new Map<string, Set<(ev: any) => void>>();
   /** Minimal state object mimicking Stream's ChannelState */
-  readonly state: {
-    messages: any[];
-    messagePagination: { hasPrev: boolean; hasNext: boolean };
-    read: Record<string, any>;
-    watchers: Record<string, any>;
-    members: Record<string, any>;
-    pinnedMessages: any[];
-    typing: Record<string, any>;
-    threads: Record<string, any[]>;
-    addMessageSorted(msg: any): void;
-    filterErrorMessages(): void;
-    removeMessage(msg: any): void;
-  };
+  readonly state: ChannelState;
 
   /** Store wrapper used by Stream UI hooks */
-  readonly stateStore: StateStore<typeof this.state>;
+  readonly stateStore: StateStore<ChannelState>;
+  private getUserId: () => string;
 
-  constructor(readonly cid: string, private sock: WebSocket) {
+  constructor(readonly cid: string, private sock: WebSocket, getUid: () => string) {
     const [type, id] = cid.split(':');
     this.type = type;
     this.id = id ?? '';
-    this.state = {
-      messages: [],
-      messagePagination: { hasPrev: false, hasNext: false },
-      read: {},
-      watchers: {},
-      members: {},
-      pinnedMessages: [],
-      typing: {},
-      threads: {},
-      addMessageSorted: (msg: any) => {
-        this.state.messages.push(msg);
-        this.stateStore.dispatch({ messages: this.state.messages });
-      },
-      filterErrorMessages: () => {
-        this.state.messages = this.state.messages.filter(m => m.type !== 'error');
-        this.stateStore.dispatch({ messages: this.state.messages });
-      },
-      removeMessage: (msg: any) => {
-        this.state.messages = this.state.messages.filter(m => m.id !== msg.id);
-        this.stateStore.dispatch({ messages: this.state.messages });
-      },
-    };
+    this.getUserId = getUid;
+    this.state = new ChannelState(patch => this.stateStore.dispatch(patch));
     this.stateStore = new StateStore(this.state);
   }
 
@@ -83,6 +82,11 @@ export class LocalChannel {
   /** Return basic configuration flags expected by Stream UI */
   getConfig() {
     return { typing_events: true, read_events: true };
+  }
+
+  /** Return unread count for the current user */
+  countUnread() {
+    return this.state.countUnread(this.getUserId());
   }
 }
 
@@ -206,7 +210,7 @@ export class LocalChatClient {
   channel(type: string, id?: string) {
     const cid = `${type}:${id ?? 'local'}`;
     if (!this.channels.has(cid)) {
-      const chan = new LocalChannel(cid, this.sock);
+      const chan = new LocalChannel(cid, this.sock, () => this.userId);
       this.channels.set(cid, chan);
       this.activeChannels[cid] = chan;
       (this.state.channels as Map<string, any>).set(cid, chan);

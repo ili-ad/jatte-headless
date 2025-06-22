@@ -107,7 +107,20 @@ declare module 'stream-chat' {
   export type ChannelAPIResponse = any;
   export type ChannelMemberResponse = any;
   export type ChannelQueryOptions = any;
-  export type ChannelState = any;
+  export class ChannelState {
+    messages: any[];
+    messagePagination: { hasPrev: boolean; hasNext: boolean };
+    read: Record<string, any>;
+    watchers: Record<string, any>;
+    members: Record<string, any>;
+    pinnedMessages: any[];
+    typing: Record<string, any>;
+    threads: Record<string, any[]>;
+    addMessageSorted(msg: any): void;
+    filterErrorMessages(): void;
+    removeMessage(msg: any): void;
+    countUnread(userId: string): number;
+  }
   export type ErrorFromResponse = any;
   export type EventAPIResponse = any;
   export type LocalMessage = any;
