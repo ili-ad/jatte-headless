@@ -4,6 +4,7 @@ import type { Message, ChatEvents } from './types';
 import { ChatClient } from './ChatClient';
 import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
+import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 
 /* ──────────────────────────────────────────────────────────────── */
@@ -525,6 +526,7 @@ export class Channel {
         const res = await apiFetch(`${API.ROOMS}${this.uuid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
+        if (res.status === 403) throw new AuthError('Unauthenticated');
         if (!res.ok) throw new Error('getConfig failed');
         return await res.json();
     }

@@ -2,12 +2,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from accounts_supabase.authentication import SupabaseJWTAuthentication
+from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from accounts.models import UserProfile
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
-    authentication_classes = [SupabaseJWTAuthentication]  
+    authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

@@ -74,7 +74,7 @@ INSTALLED_APPS = [
 # REST framework configuration
 REST_FRAMEWORK = {
      "DEFAULT_AUTHENTICATION_CLASSES": (
-         "accounts_supabase.authentication.SupabaseJWTAuthentication",
+         "accounts_supabase.authentication.DevTokenOrJWTAuthentication",
          #"jatte.auth.supabase.SupabaseJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
