@@ -30,12 +30,23 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19",
     "@types/webpack": "5.28.5",
+    "autoprefixer": "10.4.21",
     "browserslist": "^4.25.0",
     "caniuse-lite": "^1.0.30001723",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "postcss": "8.5.6",
+    "tailwindcss": "4.1.10",
     "turbo": "^1.13.0",
     "typescript": "^5",
     "vitest": "^1.5.0"
-  }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "tailwindcss",
+      "@tailwindcss/oxide",
+      "esbuild",
+      "sharp"
+    ]
+  }  
 }
