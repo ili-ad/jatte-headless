@@ -5,7 +5,8 @@ declare module 'stream-chat' {
     channel(type: string, id: string): any;
     disconnectUser(): void;
     devToken(uid: string): string;
-    setUserAgent(): void;
+    getUserAgent(): string;
+    setUserAgent(ua: string): void;
   }
 
   /** Compatibility singleton (mimics StreamChat.getInstance) */
