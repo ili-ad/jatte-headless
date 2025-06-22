@@ -243,7 +243,8 @@ export class ChatClient {
         } catch {
             /* ignore network errors */
         }
-        const res = await fetch(API.SYNC_USER, {
+        const syncUserURL = API.SYNC_USER.endsWith('/') ? API.SYNC_USER : `${API.SYNC_USER}/`;
+        const res = await fetch(syncUserURL, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
