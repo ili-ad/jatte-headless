@@ -1,42 +1,64 @@
-Unit-test first (Jest in frontend or libs scope).
+# AGENTS — Production‑grade Stream‑compat layer
 
-Write impl in libs/chat-shim (not in generated file!).
+> **Goal**  Build out the nine stubbed HTTP / WebSocket surfaces into fully‑featured, secure, horizontally‑scalable services so that the React Stream UI kit behaves exactly as if it were talking to getstream.io.
+>
+> Keep the work divisible ➜ each row is an **independent agent task** that can be shipped, tested, and rolled‑back in isolation.
 
-Remove the corresponding type … = any and the value stub from generated.d.ts.
+---
 
-Ensure pnpm --filter frontend test && build pass.
+## Legend
 
-Mark ☐ to ✅ EVEN IF TESTING FAILS!!! If testing fails, simply make note of it in a brief log below the table.
+| Emoji | Meaning                           |
+| ----- | --------------------------------- |
+| ☐     | **Todo** – not started            |
+| ◔     | **In Progress**                   |
+| ✔︎    | **Done / merged to `main`**       |
+| ⊟     | **Blocked** – external dependency |
 
-| ID     | Implement / expose                                                                                                                                                                                                                                                    | Key symbols covered                               | Est LOC |     |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------- |-----|
-| **A1** | **Attachment type-guards ②** – `isLocalAudioAttachment`, `isLocalFileAttachment`, `isLocalImageAttachment`                                                                                                                                                            | three fns                                         | 90      |  ✅ |
-| **A2** | **Attachment type-guards ②b** – `isLocalVideoAttachment`, `isLocalVoiceRecordingAttachment`, `isLocalUploadAttachment`                                                                                                                                                | three fns                                         | 90      |  ☐  |
-| **A3** | **Attachment helpers – misc**<br>`Attachment`, `LocalAttachment`, `AnyLocalAttachment`, `LocalAudioAttachment`, `LocalVideoAttachment`, `LocalImageAttachment`, `LocalFileAttachment`, `LocalVoiceRecordingAttachment`, `LocalUploadAttachment` (plain TS interfaces) | 9 types                                           | 60      |  ☐  |
-| **A4** | `LinkPreviewsManager` (+ state interface)                                                                                                                                                                                                                             | class + `LinkPreviewsManagerState`, `LinkPreview` | 110     |  ☐  |
-| **A5** | **Message formatter utilities** – `formatMessage`, `replaceWordWithEntity`, `insertItemWithTrigger`, `getTriggerCharWithToken`, `getTokenizedSuggestionDisplayName`                                                                                                   | 5 fns                                             | 110     |  ☐  |
-| **A6** | `FixedSizeQueueCache<T>` (ring-buffer)                                                                                                                                                                                                                                | class                                             | 80      |  ✅  |
-| **A7** | `MessageComposer`, `MessageComposerState`, `MessageComposerConfig` (minimal)                                                                                                                                                                                          | class + 2 interfaces                              | 110     |  ✅  |
-| **A8** | `AttachmentManagerState` interface + `LinkPreviewsManager.fetch` integration with composer                                                                                                                                                                            | interface + patch                                 | 80      |  ☐  |
-| **A9** | **Search scaffolding** – `SearchController`, `SearchControllerState`, `BaseSearchSource`, `SearchSource`, `SearchSourceType`, `ChannelSearchSource`, `MessageSearchSource`, `UserSearchSource`, `SearchSourceState`                                                   | 9 symbols                                         | 90      |  ☐  |
-| **B0** | **Search helpers** – `localMessageToNewMessagePayload`, `getTriggerCharWithToken` adapt for search                                                                                                                                                                    | 2 fns                                             | 60      |  ☐  |
-| **B1** | **State store** – tiny Redux-like `StateStore<T>` with `subscribe`/`dispatch`                                                                                                                                                                                         | interface + impl                                  | 100     |  ☐  |
-| **B2** | `NotificationManagerState`, `Notification` union, plus helper `addNotification()`                                                                                                                                                                                     | interface + fn                                    | 90      |  ☐  |
-| **B3** | `VotingVisibility` enum, `PollVote`, `isVoteAnswer`, `Poll`, `PollState`, `PollOption`, `PollAnswer`                                                                                                                                                                  | 7 symbols                                         | 90      |  ✅  |
-| **B4** | `PollComposerState`, `PollOptionVotesQueryParams`, `PollAnswersQueryParams` helpers                                                                                                                                                                                   | 3                                                 | 60      |  ☐  |
-| **B5** | `Reminder`, `ReminderState`, `ReminderManagerState` minimal scheduler (setTimeout mock)                                                                                                                                                                               | 3                                                 | 100     |  ☐  |
-| **B6** | Basic `Thread` + `ThreadState`, `ThreadManagerState`, `Thread` helpers                                                                                                                                                                                                | 3                                                 | 100     |  ☐  |
-| **B7** | **Channel filtering/sorting**<br>`ChannelFilters`, `ChannelSort`, `ChannelSortBase`, `ChannelOptions`, `ChannelQueryOptions`                                                                                                                                          | 5                                                 | 90      |  ☐  |
-| **B8** | Channel API stubs ① – types only: `ChannelAPIResponse`, `ChannelResponse`, `ChannelConfigWithInfo`                                                                                                                                                                    | 3 types                                           | 40      |  ☐  |
-| **B9** | Channel API stubs ② – runtime helpers: `ChannelState` (class with basic unread count)                                                                                                                                                                                 | class                                             | 100     |  ✅  |
-| **C0** | **User & auth** – `User`, `UserFilters`, `UserSort`, `UserOptions`, `UsersAPIResponse`, `OwnUserResponse`, `Mute`, `TokenOrProvider`                                                                                                                                  | 8 symbols                                         | 90      |  ☐  |
-| **C1** | `AppSettingsAPIResponse`, `StreamChatOptions` (interface / passthrough)                                                                                                                                                                                               | 2                                                 | 40      |  ☐  |
-| **C2** | **Event plumbing** – `Event`, `EventTypes`, `EventAPIResponse`, `ErrorFromResponse`, `APIErrorResponse` + helper `dispatchEvent` on `LocalChatClient`                                                                                                                 | 5 symbols + fn                                    | 110     |  ☐  |
-| **C3** | Message models – `Message`, `LocalMessage`, `LocalMessageBase`, `UpdatedMessage`, `MessageLabel`, `MessageResponse`, `SendMessageOptions`, `UpdateMessageOptions`, `SendMessageAPIResponse`, `UpdateMessageAPIResponse`                                               | 10                                                | 110     |  ☐  |
-| **C4** | Reaction models – `Reaction`, `ReactionResponse`, `ReactionSort`, `ReactionGroupResponse`                                                                                                                                                                             | 4                                                 | 80      |  ☐  |
-| **C5** | Command & search – `CommandResponse`, `SearchControllerState` hook up with SearchController                                                                                                                                                                           | 2 + glue                                          | 80      |  ☐  |
-| **C6** | `EditingAuditState` interface + `EventHandler` type                                                                                                                                                                                                                   | 2                                                 | 40      |  ☐  |
-| **C7** | `Notification` helpers – toast factory with `Message` / `Poll` overloads                                                                                                                                                                                              | fn                                                | 100     |  ☐  |
-| **C8** | Text composer helpers – `TextComposerState`, `TextComposerSuggestion` + basic mention parsing                                                                                                                                                                         | 2+ fn                                             | 110     |  ☐  |
-| **C9** | Other small value helpers – `formatMessage` extend to handle `/giphy`, `/shrug` easter eggs                                                                                                                                                                           | patch                                             | 60      |  ☐  |
-| **D0** | Remove `_Any` + `_Wildcard`, run build, ensure no lingering `any` stubs.                                                                                                                                                                                              | 10                                                |         |  ☐  |
+> Update the status glyphs in PR titles so the table stays the ground‑truth 📈
+
+---
+
+## Task board
+
+| ☐/◔/✔︎ | Endpoint / WS topic                         | Owner agent      | Deliverable                                              | Acceptance tests                                                      |
+| ------ | ------------------------------------------- | ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
+| ☐      | **`GET /api/ws-auth`**                      | `auth-agent`     | Signed WS URL & JWT validation                           | curl returns **200** JSON `{auth, expires}`; tampered token → **403** |
+| ☐      | **`GET /api/connection-id`**                | `presence-agent` | 64‑bit snowflake id + redis heartbeat                    | Jest: id is stable for same session, unique across sessions           |
+| ☐      | **`POST /api/register-subscriptions`**      | `notify-agent`   | Push‑subscription DB & VAPID key mgmt                    | Cypress: service‑worker receives push                                 |
+| ☐      | **`POST /api/editing-audit-state`**         | `collab-agent`   | OT cursor + “user is typing” broadcasts                  | WS event `editing.state` visible to peers                             |
+| ☐      | \*\*`POST /api/rooms/**`*`<cid>`*`**/draft` | `drafts-agent`   | Per‑user draft cache (Redis)                             | Unit: saving, retrieving, auto‑delete on send                         |
+| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/config`     | `config-agent`   | Channel metadata & ACL check                             | 200 with `{name,type,muted}`; unauthorized → 403                      |
+| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/messages`   | `history-agent`  | Cursor‑paginated message log (Postgres)                  | Playwright scroll‑back fetches older msgs                             |
+| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/members`    | `roster-agent`   | Paginated member list, roles, bans                       | `/members?limit=20&offset=20` returns 20                              |
+| ☐      | \*\*`WS /ws/**`*`<cid>`*`**/`               | `realtime-agent` | Channels consumer, presence, typing, new‑message fan‑out | Jest: two clients see each other’s msg in < 500 ms                    |
+
+---
+
+## Milestones
+
+| Iteration | Exit criteria                                                                                                                                                   |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MVP**   | All nine endpoints return syntactically correct JSON / WS frames (even if data is mocked). UI kit renders, sends, and receives messages with no console errors. |
+| **Beta**  | Data backed by Postgres + Redis, JWT‑based auth, basic ACLs, pagination cursors, 1 k concurrent connections. CI green.                                          |
+| **GA**    | HA deployment charts, rate‑limiting, alerting (Prom‑Grafana), OpenAPI spec, 10 k CCUs load‑test, security audit passed.                                         |
+
+---
+
+## Contributing workflow
+
+1. **Fork → feature‑branch → PR** per row. The PR template links back to this table.
+2. Each agent writes *contract tests* in `tests/contracts/`; the consumer (UI kit) doubles as black‑box test.
+3. CI matrix: Postgres 16, Redis 7, Python 3.10 – 3.12.
+4. On merge, GitHub Actions tag the row ✔︎ and post changelog to `#builds`.
+
+---
+
+## Post‑script
+
+*The map is not the territory.* These endpoints mimic Stream’s public API; we are **not** re‑implementing every niche feature up‑front. Ship thin vertical slices, observe real usage, then deepen.
+
+Questions / blockers → `@architecture‑channel` on Slack.
+
+## Also
+*Make sure APPEND_SLASH=True remains, and define every API URL with a trailing slash so the React kit keeps its “/”. (It already sends them that way.)
