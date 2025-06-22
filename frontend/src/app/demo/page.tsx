@@ -1,3 +1,5 @@
+//frontend/src/app/demo/page.tsx
+
 'use client'
 
 import { ChatProvider, useChat } from '@/lib/ChatProvider';

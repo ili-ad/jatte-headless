@@ -37,24 +37,67 @@ export class LocalChannel {
 
 /* ---------------------------- Chat-client shim --------------------------- */
 
+type Handler = (e: any) => void;
+
 export class LocalChatClient {
+  /* ------------------------------------------------------------------- */
+  /*  ░░ 1.   original fields & helpers                                  */
+  /* ------------------------------------------------------------------- */
+
   private sock!: WebSocket;
   private channels = new Map<string, LocalChannel>();
   private userId = 'anonymous';
 
-  /** Equivalent to StreamChat.connectUser */
+  devToken(uid: string) { return `${uid}.devtoken`; }
+  setUserAgent() {/* no-op */}
+
+  /* ------------------------------------------------------------------- */
+  /*  ░░ 2.   tiny event-bus so  stream-chat-react  can  .on/.off()      */
+  /* ------------------------------------------------------------------- */
+
+  private bus = new Map<string, Set<Handler>>();
+  on   = (evt: string, cb: Handler) => {
+    if (!this.bus.has(evt)) this.bus.set(evt, new Set());
+    this.bus.get(evt)!.add(cb);
+    return { unsubscribe: () => this.off(evt, cb) };
+  };
+  off  = (evt: string, cb: Handler) => this.bus.get(evt)?.delete(cb);
+  private emit = (evt: string, data: any) =>
+    this.bus.get(evt)?.forEach(cb => cb(data));
+
+  /* ------------------------------------------------------------------- */
+  /*  ░░ 3.   ultra-thin “state” & “user” objects the hook assumes exist */
+  /* ------------------------------------------------------------------- */
+
+  /** Stream’s SDK keeps run-time data in `client.state`; giving it a stub
+      (with at least `mutes`) prevents  Object.entries(undefined)  errors. */
+  readonly state = { mutes: [] as any[] };
+  /** Filled once connectUser() succeeds so Chat context has `client.user` */
+  user: { id: string } | null = null;
+  getState = () => this.state;   // some helper hooks call this
+
+  /* ------------------------------------------------------------------- */
+  /*  ░░ 4.   websocket lifecycle                                        */
+  /* ------------------------------------------------------------------- */
+
   async connectUser(user: { id: string }, jwt: string) {
     this.userId = user.id;
+
+    /* 4-a ► open WebSocket connection */
     this.sock = new WebSocket(
       `ws://${location.hostname}:8000/ws/chat/?token=${jwt}`
     );
-
     await new Promise(res => (this.sock.onopen = res as any));
 
+    /* 4-b ► fan-out inbound messages to channels */
     this.sock.onmessage = ev => {
       const data = JSON.parse(ev.data);
       this.channels.get(data.cid)?.emit(data.type, data);
     };
+
+    /* 4-c ► expose minimal user object & broadcast “online” */
+    this.user = { id: this.userId };
+    this.emit('connection.changed', { online: true });
   }
 
   channel(type: string, id: string) {
@@ -68,11 +111,8 @@ export class LocalChatClient {
   disconnectUser() {
     this.sock?.close();
     this.channels.clear();
+    this.emit('connection.changed', { online: false });
   }
-
-  /* ---- tiny helpers the real SDK exposes – makes typings happy ---- */
-  devToken(uid: string) { return `${uid}.devtoken`; }
-  setUserAgent() {/* no-op */}
 }
 
 /* ------------------------- Link preview manager ------------------------- */
@@ -375,4 +415,62 @@ export type Notification = ToastNotification | BannerNotification;
 export interface NotificationManagerState {
   notifications: Notification[];
 }
+
+/* ────────────────────────────────────────────────  SEARCH HELPERS  ── */
+/** Dumb cache used by CursorPaginator etc. */
+// export class StateStore<T = any> {
+//   #store = new Map<string, T>();
+//   get(key: string)          { return this.#store.get(key); }
+//   set(key: string, value:T) { this.#store.set(key, value); }
+//   clear()                   { this.#store.clear(); }
+// }
+
+// export class ChannelSearchSource   { search   = async () => ([]); }
+// export class MessageSearchSource   { search   = async () => ([]); }
+// export class UserSearchSource      { search   = async () => ([]); }
+
+// export class SearchController {
+//   constructor(
+//     public channelSrc  = new ChannelSearchSource(),
+//     public messageSrc  = new MessageSearchSource(),
+//     public userSrc     = new UserSearchSource(),
+//   ) {}
+//   /** parallel no-op search */
+//   async search() { return { channels: [], messages: [], users: [] }; }
+// }
+
+
+/* ------------------------------------------------------------------ */
+/*  ⚠️  RUNTIME shims required by stream-chat-react                    */
+/* ------------------------------------------------------------------ */
+
+export class StateStore<T = any> {
+  private state: T;
+  constructor(init: T) { this.state = init; }
+  getState()            { return this.state; }
+  setState(next: T)     { this.state = next; }
+}
+
+/** All three search-source classes just expose a common interface the
+ *  React SDK expects (`query`).  They never hit the network in our
+ *  local build, so a no-op is fine. */
+export class ChannelSearchSource {
+  constructor(_client: any) {}
+  query() { return Promise.resolve([]); }
+}
+export class MessageSearchSource extends ChannelSearchSource {}
+export class UserSearchSource    extends ChannelSearchSource {}
+
+/** The controller juggles multiple sources.  A stub that forwards its
+ *  methods is enough for now. */
+export class SearchController {
+  constructor(private sources: any[]) {}
+  async query(...args: any[]) {
+    const results = await Promise.all(
+      this.sources.map(s => s.query(...args))
+    );
+    return results.flat();
+  }
+}
+
 

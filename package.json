@@ -18,6 +18,7 @@
     "test": "turbo run test && jest"
   },
   "dependencies": {
-    "emoji-dictionary": "1.0.12"
+    "emoji-dictionary": "1.0.12",
+    "stream-chat-react": "13.2.0"
   }
 }
