@@ -17,7 +17,31 @@ declare module 'stream-chat' {
   export function getLocalClient(): LocalChatClient;
 
   /** Channel objects the UI works with (aliased to our LocalChannel). */
-  export type Channel = import('../../libs/chat-shim').LocalChannel; 
+  export class LocalChannel {
+    readonly cid: string;
+    readonly state: {
+      messages: any[];
+      messagePagination: { hasPrev: boolean; hasNext: boolean };
+      read: Record<string, any>;
+      watchers: Record<string, any>;
+      members: Record<string, any>;
+      pinnedMessages: any[];
+      typing: Record<string, any>;
+      threads: Record<string, any[]>;
+      addMessageSorted(msg: any): void;
+      filterErrorMessages(): void;
+      removeMessage(msg: any): void;
+    };
+    readonly stateStore: StateStore<typeof this.state>;
+    watch(): Promise<LocalChannel>;
+    sendMessage(msg: { text: string }): Promise<void>;
+    on(evt: string, cb: (ev: any) => void): { unsubscribe(): void };
+    off(evt: string, cb: (ev: any) => void): void;
+    markRead(): void;
+    getConfig(): { typing_events: boolean; read_events: boolean };
+  }
+
+  export type Channel = LocalChannel;
   
   export type AIState = any;
   export type Event    = any;

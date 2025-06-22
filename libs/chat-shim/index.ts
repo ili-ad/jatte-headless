@@ -18,6 +18,9 @@ export class LocalChannel {
     removeMessage(msg: any): void;
   };
 
+  /** Store wrapper used by Stream UI hooks */
+  readonly stateStore: StateStore<typeof this.state>;
+
   constructor(readonly cid: string, private sock: WebSocket) {
     this.state = {
       messages: [],
@@ -28,14 +31,20 @@ export class LocalChannel {
       pinnedMessages: [],
       typing: {},
       threads: {},
-      addMessageSorted: (msg: any) => { this.state.messages.push(msg); },
+      addMessageSorted: (msg: any) => {
+        this.state.messages.push(msg);
+        this.stateStore.dispatch({ messages: this.state.messages });
+      },
       filterErrorMessages: () => {
         this.state.messages = this.state.messages.filter(m => m.type !== 'error');
+        this.stateStore.dispatch({ messages: this.state.messages });
       },
       removeMessage: (msg: any) => {
         this.state.messages = this.state.messages.filter(m => m.id !== msg.id);
+        this.stateStore.dispatch({ messages: this.state.messages });
       },
     };
+    this.stateStore = new StateStore(this.state);
   }
 
   async watch() {
