@@ -437,26 +437,46 @@ export const isAudioAttachment = (a: any): boolean => {
 
 /* ------------------------- fixed size queue cache ----------------------- */
 
-export class FixedSizeQueueCache<T> {
-  private items: T[] = [];
+export class FixedSizeQueueCache<K, T> {
+  private keys: K[] = [];
+  private map = new Map<K, T>();
+  private dispose?: (key: K, value: T) => void;
 
-  constructor(private limit: number) {}
-
-  enqueue(item: T) {
-    this.items.push(item);
-    if (this.items.length > this.limit) this.items.shift();
+  constructor(private size: number, opts?: { dispose: (key: K, value: T) => void }) {
+    if (!size) throw new Error('Size must be greater than 0');
+    this.dispose = opts?.dispose;
   }
 
-  dequeue(): T | undefined {
-    return this.items.shift();
+  add(key: K, value: T) {
+    const idx = this.keys.indexOf(key);
+    if (idx > -1) {
+      this.keys.splice(idx, 1);
+    } else if (this.keys.length >= this.size) {
+      const itemKey = this.keys.shift();
+      if (itemKey !== undefined) {
+        const item = this.map.get(itemKey);
+        if (item !== undefined) this.dispose?.(itemKey, item);
+        this.map.delete(itemKey);
+      }
+    }
+    this.keys.push(key);
+    this.map.set(key, value);
   }
 
-  peek(): T | undefined {
-    return this.items[0];
+  peek(key: K): T | undefined {
+    return this.map.get(key);
   }
 
-  get size() {
-    return this.items.length;
+  get(key: K): T | undefined {
+    const val = this.map.get(key);
+    if (val !== undefined && this.keys.indexOf(key) !== this.keys.length - 1) {
+      const idx = this.keys.indexOf(key);
+      if (idx > -1) {
+        this.keys.splice(idx, 1);
+        this.keys.push(key);
+      }
+    }
+    return val;
   }
 }
 
