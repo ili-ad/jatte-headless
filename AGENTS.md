@@ -31,7 +31,7 @@
 | ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/config`     | `config-agent`   | Channel metadata & ACL check                             | 200 with `{name,type,muted}`; unauthorized → 403                      |
 | ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/messages`   | `history-agent`  | Cursor‑paginated message log (Postgres)                  | Playwright scroll‑back fetches older msgs                             |
 | ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/members`    | `roster-agent`   | Paginated member list, roles, bans                       | `/members?limit=20&offset=20` returns 20                              |
-| ☐      | \*\*`WS /ws/**`*`<cid>`*`**/`               | `realtime-agent` | Channels consumer, presence, typing, new‑message fan‑out | Jest: two clients see each other’s msg in < 500 ms                    |
+| ✔︎     | \*\*`WS /ws/**`*`<cid>`*`**/`               | `realtime-agent` | Channels consumer, presence, typing, new‑message fan‑out | Jest: two clients see each other’s msg in < 500 ms                    |
 
 ---
 
