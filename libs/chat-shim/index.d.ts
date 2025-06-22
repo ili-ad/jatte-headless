@@ -1,8 +1,12 @@
 declare module 'stream-chat' {
   /** Local replacement for Stream’s client */
   export class LocalChatClient {
+    user: { id: string } | undefined;
+    state: { channels: Map<string, any> };
+    wsConnection: { online: boolean };
     connectUser(user: { id: string }, jwt: string): Promise<void>;
-    channel(type: string, id: string): any;
+    queryUsers(): Promise<{ users: { id: string }[] }>;
+    channel(type: string, id?: string): any;
     disconnectUser(): void;
     devToken(uid: string): string;
     getUserAgent(): string;
