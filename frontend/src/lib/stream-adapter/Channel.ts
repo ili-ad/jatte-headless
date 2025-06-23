@@ -48,6 +48,7 @@ export class Channel {
         /* ──────────────── messageComposer shim ──────────────── */
         messageComposer: (() => {
             const channelRef = this;                         // capture parent
+            let registered = false;
             const getRoomKey = () => `draft:${channelRef.uuid}`;
 
             /* load any previously‑saved draft */
@@ -309,7 +310,8 @@ export class Channel {
                         this.customDataManager.state.subscribe(handler),
                     ];
                     const token = channelRef.client['jwt'];
-                    if (token) {
+                    if (token && !registered) {
+                        registered = true;
                         apiFetch(API.REGISTER_SUBSCRIPTIONS, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${token}` },
