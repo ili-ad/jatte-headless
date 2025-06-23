@@ -141,11 +141,26 @@ declare module 'stream-chat' {
   export interface LinkPreview {
     url: string;
     title: string;
+    status?: LinkPreviewStatus;
     [k: string]: any;
   }
   export class LinkPreviewsManager {
     constructor(limit?: number);
     fetch(url: string): Promise<LinkPreview>;
+    dismissPreview(url: string): void;
+    static previewIsLoading(p: LinkPreview): boolean;
+    static previewIsLoaded(p: LinkPreview): boolean;
+    static previewIsDismissed(p: LinkPreview): boolean;
+    static previewIsFailed(p: LinkPreview): boolean;
+    static previewIsPending(p: LinkPreview): boolean;
+    static getPreviewData(p: LinkPreview): Omit<LinkPreview, 'status'>;
+  }
+  export enum LinkPreviewStatus {
+    dismissed = 'dismissed',
+    failed = 'failed',
+    loaded = 'loaded',
+    loading = 'loading',
+    pending = 'pending',
   }
   export interface LinkPreviewsManagerState {
     previews: Map<string, LinkPreview>;
