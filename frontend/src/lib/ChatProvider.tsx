@@ -8,6 +8,8 @@ import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { useSession } from './SessionProvider';
 
+export const chatClient: ChatClient = getStreamClient();
+
 interface ChatContextValue {
   client: ChatClient | null;
   channel: Channel | null;
@@ -21,7 +23,7 @@ export function useChat() {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
-  const [client] = useState<ChatClient>(() => getStreamClient());
+  const [client] = useState<ChatClient>(() => chatClient);
   const [channel, setChannel] = useState<Channel | null>(null);
 
   useEffect(() => {
