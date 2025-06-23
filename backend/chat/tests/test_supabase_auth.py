@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from jwt.utils import base64url_encode
 import jwt
+from django.conf import settings
 
 
 def make_keys():
@@ -32,7 +33,7 @@ class SupabaseAuthAPITests(APITestCase):
         self.assertIn("auth", res.data)
         self.assertIn("expires", res.data)
 
-    def test_dev_token_endpoint(self):
+    def test_token_endpoint(self):
         priv, jwks = make_keys()
         token = jwt.encode({"sub": "u1", "email": "u1@example.com"}, priv, algorithm="RS256", headers={"kid": "test"})
         url = reverse("token-obtain")
@@ -40,5 +41,6 @@ class SupabaseAuthAPITests(APITestCase):
             res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["userID"], 1)
-        self.assertTrue(res.data["userToken"].endswith("devtoken"))
+        payload = jwt.decode(res.data["userToken"], settings.SUPABASE_JWT_SECRET, algorithms=["HS256"])
+        self.assertEqual(payload["user_id"], 1)
 
