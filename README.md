@@ -33,7 +33,9 @@ The `stream-chat` package remains in `devDependencies` so TypeScript types are a
 
 ### Terminology
 
-In this codebase a *message* is the persisted chat content. A *draft* is a per-user, unsent message for a room (the Draft model). When you see *post* in the logs, it refers to the HTTP verb POST, not a domain object.
+* **message** – persisted chat content, persisted via `POST /api/rooms/<room_uuid>/messages/`
+* **draft** – per-user unsent message for a room, `POST /api/rooms/<room_uuid>/draft/`
+* **POST** – HTTP verb, not a "post" model
 
 ### API trailing slashes
 
