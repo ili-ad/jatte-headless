@@ -8,7 +8,6 @@ declare module 'stream-chat' {
     queryUsers(): Promise<{ users: { id: string }[] }>;
     channel(type: string, id?: string): any;
     disconnectUser(): void;
-    devToken(uid: string): string;
     getUserAgent(): string;
     setUserAgent(ua: string): void;
     threads: {

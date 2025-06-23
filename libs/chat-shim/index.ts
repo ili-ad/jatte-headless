@@ -145,7 +145,6 @@ export class LocalChatClient {
     unregisterSubscriptions() {/* noop */},
   };
 
-  devToken(uid: string) { return `${uid}.devtoken`; }
   getUserAgent() { return this.userAgent; }
   setUserAgent(ua: string) { this.userAgent = ua; }
 
