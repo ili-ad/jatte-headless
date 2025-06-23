@@ -17,8 +17,9 @@ urlpatterns = [
     path("", include("accounts_supabase.urls")),
     path("", include("core.urls")),
     path("admin/", admin.site.urls),
-    # Canonical API paths have no trailing slash; regex allows the old form.
-    re_path(r"^api/token/?$", TokenView.as_view(), name="token-obtain"),
+    # Canonical API paths keep the trailing slash. Regex entries allow the old form.
+    path("api/token/", TokenView.as_view(), name="token-obtain"),
+    re_path(r"^api/token/?$", TokenView.as_view()),
 ]
 
 urlpatterns += [
@@ -38,9 +39,6 @@ urlpatterns += [
     re_path(r"^api/editing-audit-state/?$", api.editing_audit_state),
     path(
         "api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"
-    ),
-    path(
-        "api/rooms/<str:room_uuid>/draft", RoomDraftView.as_view()
     ),
     re_path(r"^api/rooms/(?P<room_uuid>[^/]+)/draft/?$", RoomDraftView.as_view()),
     path(

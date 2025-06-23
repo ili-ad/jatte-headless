@@ -324,7 +324,7 @@ export class Channel {
                     localStorage.setItem(getRoomKey(), text);
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        apiFetch(`/rooms/${channelRef.uuid}/draft`, {
+                        apiFetch(`/rooms/${channelRef.uuid}/draft/`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -350,7 +350,7 @@ export class Channel {
                 async getDraft() {
                     const token = channelRef.client['jwt'];
                     if (!token) return '';
-                    const res = await apiFetch(`/rooms/${channelRef.uuid}/draft`, {
+                    const res = await apiFetch(`/rooms/${channelRef.uuid}/draft/`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (!res.ok) throw new Error('getDraft failed');
@@ -469,7 +469,7 @@ export class Channel {
                     this.initState();
                     const token = channelRef.client['jwt'];
                     if (token) {
-                        apiFetch(`/rooms/${channelRef.uuid}/draft`, {
+                        apiFetch(`/rooms/${channelRef.uuid}/draft/`, {
                             method: 'DELETE',
                             headers: { Authorization: `Bearer ${token}` },
                         }).catch(() => { /* ignore network errors */ });
