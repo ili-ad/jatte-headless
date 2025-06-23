@@ -134,7 +134,14 @@ declare module 'stream-chat' {
     next(patch: Partial<T>): void;
   }
   export function useStateStore<T, O = T>(
-    store: StateStore<T> | undefined,
+    store:
+      | StateStore<T>
+      | {
+          subscribe?: (cb: () => void) => () => void;
+          getLatestValue?: () => T;
+          getSnapshot?: () => T;
+        }
+      | undefined,
     selector?: (v: T) => O,
   ): O | undefined;
   export function formatMessage(text: string): string;
