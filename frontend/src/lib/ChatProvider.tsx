@@ -5,7 +5,7 @@ import { ReactNode, createContext, useContext, useEffect, useState } from 'react
 import type { ChatClient } from './stream-adapter';
 import type { Channel } from './stream-adapter/Channel';
 import { getStreamClient } from './getStreamClient';
-import { getToken } from './getToken';
+import { getChatCreds } from './getChatCreds';
 import { useSession } from './SessionProvider';
 
 interface ChatContextValue {
@@ -31,18 +31,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return;
     }
     let mounted = true;
-    getToken()
-      .then(({ userID, userToken }) =>
-        client.connectUser({ id: userID }, userToken, session.access_token)
-      )
-      .then(() => {
-        const chan = client.channel('messaging', 'general');
-        return chan.watch().then(() => chan);
-      })
-      .then((chan) => {
-        if (!mounted) return;
-        setChannel(chan);
-      });
+    (async () => {
+      const { userID, userToken } = await getChatCreds();
+      await client.connectUser({ id: String(userID) }, userToken);
+      (client as any)['jwt'] = userToken;
+      const chan = client.channel('messaging', 'general');
+      await chan.watch();
+      if (!mounted) return;
+      setChannel(chan);
+    })();
     return () => {
       mounted = false;
       client.disconnectUser();
