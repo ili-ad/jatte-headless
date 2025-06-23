@@ -36,11 +36,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def receive_json(self, content, **kwargs):
         msg_type = content.get("type")
         if msg_type == "message.new":
-            cid = content.get("cid", f"messaging:{self.cid}")
+            # Frontends may omit the "messaging:" prefix. Normalise the cid so
+            # both "general" and "messaging:general" map to the same channel.
+            cid = content.get("cid", self.cid)
+            if ":" not in cid:
+                cid = f"messaging:{cid}"
             text = content.get("text", "")
             try:
                 _type, uuid = cid.split(":", 1)
-                channel = await sync_to_async(Channel.objects.get)(uuid=uuid)
+                channel, _ = await sync_to_async(Channel.objects.get_or_create)(
+                    uuid=uuid, defaults={"client": "stream"}
+                )
             except Exception:
                 channel = None
             if channel:
