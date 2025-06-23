@@ -21,7 +21,7 @@ async function setupRoutes(page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ userID: '1', userToken: 'devtoken' })
+      body: JSON.stringify({ userID: '1', userToken: 'jwt-test' })
     })
   })
 }

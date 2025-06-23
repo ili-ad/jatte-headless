@@ -4,7 +4,6 @@ declare module 'stream-chat' {
     connectUser(user: { id: string }, jwt: string): Promise<void>;
     channel(type: string, id: string): any;
     disconnectUser(): void;
-    devToken(uid: string): string;
     setUserAgent(): void;
   }
 
