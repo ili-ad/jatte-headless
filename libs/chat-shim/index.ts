@@ -1,6 +1,53 @@
 // libs/chat-shim/index.ts
 import { useSyncExternalStore } from 'react';
 
+
+/* ------------------------------------------------------------------ */
+/*  Minimal Fixed‑Size FIFO cache Stream‑UI expects                    */
+/* ------------------------------------------------------------------ */
+
+export class FixedSizeQueueCache<T = any> {
+  private buffer: T[] = [];
+
+  constructor(readonly limit = 200) {}
+
+  /** canonical method */
+  push(item: T) {
+    this.buffer.push(item);
+    if (this.buffer.length > this.limit) this.buffer.shift();
+  }
+
+  /** ⇢ legacy alias required by useMessageComposer */
+  add(item: T) {
+    this.push(item);
+  }
+
+  peek(offset = -1): T | undefined {
+    if (this.buffer.length === 0) return undefined;
+    const idx = offset >= 0 ? offset : this.buffer.length + offset;
+    return this.buffer[idx];
+  }
+
+  get size() {
+    return this.buffer.length;
+  }
+
+  getValues(): T[] {
+    return this.buffer;
+  }
+
+  clear() {
+    this.buffer = [];
+  }
+}
+
+
+
+
+
+
+
+
 /* -------------------------------- Channel -------------------------------- */
 
 export class ChannelState {
@@ -244,6 +291,7 @@ export class LocalChatClient {
   }
 }
 
+
 /* ------------------------- Link preview manager ------------------------- */
 
 export interface LinkPreview {
@@ -255,66 +303,89 @@ export interface LinkPreview {
 
 export enum LinkPreviewStatus {
   dismissed = 'dismissed',
-  failed = 'failed',
-  loaded = 'loaded',
-  loading = 'loading',
-  pending = 'pending',
+  failed    = 'failed',
+  loaded    = 'loaded',
+  loading   = 'loading',
+  pending   = 'pending',
 }
+
+/* ------------------------- Link preview manager ------------------------- */
 
 export class LinkPreviewsManager {
   private cache = new Map<string, LinkPreview>();
 
-  constructor(private limit = 100) {}
+  /** private store the hooks subscribe to */
+  private readonly store = new StateStore<LinkPreviewsManagerState>({
+    previews: this.cache,
+  });
 
+  constructor(private limit = 100) {
+    /* legacy alias expected by old Stream-Chat-React hooks */
+    (this.store as any).getLatestValue = this.store.getState.bind(this);
+  }
+
+  /* ── compatibility ──────────────────────────────────────────────────── */
+  /** Stream-Chat-React reads `linkPreviews.state.getLatestValue()` and
+      `.state.subscribe(cb)`, so expose the store via a getter.            */
+  get state() {
+    return this.store;
+  }
+
+  /* ── business logic ─────────────────────────────────────────────────── */
+
+  /** Fetch (or return cached) preview data, then broadcast it */
   async fetch(url: string): Promise<LinkPreview> {
     const cached = this.cache.get(url);
     if (cached) {
+      /* refresh LRU order */
       this.cache.delete(url);
       this.cache.set(url, cached);
       return cached;
     }
-    const resp = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+
+    const resp  = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
     const data: LinkPreview = { ...(await resp.json()), status: LinkPreviewStatus.loaded };
+
     this.cache.set(url, data);
     if (this.cache.size > this.limit) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) this.cache.delete(firstKey);
     }
+
+    /* notify any subscribers */
+    this.store.dispatch({ previews: this.cache });
     return data;
   }
 
+  /** Mark a preview as dismissed and broadcast the change */
   dismissPreview(url: string) {
     const preview = this.cache.get(url);
     if (preview) {
       preview.status = LinkPreviewStatus.dismissed;
       this.cache.set(url, preview);
+      this.store.dispatch({ previews: this.cache });
     }
   }
 
-  static previewIsLoading(p: LinkPreview) {
-    return p.status === LinkPreviewStatus.loading;
-  }
-  static previewIsLoaded(p: LinkPreview) {
-    return p.status === LinkPreviewStatus.loaded;
-  }
-  static previewIsDismissed(p: LinkPreview) {
-    return p.status === LinkPreviewStatus.dismissed;
-  }
-  static previewIsFailed(p: LinkPreview) {
-    return p.status === LinkPreviewStatus.failed;
-  }
-  static previewIsPending(p: LinkPreview) {
-    return p.status === LinkPreviewStatus.pending || !p.status;
-  }
+  /* ── static helpers used by Stream-Chat-React ───────────────────────── */
+
+  static previewIsLoading  (p: LinkPreview) { return p.status === LinkPreviewStatus.loading;   }
+  static previewIsLoaded   (p: LinkPreview) { return p.status === LinkPreviewStatus.loaded;    }
+  static previewIsDismissed(p: LinkPreview) { return p.status === LinkPreviewStatus.dismissed; }
+  static previewIsFailed   (p: LinkPreview) { return p.status === LinkPreviewStatus.failed;    }
+  static previewIsPending  (p: LinkPreview) { return p.status === LinkPreviewStatus.pending || !p.status; }
+
   static getPreviewData(p: LinkPreview) {
     const { status, ...rest } = p;
     return rest;
   }
 }
 
-export interface LinkPreviewsManagerState {
-  previews: Map<string, LinkPreview>;
-}
+
+
+
+
+
 
 /* --------------------------- compatibility stub -------------------------- */
 /** Return the *same* LocalChatClient for any api-key – good enough for local */
@@ -328,6 +399,92 @@ export class StreamChat extends LocalChatClient {
     return _singleton;
   }
 }
+
+
+// /* ------------------------- Link preview manager ------------------------- */
+
+// export interface LinkPreview {
+//   url: string;
+//   title: string;
+//   status?: LinkPreviewStatus;
+//   [k: string]: any;
+// }
+
+// export enum LinkPreviewStatus {
+//   dismissed = 'dismissed',
+//   failed = 'failed',
+//   loaded = 'loaded',
+//   loading = 'loading',
+//   pending = 'pending',
+// }
+
+// export class LinkPreviewsManager {
+//   private cache = new Map<string, LinkPreview>();
+
+//   constructor(private limit = 100) {}
+
+//   async fetch(url: string): Promise<LinkPreview> {
+//     const cached = this.cache.get(url);
+//     if (cached) {
+//       this.cache.delete(url);
+//       this.cache.set(url, cached);
+//       return cached;
+//     }
+//     const resp = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+//     const data: LinkPreview = { ...(await resp.json()), status: LinkPreviewStatus.loaded };
+//     this.cache.set(url, data);
+//     if (this.cache.size > this.limit) {
+//       const firstKey = this.cache.keys().next().value;
+//       if (firstKey) this.cache.delete(firstKey);
+//     }
+//     return data;
+//   }
+
+//   dismissPreview(url: string) {
+//     const preview = this.cache.get(url);
+//     if (preview) {
+//       preview.status = LinkPreviewStatus.dismissed;
+//       this.cache.set(url, preview);
+//     }
+//   }
+
+//   static previewIsLoading(p: LinkPreview) {
+//     return p.status === LinkPreviewStatus.loading;
+//   }
+//   static previewIsLoaded(p: LinkPreview) {
+//     return p.status === LinkPreviewStatus.loaded;
+//   }
+//   static previewIsDismissed(p: LinkPreview) {
+//     return p.status === LinkPreviewStatus.dismissed;
+//   }
+//   static previewIsFailed(p: LinkPreview) {
+//     return p.status === LinkPreviewStatus.failed;
+//   }
+//   static previewIsPending(p: LinkPreview) {
+//     return p.status === LinkPreviewStatus.pending || !p.status;
+//   }
+//   static getPreviewData(p: LinkPreview) {
+//     const { status, ...rest } = p;
+//     return rest;
+//   }
+// }
+
+// export interface LinkPreviewsManagerState {
+//   previews: Map<string, LinkPreview>;
+// }
+
+// /* --------------------------- compatibility stub -------------------------- */
+// /** Return the *same* LocalChatClient for any api-key – good enough for local */
+// let _singleton: StreamChat | undefined;
+
+// /** A lightweight class so it is both a value **and** a type. */
+// export class StreamChat extends LocalChatClient {
+//   /** Return the same client for any apiKey – good enough for local dev. */
+//   static getInstance(_apiKey?: string): StreamChat {
+//     if (!_singleton) _singleton = new StreamChat();
+//     return _singleton;
+//   }
+// }
 
 /* ----------------------------- convenience ------------------------------ */
 
@@ -473,50 +630,58 @@ export const isAudioAttachment = (a: any): boolean => {
   return _hasExt(a, ['.mp3', '.wav']);
 };
 
+
+
+
+
+
+
+
+
 /* ------------------------- fixed size queue cache ----------------------- */
 
-export class FixedSizeQueueCache<K, T> {
-  private keys: K[] = [];
-  private map = new Map<K, T>();
-  private dispose?: (key: K, value: T) => void;
+// export class FixedSizeQueueCache<K, T> {
+//   private keys: K[] = [];
+//   private map = new Map<K, T>();
+//   private dispose?: (key: K, value: T) => void;
 
-  constructor(private size: number, opts?: { dispose: (key: K, value: T) => void }) {
-    if (!size) throw new Error('Size must be greater than 0');
-    this.dispose = opts?.dispose;
-  }
+//   constructor(private size: number, opts?: { dispose: (key: K, value: T) => void }) {
+//     if (!size) throw new Error('Size must be greater than 0');
+//     this.dispose = opts?.dispose;
+//   }
 
-  add(key: K, value: T) {
-    const idx = this.keys.indexOf(key);
-    if (idx > -1) {
-      this.keys.splice(idx, 1);
-    } else if (this.keys.length >= this.size) {
-      const itemKey = this.keys.shift();
-      if (itemKey !== undefined) {
-        const item = this.map.get(itemKey);
-        if (item !== undefined) this.dispose?.(itemKey, item);
-        this.map.delete(itemKey);
-      }
-    }
-    this.keys.push(key);
-    this.map.set(key, value);
-  }
+//   add(key: K, value: T) {
+//     const idx = this.keys.indexOf(key);
+//     if (idx > -1) {
+//       this.keys.splice(idx, 1);
+//     } else if (this.keys.length >= this.size) {
+//       const itemKey = this.keys.shift();
+//       if (itemKey !== undefined) {
+//         const item = this.map.get(itemKey);
+//         if (item !== undefined) this.dispose?.(itemKey, item);
+//         this.map.delete(itemKey);
+//       }
+//     }
+//     this.keys.push(key);
+//     this.map.set(key, value);
+//   }
 
-  peek(key: K): T | undefined {
-    return this.map.get(key);
-  }
+//   peek(key: K): T | undefined {
+//     return this.map.get(key);
+//   }
 
-  get(key: K): T | undefined {
-    const val = this.map.get(key);
-    if (val !== undefined && this.keys.indexOf(key) !== this.keys.length - 1) {
-      const idx = this.keys.indexOf(key);
-      if (idx > -1) {
-        this.keys.splice(idx, 1);
-        this.keys.push(key);
-      }
-    }
-    return val;
-  }
-}
+//   get(key: K): T | undefined {
+//     const val = this.map.get(key);
+//     if (val !== undefined && this.keys.indexOf(key) !== this.keys.length - 1) {
+//       const idx = this.keys.indexOf(key);
+//       if (idx > -1) {
+//         this.keys.splice(idx, 1);
+//         this.keys.push(key);
+//       }
+//     }
+//     return val;
+//   }
+// }
 
 /* --------------------------- message composer -------------------------- */
 
@@ -926,3 +1091,97 @@ export class SearchController {
 }
 
 
+
+/* ------------------------------------------------------------------ */
+/*  ►  DEFERRED polyfill so we break the circular‑import              */
+/*      (runs on next micro‑task, when this module is fully initial.) */
+/* ------------------------------------------------------------------ */
+
+Promise.resolve().then(() => {
+  // use require() here so we don’t create another top‑level import
+  // that re‑introduces the cycle.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const scr = require('stream-chat-react') as any;
+
+  const proto = scr?.LinkPreviewsManager?.prototype;
+  if (!proto) return;                              // nothing to patch
+
+  if (typeof proto.getLatestValue !== 'function') {
+    /** hook looks for `.getLatestValue()` */
+    proto.getLatestValue = function () {
+      return { previews: this.cache ?? new Map() };
+    };
+  }
+
+  if (typeof proto.subscribe !== 'function') {
+    /** hook calls `.state.subscribe()` when present */
+    proto.subscribe = function (cb: () => void) {
+      cb();                // fire once – good enough for local dev
+      return () => {};     // and return an “unsubscribe” no‑op
+    };
+  }
+
+  /** some components reach for `.state` directly */
+  if (!Object.getOwnPropertyDescriptor(proto, 'state')) {
+    Object.defineProperty(proto, 'state', {
+      get() {
+        return {
+          getLatestValue: this.getLatestValue.bind(this),
+          subscribe:      this.subscribe.bind(this),
+        };
+      },
+    });
+  }
+});
+
+
+
+
+/* ------------------------------------------------------------------ */
+/*  Deferred patch — runs after this module & SCR have loaded          */
+/* ------------------------------------------------------------------ */
+
+queueMicrotask(async () => {
+  // dynamic import sidesteps the circular-import TDZ
+  const scr: any = await import('stream-chat-react');
+
+  /* ---------- ensure the symbols exist in SCR’s namespace ---------- */
+
+  if (!scr.FixedSizeQueueCache) {
+    scr.FixedSizeQueueCache = FixedSizeQueueCache;
+  }
+
+  if (!scr.LinkPreviewsManager) {
+    scr.LinkPreviewsManager = LinkPreviewsManager;
+  }
+
+  /* ---------- retrofit missing store-like APIs on the original ------ */
+
+  const OrigMgr = scr.LinkPreviewsManager?.prototype;
+  if (
+    OrigMgr &&
+    typeof OrigMgr.getLatestValue !== 'function' /* haven’t patched yet */
+  ) {
+    OrigMgr.getLatestValue = function () {
+      /* expose the shape useStateStore expects */
+      return { previews: this.cache ?? new Map() };
+    };
+
+    OrigMgr.subscribe = function (cb: () => void) {
+      /* link-preview changes are infrequent; just fire once */
+      cb();
+      return () => {};
+    };
+
+    /* some SCR components ask for `.state` instead of the two methods */
+    Object.defineProperty(OrigMgr, 'state', {
+      configurable: true,
+      get() {
+        return {
+          getLatestValue: this.getLatestValue.bind(this),
+          subscribe:      this.subscribe.bind(this),
+        };
+      },
+    });
+  }
+});
