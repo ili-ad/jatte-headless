@@ -249,7 +249,16 @@ export class LocalChatClient {
 export interface LinkPreview {
   url: string;
   title: string;
+  status?: LinkPreviewStatus;
   [k: string]: any;
+}
+
+export enum LinkPreviewStatus {
+  dismissed = 'dismissed',
+  failed = 'failed',
+  loaded = 'loaded',
+  loading = 'loading',
+  pending = 'pending',
 }
 
 export class LinkPreviewsManager {
@@ -265,13 +274,41 @@ export class LinkPreviewsManager {
       return cached;
     }
     const resp = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-    const data: LinkPreview = await resp.json();
+    const data: LinkPreview = { ...(await resp.json()), status: LinkPreviewStatus.loaded };
     this.cache.set(url, data);
     if (this.cache.size > this.limit) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) this.cache.delete(firstKey);
     }
     return data;
+  }
+
+  dismissPreview(url: string) {
+    const preview = this.cache.get(url);
+    if (preview) {
+      preview.status = LinkPreviewStatus.dismissed;
+      this.cache.set(url, preview);
+    }
+  }
+
+  static previewIsLoading(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.loading;
+  }
+  static previewIsLoaded(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.loaded;
+  }
+  static previewIsDismissed(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.dismissed;
+  }
+  static previewIsFailed(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.failed;
+  }
+  static previewIsPending(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.pending || !p.status;
+  }
+  static getPreviewData(p: LinkPreview) {
+    const { status, ...rest } = p;
+    return rest;
   }
 }
 
@@ -560,6 +597,7 @@ export class MessageComposer {
       remove(url: string) {
         const map = new Map(lpState.getLatestValue().previews);
         map.delete(url);
+        manager.dismissPreview(url);
         lpState.dispatch({ previews: map });
       },
       clear() {
