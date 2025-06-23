@@ -77,7 +77,8 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
             user.supabase_uid = uid
             user.save(update_fields=["supabase_uid"])
 
-        return (user, None)
+        # Return the original JWT so views can forward it if needed
+        return (user, token)
 
 class DevTokenOrJWTAuthentication(SupabaseJWTAuthentication):
     """Legacy alias without dev-token support."""
