@@ -22,7 +22,7 @@ test('getDraft fetches saved draft and updates text', async () => {
 
   const text = await (channel.messageComposer as any).getDraft();
 
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/draft', {
+  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/draft/', {
     headers: {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
