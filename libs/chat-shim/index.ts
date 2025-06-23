@@ -495,6 +495,8 @@ export interface MessageComposerConfig {
 export class MessageComposer {
   contextType: 'message' = 'message';
   state: MessageComposerState = { text: '', attachments: [] };
+  /** configuration for the composer, e.g. accepted file types */
+  configState: StateStore<MessageComposerConfig>;
   attachmentManager: {
     state: StateStore<AttachmentManagerState>;
     availableUploadSlots: number;
@@ -510,6 +512,21 @@ export class MessageComposer {
   };
 
   constructor(_config: MessageComposerConfig = {}) {
+    this.configState = new StateStore<MessageComposerConfig>({
+      attachments: {
+        acceptedFiles: [],
+        fileUploadFilter: () => true,
+        maxNumberOfFilesPerMessage: 10,
+      },
+      drafts: { enabled: false },
+      linkPreviews: {
+        debounceURLEnrichmentMs: 1500,
+        enabled: false,
+        findURLFn: (_t: string) => [],
+      },
+      text: { enabled: true, publishTypingEvents: true },
+      ..._config,
+    });
     const attState = new StateStore<AttachmentManagerState>({ attachments: [] });
     this.attachmentManager = {
       state: attState,
