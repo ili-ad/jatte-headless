@@ -10,6 +10,7 @@ from .models import Channel, Message
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.cid = self.scope["url_route"]["kwargs"].get("cid")
+        self.group = self.cid.replace(":", "_")
         query = parse_qs(self.scope.get("query_string", b"").decode())
         token = (query.get("token") or [None])[0]
         self.user = "anonymous"
@@ -26,9 +27,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 pass
 
         await self.accept()
-        await self.channel_layer.group_add(self.cid, self.channel_name)
+        await self.channel_layer.group_add(self.group, self.channel_name)
         await self.channel_layer.group_send(
-            self.cid,
+            self.group,
             {"type": "chat.presence", "payload": {"type": "user.join", "user": self.user}},
         )
 
@@ -48,12 +49,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 )
             payload = {"type": "message.new", "cid": cid, "text": text, "user": self.user}
             await self.channel_layer.group_send(
-                self.cid,
+                self.group,
                 {"type": "chat.message", "payload": payload},
             )
         elif msg_type in {"typing.start", "typing.stop"}:
             await self.channel_layer.group_send(
-                self.cid,
+                self.group,
                 {"type": "chat.typing", "payload": {"type": msg_type, "user_id": self.user}},
             )
 
@@ -67,9 +68,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json(event["payload"])
 
     async def disconnect(self, code):
-        await self.channel_layer.group_discard(self.cid, self.channel_name)
+        await self.channel_layer.group_discard(self.group, self.channel_name)
         await self.channel_layer.group_send(
-            self.cid,
+            self.group,
             {"type": "chat.presence", "payload": {"type": "user.leave", "user": self.user}},
         )
         await super().disconnect(code)
