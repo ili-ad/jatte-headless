@@ -13,30 +13,10 @@ from .models import (
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    event = serializers.SerializerMethodField()
-    reply_to = serializers.PrimaryKeyRelatedField(
-        queryset=Message.objects.all(), required=False, allow_null=True
-    )
-
     class Meta:
         model = Message
-        fields = [
-            "id",
-            "body",
-            "sent_by",
-            "created_at",
-            "updated_at",
-            "deleted_at",
-            "show_in_channel",
-            "custom_data",
-            "created_by",
-            "reply_to",
-            "event",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at", "created_by"]
-
-    def get_event(self, obj):
-        return obj.custom_data.get("event")
+        fields = ["id", "body", "sent_by", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)

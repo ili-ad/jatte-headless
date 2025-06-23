@@ -17,6 +17,7 @@ import redis
 from .mixins import RoomFromCIDMixin
 from .models import (
     Room,
+    Channel,
     Message,
     ReadState,
     Draft,
@@ -61,52 +62,37 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = "uuid"
 
 
-class RoomMessageListCreateView(RoomFromCIDMixin, APIView):
+
+class RoomMessageListCreateView(generics.ListCreateAPIView):
+    """List and create messages for a room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MessageSerializer
 
-    def get(self, request, room_uuid):
-        room = self.get_room(room_uuid)
-        serializer = MessageSerializer(room.messages.all(), many=True)
-        return Response(serializer.data)
+    def get_room(self):
+        return get_object_or_404(Room, uuid=self.kwargs["room_uuid"])
 
-    def post(self, request, room_uuid):
-        room = self.get_room(room_uuid)
-        data = request.data.copy()
+    def get_queryset(self):
+        room = self.get_room()
+        return room.messages.all()
 
-        # allow simple "text" payloads from the adapter
-        if "text" in data and "body" not in data:
-            data["body"] = data.pop("text")
-        if "sent_by" not in data:
-            data["sent_by"] = request.user.username
-
-        event = data.pop("event", None)
-        if event is not None:
-            cd = data.get("custom_data", {}) or {}
-            if not isinstance(cd, dict):
-                cd = {}
-            cd["event"] = event
-            data["custom_data"] = cd
-
-        parent_id = data.pop("reply_to", None)
-        serializer = MessageSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        reply_to = None
-        if parent_id is not None:
-            reply_to = get_object_or_404(Message, id=parent_id)
-        message = serializer.save(created_by=request.user, reply_to=reply_to)
-        room.messages.add(message)
-        Draft.objects.filter(user=request.user, room=room).delete()
+    def perform_create(self, serializer):
+        room = self.get_room()
+        channel, _ = Channel.objects.get_or_create(
+            uuid=room.uuid, client=room.client
+        )
+        serializer.save(channel=channel, sent_by=self.request.user.username)
+        room.messages.add(serializer.instance)
+        Draft.objects.filter(user=self.request.user, room=room).delete()
         try:
             r = redis.Redis(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
                 decode_responses=True,
             )
-            r.delete(f"draft:{request.user.username}:{room.uuid}")
+            r.delete(f"draft:{self.request.user.username}:{room.uuid}")
         except Exception:
             pass
-        return Response(MessageSerializer(message).data, status=201)
 
 
 # New Stream Chat API endpoints below
