@@ -30,3 +30,7 @@ pnpm --filter frontend dev
 The frontend automatically switches between a real Stream Chat client and the local Channels-backed shim. Set `NEXT_PUBLIC_STREAM_KEY` in `frontend/.env.local` to use your Stream Chat instance. If the variable is absent, the shim located at `libs/chat-shim` is used instead.
 
 The `stream-chat` package remains in `devDependencies` so TypeScript types are available while runtime calls go through the shim.
+
+### Terminology
+
+In this codebase a *message* is the persisted chat content. A *draft* is a per-user, unsent message for a room (the Draft model). When you see *post* in the logs, it refers to the HTTP verb POST, not a domain object.
