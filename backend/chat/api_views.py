@@ -14,6 +14,7 @@ import uuid
 import json
 from django.http import QueryDict
 import redis
+from .mixins import RoomFromCIDMixin
 from .models import (
     Room,
     Message,
@@ -60,17 +61,17 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = "uuid"
 
 
-class RoomMessageListCreateView(APIView):
+class RoomMessageListCreateView(RoomFromCIDMixin, APIView):
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         serializer = MessageSerializer(room.messages.all(), many=True)
         return Response(serializer.data)
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         data = request.data.copy()
 
         # allow simple "text" payloads from the adapter
@@ -111,13 +112,13 @@ class RoomMessageListCreateView(APIView):
 # New Stream Chat API endpoints below
 
 
-class RoomMarkReadView(APIView):
+class RoomMarkReadView(RoomFromCIDMixin, APIView):
     """Mark all messages in a room as read for the current user."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         ReadState.objects.update_or_create(
             user=request.user,
             room=room,
@@ -126,24 +127,24 @@ class RoomMarkReadView(APIView):
         return Response({"status": "ok"})
 
 
-class RoomMarkUnreadView(APIView):
+class RoomMarkUnreadView(RoomFromCIDMixin, APIView):
     """Clear the read state for the current user in a room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         ReadState.objects.filter(user=request.user, room=room).delete()
         return Response({"status": "ok"})
 
 
-class RoomCountUnreadView(APIView):
+class RoomCountUnreadView(RoomFromCIDMixin, APIView):
     """Return number of unread messages for the current user in a room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         state = ReadState.objects.filter(user=request.user, room=room).first()
         if state is None:
             unread = room.messages.count()
@@ -152,25 +153,25 @@ class RoomCountUnreadView(APIView):
         return Response({"unread": unread})
 
 
-class RoomLastReadView(APIView):
+class RoomLastReadView(RoomFromCIDMixin, APIView):
     """Return the last read timestamp for the current user in a room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         state = ReadState.objects.filter(user=request.user, room=room).first()
         last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
 
 
-class RoomReadView(APIView):
+class RoomReadView(RoomFromCIDMixin, APIView):
     """Return read states for all users in the room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         states = ReadState.objects.filter(room=room).select_related("user")
         data = []
         for st in states:
@@ -185,13 +186,13 @@ class RoomReadView(APIView):
         return Response(data)
 
 
-class RoomDraftView(APIView):
+class RoomDraftView(RoomFromCIDMixin, APIView):
     """Save and retrieve message drafts."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         text = request.data.get("text", "")
         Draft.objects.update_or_create(
             user=request.user,
@@ -210,7 +211,7 @@ class RoomDraftView(APIView):
         return Response({"status": "ok"})
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         text = None
         try:
             r = redis.Redis(
@@ -227,7 +228,7 @@ class RoomDraftView(APIView):
         return Response({"text": text})
 
     def delete(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         Draft.objects.filter(user=request.user, room=room).delete()
         try:
             r = redis.Redis(
@@ -443,7 +444,7 @@ class PollDetailView(APIView):
         poll.delete()
         return Response(status=204)
 
-class RoomConfigView(APIView):
+class RoomConfigView(RoomFromCIDMixin, APIView):
     """Return basic metadata for the given room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
@@ -455,7 +456,7 @@ class RoomConfigView(APIView):
         except ValueError:
             return Response({"detail": "Invalid cid"}, status=400)
 
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
 
         name = room.data.get("name") if room.data else None
         muted = RoomMute.objects.filter(user=request.user, room=room).exists()
@@ -463,7 +464,7 @@ class RoomConfigView(APIView):
         return Response({"name": name, "type": room_type, "muted": muted})
 
 
-class RoomMessagesView(APIView):
+class RoomMessagesView(RoomFromCIDMixin, APIView):
     """Return paginated messages for the given room cid."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
@@ -475,7 +476,7 @@ class RoomMessagesView(APIView):
         except ValueError:
             return Response({"detail": "Invalid cid"}, status=400)
 
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
 
         limit_param = request.query_params.get("limit")
         try:
@@ -500,12 +501,12 @@ class RoomMessagesView(APIView):
         serializer = MessageSerializer(msgs, many=True)
         return Response({"messages": serializer.data, "next": next_cursor})
 
-class RoomConfigStateView(APIView):
+class RoomConfigStateView(RoomFromCIDMixin, APIView):
     """Return message composer configuration for the room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request, room_uuid):
-        get_object_or_404(Room, uuid=room_uuid)
+        self.get_room(room_uuid)
         return Response({
             "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
             "text": {"enabled": True},
@@ -514,48 +515,48 @@ class RoomConfigStateView(APIView):
         })
 
 
-class RoomArchiveView(APIView):
+class RoomArchiveView(RoomFromCIDMixin, APIView):
     """Archive a room by setting its status to CLOSED."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         room.status = Room.CLOSED
         room.save()
         return Response({"status": "ok"})
 
 
-class RoomUnarchiveView(APIView):
+class RoomUnarchiveView(RoomFromCIDMixin, APIView):
     """Reopen a previously archived room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         room.status = Room.ACTIVE
         room.save()
         return Response({"status": "ok"})
 
 
-class RoomCooldownView(APIView):
+class RoomCooldownView(RoomFromCIDMixin, APIView):
     """Return cooldown seconds for the given room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        get_object_or_404(Room, uuid=room_uuid)
+        self.get_room(room_uuid)
         return Response({"cooldown": 0})
 
 
-class RoomMembersView(APIView):
+class RoomMembersView(RoomFromCIDMixin, APIView):
     """Return list of members for the given room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         names = set(room.messages.values_list("sent_by", flat=True))
         if room.client:
             names.add(room.client)
@@ -564,7 +565,7 @@ class RoomMembersView(APIView):
         return Response([{"id": name} for name in sorted(names)])
 
 
-class RoomMembersCIDView(APIView):
+class RoomMembersCIDView(RoomFromCIDMixin, APIView):
     """Return paginated members for the room identified by cid."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
@@ -576,7 +577,7 @@ class RoomMembersCIDView(APIView):
         except ValueError:
             return Response({"detail": "Invalid cid"}, status=400)
 
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
 
         limit_param = request.query_params.get("limit")
         offset_param = request.query_params.get("offset")
@@ -601,27 +602,27 @@ class RoomMembersCIDView(APIView):
         return Response(data)
 
 
-class RoomPinnedMessagesView(APIView):
+class RoomPinnedMessagesView(RoomFromCIDMixin, APIView):
     """Return messages pinned in the given room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         msgs = room.messages.filter(pins__isnull=False).distinct()
         serializer = MessageSerializer(msgs, many=True)
         return Response(serializer.data)
 
 
-class RoomQueryView(APIView):
+class RoomQueryView(RoomFromCIDMixin, APIView):
     """Return initial messages and members for a room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         messages = MessageSerializer(room.messages.all(), many=True).data
         names = set(room.messages.values_list("sent_by", flat=True))
         if room.agent:
@@ -771,14 +772,14 @@ class LinkPreviewView(APIView):
         return Response({"url": url, "title": title})
 
       
-class RoomHideView(APIView):
+class RoomHideView(RoomFromCIDMixin, APIView):
     """Mark a room as hidden for the current user."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         data = room.data or {}
         data["hidden"] = True
         room.data = data
@@ -786,14 +787,14 @@ class RoomHideView(APIView):
         return Response({"status": "ok"})
 
 
-class RoomShowView(APIView):
+class RoomShowView(RoomFromCIDMixin, APIView):
     """Unhide a room previously hidden."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         data = room.data or {}
         data["hidden"] = False
         room.data = data
@@ -801,14 +802,14 @@ class RoomShowView(APIView):
         return Response({"status": "ok"})
 
 
-class RoomTruncateView(APIView):
+class RoomTruncateView(RoomFromCIDMixin, APIView):
     """Remove all messages from a room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, room_uuid):
-        room = get_object_or_404(Room, uuid=room_uuid)
+        room = self.get_room(room_uuid)
         room.messages.clear()
         data = room.data or {}
         data["truncated"] = True
