@@ -57,4 +57,5 @@ class Old_Maybe_Delete_SupabaseJWTAuthentication(authentication.BaseAuthenticati
             user.supabase_uid = uid
             user.save(update_fields=["supabase_uid"])
 
-        return (user, None)
+        # Return the token so downstream views can forward it
+        return (user, token)
