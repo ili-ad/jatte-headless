@@ -523,7 +523,7 @@ export class Channel {
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
-        const res = await apiFetch(`${API.ROOMS}${this.uuid}/config/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.cid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (res.status === 403) throw new AuthError('Unauthenticated');
@@ -571,7 +571,7 @@ export class Channel {
     /** Fetch initial state without opening a websocket */
     async query() {
         try {
-            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.cid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -595,7 +595,7 @@ export class Channel {
                 }
             }
 
-            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.cid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -616,7 +616,7 @@ export class Channel {
 
         /* initial history + read row */
         try {
-            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.cid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -637,7 +637,7 @@ export class Channel {
                 });
             }
 
-            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.cid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -657,7 +657,7 @@ export class Channel {
             throw new Error('NEXT_PUBLIC_WS_URL is not set');
         }
         this.socket = new WebSocket(
-            `${wsRoot}/ws/${this.uuid}/?token=${this.client['jwt']}`,
+            `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
         );
         this.socket.onmessage = (ev) => {
             try {
