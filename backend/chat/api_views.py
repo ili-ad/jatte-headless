@@ -63,18 +63,49 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-class RoomMessageListCreateView(generics.ListCreateAPIView):
+class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
     """List and create messages for a room."""
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MessageSerializer
 
     def get_room(self):
-        return get_object_or_404(Room, uuid=self.kwargs["room_uuid"])
+        cid = self.kwargs.get("cid")
+        if cid is not None:
+            try:
+                _, room_uuid = cid.split(":", 1)
+            except ValueError:
+                room_uuid = cid
+        else:
+            room_uuid = self.kwargs["room_uuid"]
+        return RoomFromCIDMixin.get_room(self, room_uuid)
 
     def get_queryset(self):
         room = self.get_room()
-        return room.messages.all()
+        qs = room.messages.order_by("-id")
+        before = self.request.query_params.get("before")
+        if before:
+            try:
+                before_id = int(before)
+            except ValueError:
+                return qs.none()
+            qs = qs.filter(id__lt=before_id)
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        limit_param = request.query_params.get("limit")
+        try:
+            limit = int(limit_param) if limit_param is not None else 20
+        except ValueError:
+            return Response({"detail": "Invalid limit"}, status=400)
+        limit = max(1, min(limit, 100))
+
+        qs = list(self.get_queryset()[: limit + 1])
+        has_more = len(qs) > limit
+        msgs = qs[:limit]
+        next_cursor = msgs[-1].id if has_more else None
+        serializer = self.get_serializer(msgs, many=True)
+        return Response({"messages": serializer.data, "next": next_cursor})
 
     def perform_create(self, serializer):
         room = self.get_room()
@@ -450,42 +481,6 @@ class RoomConfigView(RoomFromCIDMixin, APIView):
         return Response({"name": name, "type": room_type, "muted": muted})
 
 
-class RoomMessagesView(RoomFromCIDMixin, APIView):
-    """Return paginated messages for the given room cid."""
-
-    authentication_classes = [DevTokenOrJWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, cid: str):
-        try:
-            _, room_uuid = cid.split(":", 1)
-        except ValueError:
-            return Response({"detail": "Invalid cid"}, status=400)
-
-        room = self.get_room(room_uuid)
-
-        limit_param = request.query_params.get("limit")
-        try:
-            limit = int(limit_param) if limit_param is not None else 20
-        except ValueError:
-            return Response({"detail": "Invalid limit"}, status=400)
-        limit = max(1, min(limit, 100))
-
-        before = request.query_params.get("before")
-        qs = room.messages.order_by("-id")
-        if before:
-            try:
-                before_id = int(before)
-            except ValueError:
-                return Response({"detail": "Invalid cursor"}, status=400)
-            qs = qs.filter(id__lt=before_id)
-
-        msgs = list(qs[: limit + 1])
-        has_more = len(msgs) > limit
-        msgs = msgs[:limit]
-        next_cursor = msgs[-1].id if has_more else None
-        serializer = MessageSerializer(msgs, many=True)
-        return Response({"messages": serializer.data, "next": next_cursor})
 
 class RoomConfigStateView(RoomFromCIDMixin, APIView):
     """Return message composer configuration for the room."""
