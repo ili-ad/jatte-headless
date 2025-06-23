@@ -35,9 +35,16 @@ class GetCIDMessagesAPITests(APITestCase):
         res = self.client.get(url)
         self.assertEqual(res.status_code, 403)
 
-    def test_wrong_method(self):
+    def test_create_message_via_cid(self):
         room = Room.objects.create(uuid="r1", client="c1")
         token = self.make_token()
         url = reverse("room-messages-cid", kwargs={"cid": f"messaging:{room.uuid}"})
-        res = self.client.post(url, HTTP_AUTHORIZATION=f"Bearer {token}")
-        self.assertEqual(res.status_code, 405)
+        res = self.client.post(
+            url,
+            {"text": "hello"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(room.messages.count(), 1)
+        self.assertEqual(room.messages.first().body, "hello")

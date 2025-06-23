@@ -7,7 +7,7 @@ from chat.api_views import (
     RoomDraftView,
     RoomConfigView,
     RoomConfigStateView,
-    RoomMessagesView,
+    RoomMessageListCreateView,
     RoomMembersCIDView,
 )
 
@@ -43,10 +43,10 @@ urlpatterns += [
     re_path(r"^api/rooms/(?P<room_uuid>[^/]+)/draft/?$", RoomDraftView.as_view()),
     path(
         "api/rooms/<path:cid>/messages/",
-        RoomMessagesView.as_view(),
+        RoomMessageListCreateView.as_view(),
         name="room-messages-cid",
     ),
-    re_path(r"^api/rooms/(?P<cid>.+)/messages/?$", RoomMessagesView.as_view()),
+    re_path(r"^api/rooms/(?P<cid>.+)/messages/?$", RoomMessageListCreateView.as_view()),
     path("api/rooms/<path:cid>/config/", RoomConfigView.as_view(), name="room-config"),
     re_path(r"^api/rooms/(?P<cid>.+)/config/?$", RoomConfigView.as_view()),
     path(
