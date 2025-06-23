@@ -71,12 +71,7 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         return (user, None)
 
 class DevTokenOrJWTAuthentication(SupabaseJWTAuthentication):
+    """Legacy alias without dev-token support."""
+
     def authenticate(self, request):
-        auth = super().authenticate(request)
-        if auth:
-            return auth
-        if settings.DEBUG:
-            if request.headers.get("Authorization") == "Bearer devtoken":
-                from django.contrib.auth.models import AnonymousUser
-                return (AnonymousUser(), None)
-        return None
+        return super().authenticate(request)
