@@ -39,6 +39,9 @@ urlpatterns += [
     path(
         "api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"
     ),
+    path(
+        "api/rooms/<str:room_uuid>/draft", RoomDraftView.as_view()
+    ),
     re_path(r"^api/rooms/(?P<room_uuid>[^/]+)/draft/?$", RoomDraftView.as_view()),
     path(
         "api/rooms/<path:cid>/messages/",
