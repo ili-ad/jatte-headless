@@ -1,4 +1,4 @@
-import { LinkPreviewsManager } from '../index';
+import { LinkPreviewsManager, LinkPreviewStatus } from '../index';
 
 describe('LinkPreviewsManager', () => {
   beforeEach(() => {
@@ -15,5 +15,6 @@ describe('LinkPreviewsManager', () => {
     const second = await mgr.fetch('https://example.com');
     expect(global.fetch).not.toHaveBeenCalled();
     expect(second).toBe(first);
+    expect(first.status).toBe(LinkPreviewStatus.loaded);
   });
 });
