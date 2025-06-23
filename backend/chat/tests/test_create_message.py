@@ -14,7 +14,7 @@ class CreateMessageAPITests(APITestCase):
     def test_create_message(self):
         self.client.force_authenticate(self.user)
         url = reverse("room-messages", kwargs={"room_uuid": self.room.uuid})
-        resp = self.client.post(url, {"body": "hi"}, format="json")
+        resp = self.client.post(url, {"text": "hi"}, format="json")
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(resp.data["body"], "hi")
 
@@ -26,5 +26,5 @@ class CreateMessageAPITests(APITestCase):
 
     def test_unauthenticated(self):
         url = reverse("room-messages", kwargs={"room_uuid": self.room.uuid})
-        resp = self.client.post(url, {"body": "hi"}, format="json")
+        resp = self.client.post(url, {"text": "hi"}, format="json")
         self.assertEqual(resp.status_code, 403)
