@@ -224,6 +224,8 @@ declare module 'stream-chat' {
   export class MessageComposer {
     contextType: 'message';
     state: MessageComposerState;
+    /** configuration for the composer, e.g. accepted file types */
+    configState: StateStore<MessageComposerConfig>;
     attachmentManager: {
       state: StateStore<AttachmentManagerState>;
       availableUploadSlots: number;
