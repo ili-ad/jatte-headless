@@ -1,64 +1,67 @@
-# AGENTS — Production‑grade Stream‑compat layer
+0 · Recap of current behaviour
+Front-end call	HTTP result	Why it fails
+GET /api/rooms/messaging:general/messages/	404	URL matches the route, but the view can’t find a Room(uuid="messaging:general"), so get_object_or_404 returns 404.
+POST /api/rooms/messaging:general/messages/	405	RoomMessageListCreateView was changed to ListAPIView in the last merge, so POST is no longer allowed.
+GET /api/rooms/messaging:general/members/	404	Same “room row doesn’t exist” problem.
+GET /api/rooms/messaging:general/config/	404	RoomConfigView looks up the room by cid, doesn’t find it, returns 404.
+POST /api/rooms/general/draft
+(no trailing slash)	404	Our route ends with /draft/ so the no-slash variant misses; DRF never auto-redirects a POST.
 
-> **Goal**  Build out the nine stubbed HTTP / WebSocket surfaces into fully‑featured, secure, horizontally‑scalable services so that the React Stream UI kit behaves exactly as if it were talking to getstream.io.
->
-> Keep the work divisible ➜ each row is an **independent agent task** that can be shipped, tested, and rolled‑back in isolation.
+All other calls (token, ws-auth, connection-id, etc.) are working, so auth and WebSocket setup are fine.
+1 · Ticket: Normalise trailing-slash policy
 
----
+Problem: We already hit one mismatch (/draft). More will surface as the UI widens.
 
-## Legend
+Fix options (pick one and do it repo-wide):
 
-| Emoji | Meaning                           |
-| ----- | --------------------------------- |
-| ☐     | **Todo** – not started            |
-| ◔     | **In Progress**                   |
-| ✔︎    | **Done / merged to `main`**       |
-| ⊟     | **Blocked** – external dependency |
+    Keep slashes – add no-slash duplicates only where Stream calls them.
 
-> Update the status glyphs in PR titles so the table stays the ground‑truth 📈
+path("api/rooms/<str:room_uuid>/draft", RoomDraftView.as_view()),  # duplicate
 
----
+Remove slashes globally – set in settings.py
 
-## Task board
+    APPEND_SLASH = False
+    REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.openapi.AutoSchema",
+                      "URL_FORMAT_OVERRIDE": None,
+                      "DEFAULT_TRAILING_SLASH": ""}  # DRF 3.15+
 
-| ☐/◔/✔︎ | Endpoint / WS topic                         | Owner agent      | Deliverable                                              | Acceptance tests                                                      |
-| ------ | ------------------------------------------- | ---------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
-| ✔︎     | **`GET /api/ws-auth`**                      | `auth-agent`     | Signed WS URL & JWT validation                           | curl returns **200** JSON `{auth, expires}`; tampered token → **403** |
-| ✔︎     | **`GET /api/connection-id`**                | `presence-agent` | 64‑bit snowflake id + redis heartbeat                    | Jest: id is stable for same session, unique across sessions           |
-| ☐      | **`POST /api/register-subscriptions`**      | `notify-agent`   | Push‑subscription DB & VAPID key mgmt                    | Cypress: service‑worker receives push                                 |
-| ☐      | **`POST /api/editing-audit-state`**         | `collab-agent`   | OT cursor + “user is typing” broadcasts                  | WS event `editing.state` visible to peers                             |
-| ☐      | \*\*`POST /api/rooms/**`*`<cid>`*`**/draft` | `drafts-agent`   | Per‑user draft cache (Redis)                             | Unit: saving, retrieving, auto‑delete on send                         |
-| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/config`     | `config-agent`   | Channel metadata & ACL check                             | 200 with `{name,type,muted}`; unauthorized → 403                      |
-| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/messages`   | `history-agent`  | Cursor‑paginated message log (Postgres)                  | Playwright scroll‑back fetches older msgs                             |
-| ☐      | \*\*`GET /rooms/**`*`<cid>`*`**/members`    | `roster-agent`   | Paginated member list, roles, bans                       | `/members?limit=20&offset=20` returns 20                              |
-| ✔︎     | \*\*`WS /ws/**`*`<cid>`*`**/`               | `realtime-agent` | Channels consumer, presence, typing, new‑message fan‑out | Jest: two clients see each other’s msg in < 500 ms                    |
+    Then drop the trailing slash from every urlpatterns entry (search-and-replace).
 
----
+    Deliverable: one PR that chooses a policy and makes every route + test + front-end call consistent.
 
-## Milestones
+2 · Ticket: Auto-create room records on first touch
 
-| Iteration | Exit criteria                                                                                                                                                   |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MVP**   | All nine endpoints return syntactically correct JSON / WS frames (even if data is mocked). UI kit renders, sends, and receives messages with no console errors. |
-| **Beta**  | Data backed by Postgres + Redis, JWT‑based auth, basic ACLs, pagination cursors, 1 k concurrent connections. CI green.                                          |
-| **GA**    | HA deployment charts, rate‑limiting, alerting (Prom‑Grafana), OpenAPI spec, 10 k CCUs load‑test, security audit passed.                                         |
+Stream’s client will happily hit /rooms/<cid>/… before we have a local row.
+Return 200 instead of 404 by materialising the room on demand.
 
----
+class RoomFromCIDMixin:
+    def get_room(self, cid: str) -> Room:
+        room, _ = Room.objects.get_or_create(uuid=cid, defaults={"client": "stream"})
+        return room
 
-## Contributing workflow
+Use that mixin in RoomMessageListCreateView, RoomMembersView, RoomConfigView, etc.
+3 · Ticket: Re-enable POST on /messages/
 
-1. **Fork → feature‑branch → PR** per row. The PR template links back to this table.
-2. Each agent writes *contract tests* in `tests/contracts/`; the consumer (UI kit) doubles as black‑box test.
-3. CI matrix: Postgres 16, Redis 7, Python 3.10 – 3.12.
-4. On merge, GitHub Actions tag the row ✔︎ and post changelog to `#builds`.
+RoomMessageListCreateView must inherit ListCreateAPIView (or override post).
+Right now it only allows GET → 405.
+4 · Ticket: README patch (terminology)
 
----
+Add this to the glossary section:
 
-## Post‑script
+• message  – persisted chat content, persisted via POST /rooms/<room_uuid>/messages/
+• draft    – per-user unsent message for a room, POST /rooms/<room_uuid>/draft/
+• POST     – HTTP verb, not a “post” model
 
-*The map is not the territory.* These endpoints mimic Stream’s public API; we are **not** re‑implementing every niche feature up‑front. Ship thin vertical slices, observe real usage, then deepen.
+Acceptance-test script (can be curl or pytest)
 
-Questions / blockers → `@architecture‑channel` on Slack.
+    GET /api/rooms/messaging:general/config/ -> 200 json
 
-## Also
-*Make sure APPEND_SLASH=True remains, and define every API URL with a trailing slash so the React kit keeps its “/”. (It already sends them that way.)
+    POST /api/rooms/messaging:general/messages/ {"body":"hi"} -> 201
+
+    POST /api/rooms/messaging:general/draft/ {"text":"draft"} -> 200
+
+    GET /api/rooms/messaging:general/members/ -> 200 list
+
+If all four pass, the React side stops throwing “getConfig failed” / “sendMessage failed”.
+
+Feel free to forward this verbatim to the contractor. It gives them a ranked checklist instead of a wall of logs.
