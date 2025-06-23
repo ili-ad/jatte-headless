@@ -7,19 +7,16 @@ from accounts_supabase.authentication import SupabaseJWTAuthentication # ← cha
 
 
 from rest_framework.response import Response
-import base64, json
+from django.conf import settings
+import jwt
 
 
 class TokenView(APIView):
-    """Return a Stream Chat dev token for the authenticated Supabase user."""
+    """Return a signed chat token for the authenticated Supabase user."""
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes     = [IsAuthenticated]          # or AllowAny while debugging
 
     def get(self, request):
         uid = request.user.id
-        header   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-        payload  = base64.urlsafe_b64encode(
-                     json.dumps({"user_id": uid}).encode()
-                   ).decode().rstrip("=")
-        devtoken = f"{header}.{payload}.devtoken"
-        return Response({"userID": uid, "userToken": devtoken})
+        token = jwt.encode({"user_id": uid}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        return Response({"userID": uid, "userToken": token})
