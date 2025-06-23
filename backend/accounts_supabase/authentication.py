@@ -2,7 +2,12 @@
 
 import jwt
 from jwt import PyJWKClient
-from jwt.exceptions import PyJWTError, InvalidTokenError
+from jwt.exceptions import (
+    PyJWTError,
+    InvalidTokenError,
+    ExpiredSignatureError,
+    InvalidSignatureError,
+)
 from django.conf import settings
 from rest_framework import authentication, exceptions
 from django.contrib.auth import get_user_model
@@ -35,7 +40,9 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
                 options={"verify_aud": False},
                 leeway=30,   # allow 30-second clock skew
             )
-        except PyJWTError:
+        except ExpiredSignatureError:
+            raise exceptions.AuthenticationFailed("Token expired")
+        except InvalidSignatureError:
             jwks_url = settings.SUPABASE_JWKS_URL
             if not jwks_url:
                 raise exceptions.AuthenticationFailed("Invalid token")
@@ -49,6 +56,8 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
                 )
             except PyJWTError as e:
                 raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
+        except PyJWTError as e:
+            raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
 
         uid = decoded.get("sub")
         if not uid:
