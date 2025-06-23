@@ -13,10 +13,20 @@ from .models import (
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    """Expose `body` as read-only and accept `text` on input."""
+
+    text = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = Message
-        fields = ["id", "body", "sent_by", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "text", "body", "sent_by", "created_at"]
+        read_only_fields = ["id", "body", "sent_by", "created_at"]
+
+    def create(self, validated_data):
+        # Map the incoming text field to the body column
+        if "text" in validated_data:
+            validated_data["body"] = validated_data.pop("text")
+        return super().create(validated_data)
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
