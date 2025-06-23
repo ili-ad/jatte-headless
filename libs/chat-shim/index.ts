@@ -784,10 +784,16 @@ export class StateStore<T = any> {
 }
 
 /** React hook that subscribes to a StateStore and returns its latest value */
-export function useStateStore<T>(store: StateStore<T>): T {
-  return useSyncExternalStore(store.subscribe.bind(store),
-    store.getLatestValue.bind(store),
-    store.getLatestValue.bind(store));
+export function useStateStore<T, O = T>(
+  store: StateStore<T> | undefined,
+  selector: (v: T) => O = (v) => v as unknown as O,
+): O | undefined {
+  if (!store) return undefined;
+  return useSyncExternalStore(
+    store.subscribe.bind(store),
+    () => selector(store.getLatestValue()),
+    () => selector(store.getLatestValue()),
+  );
 }
 
 /* ------------------------------------------------------------------ */
