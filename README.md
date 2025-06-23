@@ -34,3 +34,9 @@ The `stream-chat` package remains in `devDependencies` so TypeScript types are a
 ### Terminology
 
 In this codebase a *message* is the persisted chat content. A *draft* is a per-user, unsent message for a room (the Draft model). When you see *post* in the logs, it refers to the HTTP verb POST, not a domain object.
+
+### API trailing slashes
+
+All API endpoints are defined with a trailing slash. The frontend must include
+this slash when making requests. Django's `APPEND_SLASH=True` only adds slashes
+to GET requests, so POST calls need to provide the trailing `/` explicitly.
