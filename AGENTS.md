@@ -65,15 +65,15 @@ Locating the original reference
 | ID  | Symbol                               | Path (create / adapt)                                                                                               | Status | Notes |
 |-----|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------|-------|
 | 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ☐ | |
-| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ☐ | |
+| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx | ✅ | |
 | 003 | useAIState                           | libs/stream-ui/src/components/AIStateIndicator/hooks/useAIState.ts                                                   | ☐ | |
 | 004 | Attachment                           | libs/stream-ui/src/components/Attachment/Attachment.tsx                                                              | ☐ | |
-| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ☐ | |
+| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ✅ | |
 | 006 | AttachmentContainer                  | libs/stream-ui/src/components/Attachment/AttachmentContainer.tsx                                                     | ☐ | |
 | 007 | Audio                                | libs/stream-ui/src/components/Attachment/Audio.tsx                                                                   | ☐ | |
 | 008 | Card                                 | libs/stream-ui/src/components/Attachment/Card.tsx                                                                    | ☐ | |
 | 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ☐ | |
-| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ☐ | |
+| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ✅ | |
 | 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ✅ | |
 | 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ☐ | |
 | 013 | attachment-utils                     | libs/stream-ui/src/components/Attachment/utils.tsx                                                                   | ☐ | |
