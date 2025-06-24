@@ -1,0 +1,17 @@
+import { useEffect } from 'react';
+import type { Channel, Event } from 'stream-chat';
+
+/**
+ * Placeholder implementation of Stream's `useChannelHiddenListener` hook.
+ */
+export const useChannelHiddenListener = (
+  setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,
+  customHandler?: (
+    setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,
+    event: Event,
+  ) => void,
+) => {
+  useEffect(() => {
+    // TODO: wire up real Stream Chat client events
+  }, [setChannels, customHandler]);
+};
