@@ -1,6 +1,7 @@
 packages:
   - frontend
   - backend
+  - libs/*
   - docs
 
 ignoredBuiltDependencies:
@@ -10,3 +11,8 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - esbuild
+
+packageExtensions:
+  "stream-chat-react@*":
+    peerDependencies:
+      react: ">=18"

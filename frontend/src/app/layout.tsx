@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+
 import 'stream-chat-react/dist/css/v2/index.css'; // ← v1 if you prefer
+import { Providers } from "./Providers";
 import { SessionProvider } from "@/lib/SessionProvider";
 
 
@@ -17,9 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <Providers>
+          <SessionProvider>
+            {children}
+          </SessionProvider>
+        </Providers>  
       </body>
     </html>
   );
