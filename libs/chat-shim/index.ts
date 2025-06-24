@@ -1097,43 +1097,58 @@ export class SearchController {
 /*      (runs on next micro‑task, when this module is fully initial.) */
 /* ------------------------------------------------------------------ */
 
+
+
+/* =================================================================== */
+/*  🔧  Stream‑Chat‑React 13.x compatibility shims                     */
+/*       (executed after this module is fully initialised)             */
+/* =================================================================== */
 Promise.resolve().then(() => {
-  // use require() here so we don’t create another top‑level import
-  // that re‑introduces the cycle.
+  // dynamic require avoids ESM import cycles
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const scr = require('stream-chat-react') as any;
+  if (!scr) return;
 
-  const proto = scr?.LinkPreviewsManager?.prototype;
-  if (!proto) return;                              // nothing to patch
-
-  if (typeof proto.getLatestValue !== 'function') {
-    /** hook looks for `.getLatestValue()` */
-    proto.getLatestValue = function () {
-      return { previews: this.cache ?? new Map() };
-    };
+  /* ---------------------------------------------------- *
+   * 1)  Patch StateStore prototype (one place, covers all)
+   * ---------------------------------------------------- */
+  const storeProto = scr.StateStore?.prototype;
+  if (storeProto) {
+    if (typeof storeProto.getLatestValue !== 'function') {
+      storeProto.getLatestValue =
+        storeProto.getState ??
+        storeProto.getSnapshot ??
+        function () { return this.state; };
+    }
+    if (typeof storeProto.subscribe !== 'function') {
+      // most components don’t unsubscribe; a no‑op is enough
+      storeProto.subscribe = () => () => {};
+    }
   }
 
-  if (typeof proto.subscribe !== 'function') {
-    /** hook calls `.state.subscribe()` when present */
-    proto.subscribe = function (cb: () => void) {
-      cb();                // fire once – good enough for local dev
-      return () => {};     // and return an “unsubscribe” no‑op
-    };
+  /* ---------------------------------------------------- *
+   * 2)  Patch LinkPreviewsManager (used by MessageInput)  *
+   * ---------------------------------------------------- */
+  const lpProto = scr.LinkPreviewsManager?.prototype;
+  if (lpProto) {
+    if (typeof lpProto.getLatestValue !== 'function') {
+      lpProto.getLatestValue = function () {
+        return { previews: this.cache ?? new Map() };
+      };
+    }
+    if (typeof lpProto.subscribe !== 'function') {
+      lpProto.subscribe = (cb: () => void) => { cb(); return () => {}; };
+    }
+    if (!Object.getOwnPropertyDescriptor(lpProto, 'state')) {
+      Object.defineProperty(lpProto, 'state', {
+        get() { return this; },                // stable reference
+      });
+    }
   }
 
-  /** some components reach for `.state` directly */
-  if (!Object.getOwnPropertyDescriptor(proto, 'state')) {
-    Object.defineProperty(proto, 'state', {
-      get() {
-        return {
-          getLatestValue: this.getLatestValue.bind(this),
-          subscribe:      this.subscribe.bind(this),
-        };
-      },
-    });
-  }
+  // eslint-disable-next-line no-console
+  console.info('[chat‑shim] Stream‑Chat‑React polyfills installed');
 });
-
 
 
 
