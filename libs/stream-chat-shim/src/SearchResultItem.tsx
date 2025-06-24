@@ -3,6 +3,17 @@ import React from 'react'
 import type { ComponentType } from 'react'
 import type { Channel, MessageResponse, User } from 'stream-chat'
 
+/** Placeholder implementation of the SearchResultItem component. */
+export type SearchResultItemProps = Record<string, any>
+
+export const SearchResultItem = (_props: SearchResultItemProps) => {
+  return (
+    <div data-testid="search-result-item-placeholder">SearchResultItem placeholder</div>
+  )
+}
+
+export default SearchResultItem
+
 export type ChannelSearchResultItemProps = {
   item: Channel
 }
@@ -35,3 +46,4 @@ export const DefaultSearchResultItems: SearchResultItemComponents = {
   messages: MessageSearchResultItem,
   users: UserSearchResultItem,
 }
+
