@@ -88,7 +88,7 @@ Locating the original reference
 | 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ✅ | |
 | 020 | channel-utils                        | libs/stream-ui/src/components/Channel/utils.ts                                                                       | ☐ | |
 | 021 | ChannelHeader                        | libs/stream-ui/src/components/ChannelHeader/ChannelHeader.tsx                                                        | ☐ | |
-| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ☐ | |
+| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ✅ | |
 | 023 | ChannelListMessenger                 | libs/stream-ui/src/components/ChannelList/ChannelListMessenger.tsx                                                   | ☐ | |
 | 024 | ChannelList.test                     | libs/stream-ui/src/components/ChannelList/__tests__/ChannelList.test.js                                              | ☐ | |
 | 025 | useChannelDeletedListener            | libs/stream-ui/src/components/ChannelList/hooks/useChannelDeletedListener.ts                                         | ☐ | |
