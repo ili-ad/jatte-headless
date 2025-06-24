@@ -5,7 +5,7 @@ Every task implements **one public symbol** that our frontend imports from
 ### How to work a row
 
 1. **Find the row below specified in the prompt by it's public symbol** if that one is complete
-    already pick any row with “☐”.
+    already pick any row with “✅”.
    _If all rows are ✅, add a new one for the symbol you just noticed is
    missing._
 
@@ -64,18 +64,22 @@ Locating the original reference
 
 | ID  | Symbol                               | Path (create / adapt)                                                                                               | Status | Notes |
 |-----|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------|-------|
-| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ☐ | |
-| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ☐ | |
+| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ✅ | |
+| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ✅ | |
 | 003 | useAIState                           | libs/stream-ui/src/components/AIStateIndicator/hooks/useAIState.ts                                                   | ☐ | |
 | 004 | Attachment                           | libs/stream-ui/src/components/Attachment/Attachment.tsx                                                              | ☐ | |
-| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ☐ | |
+| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ✅ | |
 | 006 | AttachmentContainer                  | libs/stream-ui/src/components/Attachment/AttachmentContainer.tsx                                                     | ☐ | |
 | 007 | Audio                                | libs/stream-ui/src/components/Attachment/Audio.tsx                                                                   | ☐ | |
 | 008 | Card                                 | libs/stream-ui/src/components/Attachment/Card.tsx                                                                    | ☐ | |
-| 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ☐ | |
 | 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ☐ | |
 | 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ☐ | |
 | 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ☐ | |
+| 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ✅ | |
+| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ✅ | |
+| 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ✅ | |
+| 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ✅ | |
+
 | 013 | attachment-utils                     | libs/stream-ui/src/components/Attachment/utils.tsx                                                                   | ☐ | |
 | 014 | Avatar                               | libs/stream-ui/src/components/Avatar/Avatar.tsx                                                                      | ☐ | |
 | 015 | Channel                              | libs/stream-ui/src/components/Channel/Channel.tsx                                                                    | ☐ | |
