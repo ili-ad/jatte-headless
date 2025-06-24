@@ -12,4 +12,3 @@ export const SearchResults = () => {
 }
 
 export default SearchResults
-
