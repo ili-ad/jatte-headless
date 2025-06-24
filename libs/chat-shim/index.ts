@@ -1,4 +1,5 @@
 // libs/chat-shim/index.ts
+"use client"
 import { useSyncExternalStore } from 'react';
 
 
@@ -1092,111 +1093,111 @@ export class SearchController {
 
 
 
-/* ------------------------------------------------------------------ */
-/*  ►  DEFERRED polyfill so we break the circular‑import              */
-/*      (runs on next micro‑task, when this module is fully initial.) */
-/* ------------------------------------------------------------------ */
+// /* ------------------------------------------------------------------ */
+// /*  ►  DEFERRED polyfill so we break the circular‑import              */
+// /*      (runs on next micro‑task, when this module is fully initial.) */
+// /* ------------------------------------------------------------------ */
 
 
 
-/* =================================================================== */
-/*  🔧  Stream‑Chat‑React 13.x compatibility shims                     */
-/*       (executed after this module is fully initialised)             */
-/* =================================================================== */
-Promise.resolve().then(() => {
-  // dynamic require avoids ESM import cycles
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const scr = require('stream-chat-react') as any;
-  if (!scr) return;
+// /* =================================================================== */
+// /*  🔧  Stream‑Chat‑React 13.x compatibility shims                     */
+// /*       (executed after this module is fully initialised)             */
+// /* =================================================================== */
+// Promise.resolve().then(() => {
+//   // dynamic require avoids ESM import cycles
+//   // eslint-disable-next-line @typescript-eslint/no-var-requires
+//   const scr = require('stream-chat-react') as any;
+//   if (!scr) return;
 
-  /* ---------------------------------------------------- *
-   * 1)  Patch StateStore prototype (one place, covers all)
-   * ---------------------------------------------------- */
-  const storeProto = scr.StateStore?.prototype;
-  if (storeProto) {
-    if (typeof storeProto.getLatestValue !== 'function') {
-      storeProto.getLatestValue =
-        storeProto.getState ??
-        storeProto.getSnapshot ??
-        function () { return this.state; };
-    }
-    if (typeof storeProto.subscribe !== 'function') {
-      // most components don’t unsubscribe; a no‑op is enough
-      storeProto.subscribe = () => () => {};
-    }
-  }
+//   /* ---------------------------------------------------- *
+//    * 1)  Patch StateStore prototype (one place, covers all)
+//    * ---------------------------------------------------- */
+//   const storeProto = scr.StateStore?.prototype;
+//   if (storeProto) {
+//     if (typeof storeProto.getLatestValue !== 'function') {
+//       storeProto.getLatestValue =
+//         storeProto.getState ??
+//         storeProto.getSnapshot ??
+//         function () { return this.state; };
+//     }
+//     if (typeof storeProto.subscribe !== 'function') {
+//       // most components don’t unsubscribe; a no‑op is enough
+//       storeProto.subscribe = () => () => {};
+//     }
+//   }
 
-  /* ---------------------------------------------------- *
-   * 2)  Patch LinkPreviewsManager (used by MessageInput)  *
-   * ---------------------------------------------------- */
-  const lpProto = scr.LinkPreviewsManager?.prototype;
-  if (lpProto) {
-    if (typeof lpProto.getLatestValue !== 'function') {
-      lpProto.getLatestValue = function () {
-        return { previews: this.cache ?? new Map() };
-      };
-    }
-    if (typeof lpProto.subscribe !== 'function') {
-      lpProto.subscribe = (cb: () => void) => { cb(); return () => {}; };
-    }
-    if (!Object.getOwnPropertyDescriptor(lpProto, 'state')) {
-      Object.defineProperty(lpProto, 'state', {
-        get() { return this; },                // stable reference
-      });
-    }
-  }
+//   /* ---------------------------------------------------- *
+//    * 2)  Patch LinkPreviewsManager (used by MessageInput)  *
+//    * ---------------------------------------------------- */
+//   const lpProto = scr.LinkPreviewsManager?.prototype;
+//   if (lpProto) {
+//     if (typeof lpProto.getLatestValue !== 'function') {
+//       lpProto.getLatestValue = function () {
+//         return { previews: this.cache ?? new Map() };
+//       };
+//     }
+//     if (typeof lpProto.subscribe !== 'function') {
+//       lpProto.subscribe = (cb: () => void) => { cb(); return () => {}; };
+//     }
+//     if (!Object.getOwnPropertyDescriptor(lpProto, 'state')) {
+//       Object.defineProperty(lpProto, 'state', {
+//         get() { return this; },                // stable reference
+//       });
+//     }
+//   }
 
-  // eslint-disable-next-line no-console
-  console.info('[chat‑shim] Stream‑Chat‑React polyfills installed');
-});
+//   // eslint-disable-next-line no-console
+//   console.info('[chat‑shim] Stream‑Chat‑React polyfills installed');
+// });
 
 
 
-/* ------------------------------------------------------------------ */
-/*  Deferred patch — runs after this module & SCR have loaded          */
-/* ------------------------------------------------------------------ */
+// /* ------------------------------------------------------------------ */
+// /*  Deferred patch — runs after this module & SCR have loaded          */
+// /* ------------------------------------------------------------------ */
 
-queueMicrotask(async () => {
-  // dynamic import sidesteps the circular-import TDZ
-  const scr: any = await import('stream-chat-react');
+// queueMicrotask(async () => {
+//   // dynamic import sidesteps the circular-import TDZ
+//   const scr: any = await import('stream-chat-react');
 
-  /* ---------- ensure the symbols exist in SCR’s namespace ---------- */
+//   /* ---------- ensure the symbols exist in SCR’s namespace ---------- */
 
-  if (!scr.FixedSizeQueueCache) {
-    scr.FixedSizeQueueCache = FixedSizeQueueCache;
-  }
+//   if (!scr.FixedSizeQueueCache) {
+//     scr.FixedSizeQueueCache = FixedSizeQueueCache;
+//   }
 
-  if (!scr.LinkPreviewsManager) {
-    scr.LinkPreviewsManager = LinkPreviewsManager;
-  }
+//   if (!scr.LinkPreviewsManager) {
+//     scr.LinkPreviewsManager = LinkPreviewsManager;
+//   }
 
-  /* ---------- retrofit missing store-like APIs on the original ------ */
+//   /* ---------- retrofit missing store-like APIs on the original ------ */
 
-  const OrigMgr = scr.LinkPreviewsManager?.prototype;
-  if (
-    OrigMgr &&
-    typeof OrigMgr.getLatestValue !== 'function' /* haven’t patched yet */
-  ) {
-    OrigMgr.getLatestValue = function () {
-      /* expose the shape useStateStore expects */
-      return { previews: this.cache ?? new Map() };
-    };
+//   const OrigMgr = scr.LinkPreviewsManager?.prototype;
+//   if (
+//     OrigMgr &&
+//     typeof OrigMgr.getLatestValue !== 'function' /* haven’t patched yet */
+//   ) {
+//     OrigMgr.getLatestValue = function () {
+//       /* expose the shape useStateStore expects */
+//       return { previews: this.cache ?? new Map() };
+//     };
 
-    OrigMgr.subscribe = function (cb: () => void) {
-      /* link-preview changes are infrequent; just fire once */
-      cb();
-      return () => {};
-    };
+//     OrigMgr.subscribe = function (cb: () => void) {
+//       /* link-preview changes are infrequent; just fire once */
+//       cb();
+//       return () => {};
+//     };
 
-    /* some SCR components ask for `.state` instead of the two methods */
-    Object.defineProperty(OrigMgr, 'state', {
-      configurable: true,
-      get() {
-        return {
-          getLatestValue: this.getLatestValue.bind(this),
-          subscribe:      this.subscribe.bind(this),
-        };
-      },
-    });
-  }
-});
+//     /* some SCR components ask for `.state` instead of the two methods */
+//     Object.defineProperty(OrigMgr, 'state', {
+//       configurable: true,
+//       get() {
+//         return {
+//           getLatestValue: this.getLatestValue.bind(this),
+//           subscribe:      this.subscribe.bind(this),
+//         };
+//       },
+//     });
+//   }
+// });
