@@ -1,3 +1,4 @@
+frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/channel-utils.ts
 libs/stream-chat-shim/src/Avatar.tsx
 node_modules/stream-chat-react/dist/components/Attachment/FileAttachment.js
