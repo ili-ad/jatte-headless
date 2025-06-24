@@ -5,7 +5,7 @@ Every task implements **one public symbol** that our frontend imports from
 ### How to work a row
 
 1. **Find the row below specified in the prompt by it's public symbol** if that one is complete
-    already pick any row with “☐”.
+    already pick any row with “ ✅”.
    _If all rows are ✅, add a new one for the symbol you just noticed is
    missing._
 
@@ -64,7 +64,7 @@ Locating the original reference
 
 | ID  | Symbol                               | Path (create / adapt)                                                                                               | Status | Notes |
 |-----|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------|-------|
-| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ☐ | |
+| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ✅ | |
 | 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ☐ | |
 | 003 | useAIState                           | libs/stream-ui/src/components/AIStateIndicator/hooks/useAIState.ts                                                   | ☐ | |
 | 004 | Attachment                           | libs/stream-ui/src/components/Attachment/Attachment.tsx                                                              | ☐ | |
@@ -85,7 +85,7 @@ Locating the original reference
 | 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ☐ | |
 | 020 | channel-utils                        | libs/stream-ui/src/components/Channel/utils.ts                                                                       | ☐ | |
 | 021 | ChannelHeader                        | libs/stream-ui/src/components/ChannelHeader/ChannelHeader.tsx                                                        | ☐ | |
-| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ☐ | |
+| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ✅ | |
 | 023 | ChannelListMessenger                 | libs/stream-ui/src/components/ChannelList/ChannelListMessenger.tsx                                                   | ☐ | |
 | 024 | ChannelList.test                     | libs/stream-ui/src/components/ChannelList/__tests__/ChannelList.test.js                                              | ☐ | |
 | 025 | useChannelDeletedListener            | libs/stream-ui/src/components/ChannelList/hooks/useChannelDeletedListener.ts                                         | ☐ | |
