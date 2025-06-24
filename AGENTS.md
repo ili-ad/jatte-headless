@@ -65,7 +65,7 @@ Locating the original reference
 | ID  | Symbol                               | Path (create / adapt)                                                                                               | Status | Notes |
 |-----|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------|-------|
 | 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ☐ | |
-| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ☐ | |
+| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx | ✅ | |
 | 003 | useAIState                           | libs/stream-ui/src/components/AIStateIndicator/hooks/useAIState.ts                                                   | ☐ | |
 | 004 | Attachment                           | libs/stream-ui/src/components/Attachment/Attachment.tsx                                                              | ☐ | |
 | 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ✅ | |
