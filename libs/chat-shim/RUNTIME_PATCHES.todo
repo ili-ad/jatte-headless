@@ -1,1 +1,3 @@
 libs/stream-chat-shim/src/Attachment.tsx
+libs/stream-chat-shim/src/useAIState.ts
+
