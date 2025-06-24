@@ -1,4 +1,4 @@
-
+libs/stream-chat-shim/src/Avatar.tsx
 node_modules/stream-chat-react/dist/components/Attachment/FileAttachment.js
 libs/stream-ui/src/@types/stream-chat-custom-data.d.ts
 frontend/src/stream-chat-react-shim.ts
