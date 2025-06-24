@@ -5,7 +5,7 @@ Every task implements **one public symbol** that our frontend imports from
 ### How to work a row
 
 1. **Find the row below specified in the prompt by it's public symbol** if that one is complete
-    already pick any row with “✅”.
+    already pick any row with “☐”.
    _If all rows are ✅, add a new one for the symbol you just noticed is
    missing._
 
@@ -17,19 +17,35 @@ Every task implements **one public symbol** that our frontend imports from
     • Keep the public interface (props, methods) identical.
     *Import nothing from `stream-chat-react` inside the shim!*    
 
-3.  **Add re-export**  
-    ⛔️ Don’t touch libs/chat-shim/index.ts while feature branches are open.
+3.  **Skip re-export for now**  
+    ⛔️ !!! DON'T touch libs/stream-chat-shim/index.ts !!!! or any other deterministic file while you're working in parallel on open feature branches.
     We’ll generate the barrel file once, after everything lands, to avoid merge
     conflicts.
+    • PLEASE: When complete, mark done (no check-boxes!) with a file like:
+      `touch libs/stream-chat-shim/status/<SymbolName>.done`
+    • Do NOT:
+        edit `AGENTS.md` ,
+        edit any neighbour file,
+        or edit barrel files or remove runtime patches.
+
 
 4.  ⛔️ Leave existing runtime patches in place for now.
-    We’ll strip them out in one deterministic pass once all feature branches have merged.
-    • DO please: append a line with the file path at libs/chat-shim/RUNTIME_PATCHES.todo (create if missing)
+    If you find a runtime patch that only exists for this symbol
+    • PLEASE: create libs/stream-chat-shim/cleanup/<Symbol>.remove.txt and list
+      the file-path(s) or code region to delete in that file.
+    • PLEASE: Leave the patch itself untouched.
+    • Q: What goes into cleanup/<symbol>.remove.txt ?
+    • A: Path(s) or glob(s) that still contain the legacy patch the agent
+        noticed:
+    `src/stream-chat-react-shim.ts  # patch around line 120-150`
+    `libs/chat-shim/index.ts        # TODO remove getLatestValue monkey-patch`
 
-5.  **Unit-test** (optional but recommended):  
+5.  ⛔️ DON'T EDIT THIS FILE.
+
+6.  **Unit-test** (stronlgy recommended where appropriate):
     `libs/stream-chat-shim/__tests__/<symbolName>.test.tsx`
 
-6.  **Run** `pnpm build && pnpm -F frontend tsc --noEmit` – must compile
+7.  **Run** `pnpm build && pnpm -F frontend tsc --noEmit` – must compile
     with no new errors.
 
 ## Parallel-work guidelines
@@ -60,35 +76,32 @@ Locating the original reference
     Open it to copy prop types or behaviour, but do not import from it.
 
 
-
+Please create a shim per the instructions in AGENTS.md for the following public symbol: 
 
 | ID  | Symbol                               | Path (create / adapt)                                                                                               | Status | Notes |
 |-----|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------|-------|
-| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ✅ | |
-| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ✅ | |
+| 001 | stream-chat-custom-data              | libs/stream-ui/src/@types/stream-chat-custom-data.d.ts                                                               | ☐ | |
+| 002 | AIStateIndicator                     | libs/stream-ui/src/components/AIStateIndicator/AIStateIndicator.tsx                                                  | ☐ | |
 | 003 | useAIState                           | libs/stream-ui/src/components/AIStateIndicator/hooks/useAIState.ts                                                   | ☐ | |
 | 004 | Attachment                           | libs/stream-ui/src/components/Attachment/Attachment.tsx                                                              | ☐ | |
-| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ✅ | |
+| 005 | AttachmentActions                    | libs/stream-ui/src/components/Attachment/AttachmentActions.tsx                                                       | ☐ | |
 | 006 | AttachmentContainer                  | libs/stream-ui/src/components/Attachment/AttachmentContainer.tsx                                                     | ☐ | |
-| 007 | Audio                                | libs/stream-ui/src/components/Attachment/Audio.tsx                                                                   | ✅ | |
+| 007 | Audio                                | libs/stream-ui/src/components/Attachment/Audio.tsx                                                                   | ☐ | |
 | 008 | Card                                 | libs/stream-ui/src/components/Attachment/Card.tsx                                                                    | ☐ | |
+| 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ☐ | |
 | 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ☐ | |
 | 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ☐ | |
 | 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ☐ | |
-| 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ✅ | |
-| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ✅ | |
-| 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ✅ | |
-| 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ✅ | |
 | 013 | attachment-utils                     | libs/stream-ui/src/components/Attachment/utils.tsx                                                                   | ☐ | |
 | 014 | Avatar                               | libs/stream-ui/src/components/Avatar/Avatar.tsx                                                                      | ☐ | |
-| 015 | Channel                              | libs/stream-ui/src/components/Channel/Channel.tsx                                                                    | ✅ | |
-| 016 | Channel.test                         | libs/stream-ui/src/components/Channel/__tests__/Channel.test.js                                                      | ✅ | |
+| 015 | Channel                              | libs/stream-ui/src/components/Channel/Channel.tsx                                                                    | ☐ | |
+| 016 | Channel.test                         | libs/stream-ui/src/components/Channel/__tests__/Channel.test.js                                                      | ☐ | |
 | 017 | channelState                         | libs/stream-ui/src/components/Channel/channelState.ts                                                                | ☐ | |
 | 018 | useEditMessageHandler                | libs/stream-ui/src/components/Channel/hooks/useEditMessageHandler.ts                                                 | ☐ | |
-| 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ✅ | |
+| 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ☐ | |
 | 020 | channel-utils                        | libs/stream-ui/src/components/Channel/utils.ts                                                                       | ☐ | |
 | 021 | ChannelHeader                        | libs/stream-ui/src/components/ChannelHeader/ChannelHeader.tsx                                                        | ☐ | |
-| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ✅ | |
+| 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ☐ | |
 | 023 | ChannelListMessenger                 | libs/stream-ui/src/components/ChannelList/ChannelListMessenger.tsx                                                   | ☐ | |
 | 024 | ChannelList.test                     | libs/stream-ui/src/components/ChannelList/__tests__/ChannelList.test.js                                              | ☐ | |
 | 025 | useChannelDeletedListener            | libs/stream-ui/src/components/ChannelList/hooks/useChannelDeletedListener.ts                                         | ☐ | |
