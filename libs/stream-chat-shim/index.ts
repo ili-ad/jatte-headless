@@ -1,3 +1,5 @@
+export * from './src/ChannelListMessenger';
+
 export * from './src/useMentionsHandlers';
 
 export * from './src/channelState';
