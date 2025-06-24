@@ -1,3 +1,4 @@
+libs/stream-chat-shim/src/useChannelDeletedListener.ts
 frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/ChannelList.tsx
 frontend/src/stream-chat-react-shim.ts
