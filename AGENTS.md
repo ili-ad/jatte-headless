@@ -73,7 +73,7 @@ Locating the original reference
 | 007 | Audio                                | libs/stream-ui/src/components/Attachment/Audio.tsx                                                                   | ☐ | |
 | 008 | Card                                 | libs/stream-ui/src/components/Attachment/Card.tsx                                                                    | ☐ | |
 | 009 | FileAttachment                       | libs/stream-ui/src/components/Attachment/FileAttachment.tsx                                                          | ☐ | |
-| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ☐ | |
+| 010 | UnsupportedAttachment                | libs/stream-ui/src/components/Attachment/UnsupportedAttachment.tsx                                                   | ✅ | |
 | 011 | VoiceRecording                       | libs/stream-ui/src/components/Attachment/VoiceRecording.tsx                                                          | ☐ | |
 | 012 | attachment-sizing                    | libs/stream-ui/src/components/Attachment/attachment-sizing.tsx                                                       | ☐ | |
 | 013 | attachment-utils                     | libs/stream-ui/src/components/Attachment/utils.tsx                                                                   | ☐ | |

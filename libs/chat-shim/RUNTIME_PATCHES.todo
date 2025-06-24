@@ -1,4 +1,4 @@
-
+frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/Card.tsx
 frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/AttachmentContainer.tsx
