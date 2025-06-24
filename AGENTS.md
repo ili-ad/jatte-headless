@@ -82,7 +82,7 @@ Locating the original reference
 
 | 013 | attachment-utils                     | libs/stream-ui/src/components/Attachment/utils.tsx                                                                   | ☐ | |
 | 014 | Avatar                               | libs/stream-ui/src/components/Avatar/Avatar.tsx                                                                      | ☐ | |
-| 015 | Channel                              | libs/stream-ui/src/components/Channel/Channel.tsx                                                                    | ☐ | |
+| 015 | Channel                              | libs/stream-ui/src/components/Channel/Channel.tsx                                                                    | ✅ | |
 | 016 | Channel.test                         | libs/stream-ui/src/components/Channel/__tests__/Channel.test.js                                                      | ☐ | |
 | 017 | channelState                         | libs/stream-ui/src/components/Channel/channelState.ts                                                                | ☐ | |
 | 018 | useEditMessageHandler                | libs/stream-ui/src/components/Channel/hooks/useEditMessageHandler.ts                                                 | ☐ | |
