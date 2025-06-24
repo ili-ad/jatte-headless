@@ -1,3 +1,4 @@
+export * from './src/useMentionsHandlers';
 
 export * from './src/channelState';
 
@@ -10,4 +11,3 @@ export * from './src/AIStateIndicator';
 export * from './src/Card';
 
 export * from './src/AttachmentActions'
-
