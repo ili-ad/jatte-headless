@@ -1,1 +1,17 @@
 libs/stream-chat-shim/src/Audio.tsx
+libs/stream-chat-shim/src/ChannelList.test.ts
+libs/stream-chat-shim/src/useChannelDeletedListener.ts
+frontend/src/stream-chat-react-shim.ts
+libs/stream-chat-shim/src/ChannelList.tsx
+frontend/src/stream-chat-react-shim.ts
+libs/stream-chat-shim/src/channel-utils.ts
+libs/stream-chat-shim/src/Avatar.tsx
+node_modules/stream-chat-react/dist/components/Attachment/FileAttachment.js
+libs/stream-ui/src/@types/stream-chat-custom-data.d.ts
+frontend/src/stream-chat-react-shim.ts
+libs/stream-chat-shim/src/Card.tsx
+frontend/src/stream-chat-react-shim.ts
+libs/stream-chat-shim/src/AttachmentContainer.tsx
+frontend/src/stream-chat-react-shim.ts
+libs/stream-chat-shim/src/Attachment.tsx
+libs/stream-chat-shim/src/useAIState.ts
