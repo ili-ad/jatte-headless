@@ -1,7 +1,7 @@
 
+libs/stream-chat-shim/src/Card.tsx
 frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/AttachmentContainer.tsx
 frontend/src/stream-chat-react-shim.ts
 libs/stream-chat-shim/src/Attachment.tsx
 libs/stream-chat-shim/src/useAIState.ts
-  
