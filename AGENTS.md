@@ -82,7 +82,7 @@ Locating the original reference
 | 016 | Channel.test                         | libs/stream-ui/src/components/Channel/__tests__/Channel.test.js                                                      | ☐ | |
 | 017 | channelState                         | libs/stream-ui/src/components/Channel/channelState.ts                                                                | ☐ | |
 | 018 | useEditMessageHandler                | libs/stream-ui/src/components/Channel/hooks/useEditMessageHandler.ts                                                 | ☐ | |
-| 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ☐ | |
+| 019 | useMentionsHandlers                  | libs/stream-ui/src/components/Channel/hooks/useMentionsHandlers.ts                                                   | ✅ | |
 | 020 | channel-utils                        | libs/stream-ui/src/components/Channel/utils.ts                                                                       | ☐ | |
 | 021 | ChannelHeader                        | libs/stream-ui/src/components/ChannelHeader/ChannelHeader.tsx                                                        | ☐ | |
 | 022 | ChannelList                          | libs/stream-ui/src/components/ChannelList/ChannelList.tsx                                                            | ☐ | |
