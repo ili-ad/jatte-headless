@@ -1,3 +1,5 @@
+export * from './src/ChannelList.test';
+
 export * from './src/useChannelDeletedListener';
 
 export * from './src/ChannelListMessenger';
