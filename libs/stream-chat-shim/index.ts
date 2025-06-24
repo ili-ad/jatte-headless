@@ -1,3 +1,6 @@
+// libs/stream-chat-shim/index.ts
+export * from './src/Audio'
+
 export * from './src/ChannelList.test';
 
 export * from './src/useChannelDeletedListener';
