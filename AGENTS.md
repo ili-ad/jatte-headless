@@ -54,6 +54,9 @@ direct calls to the Stream SaaS SDK.
 8. Do NOT modify any existing file.
 If a file already exists, stop and pick another task (prevents merge
 conflicts).
+Note: Legacy placeholder components were moved under
+libs/chat-shim/⛔️_legacy_ui/**.
+If you see an identically named file there, ignore it – treat the target path under libs/stream-chat-shim/src/** as new.
 9. Commit only the new file + its test.
 
 #### Success criteria  
