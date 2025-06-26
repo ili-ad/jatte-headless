@@ -4,6 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["frontend/lib/*", "frontend/src/*"],
+      "stream-chat-react": ["libs/stream-chat-shim/src"],
+      "stream-chat-react/*": ["libs/stream-chat-shim/src/*"],      
       "stream-chat": ["libs/chat-shim"],
     },
     "types": ["node", "react", "jest"]
