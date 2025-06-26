@@ -10,19 +10,35 @@ Goal: copy the upstream component **verbatim** from
 Your job: copy the upstream implementation **verbatim**, then surgically remove
 direct calls to the Stream SaaS SDK.
 
+Root reminder: take everything that comes after libs/stream-ui/src/ and paste it under libs/stream-chat-shim/src/ unchanged.
+Example — upstream components/MessageList/MessageList.tsx ⟶ libs/stream-chat-shim/src/components/MessageList/MessageList.tsx
+
 #### Steps  
 #### Steps
 1. **Create the target directory if it doesn’t exist.**
-   * Keep the identical relative path:
+   * Copy everything that sits under libs/stream-ui/src/ into the same
+     sub-directory under libs/stream-chat-shim/src/. Preserve the whole
+     path – components/…, context/…, utils/…, experimental/…, whatever.
+   * Keep the identical relative path. Example:
    ```ts
     libs/stream-chat-shim/src/<everything after ‘components/…’>
    ```
-   * So ```components/Attachment/Audio.tsx```-> 
+   * So ```components/Attachment/Audio.tsx```-> ``` libs/stream-chat-shim/src/components/Attachment/Audio.tsx```
+
 2. Paste the entire file.
 3. Import swap:
    *  Most internal imports look like ```import { Something } from '../../context/ChatContext';``` 
    * Those stay untouched.
    * Only the very few lines that import from 'stream-chat' or 'stream-chat-react' get replaced by a /* TODO backend-wire-up */ stub.
+   * If an imported symbol is missing because that file hasn’t been ported yet
+    1. Comment out the import line and add a 1-line fallback right below it:
+
+       // import { useFoo } from './hooks/useFoo';  // TODO backend-wire-up
+       const useFoo = () => ({} as any);           // temporary shim
+
+    2. Use the same identifier everywhere else in the file.
+    3. Leave a TODO so we can delete the shim once hooks/useFoo.ts arrives.
+
 
 4. **SDK amputations**
    * Delete any `import … from 'stream-chat'` or `'stream-chat-react'`.
@@ -39,6 +55,12 @@ direct calls to the Stream SaaS SDK.
     + import { useChatContext } from '../../context/ChatContext';
     + /* TODO backend-wire-up: StreamChat import excised */
    ```
+   * If the component needs SearchController, ChannelSearchSource, etc.,
+  `import { SearchController … } from 'chat-shim'` – do **NOT** redeclare
+  them locally.
+
+    * Remove helper types/vars if they end up unused after amputations (tsc --noEmit
+    fails on unused locals in our strict config).
      
 5. Ensure all *relative* imports continue to work.  
    Do **not** add imports from our `stream-adapter` – backend glue lives higher up.
