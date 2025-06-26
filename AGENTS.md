@@ -59,8 +59,12 @@ Example — upstream components/MessageList/MessageList.tsx ⟶ libs/stream-chat
   `import { SearchController … } from 'chat-shim'` – do **NOT** redeclare
   them locally.
 
-    * Remove helper types/vars if they end up unused after amputations (tsc --noEmit
-    fails on unused locals in our strict config).
+   * Remove helper types/vars if they end up unused after amputations (tsc --noEmit
+     fails on unused locals in our strict config).
+   * If you still need the types (e.g. LocalMessage) replace
+     import … from 'stream-chat' with
+     import … from 'chat-shim' or declare type LocalMessage = any;
+     This keeps tsc happy without pulling the SaaS SDK.
      
 5. Ensure all *relative* imports continue to work.  
    Do **not** add imports from our `stream-adapter` – backend glue lives higher up.
@@ -80,6 +84,9 @@ Note: Legacy placeholder components were moved under
 libs/chat-shim/⛔️_legacy_ui/**.
 If you see an identically named file there, ignore it – treat the target path under libs/stream-chat-shim/src/** as new.
 9. Commit only the new file + its test.
+10. Don’t forget to copy any sibling index.ts re-export files referenced by the component (e.g. hooks/index.ts). They’re usually only a handful of export * from './useX'; lines, so include them in the same PR.
+11. If an internal dependency is still missing, DO NOT create a separate placeholder file.
+Simply keep the import as‐is and add // TODO backend-wire-up—our next agent will copy that file.
 
 #### Success criteria  
 * `pnpm build && pnpm -F frontend tsc --noEmit` passes.  
