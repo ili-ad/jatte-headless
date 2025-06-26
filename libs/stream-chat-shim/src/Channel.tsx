@@ -1,6 +1,13 @@
 import React from 'react';
 
+/**
+ * Very-light placeholder for Stream’s `<Channel>` component.
+ * (Just renders its children until a fuller implementation lands.)
+ */
 export interface ChannelProps {
+  /** Channel instance from the chat client (optional, not used yet) */
+  channel?: any;
+  /** React children to render inside the channel */
   children?: React.ReactNode;
 }
 
@@ -9,13 +16,3 @@ export const Channel: React.FC<ChannelProps> = ({ children }) => (
 );
 
 export default Channel;
-  /** Channel instance from the chat client */
-  channel?: any;
-  /** React children to render inside the channel */
-  children?: React.ReactNode;
-}
-
-/** Placeholder Channel component used while the real implementation is ported. */
-export function Channel({ children }: ChannelProps) {
-  return <>{children}</>;
-}

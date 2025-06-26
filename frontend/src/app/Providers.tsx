@@ -1,8 +1,8 @@
-// frontend/src/app/Providers.tsx
-'use client';
+// // frontend/src/app/Providers.tsx
+// 'use client';
 
-import '../stream-chat-react-shim';
+// import '../stream-chat-react-shim';
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
+// export function Providers({ children }: { children: React.ReactNode }) {
+//   return <>{children}</>;
+// }

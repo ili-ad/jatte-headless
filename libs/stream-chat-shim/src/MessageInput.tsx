@@ -84,7 +84,7 @@ export const MessageInput = <
 >(
   _props: PropsWithChildren<MessageInputProps<StreamChatGenerics, V>>,
 ) => {
-  return <div data-testid="message-input">MessageInput</div>;
+  return<pre>{JSON.stringify(_props)}</pre>;
 };
 
 export default MessageInput;

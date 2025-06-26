@@ -19,11 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
           <SessionProvider>
             {children}
           </SessionProvider>
-        </Providers>  
+          {/* <Providers></Providers>   */}
       </body>
     </html>
   );

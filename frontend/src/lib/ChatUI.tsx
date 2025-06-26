@@ -1,6 +1,6 @@
 'use client'
 
-import { Chat, Channel, Window, MessageList, MessageInput } from '@iliad/stream-ui';
+import { Chat, Channel, Window, MessageList, MessageInput } from 'stream-chat-react';
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 
