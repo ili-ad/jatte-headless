@@ -29,7 +29,7 @@ webpack(cfg) {
   cfg.resolve.alias['stream-chat-react/dist'] =
     path.resolve(__dirname, '../node_modules/stream-chat-react/dist');
 
-  (cfg.resolve.alias as Record<string, string>)['stream-chat-react'] =
+  cfg.resolve.alias['stream-chat-react'] =
     path.resolve(__dirname, '../libs/stream-chat-shim/src');
 
   (cfg.resolve.alias as Record<string,string>)['stream-chat'] =
