@@ -1,4 +1,4 @@
 
-export * from './ReactionSelector';
-// TODO backend-wire-up: export other Reaction components when ported
+export * from './SpriteImage';
+// TODO backend-wire-up: export other Reactions components when ported
 
