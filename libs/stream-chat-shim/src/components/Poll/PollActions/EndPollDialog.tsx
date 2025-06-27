@@ -22,7 +22,9 @@ export const EndPollDialog = ({ close }: EndPollDialogProps) => {
           children: t('End'),
           className:
             '.str-chat__dialog__controls-button--submit str-chat__dialog__controls-button--end-poll',
-          onClick: poll.close,
+          onClick: () => {
+            /* TODO backend-wire-up: close */
+          },
         },
       ]}
       className='str-chat__modal__end-vote'
