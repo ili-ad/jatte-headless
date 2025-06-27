@@ -10,7 +10,9 @@ import { ModalGallery as DefaultModalGallery } from './ModalGallery';
 import { useComponentContext } from '../../context/ComponentContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 
-/* TODO backend-wire-up: Attachment import excised */
+/* TODO backend-wire-up: Attachment type from stream-chat excised */
+type Attachment = any;
+
 
 export type GalleryProps = {
   images: ((

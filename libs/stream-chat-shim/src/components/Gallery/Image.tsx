@@ -7,7 +7,10 @@ import { Modal } from '../Modal';
 import { ModalGallery as DefaultModalGallery } from './ModalGallery';
 import { useComponentContext } from '../../context';
 
+
+
 // import type { Attachment } from 'stream-chat'; // TODO backend-wire-up
+
 type Attachment = any;
 import type { Dimensions } from '../../types/types';
 
