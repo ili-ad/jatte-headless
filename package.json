@@ -11,6 +11,7 @@
     "jest": "29",
     "jest-websocket-mock": "2",
     "ts-jest": "29",
+    "tsx": "4.20.3",
     "turbo": "^1.13.4",
     "typescript": "5"
   },
