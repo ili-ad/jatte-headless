@@ -1,17 +1,13 @@
 import React from 'react';
-// import { isLocalUploadAttachment } from 'stream-chat'; // TODO backend-wire-up
-import { isLocalUploadAttachment } from '../../../../../chat-shim';
-// import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons'; // TODO backend-wire-up
-const CloseIcon = () => null;
-const DownloadIcon = () => null;
-const LoadingIndicatorIcon = (_props: any) => null;
-const RetryIcon = () => null;
-// import { FileIcon } from '../../ReactFileUtilities'; // TODO backend-wire-up
-const FileIcon = (_props: any) => null;
-// import { useTranslationContext } from '../../../context'; // TODO backend-wire-up
-const useTranslationContext = (_?: string) => ({ t: (s: any) => s });
-// import type { AnyLocalAttachment, LocalUploadAttachment } from 'stream-chat'; // TODO backend-wire-up
-import type { AnyLocalAttachment, LocalUploadAttachment } from '../../../../../chat-shim';
+
+import { isLocalUploadAttachment } from 'chat-shim';
+import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
+import { FileIcon } from '../../ReactFileUtilities';
+import { useTranslationContext } from '../../../context';
+/* TODO backend-wire-up: StreamChat types excised */
+type AnyLocalAttachment<CustomLocalMetadata = Record<string, unknown>> = any;
+type LocalUploadAttachment = any;
+
 
 export type UnsupportedAttachmentPreviewProps<
   CustomLocalMetadata = Record<string, unknown>,
