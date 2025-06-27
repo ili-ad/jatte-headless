@@ -28,10 +28,8 @@ export function useSelectedChannelState<O>({
     (onStoreChange: (value: O) => void) => {
       if (!channel) return noop;
 
-      const subscriptions = stateChangeEventKeys.map((et) =>
-        channel.on(et, () => {
-          onStoreChange(selector(channel));
-        }),
+      const subscriptions = stateChangeEventKeys.map(
+        () => /* TODO backend-wire-up: channel.on */ { unsubscribe: () => {} },
       );
 
       return () => subscriptions.forEach((subscription) => subscription.unsubscribe());

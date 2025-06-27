@@ -44,10 +44,10 @@ export const useChannelUpdatedListener = (
       }
     };
 
-    client.on('channel.updated', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.updated', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, forceUpdate, setChannels]);
 };

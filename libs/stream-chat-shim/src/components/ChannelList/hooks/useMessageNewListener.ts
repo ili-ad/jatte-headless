@@ -32,7 +32,7 @@ export const useMessageNewListener = (
             allowNewMessagesFromUnfilteredChannels &&
             event.channel_type
           ) {
-            const channel = client.channel(event.channel_type, event.channel_id);
+            const channel = /* TODO backend-wire-up: client.channel */ {} as any;
             return uniqBy([channel, ...channels], 'cid');
           }
 
@@ -43,10 +43,10 @@ export const useMessageNewListener = (
       }
     };
 
-    client.on('message.new', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('message.new', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [
     allowNewMessagesFromUnfilteredChannels,

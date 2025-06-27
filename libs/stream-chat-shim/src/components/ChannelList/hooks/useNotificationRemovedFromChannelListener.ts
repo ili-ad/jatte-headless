@@ -24,10 +24,10 @@ export const useNotificationRemovedFromChannelListener = (
       }
     };
 
-    client.on('notification.removed_from_channel', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('notification.removed_from_channel', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, setChannels]);
 };

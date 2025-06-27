@@ -27,10 +27,10 @@ export const useUserPresenceChangedListener = (
       });
     };
 
-    client.on('user.presence.changed', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('user.presence.changed', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, setChannels]);
 };

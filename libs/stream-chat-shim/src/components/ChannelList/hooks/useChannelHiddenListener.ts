@@ -29,10 +29,10 @@ export const useChannelHiddenListener = (
       }
     };
 
-    client.on('channel.hidden', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.hidden', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, setChannels]);
 };

@@ -31,10 +31,10 @@ export const useNotificationMessageNewListener = (
       }
     };
 
-    client.on('notification.message_new', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('notification.message_new', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [allowNewMessagesFromUnfilteredChannels, client, customHandler, setChannels]);
 };

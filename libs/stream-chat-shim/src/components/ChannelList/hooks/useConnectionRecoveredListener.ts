@@ -12,10 +12,10 @@ export const useConnectionRecoveredListener = (forceUpdate?: () => void) => {
       }
     };
 
-    client.on('connection.recovered', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('connection.recovered', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, forceUpdate]);
 };
