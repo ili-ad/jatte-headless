@@ -1,8 +1,9 @@
 import type { PropsWithChildren } from 'react';
 import type { LoadingIndicatorProps } from '../components/Loading/LoadingIndicator';
 
-/* TODO backend-wire-up: StreamChat import excised */
-import type { Attachment, ChannelState as StreamChannelState } from 'stream-chat';
+/* TODO backend-wire-up: stream-chat types excised */
+type Attachment = any;
+type StreamChannelState = any;
 
 
 export type UnknownType = Record<string, unknown>;
