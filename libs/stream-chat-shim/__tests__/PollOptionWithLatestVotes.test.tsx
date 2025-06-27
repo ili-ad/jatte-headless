@@ -1,9 +1,9 @@
-import { PollOptionWithLatestVotes } from '../src/PollOptionWithLatestVotes';
+import React from 'react';
+import { render } from '@testing-library/react';
+import { PollOptionWithLatestVotes } from '../src/components/Poll/PollActions/PollResults/PollOptionWithLatestVotes';
 
-describe('PollOptionWithLatestVotes shim', () => {
-  it('throws when used', () => {
-    expect(() =>
-      PollOptionWithLatestVotes({ option: {} as any })
-    ).toThrow('PollOptionWithLatestVotes shim not implemented');
-  });
+test('renders without crashing', () => {
+  render(
+    <PollOptionWithLatestVotes option={{ id: '1', text: 'Opt' } as any} />,
+  );
 });
