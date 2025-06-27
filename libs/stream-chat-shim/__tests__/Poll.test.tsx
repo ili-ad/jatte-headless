@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { PollContent } from '../src/components/Poll/PollContent';
+import { Poll } from '../src/components/Poll/Poll';
 
 test('renders without crashing', () => {
-  render(<PollContent />);
+  render(<Poll poll={{ id: '1' } as any} />);
 });

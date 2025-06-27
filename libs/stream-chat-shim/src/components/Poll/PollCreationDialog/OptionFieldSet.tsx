@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import { FieldError } from '../../Form/FieldError';
 import { DragAndDropContainer } from '../../DragAndDrop/DragAndDropContainer';
 // import { useTranslationContext } from '../../../context'; // TODO backend-wire-up
+
 const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s }); // temporary shim
 // import { useMessageComposer } from '../../MessageInput'; // TODO backend-wire-up
 const useMessageComposer = () => ({
@@ -15,12 +16,15 @@ const useMessageComposer = () => ({
 });
 // import { useStateStore } from '../../../store'; // TODO backend-wire-up
 const useStateStore = (_store?: any, _selector?: any) => ({ errors: {}, options: [] }); // temporary shim
+
 // import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
 type PollComposerState = any;
 
 const pollComposerStateSelector = (state: PollComposerState) => ({
+
   errors: state.errors.options,
   options: state.data.options,
+
 });
 
 export const OptionFieldSet = () => {
@@ -49,7 +53,9 @@ export const OptionFieldSet = () => {
         draggable={draggable}
         onSetNewOrder={onSetNewOrder}
       >
+
         {options.map((option, i) => {
+
           const error = errors?.[option.id];
           return (
             <div
@@ -94,3 +100,4 @@ export const OptionFieldSet = () => {
     </fieldset>
   );
 };
+
