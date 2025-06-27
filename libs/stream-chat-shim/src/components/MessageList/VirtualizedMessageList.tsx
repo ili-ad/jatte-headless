@@ -9,24 +9,51 @@ import type {
 } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
 
-import { GiphyPreviewMessage as DefaultGiphyPreviewMessage } from './GiphyPreviewMessage';
-import { useLastReadData } from './hooks';
-import {
-  useGiphyPreview,
-  useMessageSetKey,
-  useNewMessageNotification,
-  usePrependedMessagesCount,
-  useScrollToBottomOnNewMessage,
-  useShouldForceScrollToBottom,
-  useUnreadMessagesNotificationVirtualized,
-} from './hooks/VirtualizedMessageList';
-import { useMarkRead } from './hooks/useMarkRead';
 
-import { MessageNotification as DefaultMessageNotification } from './MessageNotification';
-import { MessageListNotifications as DefaultMessageListNotifications } from './MessageListNotifications';
-import { MessageListMainPanel as DefaultMessageListMainPanel } from './MessageListMainPanel';
-import type { GroupStyle, ProcessMessagesParams, RenderedMessage } from './utils';
-import { getGroupStyles, getLastReceived, processMessages } from './utils';
+// import { GiphyPreviewMessage as DefaultGiphyPreviewMessage } from './GiphyPreviewMessage'; // TODO backend-wire-up
+const DefaultGiphyPreviewMessage = (() => null) as React.ComponentType<any>;
+// import { useLastReadData } from './hooks'; // TODO backend-wire-up
+const useLastReadData = (_?: any) => ({} as any);
+// import {
+//   useGiphyPreview,
+//   useMessageSetKey,
+//   useNewMessageNotification,
+//   usePrependedMessagesCount,
+//   useScrollToBottomOnNewMessage,
+//   useShouldForceScrollToBottom,
+//   useUnreadMessagesNotificationVirtualized,
+// } from './hooks/VirtualizedMessageList'; // TODO backend-wire-up
+const useGiphyPreview = (_?: any) => ({ giphyPreviewMessage: undefined, setGiphyPreviewMessage: () => {} });
+const useMessageSetKey = (_?: any) => ({ messageSetKey: undefined as any });
+const useNewMessageNotification = (_msgs?: any, _id?: any, _hasMore?: any) => ({
+  atBottom: { current: false },
+  isMessageListScrolledToBottom: false,
+  newMessagesNotification: false,
+  setIsMessageListScrolledToBottom: () => {},
+  setNewMessagesNotification: () => {},
+});
+const usePrependedMessagesCount = (_msgs?: any, _flag?: any) => 0;
+const useScrollToBottomOnNewMessage = (_?: any) => {};
+const useShouldForceScrollToBottom = (_?: any, _2?: any) => () => false;
+const useUnreadMessagesNotificationVirtualized = (_?: any) => ({ show: false, toggleShowUnreadMessagesNotification: () => {} });
+// import { useMarkRead } from './hooks/useMarkRead'; // TODO backend-wire-up
+const useMarkRead = (_?: any) => {};
+
+// import { MessageNotification as DefaultMessageNotification } from './MessageNotification'; // TODO backend-wire-up
+const DefaultMessageNotification = (() => null) as React.ComponentType<any>;
+// import { MessageListNotifications as DefaultMessageListNotifications } from './MessageListNotifications'; // TODO backend-wire-up
+const DefaultMessageListNotifications = (() => null) as React.ComponentType<any>;
+// import { MessageListMainPanel as DefaultMessageListMainPanel } from './MessageListMainPanel'; // TODO backend-wire-up
+const DefaultMessageListMainPanel = (() => null) as React.ComponentType<any>;
+// import type { GroupStyle, ProcessMessagesParams, RenderedMessage } from './utils'; // TODO backend-wire-up
+type GroupStyle = any;
+type ProcessMessagesParams = any;
+type RenderedMessage = any;
+// import { getGroupStyles, getLastReceived, processMessages } from './utils'; // TODO backend-wire-up
+const getGroupStyles = (..._args: any[]) => ({} as any);
+const getLastReceived = (..._args: any[]) => null;
+const processMessages = (..._args: any[]) => [] as any[];
+
 import type { MessageProps, MessageUIComponentProps } from '../Message';
 import { MessageSimple } from '../Message';
 import { UnreadMessagesNotification as DefaultUnreadMessagesNotification } from './UnreadMessagesNotification';
@@ -44,19 +71,31 @@ import { UnreadMessagesSeparator as DefaultUnreadMessagesSeparator } from '../Me
 import { DateSeparator as DefaultDateSeparator } from '../DateSeparator';
 import { EventComponent as DefaultMessageSystem } from '../EventComponent';
 
-import { DialogManagerProvider } from '../../context';
-import type { ChannelActionContextValue } from '../../context/ChannelActionContext';
-import { useChannelActionContext } from '../../context/ChannelActionContext';
-import type {
-  ChannelNotifications,
-  ChannelStateContextValue,
-} from '../../context/ChannelStateContext';
-import { useChannelStateContext } from '../../context/ChannelStateContext';
-import type { ChatContextValue } from '../../context/ChatContext';
-import { useChatContext } from '../../context/ChatContext';
-import type { ComponentContextValue } from '../../context/ComponentContext';
-import { useComponentContext } from '../../context/ComponentContext';
-import { VirtualizedMessageListContextProvider } from '../../context/VirtualizedMessageListContext';
+
+// import { DialogManagerProvider } from '../../context'; // TODO backend-wire-up
+const DialogManagerProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+// import type { ChannelActionContextValue } from '../../context/ChannelActionContext'; // TODO backend-wire-up
+type ChannelActionContextValue = any;
+// import { useChannelActionContext } from '../../context/ChannelActionContext'; // TODO backend-wire-up
+const useChannelActionContext = (_?: string) => ({} as any);
+// import type {
+//   ChannelNotifications,
+//   ChannelStateContextValue,
+// } from '../../context/ChannelStateContext'; // TODO backend-wire-up
+type ChannelNotifications = any;
+type ChannelStateContextValue = { channelUnreadUiState?: any };
+// import { useChannelStateContext } from '../../context/ChannelStateContext'; // TODO backend-wire-up
+const useChannelStateContext = (_?: string) => ({} as any);
+// import type { ChatContextValue } from '../../context/ChatContext'; // TODO backend-wire-up
+type ChatContextValue = { customClasses?: Record<string, string> };
+// import { useChatContext } from '../../context/ChatContext'; // TODO backend-wire-up
+const useChatContext = (_?: string) => ({ client: { userID: undefined }, customClasses: {} } as ChatContextValue & { client: any });
+// import type { ComponentContextValue } from '../../context/ComponentContext'; // TODO backend-wire-up
+type ComponentContextValue = any;
+// import { useComponentContext } from '../../context/ComponentContext'; // TODO backend-wire-up
+const useComponentContext = (_?: string) => ({} as any);
+// import { VirtualizedMessageListContextProvider } from '../../context/VirtualizedMessageListContext'; // TODO backend-wire-up
+const VirtualizedMessageListContextProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
 
 // import type {
@@ -72,7 +111,9 @@ type UserResponse = any;
 
 import type { UnknownType } from '../../types/types';
 import { DEFAULT_NEXT_CHANNEL_PAGE_SIZE } from '../../constants/limits';
-import { useStableId } from '../UtilityComponents/useStableId';
+// import { useStableId } from '../UtilityComponents/useStableId'; // TODO backend-wire-up
+const useStableId = () => 'stable-id';
+
 
 type PropsDrilledToMessage =
   | 'additionalMessageInputProps'

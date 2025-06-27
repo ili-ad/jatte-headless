@@ -7,7 +7,7 @@ import {
   Header,
   EmptyPlaceholder,
   messageRenderer,
-} from '../src/VirtualizedMessageListComponents';
+} from '../src/components/MessageList/VirtualizedMessageListComponents';
 
 describe('VirtualizedMessageListComponents shim', () => {
   test('index helpers use offset', () => {
