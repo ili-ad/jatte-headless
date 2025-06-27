@@ -8,6 +8,7 @@ import { LoadingIndicator as DefaultLoadingIndicator } from '../Loading';
 import { isMessageEdited, Message } from '../Message';
 
 import { useComponentContext } from '../../context';
+
 // import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils'; // TODO backend-wire-up
 const getIsFirstUnreadMessage = (_: any) => false; // temporary shim
 const isDateSeparatorMessage = (_: any): boolean => false; // temporary shim
@@ -18,6 +19,7 @@ type LocalMessage = any;
 // import type { GroupStyle, RenderedMessage } from './utils'; // TODO backend-wire-up
 type GroupStyle = any;
 type RenderedMessage = any;
+
 import type { VirtuosoContext } from './VirtualizedMessageList';
 import type { UnknownType } from '../../types/types';
 
@@ -45,6 +47,7 @@ export const makeItemsRenderedHandler = (
     renderedItemsActions.forEach((action) =>
       action(renderedMessages as RenderedMessage[]),
     );
+
   }, 200);
 
 type CommonVirtuosoComponentProps = {
@@ -225,3 +228,4 @@ export const messageRenderer = (
     </>
   );
 };
+
