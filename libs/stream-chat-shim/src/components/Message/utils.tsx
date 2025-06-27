@@ -2,6 +2,7 @@ import deepequal from 'react-fast-compare';
 import emojiRegex from 'emoji-regex';
 
 import type { TFunction } from 'i18next';
+
 import type {
   ChannelConfigWithInfo,
   LocalMessage,
@@ -11,6 +12,7 @@ import type {
   StreamChat,
   UserResponse,
 } from 'stream-chat';
+
 /* TODO backend-wire-up: StreamChat import excised */
 import type { PinPermissions } from './hooks';
 import type { MessageProps } from './types';
@@ -19,6 +21,7 @@ import type {
   CustomMessageActions,
   MessageContextValue,
 } from '../../context';
+
 
 /**
  * Following function validates a function which returns notification message.

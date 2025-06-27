@@ -1,8 +1,9 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MessageErrorText } from '../src/MessageErrorText';
+import { MessageErrorText } from '../src/components/Message/MessageErrorText';
 
-test('renders placeholder', () => {
-  const { getByTestId } = render(<MessageErrorText />);
-  expect(getByTestId('message-error-text-placeholder')).toBeTruthy();
+test('renders without crashing', () => {
+  render(
+    <MessageErrorText message={{} as any} theme="light" />,
+  );
 });
