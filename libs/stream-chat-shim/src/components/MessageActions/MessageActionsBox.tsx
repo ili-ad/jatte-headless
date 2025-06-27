@@ -6,7 +6,6 @@ import { RemindMeActionButton } from './RemindMeSubmenu';
 import { useMessageReminder } from '../Message';
 import { useMessageComposer } from '../MessageInput';
 import {
-  useChatContext,
   useComponentContext,
   useMessageContext,
   useTranslationContext,
@@ -48,7 +47,6 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
     ...restDivProps
   } = props;
 
-  const { client } = useChatContext();
   const { CustomMessageActionsList = DefaultCustomMessageActionsList } =
     useComponentContext('MessageActionsBox');
   const { customMessageActions, message, threadList } =
@@ -169,11 +167,13 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
           <button
             aria-selected='false'
             className={buttonClassName}
-            onClick={() =>
-              reminder
-                ? client.reminders.deleteReminder(reminder.id)
-                : client.reminders.createReminder({ messageId: message.id })
-            }
+            onClick={() => {
+              if (reminder) {
+                /* TODO backend-wire-up: reminders.deleteReminder */
+              } else {
+                /* TODO backend-wire-up: reminders.createReminder */
+              }
+            }}
             role='option'
           >
             {reminder ? t('Remove reminder') : t('Save for later')}
