@@ -1,16 +1,15 @@
 import clsx from 'clsx';
 import React, { useCallback, useState } from 'react';
 // import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons'; // TODO backend-wire-up
-const CloseIcon = () => null;
-const LoadingIndicatorIcon = (_props: any) => null;
-const RetryIcon = () => null;
-// import { BaseImage as DefaultBaseImage } from '../../Gallery'; // TODO backend-wire-up
-const DefaultBaseImage = (props: any) => <img {...props} />;
-// import { useComponentContext, useTranslationContext } from '../../../context'; // TODO backend-wire-up
-const useComponentContext = (_?: string) => ({ BaseImage: DefaultBaseImage });
-const useTranslationContext = (_?: string) => ({ t: (s: any) => s });
+
+const CloseIcon = () => null as any; // temporary shim
+const LoadingIndicatorIcon = (_: any) => null as any; // temporary shim
+const RetryIcon = () => null as any; // temporary shim
+import { BaseImage as DefaultBaseImage } from '../../Gallery';
+import { useComponentContext, useTranslationContext } from '../../../context';
 // import type { LocalImageAttachment } from 'stream-chat'; // TODO backend-wire-up
-import type { LocalImageAttachment } from '../../../../../chat-shim';
+type LocalImageAttachment = any; // temporary shim
+
 import type { UploadAttachmentPreviewProps } from './types';
 
 export type ImageAttachmentPreviewProps<CustomLocalMetadata = Record<string, unknown>> =
