@@ -1,16 +1,15 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import { SearchInput } from '../src/ChannelSearch/SearchInput';
+import React from 'react'
+import { render } from '@testing-library/react'
+import { SearchInput } from '../src/SearchInput'
 
-test('renders search input', () => {
-  const inputRef = React.createRef<HTMLInputElement>();
-  const { getByTestId } = render(
-    <SearchInput
-      clearState={() => {}}
-      inputRef={inputRef}
-      onSearch={() => {}}
-      query=""
-    />
-  );
-  expect(getByTestId('search-input')).toBeTruthy();
-});
+test('renders input', () => {
+  const controller = {
+    clearState: () => {},
+    inputRef: { current: null } as React.RefObject<HTMLInputElement | null>,
+    onSearch: () => {},
+    query: '',
+  }
+  const { getByTestId } = render(<SearchInput {...controller} />)
+  expect(getByTestId('search-input')).toBeTruthy()
+})
+
