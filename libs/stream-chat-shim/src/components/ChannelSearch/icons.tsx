@@ -1,6 +1,8 @@
 import React from 'react';
+
 // import type { IconProps } from '../../types/types'; // TODO backend-wire-up
 type IconProps = any;
+
 
 export const MenuIcon = () => (
   <svg
