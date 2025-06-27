@@ -1,9 +1,10 @@
 import clsx from 'clsx';
 import React, { useEffect, useState } from 'react';
-// import type { UserResponse } from 'stream-chat'; // TODO backend-wire-up
-import type { UserResponse } from '../../../⛔_legacy_ui/stream-types';
-// import { Icon } from '../Threads/icons'; // TODO backend-wire-up
-const Icon = { User: () => null } as any;
+
+import type { UserResponse } from 'chat-shim';
+
+import { Icon } from '../Threads/icons';
+
 import { getWholeChar } from '../../utils';
 
 export type AvatarProps = {

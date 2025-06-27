@@ -3,7 +3,9 @@ import React from 'react';
 import type { AvatarProps } from './Avatar';
 import { Avatar } from './Avatar';
 // import type { GroupChannelDisplayInfo } from '../ChannelPreview'; // TODO backend-wire-up
-type GroupChannelDisplayInfo = { image?: string; name?: string }[]; // temporary shim
+
+export type GroupChannelDisplayInfo = any; // temporary shim
+
 
 export type GroupAvatarProps = Pick<
   AvatarProps,
