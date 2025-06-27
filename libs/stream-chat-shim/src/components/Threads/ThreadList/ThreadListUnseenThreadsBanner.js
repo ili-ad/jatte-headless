@@ -17,6 +17,7 @@ var ThreadListUnseenThreadsBanner = function () {
       {/* TODO: translate */}
       {unseenThreadIds.length} unread threads
       <button className='str-chat__unseen-threads-banner__button' onClick={function () {
+            /* TODO backend-wire-up: client.threads.reload */
         }}>
         <icons_1.Icon.Reload />
       </button>
