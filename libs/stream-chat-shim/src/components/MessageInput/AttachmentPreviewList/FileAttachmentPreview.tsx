@@ -1,16 +1,20 @@
 import React from 'react';
+
 import { useTranslationContext } from '../../../context';
 import { FileIcon } from '../../ReactFileUtilities';
 import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
+
 
 // import type {
 //   LocalAudioAttachment,
 //   LocalFileAttachment,
 //   LocalVideoAttachment,
 // } from 'stream-chat'; // TODO backend-wire-up
+
 type LocalAudioAttachment = any;
 type LocalFileAttachment = any;
 type LocalVideoAttachment = any;
+
 import type { UploadAttachmentPreviewProps } from './types';
 
 export type FileAttachmentPreviewProps<CustomLocalMetadata = unknown> =
