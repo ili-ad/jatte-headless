@@ -35,20 +35,17 @@ const OtherUserControlButtons = () => {
       <button
         data-testid='receive-reply'
         onClick={() =>
-          channel.sendMessage({
-            parent_id: lastMessage.id,
-            text: 'Reply back',
-          })
+          /* TODO backend-wire-up: sendMessage */
         }
       >
         Receive reply
       </button>
       <button
         data-testid='delete-other-last-reply'
-        onClick={async () => {
+          onClick={async () => {
           const lastReply = threadMessages?.slice(-1)[0];
           if (lastReply) {
-            await client.deleteMessage(lastReply.id, true);
+            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
           }
         }}
       >
@@ -57,19 +54,17 @@ const OtherUserControlButtons = () => {
       <button
         data-testid='add-other-user-message'
         onClick={() =>
-          channel.sendMessage({
-            text: "Other user's message",
-          })
+          /* TODO backend-wire-up: sendMessage */
         }
       >
         Receive a message
       </button>
       <button
         data-testid='delete-other-last-message'
-        onClick={async () => {
+          onClick={async () => {
           const lastMessage = messages?.slice(-1)[0];
           if (lastMessage) {
-            await client.deleteMessage(lastMessage.id, true);
+            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
           }
         }}
       >
@@ -93,7 +88,7 @@ const Controls = () => {
         onClick={async () => {
           const lastReply = threadMessages?.slice(-1)[0];
           if (lastReply) {
-            await client.deleteMessage(lastReply.id, true);
+            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
           }
         }}
       >

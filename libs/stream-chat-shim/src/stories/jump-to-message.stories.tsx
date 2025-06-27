@@ -25,13 +25,7 @@ const JumpToMessage = () => {
     <button
       data-testid='jump-to-message'
       onClick={async () => {
-        const results = await chatClient.search(
-          {
-            id: { $eq: channelId },
-          },
-          'Message 29',
-          { limit: 1, offset: 0 },
-        );
+        const results = await Promise.resolve({ results: [{ message: { id: '' } }] }); /* TODO backend-wire-up: search */
 
         jumpToMessage(results.results[0].message.id);
       }}
