@@ -1,6 +1,12 @@
 import React from 'react';
 
+// import { useTranslationContext } from '../../context/TranslationContext'; // TODO backend-wire-up
+const useTranslationContext = (_componentName?: string) => ({
+  t: (key: string) => key,
+});
+
 import { useTranslationContext } from '../../context/TranslationContext';
+
 
 export type SearchInputController = {
   /** Clears the channel search state */
