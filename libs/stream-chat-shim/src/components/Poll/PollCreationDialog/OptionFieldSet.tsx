@@ -2,15 +2,19 @@ import clsx from 'clsx';
 import React, { useCallback } from 'react';
 import { FieldError } from '../../Form/FieldError';
 import { DragAndDropContainer } from '../../DragAndDrop/DragAndDropContainer';
+
 import { useTranslationContext } from '../../../context';
 import { useMessageComposer } from '../../MessageInput';
 import { useStateStore } from '../../../store';
+
 // import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
 type PollComposerState = any;
 
 const pollComposerStateSelector = (state: PollComposerState) => ({
+
   errors: state.errors.options,
   options: state.data.options,
+
 });
 
 export const OptionFieldSet = () => {
@@ -39,7 +43,9 @@ export const OptionFieldSet = () => {
         draggable={draggable}
         onSetNewOrder={onSetNewOrder}
       >
+
         {options.map((option, i) => {
+
           const error = errors?.[option.id];
           return (
             <div
@@ -84,3 +90,4 @@ export const OptionFieldSet = () => {
     </fieldset>
   );
 };
+
