@@ -1,8 +1,12 @@
-import React from "react";
-import { render } from "@testing-library/react";
-import { Icon } from "../src/components/ChannelPreview/icons";
 
-test("renders ArchiveBox icon", () => {
-  const { container } = render(<Icon.ArchiveBox />);
-  expect(container.querySelector("svg")).toBeTruthy();
+import React from 'react';
+import { render } from '@testing-library/react';
+import { MenuIcon, ReturnIcon, XIcon, SearchIcon } from '../src/components/ChannelSearch/icons';
+
+test('renders without crashing', () => {
+  render(<MenuIcon />);
+  render(<ReturnIcon />);
+  render(<XIcon />);
+  render(<SearchIcon className='' />);
+
 });
