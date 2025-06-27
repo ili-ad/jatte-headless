@@ -61,8 +61,8 @@ var PollOptionSelector = function (_a) {
                 return;
             var haveVotedForTheOption = !!ownVotesByOptionId[option.id];
             return haveVotedForTheOption
-                ? poll.removeVote(ownVotesByOptionId[option.id].id, message.id)
-                : poll.castVote(option.id, message.id);
+                ? /* TODO backend-wire-up: removeVote */ Promise.resolve()
+                : /* TODO backend-wire-up: castVote */ Promise.resolve();
         }, 100);
     }, [canCastVote, message.id, option.id, ownVotesByOptionId, poll]);
     return (<div className={(0, clsx_1.default)('str-chat__poll-option', {

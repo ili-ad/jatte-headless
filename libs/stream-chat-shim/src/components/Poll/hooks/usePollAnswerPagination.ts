@@ -29,13 +29,10 @@ export const usePollAnswerPagination = ({
 
   const paginationFn = useCallback<PaginationFn<PollAnswer>>(
     async (next) => {
-      const { next: newNext, votes } = await poll.queryAnswers({
-        filter: paginationParams?.filter,
-        options: !next
-          ? paginationParams?.options
-          : { ...paginationParams?.options, next },
-        sort: { created_at: -1, ...paginationParams?.sort },
-      });
+      const { next: newNext, votes } = await (async () => {
+        /* TODO backend-wire-up: queryAnswers */
+        return { next: undefined, votes: [] as PollAnswer[] };
+      })();
       return { items: votes, next: newNext };
     },
     [paginationParams, poll],

@@ -73,9 +73,12 @@ var SuggestPollOptionForm = function (_a) {
         }} onSubmit={function (value) { return __awaiter(void 0, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, Promise.resolve(undefined)];
+                    case 0:
+                        /* TODO backend-wire-up: createPollOption */
+                        return [4 /*yield*/, Promise.resolve(undefined)];
                     case 1:
                         _a.sent();
+                        /* TODO backend-wire-up: castVote */
                         return [2 /*return*/];
                 }
             });

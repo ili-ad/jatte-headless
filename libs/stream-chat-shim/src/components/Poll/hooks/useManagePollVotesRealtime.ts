@@ -57,9 +57,12 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
       }
     };
 
-    const voteCastedSubscription = client.on('poll.vote_casted', handleVoteEvent);
-    const voteRemovedSubscription = client.on('poll.vote_removed', handleVoteEvent);
-    const voteChangedSubscription = client.on('poll.vote_changed', handleVoteEvent);
+    /* TODO backend-wire-up: on(poll.vote_casted) */
+    const voteCastedSubscription = { unsubscribe: () => undefined } as any;
+    /* TODO backend-wire-up: on(poll.vote_removed) */
+    const voteRemovedSubscription = { unsubscribe: () => undefined } as any;
+    /* TODO backend-wire-up: on(poll.vote_changed) */
+    const voteChangedSubscription = { unsubscribe: () => undefined } as any;
 
     return () => {
       voteCastedSubscription.unsubscribe();

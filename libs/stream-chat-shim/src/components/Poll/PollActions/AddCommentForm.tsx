@@ -37,7 +37,8 @@ export const AddCommentForm = ({ close, messageId }: AddCommentFormProps) => {
         },
       }}
       onSubmit={async (value) => {
-        await poll.addAnswer(value.comment, messageId);
+        /* TODO backend-wire-up: addAnswer */
+        return Promise.resolve();
       }}
       shouldDisableSubmitButton={(value) =>
         !value.comment || value.comment === ownAnswer?.answer_text
