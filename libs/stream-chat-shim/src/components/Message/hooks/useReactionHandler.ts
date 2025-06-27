@@ -88,8 +88,12 @@ export const useReactionHandler = (message?: LocalMessage) => {
       thread?.upsertReplyLocally({ message: tempMessage });
 
       const messageResponse = add
-        ? await channel.sendReaction(id, { type } as Reaction)
-        : await channel.deleteReaction(id, type);
+        ? await Promise.resolve(
+            /* TODO backend-wire-up: sendReaction */ { message: tempMessage },
+          )
+        : await Promise.resolve(
+            /* TODO backend-wire-up: deleteReaction */ { message: tempMessage },
+          );
 
       // seems useless as we're expecting WS event to come in and replace this anyway
       updateMessage(messageResponse.message);

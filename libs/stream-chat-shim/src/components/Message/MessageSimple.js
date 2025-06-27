@@ -84,7 +84,8 @@ var MessageSimpleWithContext = function (props) {
         'str-chat__virtual-message__wrapper--first': firstOfGroup,
         'str-chat__virtual-message__wrapper--group': groupedByUser,
     });
-    var poll = message.poll_id && client.polls.fromState(message.poll_id);
+    var poll = message.poll_id &&
+        /* TODO backend-wire-up: polls.fromState */ undefined;
     return (<>
       {editing && (<MessageInput_1.EditMessageModal additionalMessageInputProps={additionalMessageInputProps}/>)}
       {isBounceDialogOpen && (<MessageBounceModal_1.MessageBounceModal MessageBouncePrompt={MessageBouncePrompt} onClose={function () { return setIsBounceDialogOpen(false); }} open={isBounceDialogOpen}/>)}

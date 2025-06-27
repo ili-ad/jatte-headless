@@ -37,7 +37,9 @@ export const useMuteHandler = (
 
     if (!isUserMuted(message, mutes)) {
       try {
-        await client.muteUser(message.user.id);
+        await Promise.resolve(
+          /* TODO backend-wire-up: muteUser */ undefined,
+        );
 
         const successMessage =
           getSuccessNotification &&
@@ -59,7 +61,9 @@ export const useMuteHandler = (
       }
     } else {
       try {
-        await client.unmuteUser(message.user.id);
+        await Promise.resolve(
+          /* TODO backend-wire-up: unmuteUser */ undefined,
+        );
 
         const fallbackMessage = t(`{{ user }} has been unmuted`, {
           user: message.user.name || message.user.id,

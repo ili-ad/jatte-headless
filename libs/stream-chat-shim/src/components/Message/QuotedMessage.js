@@ -24,7 +24,7 @@ var QuotedMessage = function (_a) {
     var Avatar = ContextAvatar || Avatar_1.Avatar;
     var quoted_message = message.quoted_message;
     var poll = (quoted_message === null || quoted_message === void 0 ? void 0 : quoted_message.poll_id) &&
-    ;
+        /* TODO backend-wire-up: polls.fromState */ undefined;
     var quotedMessageDeleted = (quoted_message === null || quoted_message === void 0 ? void 0 : quoted_message.deleted_at) || (quoted_message === null || quoted_message === void 0 ? void 0 : quoted_message.type) === 'deleted';
     var quotedMessageText = quotedMessageDeleted
         ? t('This message was deleted...')
