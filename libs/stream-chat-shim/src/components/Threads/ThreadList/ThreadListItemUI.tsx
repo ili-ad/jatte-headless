@@ -1,13 +1,16 @@
 import React, { useCallback } from 'react';
 import clsx from 'clsx';
 
+
 // import type { LocalMessage, ThreadState } from 'stream-chat'; // TODO backend-wire-up
 import type { LocalMessage, ThreadState } from 'chat-shim';
+
 import type { ComponentPropsWithoutRef } from 'react';
 
 import { Timestamp } from '../../Message/Timestamp';
 import { Avatar } from '../../Avatar';
 import { Icon } from '../icons';
+
 // import { UnreadCountBadge } from '../UnreadCountBadge'; // TODO backend-wire-up
 const UnreadCountBadge = (props: any) => <div {...props} />; // temporary shim
 
@@ -20,6 +23,7 @@ import { useThreadsViewContext } from '../../ChatView';
 const useThreadListItemContext = () => ({} as any);
 // import { useStateStore } from '../../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, selector: any) => selector({});
+
 
 export type ThreadListItemUIProps = ComponentPropsWithoutRef<'button'>;
 
@@ -42,7 +46,9 @@ const getTitleFromMessage = ({
   message,
 }: {
   currentUserId?: string;
+
   message?: LocalMessage;
+
 }) => {
   const attachment = message?.attachments?.at(0);
 
@@ -50,9 +56,11 @@ const getTitleFromMessage = ({
 
   if (attachment) {
     attachmentIcon +=
+
       attachmentTypeIconMap[
         (attachment.type as keyof typeof attachmentTypeIconMap) ?? 'file'
       ] ?? attachmentTypeIconMap.file;
+
   }
 
   const messageBelongsToCurrentUser = message?.user?.id === currentUserId;
@@ -79,6 +87,7 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
   const thread = useThreadListItemContext()!;
 
   const selector = useCallback(
+
     (nextValue: ThreadState) => ({
       channel: nextValue.channel,
       deletedAt: nextValue.deletedAt,
@@ -92,6 +101,7 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
 
   const { channel, deletedAt, latestReply, ownUnreadMessageCount, parentMessage } =
     useStateStore(thread.state, selector);
+
 
   const { displayTitle: channelDisplayTitle } = useChannelPreviewInfo({ channel });
 
@@ -110,9 +120,11 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
     >
       <div className='str-chat__thread-list-item__channel'>
         <Icon.MessageBubble />
+
         <div className='str-chat__thread-list-item__channel-text'>
           {channelDisplayTitle}
         </div>
+
       </div>
       <div className='str-chat__thread-list-item__parent-message'>
         <div className='str-chat__thread-list-item__parent-message-text'>
@@ -133,10 +145,12 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
             <div className='str-chat__thread-list-item__latest-reply-text'>
               {deletedAt
                 ? 'This thread was deleted'
+
                 : getTitleFromMessage({
                     currentUserId: client.user?.id,
                     message: latestReply,
                   })}
+
             </div>
             <div className='str-chat__thread-list-item__latest-reply-timestamp'>
               <Timestamp timestamp={deletedAt ?? latestReply?.created_at} />
