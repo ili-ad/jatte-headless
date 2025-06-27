@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { isLocalUploadAttachment } from 'chat-shim';
 import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
 import { FileIcon } from '../../ReactFileUtilities';
@@ -6,6 +7,7 @@ import { useTranslationContext } from '../../../context';
 /* TODO backend-wire-up: StreamChat types excised */
 type AnyLocalAttachment<CustomLocalMetadata = Record<string, unknown>> = any;
 type LocalUploadAttachment = any;
+
 
 export type UnsupportedAttachmentPreviewProps<
   CustomLocalMetadata = Record<string, unknown>,
