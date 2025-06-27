@@ -40,7 +40,6 @@ export const MessageSearchResultItem = ({
 }: ChannelByMessageSearchResultItemProps) => {
   const {
     channel: activeChannel,
-    client,
     searchController,
     setActiveChannel,
   } = useChatContext();
@@ -50,16 +49,15 @@ export const MessageSearchResultItem = ({
     const { channel: channelData } = item;
     const type = channelData?.type ?? 'unknown';
     const id = channelData?.id ?? 'unknown';
-    return client.channel(type, id);
-  }, [client, item]);
+    return (
+      /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel
+    );
+  }, [item]);
 
   const onSelect = useCallback(async () => {
     if (!channel) return;
-    await channel.state.loadMessageIntoState(
-      item.id,
-      undefined,
-      DEFAULT_JUMP_TO_PAGE_SIZE,
-    );
+    /* TODO backend-wire-up: channel.state.loadMessageIntoState */
+    await Promise.resolve();
     // FIXME: message focus should be handled by yet non-existent msg list controller in client packaged
     searchController._internalState.partialNext({ focusedMessage: item });
     setActiveChannel(channel);
@@ -90,18 +88,17 @@ export type UserSearchResultItemProps = {
 };
 
 export const UserSearchResultItem = ({ item }: UserSearchResultItemProps) => {
-  const { client, setActiveChannel } = useChatContext();
+  const { setActiveChannel } = useChatContext();
   const { setChannels } = useChannelListContext();
   const { directMessagingChannelType } = useSearchContext();
 
   const onClick = useCallback(() => {
-    const newChannel = client.channel(directMessagingChannelType, {
-      members: [client.userID as string, item.id],
-    });
-    newChannel.watch();
+    const newChannel =
+      /* TODO backend-wire-up: client.channel */ (undefined as unknown as Channel);
+    /* TODO backend-wire-up: channel.watch */
     setActiveChannel(newChannel);
     setChannels?.((channels) => uniqBy([newChannel, ...channels], 'cid'));
-  }, [client, item, setActiveChannel, setChannels, directMessagingChannelType]);
+  }, [item, setActiveChannel, setChannels, directMessagingChannelType]);
 
   return (
     <button
