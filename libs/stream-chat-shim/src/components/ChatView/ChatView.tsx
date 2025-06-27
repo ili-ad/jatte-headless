@@ -131,7 +131,10 @@ const selector = ({ unreadThreadCount }: ThreadManagerState) => ({
 
 const ChatViewSelector = () => {
   const { client } = useChatContext();
-  const { unreadThreadCount } = useStateStore(client.threads.state, selector);
+  const { unreadThreadCount } = useStateStore(
+    /* TODO backend-wire-up: client.threads.state */,
+    selector,
+  );
 
   const { activeChatView, setActiveChatView } = useContext(ChatViewContext);
 

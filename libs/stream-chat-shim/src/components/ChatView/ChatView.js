@@ -103,7 +103,10 @@ var selector = function (_a) {
 };
 var ChatViewSelector = function () {
     var client = (0, context_1.useChatContext)().client;
-    var unreadThreadCount = (0, store_1.useStateStore)(client.threads.state, selector).unreadThreadCount;
+    var unreadThreadCount = (0, store_1.useStateStore)(
+    /* TODO backend-wire-up: client.threads.state */,
+    selector
+    ).unreadThreadCount;
     var _a = (0, react_1.useContext)(ChatViewContext), activeChatView = _a.activeChatView, setActiveChatView = _a.setActiveChatView;
     return (<div className='str-chat__chat-view__selector'>
       <button aria-selected={activeChatView === 'channels'} className='str-chat__chat-view__selector-button' onPointerDown={function () { return setActiveChatView('channels'); }} role='tab'>
