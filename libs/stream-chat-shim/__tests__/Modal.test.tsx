@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { PollContent } from '../src/components/Poll/PollContent';
+import { Modal } from '../src/components/Modal/Modal';
 
 test('renders without crashing', () => {
-  render(<PollContent />);
+  render(<Modal open={false} />);
 });
