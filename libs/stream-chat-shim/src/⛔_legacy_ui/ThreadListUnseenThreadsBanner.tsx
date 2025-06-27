@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import type { ThreadManagerState } from 'stream-chat'
+import type { ThreadManagerState } from 'chat-shim'
 
 export type ThreadListUnseenThreadsBannerProps = {
   /** State manager for thread list, if available */

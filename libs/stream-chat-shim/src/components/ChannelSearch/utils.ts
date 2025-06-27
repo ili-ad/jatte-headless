@@ -1,5 +1,4 @@
-import type { Channel, UserResponse } from 'stream-chat';
-import type { Channel, UserResponse } from 'stream-chat';
+import type { Channel, UserResponse } from 'chat-shim';
 
 export type ChannelOrUserResponse = Channel | UserResponse;
 

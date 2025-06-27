@@ -1,5 +1,5 @@
 import type { Nodes } from 'hast-util-find-and-replace/lib';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 /**
  * Placeholder for Stream's `mentionsMarkdownPlugin` rehype plugin.

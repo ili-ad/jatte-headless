@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { ReactNode } from 'react';
-import type { Channel, PollVote, TranslationLanguages, UserResponse } from 'stream-chat';
+import type { Channel, PollVote, TranslationLanguages, UserResponse } from 'chat-shim';
 
 // Minimal TFunction shape for translations
 export type TFunction = (key: string, params?: Record<string, any>) => string;

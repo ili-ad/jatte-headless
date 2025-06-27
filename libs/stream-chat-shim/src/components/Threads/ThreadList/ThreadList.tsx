@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
 import type { ComputeItemKey, VirtuosoProps } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
-import type { Thread, ThreadManagerState } from 'stream-chat';
 
-type Thread = any;
-type ThreadManagerState = any;
+import type { Thread, ThreadManagerState } from 'chat-shim';
 
 import { ThreadListItem as DefaultThreadListItem } from './ThreadListItem';
 import { ThreadListEmptyPlaceholder as DefaultThreadListEmptyPlaceholder } from './ThreadListEmptyPlaceholder';
@@ -27,8 +25,10 @@ export const useThreadList = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        client.threads.activate();
       }
       if (document.visibilityState === 'hidden') {
+        client.threads.deactivate();
       }
     };
 
@@ -36,6 +36,7 @@ export const useThreadList = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      client.threads.deactivate();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [client]);
@@ -58,8 +59,7 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
       {/* TODO: allow re-load on stale ThreadManager state */}
       <ThreadListUnseenThreadsBanner />
       <Virtuoso
-        atBottomStateChange={(atBottom) =>
-        }
+        atBottomStateChange={(atBottom) => atBottom && client.threads.loadNextPage()}
         className='str-chat__thread-list'
         components={{
           EmptyPlaceholder: ThreadListEmptyPlaceholder,

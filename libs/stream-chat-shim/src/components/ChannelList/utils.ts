@@ -1,8 +1,5 @@
 import uniqBy from 'lodash.uniqby';
-import type { Channel, ChannelSort, ChannelSortBase } from 'stream-chat';
-type Channel = any;
-type ChannelSort = any;
-type ChannelSortBase = any;
+import type { Channel, ChannelSort, ChannelSortBase } from 'chat-shim';
 
 import type { ChannelListProps } from './ChannelList';
 

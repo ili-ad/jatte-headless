@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 export type AvatarProps = {
   /** Custom root element class that will be merged with the default class */

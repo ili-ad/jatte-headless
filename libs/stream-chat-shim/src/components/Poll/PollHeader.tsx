@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { usePollContext, useTranslationContext } from '../../context';
 import { useStateStore } from '../../store';
-import type { PollOption, PollState } from 'stream-chat';
-import type { PollOption, PollState } from 'stream-chat';
+import type { PollOption, PollState } from 'chat-shim';
 
 type PollStateSelectorReturnValue = {
   enforce_unique_vote: boolean;

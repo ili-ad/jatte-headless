@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactionResponse, ReactionSort } from 'chat-shim';
-import type { ReactionResponse, ReactionSort } from 'stream-chat';
-type MessageContextValue = any;
-const useMessageContext = (_?: string) => ({} as any);
+import type { MessageContextValue } from '../../../context';
+import { useMessageContext } from '../../../context';
 
 import type { ReactionType } from '../types';
 

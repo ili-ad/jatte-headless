@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import type { Channel } from 'stream-chat';
+import type { Channel } from 'chat-shim';
 
 export type ChannelAvatarProps = Record<string, any>;
 export type GroupChannelDisplayInfo = Record<string, any>;

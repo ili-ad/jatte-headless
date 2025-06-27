@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
-import type { PollVote as PollVoteType } from 'stream-chat';
-const PopperTooltip = (_: any) => null;
-const useEnterLeaveHandlers = (_?: any) => ({
-  handleEnter: () => {},
-  handleLeave: () => {},
-  tooltipVisible: false,
-});
+import { PopperTooltip } from '../Tooltip';
+import { useEnterLeaveHandlers } from '../Tooltip/hooks';
 import { useChatContext, useTranslationContext } from '../../context';
 
 import type { PollVote as PollVoteType } from 'chat-shim';

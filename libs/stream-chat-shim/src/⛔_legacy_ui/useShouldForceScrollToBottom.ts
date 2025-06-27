@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /** Placeholder type for a message rendered in the list. */
 type RenderedMessage = LocalMessage & { id: string; user?: { id?: string } };

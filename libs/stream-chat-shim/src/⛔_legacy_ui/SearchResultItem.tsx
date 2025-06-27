@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import type { ComponentType } from 'react'
-import type { Channel, MessageResponse, User } from 'stream-chat'
+import type { Channel, MessageResponse, User } from 'chat-shim'
 
 /** Placeholder implementation of the SearchResultItem component. */
 export type SearchResultItemProps = Record<string, any>

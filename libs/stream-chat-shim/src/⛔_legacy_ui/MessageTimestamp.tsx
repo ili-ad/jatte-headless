@@ -1,6 +1,6 @@
 // libs/stream-chat-shim/src/MessageTimestamp.tsx
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /** Options that configure how the timestamp is formatted. */
 export type TimestampFormatterOptions = {

@@ -1,11 +1,11 @@
 import clsx from 'clsx';
 import React, { useState } from 'react';
 import type {
-import { LinkPreviewsManager } from 'stream-chat';
   LinkPreview,
   LinkPreviewsManagerState,
   MessageComposerState,
 } from 'chat-shim';
+import { LinkPreviewsManager } from 'chat-shim';
 import { useStateStore } from '../../store';
 import { PopperTooltip } from '../Tooltip';
 import { useEnterLeaveHandlers } from '../Tooltip/hooks';

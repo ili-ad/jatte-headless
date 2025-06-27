@@ -3,33 +3,16 @@ import type { ComponentProps } from 'react';
 import React from 'react';
 import { CustomMessageActionsList as DefaultCustomMessageActionsList } from './CustomMessageActionsList';
 import { RemindMeActionButton } from './RemindMeSubmenu';
-
-const useMessageReminder = (..._args: any[]) => ({} as any);
-const useMessageComposer = () => ({ setQuotedMessage: (_m: any) => {} });
-// import {
-//   useChatContext,
-//   useComponentContext,
-//   useMessageContext,
-//   useTranslationContext,
-const useChatContext = () => ({ client: {} } as any);
-const useComponentContext = (_: any) => ({} as any);
-const useMessageContext = (_: any) => ({ customMessageActions: undefined, message: {} as any, threadList: false } as any);
-const useTranslationContext = (_: any) => ({ t: (key: string) => key });
-const MESSAGE_ACTIONS = {
-  delete: 'delete',
-  edit: 'edit',
-  flag: 'flag',
-  markUnread: 'markUnread',
-  mute: 'mute',
-  pin: 'pin',
-  quote: 'quote',
-  react: 'react',
-  remindMe: 'remindMe',
-  reply: 'reply',
-  saveForLater: 'saveForLater',
-};
-type MessageContextValue = any;
-
+import { useMessageReminder } from '../Message';
+import { useMessageComposer } from '../MessageInput';
+import {
+  useChatContext,
+  useComponentContext,
+  useMessageContext,
+  useTranslationContext,
+} from '../../context';
+import { MESSAGE_ACTIONS } from '../Message/utils';
+import type { MessageContextValue } from '../../context';
 
 type PropsDrilledToMessageActionsBox =
   | 'getMessageActions'
@@ -188,6 +171,8 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
             className={buttonClassName}
             onClick={() =>
               reminder
+                ? client.reminders.deleteReminder(reminder.id)
+                : client.reminders.createReminder({ messageId: message.id })
             }
             role='option'
           >

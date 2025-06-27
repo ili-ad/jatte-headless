@@ -6,8 +6,7 @@ import { MessageActionsBox } from './MessageActionsBox';
 
 import { DialogAnchor, useDialog, useDialogIsOpen } from '../Dialog';
 import { ActionsIcon as DefaultActionsIcon } from '../Message/icons';
-const isUserMuted = () => false;
-const shouldRenderMessageActions = () => false as any;
+import { isUserMuted, shouldRenderMessageActions } from '../Message/utils';
 
 import { useChatContext } from '../../context/ChatContext';
 import type { MessageContextValue } from '../../context/MessageContext';

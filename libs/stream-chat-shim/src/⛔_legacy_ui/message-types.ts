@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
-import type { LocalMessage, ReactionSort, UserResponse } from 'stream-chat';
+import type { LocalMessage, ReactionSort, UserResponse } from 'chat-shim';
 
 // Placeholder type definitions for yet-to-be-implemented modules
 // These should be replaced with real types once the respective

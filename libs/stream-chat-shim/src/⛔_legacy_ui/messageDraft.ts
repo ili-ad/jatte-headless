@@ -1,4 +1,4 @@
-import type { DraftResponse } from 'stream-chat';
+import type { DraftResponse } from 'chat-shim';
 
 // simple nanoid substitute – avoids extra deps
 const nanoid = () => Math.random().toString(36).slice(2);

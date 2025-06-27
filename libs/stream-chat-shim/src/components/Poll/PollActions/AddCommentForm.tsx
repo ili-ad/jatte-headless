@@ -1,7 +1,6 @@
 import React from 'react';
 import { FormDialog } from '../../Dialog/FormDialog';
-import type { PollAnswer, PollState } from 'stream-chat';
-const useStateStore = (_store: any, selector: any) => selector({});
+import { useStateStore } from '../../../store';
 import { usePollContext, useTranslationContext } from '../../../context';
 import type { PollAnswer, PollState } from 'chat-shim';
 
@@ -38,6 +37,7 @@ export const AddCommentForm = ({ close, messageId }: AddCommentFormProps) => {
         },
       }}
       onSubmit={async (value) => {
+        await poll.addAnswer(value.comment, messageId);
       }}
       shouldDisableSubmitButton={(value) =>
         !value.comment || value.comment === ownAnswer?.answer_text

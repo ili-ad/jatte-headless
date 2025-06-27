@@ -1,11 +1,5 @@
 import React from 'react';
-
-const useCanCreatePoll = () => true; // temporary shim
-const useMessageComposer = () => ({
-  pollComposer: { initState: () => {} },
-  createPoll: () => Promise.resolve(),
-});
-
+import { useCanCreatePoll, useMessageComposer } from '../../MessageInput';
 import { useMessageInputContext, useTranslationContext } from '../../../context';
 
 export type PollCreationDialogControlsProps = {

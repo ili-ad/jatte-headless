@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PollAnswer, PollVote } from 'stream-chat';
+import type { PollAnswer, PollVote } from 'chat-shim';
 import type { CursorPaginatorStateStore } from './useCursorPaginator';
 
 /**

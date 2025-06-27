@@ -5,7 +5,7 @@ import uniqBy from 'lodash.uniqby';
 import remarkGfm from 'remark-gfm';
 import type { ComponentType } from 'react';
 import type { Options } from 'react-markdown/lib';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 import type { PluggableList } from 'unified'; // A subdependency of react-markdown. The type is not declared or re-exported from anywhere else
 
 import { Anchor, Emoji, Mention } from './componentRenderers';

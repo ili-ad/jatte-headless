@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import type { PollOption } from 'stream-chat'
+import type { PollOption } from 'chat-shim'
 
 export type PollOptionVotesListingProps = {
   option: PollOption

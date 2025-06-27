@@ -1,40 +1,26 @@
 import React, { useCallback, useState } from 'react';
-import type { PollAnswer, PollOption, PollState } from 'stream-chat';
-const PollAction = (() => null) as React.ComponentType<any>; // temporary shim
-type AddCommentFormProps = any;
-const DefaultAddCommentForm = (() => null) as React.ComponentType<any>; // temporary shim
-type SuggestPollOptionFormProps = any;
-const DefaultSuggestPollOptionForm = (() => null) as React.ComponentType<any>; // temporary shim
-type EndPollDialogProps = any;
-const DefaultEndPollDialog = (() => null) as React.ComponentType<any>; // temporary shim
-type PollAnswerListProps = any;
-const DefaultPollAnswerList = (() => null) as React.ComponentType<any>; // temporary shim
-type FullPollOptionsListingProps = any;
-const DefaultPollOptionsFullList = (() => null) as React.ComponentType<any>; // temporary shim
-type PollResultsProps = any;
-const DefaultPollResults = (() => null) as React.ComponentType<any>; // temporary shim
-const MAX_OPTIONS_DISPLAYED = 10;
-const MAX_POLL_OPTIONS = 100;
-// import {
-//   useChannelStateContext,
-//   useChatContext,
-//   useMessageContext,
-//   usePollContext,
-//   useTranslationContext,
-const useChannelStateContext = (_?: string) => ({ channelCapabilities: {} });
-const useChatContext = (_?: string) => ({ client: {} });
-const useMessageContext = (_?: string) => ({ message: { id: '' } });
-const usePollContext = (_?: string) => ({ poll: { state: {} } });
-const useTranslationContext = (_?: string) => ({ t: (s: string, _?: any) => s });
-const useStateStore = (_store: any, _selector: any) => ({
-  allow_answers: false,
-  allow_user_suggested_options: false,
-  answers_count: 0,
-  created_by_id: '',
-  is_closed: false,
-  options: [],
-  ownAnswer: undefined,
-});
+import { PollAction } from './PollAction';
+import type { AddCommentFormProps } from './AddCommentForm';
+import { AddCommentForm as DefaultAddCommentForm } from './AddCommentForm';
+import type { SuggestPollOptionFormProps } from './SuggestPollOptionForm';
+import { SuggestPollOptionForm as DefaultSuggestPollOptionForm } from './SuggestPollOptionForm';
+import type { EndPollDialogProps } from './EndPollDialog';
+import { EndPollDialog as DefaultEndPollDialog } from './EndPollDialog';
+import type { PollAnswerListProps } from './PollAnswerList';
+import { PollAnswerList as DefaultPollAnswerList } from './PollAnswerList';
+import type { FullPollOptionsListingProps } from './PollOptionsFullList';
+import { PollOptionsFullList as DefaultPollOptionsFullList } from './PollOptionsFullList';
+import type { PollResultsProps } from './PollResults';
+import { PollResults as DefaultPollResults } from './PollResults';
+import { MAX_OPTIONS_DISPLAYED, MAX_POLL_OPTIONS } from '../constants';
+import {
+  useChannelStateContext,
+  useChatContext,
+  useMessageContext,
+  usePollContext,
+  useTranslationContext,
+} from '../../../context';
+import { useStateStore } from '../../../store';
 
 import type { PollAnswer, PollOption, PollState } from 'chat-shim';
 

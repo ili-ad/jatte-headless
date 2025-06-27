@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { ReactNode } from 'react';
-import type { Channel, PollVote, TranslationLanguages, UserResponse } from 'stream-chat';
+import type { Channel, PollVote, TranslationLanguages, UserResponse } from 'chat-shim';
 
 import type { TranslationContextValue } from '../../context/TranslationContext';
 import type { ChatContextValue } from '../../context';

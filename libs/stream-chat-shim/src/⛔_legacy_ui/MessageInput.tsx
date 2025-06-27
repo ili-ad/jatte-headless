@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react';
-import type { Channel, Message, SendFileAPIResponse } from 'stream-chat';
+import type { Channel, Message, SendFileAPIResponse } from 'chat-shim';
 
 // Placeholder types mirroring those from stream-chat-react
 export interface DefaultStreamChatGenerics {}

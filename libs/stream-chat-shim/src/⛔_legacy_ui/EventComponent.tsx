@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Event, LocalMessage } from 'stream-chat';
+import type { Event, LocalMessage } from 'chat-shim';
 
 export type EventAvatarProps = Record<string, any>;
 

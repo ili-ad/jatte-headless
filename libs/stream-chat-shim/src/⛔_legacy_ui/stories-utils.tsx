@@ -1,6 +1,6 @@
 import React, { useEffect, useState, type PropsWithChildren } from 'react';
-import { StreamChat } from 'stream-chat';
-import type { OwnUserResponse, TokenOrProvider, UserResponse } from 'stream-chat';
+import { StreamChat } from 'chat-shim';
+import type { OwnUserResponse, TokenOrProvider, UserResponse } from 'chat-shim';
 
 import { Chat } from './Chat';
 

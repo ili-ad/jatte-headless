@@ -1,4 +1,4 @@
-import 'stream-chat';
+import 'chat-shim';
 
 /** Default interface shapes used by the Stream Chat types. */
 export interface DefaultChannelData { image?: string; name?: string; subtitle?: string; }

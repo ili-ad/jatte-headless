@@ -1,4 +1,4 @@
-import type { ThreadManagerState } from 'stream-chat';
+import type { ThreadManagerState } from 'chat-shim';
 
 /**
  * Placeholder implementation for Stream's `useThreadManagerState` hook.

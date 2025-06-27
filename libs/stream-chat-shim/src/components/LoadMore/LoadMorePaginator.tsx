@@ -1,10 +1,10 @@
 import type { PropsWithChildren } from 'react';
 import React, { useEffect } from 'react';
 
-type LoadMoreButtonProps = any; // temporary shim
-const DefaultLoadMoreButton = (() => null) as unknown as React.ComponentType<LoadMoreButtonProps>;
-type PaginatorProps = any; // temporary shim
-const deprecationAndReplacementWarning = () => {};
+import type { LoadMoreButtonProps } from './LoadMoreButton';
+import { LoadMoreButton as DefaultLoadMoreButton } from './LoadMoreButton';
+import type { PaginatorProps } from '../../types/types';
+import { deprecationAndReplacementWarning } from '../../utils/deprecationWarning';
 
 export type LoadMorePaginatorProps = PaginatorProps & {
   /** A UI button component that handles pagination logic */

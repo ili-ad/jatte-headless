@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Channel, LocalMessage } from 'stream-chat';
+import type { Channel, LocalMessage } from 'chat-shim';
 
 // Placeholder type definitions for yet-to-be-implemented utilities
 export type GroupStyle = any;

@@ -1,5 +1,4 @@
-import type { ThreadState } from 'stream-chat';
-type ThreadState = any;
+import type { ThreadState } from 'chat-shim';
 import { useThreadListItemContext } from '../ThreadList';
 import { useThreadContext } from '../ThreadContext';
 import { useStateStore } from '../../../store/';

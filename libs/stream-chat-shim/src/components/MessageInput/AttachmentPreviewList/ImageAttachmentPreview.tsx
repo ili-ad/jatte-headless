@@ -1,14 +1,9 @@
 import clsx from 'clsx';
 import React, { useCallback, useState } from 'react';
-import type { LocalImageAttachment } from 'stream-chat';
-
-const CloseIcon = () => null as any; // temporary shim
-const LoadingIndicatorIcon = (_: any) => null as any; // temporary shim
-const RetryIcon = () => null as any; // temporary shim
+import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
 import { BaseImage as DefaultBaseImage } from '../../Gallery';
 import { useComponentContext, useTranslationContext } from '../../../context';
-type LocalImageAttachment = any; // temporary shim
-
+import type { LocalImageAttachment } from 'chat-shim';
 import type { UploadAttachmentPreviewProps } from './types';
 
 export type ImageAttachmentPreviewProps<CustomLocalMetadata = Record<string, unknown>> =

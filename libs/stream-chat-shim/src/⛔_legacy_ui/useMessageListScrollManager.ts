@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export type ContainerMeasures = {
   offsetHeight: number;

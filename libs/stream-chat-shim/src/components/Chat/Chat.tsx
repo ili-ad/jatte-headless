@@ -1,20 +1,12 @@
 import React, { useMemo } from 'react';
+import {
+  ChannelSearchSource,
+  MessageSearchSource,
+  SearchController,
+  UserSearchSource,
+} from 'chat-shim';
 import type { PropsWithChildren } from 'react';
-import type { StreamChat } from 'stream-chat';
-
-// Minimal stubs until backend integration
-type StreamChat = any;
-  constructor(_opts: any) {}
-}
-class ChannelSearchSource {
-  constructor(_client: any) {}
-}
-class MessageSearchSource {
-  constructor(_client: any) {}
-}
-class UserSearchSource {
-  constructor(_client: any) {}
-}
+import type { StreamChat } from 'chat-shim';
 
 import { useChat } from './hooks/useChat';
 import { useCreateChatContext } from './hooks/useCreateChatContext';

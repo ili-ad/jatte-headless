@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Poll as PollClass } from 'stream-chat';
+import type { Poll as PollClass } from 'chat-shim';
 
 /**
  * Placeholder implementation of the Stream Chat `Poll` component.

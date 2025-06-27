@@ -1,7 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
-import type { CommandResponse } from 'stream-chat';
-export type CommandResponse = any;
+import type { CommandResponse } from 'chat-shim';
 
 export type CommandItemProps = {
   entity: CommandResponse;
@@ -20,4 +19,3 @@ export const CommandItem = (props: PropsWithChildren<CommandItemProps>) => {
     </div>
   );
 };
-

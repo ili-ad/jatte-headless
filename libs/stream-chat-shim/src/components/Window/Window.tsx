@@ -1,20 +1,18 @@
-import React, { PropsWithChildren } from 'react';
+import type { PropsWithChildren } from 'react';
+import React from 'react';
 import clsx from 'clsx';
-import type { LocalMessage } from 'stream-chat';
 
+import type { LocalMessage } from 'chat-shim';
 import { useChannelStateContext } from '../../context/ChannelStateContext';
-type LocalMessage = any;
 
 export type WindowProps = {
-  /** optional prop to force addition of class str-chat__main-panel--thread-open to the Window root element */
+  /** optional prop to force addition of class str-chat__main-panel---with-thread-opn to the Window root element */
   thread?: LocalMessage;
 };
 
-/**
- * A UI component for conditionally displaying a Thread or Channel
- */
 const UnMemoizedWindow = (props: PropsWithChildren<WindowProps>) => {
   const { children, thread: propThread } = props;
+
   const { thread: contextThread } = useChannelStateContext('Window');
 
   return (
@@ -28,4 +26,7 @@ const UnMemoizedWindow = (props: PropsWithChildren<WindowProps>) => {
   );
 };
 
-export const Window = React.memo(UnMemoizedWindow);
+/**
+ * A UI component for conditionally displaying a Thread or Channel
+ */
+export const Window = React.memo(UnMemoizedWindow) as typeof UnMemoizedWindow;

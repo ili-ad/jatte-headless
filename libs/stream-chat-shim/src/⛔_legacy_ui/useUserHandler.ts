@@ -1,5 +1,5 @@
-import type { User } from 'stream-chat';
-import type { LocalMessage } from 'stream-chat';
+import type { User } from 'chat-shim';
+import type { LocalMessage } from 'chat-shim';
 
 export type UserEventHandler = (
   event: React.BaseSyntheticEvent,

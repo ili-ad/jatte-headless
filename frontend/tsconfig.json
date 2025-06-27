@@ -23,6 +23,11 @@
     "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
       "@/*": ["lib/*", "src/*"],
+
+      /* make the shim visible */
+      "@iliad/stream-chat-shim": ["../libs/stream-chat-shim/src"],
+      "@iliad/stream-chat-shim/*": ["../libs/stream-chat-shim/src/*"],
+            
       "@iliad/stream-ui": ["./types/stream-ui-shim"],
       "stream-chat": ["../libs/chat-shim"],
     },

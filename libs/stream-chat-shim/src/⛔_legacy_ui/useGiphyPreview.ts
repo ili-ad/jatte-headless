@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { EventHandler, LocalMessage } from 'stream-chat';
+import type { EventHandler, LocalMessage } from 'chat-shim';
 
 /**
  * Hook managing the giphy preview message state.

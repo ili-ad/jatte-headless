@@ -1,4 +1,4 @@
-import type { ThreadState } from 'stream-chat';
+import type { ThreadState } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `useThreadState` hook.

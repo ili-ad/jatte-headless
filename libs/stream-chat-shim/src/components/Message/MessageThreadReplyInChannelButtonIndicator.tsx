@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import type { LocalMessage } from 'stream-chat';
-import { formatMessage } from 'stream-chat';
-const formatMessage = (m: any) => m as any;
-type LocalMessage = any;
+import type { LocalMessage } from 'chat-shim';
+import { formatMessage } from 'chat-shim';
 import {
   useChannelActionContext,
   useChannelStateContext,
@@ -20,12 +18,14 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
   const parentMessageRef = useRef<LocalMessage | null | undefined>(undefined);
 
   const querySearchParent = () =>
-    Promise.resolve<{ results: any[] }>({ results: [] })
+    channel
+      .getClient()
+      .search({ cid: channel.cid }, { id: message.parent_id })
       .then(({ results }) => {
         if (!results.length) {
           throw new Error('Thread has not been found');
         }
-        parentMessageRef.current = formatMessage((results[0] as any).message);
+        parentMessageRef.current = formatMessage(results[0].message);
       })
       .catch((error: Error) => {
         client.notifications.addError({
@@ -84,5 +84,3 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
     </div>
   );
 };
-
-export default MessageThreadReplyInChannelButtonIndicator;

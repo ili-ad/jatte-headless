@@ -12,7 +12,7 @@ import { MessageText } from './MessageText';
 import { MessageTimestamp as DefaultMessageTimestamp } from './MessageTimestamp';
 import { StreamedMessageText as DefaultStreamedMessageText } from './StreamedMessageText';
 import { isDateSeparatorMessage } from '../MessageList';
-import { MessageIsThreadReplyInChannelButtonIndicator as DefaultMessageIsThreadReplyInChannelButtonIndicator } from './MessageIsThreadReplyInChannelButtonIndicator';
+import { MessageThreadReplyInChannelButtonIndicator as DefaultMessageIsThreadReplyInChannelButtonIndicator } from './MessageThreadReplyInChannelButtonIndicator';
 import { ReminderNotification as DefaultReminderNotification } from './ReminderNotification';
 import { useMessageReminder } from './hooks';
 import {
@@ -27,6 +27,7 @@ import {
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { EditMessageModal } from '../MessageInput';
+import { MML } from '../MML';
 import { Poll } from '../Poll';
 import { ReactionsList as DefaultReactionList } from '../Reactions';
 import { MessageBounceModal } from '../MessageBounce/MessageBounceModal';
@@ -195,6 +196,13 @@ const MessageSimpleWithContext = (props: MessageSimpleWithContextProps) => {
                 <StreamedMessageText message={message} renderText={renderText} />
               ) : (
                 <MessageText message={message} renderText={renderText} />
+              )}
+              {message.mml && (
+                <MML
+                  actionHandler={handleAction}
+                  align={isMyMessage() ? 'right' : 'left'}
+                  source={message.mml}
+                />
               )}
               <MessageErrorIcon />
             </div>

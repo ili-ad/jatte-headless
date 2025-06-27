@@ -1,5 +1,5 @@
 import React, { useContext, type PropsWithChildren } from 'react';
-import type { ChannelState as StreamChannelState } from 'stream-chat';
+import type { ChannelState as StreamChannelState } from 'chat-shim';
 
 // Placeholder type matching Stream Chat React's generic utility
 export type UnknownType = any;

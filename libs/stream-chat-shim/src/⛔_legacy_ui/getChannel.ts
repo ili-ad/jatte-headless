@@ -3,7 +3,7 @@ import type {
   ChannelQueryOptions,
   QueryChannelAPIResponse,
   StreamChat,
-} from 'stream-chat';
+} from 'chat-shim';
 
 /**
  * prevent from duplicate invocation of channel.watch()

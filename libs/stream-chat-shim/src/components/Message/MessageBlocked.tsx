@@ -1,9 +1,9 @@
 import React from 'react';
 import clsx from 'clsx';
 
-const useUserRole = (_message: any) => ({ isMyMessage: false } as any);
-const useTranslationContext = (_?: string) => ({ t: (key: string) => key } as any);
-const useMessageContext = () => ({ message: { id: '', type: '' } } as any);
+import { useUserRole } from './hooks/useUserRole';
+import { useTranslationContext } from '../../context/TranslationContext';
+import { useMessageContext } from '../../context';
 
 export const MessageBlocked = () => {
   const { message } = useMessageContext();

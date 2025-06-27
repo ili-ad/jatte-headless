@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 export type ReactEventHandler = (
   event: React.BaseSyntheticEvent,

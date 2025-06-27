@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PollOption, PollState } from 'stream-chat';
+import type { PollOption, PollState } from 'chat-shim';
 
 export type PollResultsProps = {
   /** Poll state representing current poll metadata. */

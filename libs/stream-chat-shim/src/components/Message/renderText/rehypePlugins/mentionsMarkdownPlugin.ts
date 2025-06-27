@@ -6,7 +6,7 @@ import { visit } from 'unist-util-visit';
 
 import type { Nodes } from 'hast-util-find-and-replace/lib';
 import type { Element } from 'hast';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 export const mentionsMarkdownPlugin = (mentioned_users: UserResponse[]) => () => {
   const mentioned_usernames = mentioned_users

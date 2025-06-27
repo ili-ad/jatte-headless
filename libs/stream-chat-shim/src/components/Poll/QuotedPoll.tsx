@@ -1,11 +1,7 @@
 import clsx from 'clsx';
 import React from 'react';
-import type { PollState } from 'stream-chat';
-const usePollContext = () => ({ poll: { state: {} as PollState } } as any);
-const useStateStore = (_store: any, _selector: any) => ({
-  is_closed: false,
-  name: '',
-});
+import { usePollContext } from '../../context';
+import { useStateStore } from '../../store';
 import type { PollState } from 'chat-shim';
 
 type PollStateSelectorQuotedPollReturnValue = {
@@ -21,10 +17,7 @@ const pollStateSelectorQuotedPoll = (
 
 export const QuotedPoll = () => {
   const { poll } = usePollContext();
-  const { is_closed, name } = useStateStore(
-    poll.state,
-    pollStateSelectorQuotedPoll,
-  );
+  const { is_closed, name } = useStateStore(poll.state, pollStateSelectorQuotedPoll);
 
   return (
     <div
@@ -37,5 +30,3 @@ export const QuotedPoll = () => {
     </div>
   );
 };
-
-export default QuotedPoll;

@@ -1,8 +1,7 @@
 import React from 'react';
 import { SendIcon } from './icons';
-import type { UpdatedMessage } from 'stream-chat';
-const useMessageComposerHasSendableData = () => true;
-type UpdatedMessage = any;
+import { useMessageComposerHasSendableData } from './hooks';
+import type { UpdatedMessage } from 'chat-shim';
 
 export type SendButtonProps = {
   sendMessage: (
@@ -10,7 +9,6 @@ export type SendButtonProps = {
     customMessageData?: Omit<UpdatedMessage, 'mentioned_users'>,
   ) => void;
 } & React.ComponentProps<'button'>;
-
 export const SendButton = ({ sendMessage, ...rest }: SendButtonProps) => {
   const hasSendableData = useMessageComposerHasSendableData();
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AIState, Channel, Event } from 'stream-chat';
+import type { AIState, Channel, Event } from 'chat-shim';
 
 /** States reported by the AI back-end */
 export const AIStates = {

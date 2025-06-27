@@ -2,15 +2,13 @@ import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 
+import { SearchIcon } from './icons';
+import { ChannelPreview } from '../ChannelPreview';
+import type { ChannelOrUserResponse } from './utils';
+import { isChannel } from './utils';
+import { Avatar } from '../Avatar';
 
-const SearchIcon = () => null as any; // temporary shim
-const ChannelPreview = () => null as any; // temporary shim
-type ChannelOrUserResponse = any; // temporary shim
-const isChannel = (_: unknown): _ is ChannelOrUserResponse => false; // temporary shim
-const Avatar = (props: any) => <div {...props} />; // temporary shim
-
-const useTranslationContext = (_?: string) => ({ t: (key: string) => key });
-
+import { useTranslationContext } from '../../context';
 
 const DefaultSearchEmpty = () => {
   const { t } = useTranslationContext('SearchResults');

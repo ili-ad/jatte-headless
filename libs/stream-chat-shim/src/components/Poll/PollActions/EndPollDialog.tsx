@@ -1,7 +1,6 @@
 import { PromptDialog } from '../../Dialog/PromptDialog';
 import React from 'react';
-const usePollContext = () => ({ poll: { close: () => {} } } as any); // temporary shim
-const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s }); // temporary shim
+import { usePollContext, useTranslationContext } from '../../../context';
 
 export type EndPollDialogProps = {
   close: () => void;
@@ -22,7 +21,7 @@ export const EndPollDialog = ({ close }: EndPollDialogProps) => {
         {
           children: t('End'),
           className:
-            'str-chat__dialog__controls-button--submit str-chat__dialog__controls-button--end-poll',
+            '.str-chat__dialog__controls-button--submit str-chat__dialog__controls-button--end-poll',
           onClick: poll.close,
         },
       ]}

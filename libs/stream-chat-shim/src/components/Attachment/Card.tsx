@@ -1,7 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
 import ReactPlayer from 'react-player';
-import type { Attachment } from 'stream-chat';
 
 import type { AudioProps } from './Audio';
 import { ImageComponent } from '../Gallery';
@@ -11,6 +10,7 @@ import { useAudioController } from './hooks/useAudioController';
 import { useChannelStateContext } from '../../context/ChannelStateContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 
+import type { Attachment } from 'chat-shim';
 import type { RenderAttachmentProps } from './utils';
 import type { Dimensions } from '../../types/types';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { isMessageBounced } from './utils';
 import { useTranslationContext } from '../../context';
 
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export interface MessageErrorTextProps {
   message: LocalMessage;

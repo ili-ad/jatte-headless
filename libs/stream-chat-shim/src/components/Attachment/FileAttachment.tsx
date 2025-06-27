@@ -1,10 +1,8 @@
 import React from 'react';
-import type { Attachment } from 'stream-chat';
-const FileIcon = (() => null) as any; // temporary shim
-type Attachment = any;
+import { FileIcon } from '../ReactFileUtilities';
+import type { Attachment } from 'chat-shim';
 
-const DownloadButton = (_: any) => null; // temporary shim
-const FileSizeIndicator = (_: any) => null; // temporary shim
+import { DownloadButton, FileSizeIndicator } from './components';
 
 export type FileAttachmentProps = {
   attachment: Attachment;

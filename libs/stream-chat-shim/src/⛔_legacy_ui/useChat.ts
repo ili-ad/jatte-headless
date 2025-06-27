@@ -4,7 +4,7 @@ import type {
   Channel,
   Mute,
   StreamChat,
-} from 'stream-chat';
+} from 'chat-shim';
 
 export type SupportedTranslations = string;
 

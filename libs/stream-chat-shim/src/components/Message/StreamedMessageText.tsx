@@ -1,7 +1,7 @@
 import React from 'react';
 
-type MessageTextProps = any;
-const MessageText = (() => null) as any;
+import type { MessageTextProps } from './MessageText';
+import { MessageText } from './MessageText';
 
 import { useMessageContext } from '../../context';
 import { useMessageTextStreaming } from './hooks';

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown, { Options } from 'react-markdown';
 import type { PluggableList } from 'react-markdown/lib/react-markdown';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 export type RenderTextPluginConfigurator = (
   defaultPlugins: PluggableList,

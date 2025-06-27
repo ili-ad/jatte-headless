@@ -1,10 +1,7 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
 
-type LocalMessage = any;
-
-type CustomMessageActions = Record<string, (msg: LocalMessage, e: React.MouseEvent<HTMLButtonElement>) => void>;
-
+import type { LocalMessage } from 'chat-shim';
+import type { CustomMessageActions } from '../../context/MessageContext';
 
 export type CustomMessageActionsListProps = {
   message: LocalMessage;

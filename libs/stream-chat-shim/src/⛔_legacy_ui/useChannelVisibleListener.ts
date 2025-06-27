@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Channel, Event } from 'stream-chat';
+import type { Channel, Event } from 'chat-shim';
 
 export const useChannelVisibleListener = (
   setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,

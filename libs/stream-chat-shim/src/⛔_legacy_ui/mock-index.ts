@@ -1,4 +1,4 @@
-import { StreamChat } from 'stream-chat';
+import { StreamChat } from 'chat-shim';
 
 /** Options for configuring mocked behaviour of the chat client. */
 export type MockClientOptions = Record<string, unknown>;

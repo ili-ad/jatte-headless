@@ -1,5 +1,4 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
 
 import { useChannelPreviewInfo } from '../ChannelPreview/hooks/useChannelPreviewInfo';
 import { CloseIcon } from './icons';
@@ -8,9 +7,7 @@ import { useChannelStateContext } from '../../context/ChannelStateContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 
 import type { ChannelPreviewInfoParams } from '../ChannelPreview/hooks/useChannelPreviewInfo';
-// import type { LocalMessage } from 'stream-chat';
-
-type LocalMessage = any;
+import type { LocalMessage } from 'chat-shim';
 
 export type ThreadHeaderProps = {
   /** Callback for closing the thread */

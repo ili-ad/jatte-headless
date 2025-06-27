@@ -9,12 +9,12 @@ import type {
 import { useMemo } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Textarea from 'react-textarea-autosize';
-const useMessageComposer = () => ({ textComposer: {} }) as any; // temporary shim
-// import type {
-//   MessageComposerConfig,
-//   SearchSourceState,
-//   TextComposerState,
-import type { MessageComposerConfig, SearchSourceState } from 'chat-shim';
+import { useMessageComposer } from '../MessageInput';
+import type {
+  MessageComposerConfig,
+  SearchSourceState,
+  TextComposerState,
+} from 'chat-shim';
 import {
   useComponentContext,
   useMessageInputContext,
@@ -179,6 +179,10 @@ export const TextareaComposer = ({
           });
         }
       } else if (shouldSubmit(event) && textareaRef.current) {
+        if (event.key === 'Enter') {
+          // prevent adding newline when submitting a message with
+          event.preventDefault();
+        }
         handleSubmit();
         textareaRef.current.selectionEnd = 0;
       }

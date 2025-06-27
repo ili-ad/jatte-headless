@@ -2,9 +2,8 @@ import React from 'react';
 import { useMessageContext } from '../../context/MessageContext';
 import { Timestamp as DefaultTimestamp } from './Timestamp';
 import { useComponentContext } from '../../context';
-import type { LocalMessage } from 'stream-chat';
 
-type LocalMessage = any;
+import type { LocalMessage } from 'chat-shim';
 import type { TimestampFormatterOptions } from '../../i18n/types';
 
 export type MessageTimestampProps = TimestampFormatterOptions & {

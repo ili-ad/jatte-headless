@@ -1,4 +1,4 @@
-import type { ReminderResponse } from 'stream-chat';
+import type { ReminderResponse } from 'chat-shim';
 
 /**
  * Placeholder generator for reminder objects used in tests.

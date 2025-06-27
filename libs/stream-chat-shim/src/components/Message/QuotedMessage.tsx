@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
-import type { TranslationLanguages } from 'stream-chat';
-type TranslationLanguages = any;
+import type { TranslationLanguages } from 'chat-shim';
 
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { Avatar as DefaultAvatar } from '../Avatar';
@@ -34,8 +33,7 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
 
   const { quoted_message } = message;
 
-  const poll =
-    quoted_message?.poll_id &&
+  const poll = quoted_message?.poll_id && client.polls.fromState(quoted_message.poll_id);
   const quotedMessageDeleted =
     quoted_message?.deleted_at || quoted_message?.type === 'deleted';
 
@@ -60,7 +58,7 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
   return (
     <>
       <div
-        className={clsx('str-chat__quoted-message-preview', { mine: isMyMessage })}
+        className={clsx('str-chat__quoted-message-preview', { mine: isMyMessage() })}
         data-testid='quoted-message'
         onClickCapture={(e) => {
           e.stopPropagation();
@@ -103,4 +101,3 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
     </>
   );
 };
-

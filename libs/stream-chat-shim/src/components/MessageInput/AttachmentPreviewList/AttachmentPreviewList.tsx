@@ -1,13 +1,5 @@
 import type { ComponentType } from 'react';
 import React from 'react';
-// import {
-//   isLocalAttachment,
-//   isLocalAudioAttachment,
-//   isLocalFileAttachment,
-//   isLocalImageAttachment,
-//   isLocalVideoAttachment,
-//   isLocalVoiceRecordingAttachment,
-//   isScrapedContent,
 import {
   isLocalAttachment,
   isLocalAudioAttachment,
@@ -16,19 +8,13 @@ import {
   isLocalVideoAttachment,
   isLocalVoiceRecordingAttachment,
   isScrapedContent,
-} from '../../../../../chat-shim';
+} from 'chat-shim';
 import type { UnsupportedAttachmentPreviewProps } from './UnsupportedAttachmentPreview';
 import { UnsupportedAttachmentPreview as DefaultUnknownAttachmentPreview } from './UnsupportedAttachmentPreview';
 import { VoiceRecordingPreview as DefaultVoiceRecordingPreview } from './VoiceRecordingPreview';
 import { FileAttachmentPreview as DefaultFilePreview } from './FileAttachmentPreview';
 import { ImageAttachmentPreview as DefaultImagePreview } from './ImageAttachmentPreview';
-const useAttachmentManagerState = () => ({ attachments: [] as any[] });
-const useMessageComposer = () => ({
-  attachmentManager: {
-    uploadAttachment: (_a: any) => {},
-    removeAttachments: (_ids: string[]) => {},
-  },
-});
+import { useAttachmentManagerState, useMessageComposer } from '../hooks';
 import type { VoiceRecordingPreviewProps } from './VoiceRecordingPreview';
 import type { FileAttachmentPreviewProps } from './FileAttachmentPreview';
 import type { ImageAttachmentPreviewProps } from './ImageAttachmentPreview';

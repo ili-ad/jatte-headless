@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Channel, Event } from 'stream-chat';
+import type { Channel, Event } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `useChannelHiddenListener` hook.

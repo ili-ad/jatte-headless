@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
 import type { Attachment } from 'chat-shim';
-import type { Attachment } from 'stream-chat';
-
 import type { ATTACHMENT_GROUPS_ORDER, AttachmentProps } from './Attachment';
 
 export const SUPPORTED_VIDEO_FORMATS = [

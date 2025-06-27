@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Channel } from 'stream-chat';
+import type { Channel } from 'chat-shim';
 
 export type ChannelPreviewInfoParams<StreamChatGenerics extends unknown = unknown> = {
   channel: Channel<StreamChatGenerics>;

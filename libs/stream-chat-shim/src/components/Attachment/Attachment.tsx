@@ -1,18 +1,12 @@
 import React, { useMemo } from 'react';
-import type { Attachment as StreamAttachment } from 'stream-chat';
-// import {
-//   isAudioAttachment,
-//   isFileAttachment,
-//   isImageAttachment,
-//   isScrapedContent,
-//   isVideoAttachment,
-//   isVoiceRecordingAttachment,
-const isAudioAttachment = (() => false) as any; // temporary shim
-const isFileAttachment = (() => false) as any; // temporary shim
-const isImageAttachment = (() => false) as any; // temporary shim
-const isScrapedContent = (() => false) as any; // temporary shim
-const isVideoAttachment = (() => false) as any; // temporary shim
-const isVoiceRecordingAttachment = (() => false) as any; // temporary shim
+import {
+  isAudioAttachment,
+  isFileAttachment,
+  isImageAttachment,
+  isScrapedContent,
+  isVideoAttachment,
+  isVoiceRecordingAttachment,
+} from 'chat-shim';
 
 import {
   AudioContainer,
@@ -27,7 +21,7 @@ import {
 import { SUPPORTED_VIDEO_FORMATS } from './utils';
 
 import type { ReactPlayerProps } from 'react-player';
-type StreamAttachment = any;
+import type { Attachment as StreamAttachment } from 'chat-shim';
 import type { AttachmentActionsProps } from './AttachmentActions';
 import type { AudioProps } from './Audio';
 import type { VoiceRecordingProps } from './VoiceRecording';

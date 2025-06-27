@@ -1,16 +1,12 @@
 import React from 'react';
 
-const DefaultMenuIcon = () => null; // temporary shim
-const DefaultAvatar = (() => null) as React.ComponentType<any>; // temporary shim
-const useChannelPreviewInfo = () => ({
-  displayImage: undefined,
-  displayTitle: undefined,
-  groupChannelDisplayInfo: undefined,
-});
-const useChannelStateContext = (_componentName?: string) => ({} as any); // temporary shim
-const useChatContext = (_componentName?: string) => ({} as any); // temporary shim
-const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s }); // temporary shim
-type ChannelAvatarProps = any;
+import { MenuIcon as DefaultMenuIcon } from './icons';
+import { Avatar as DefaultAvatar } from '../Avatar';
+import { useChannelPreviewInfo } from '../ChannelPreview/hooks/useChannelPreviewInfo';
+import { useChannelStateContext } from '../../context/ChannelStateContext';
+import { useChatContext } from '../../context/ChatContext';
+import { useTranslationContext } from '../../context/TranslationContext';
+import type { ChannelAvatarProps } from '../Avatar';
 
 export type ChannelHeaderProps = {
   /** UI component to display an avatar, defaults to [Avatar](https://github.com/GetStream/stream-chat-react/blob/master/src/components/Avatar/Avatar.tsx) component and accepts the same props as: [ChannelAvatar](https://github.com/GetStream/stream-chat-react/blob/master/src/components/Avatar/ChannelAvatar.tsx) */

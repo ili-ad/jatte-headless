@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
 
 // Placeholder types for compatibility. Replace with real types once migrated.
 export type ReactionOptions = any;

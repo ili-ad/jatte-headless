@@ -1,13 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import type { LoadingIndicatorProps } from '../components/Loading/LoadingIndicator';
-import type { Attachment, ChannelState as StreamChannelState } from 'stream-chat';
-
-import type { Attachment, ChannelState as StreamChannelState } from 'stream-chat';
-
-
-type Attachment = any;
-type StreamChannelState = any;
-
+import type { Attachment, ChannelState as StreamChannelState } from 'chat-shim';
 
 export type UnknownType = Record<string, unknown>;
 export type PropsWithChildrenOnly = PropsWithChildren<Record<never, never>>;

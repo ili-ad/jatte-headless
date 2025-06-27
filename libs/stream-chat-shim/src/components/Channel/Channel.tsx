@@ -1,6 +1,5 @@
 import type { ComponentProps, PropsWithChildren } from 'react';
 import React, {
-import { localMessageToNewMessagePayload } from 'stream-chat';
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -28,9 +27,10 @@ import type {
   SendMessageAPIResponse,
   SendMessageOptions,
   Channel as StreamChannel,
+  StreamChat,
   UpdateMessageOptions,
-} from 'stream-chat';
-import { localMessageToNewMessagePayload } from 'stream-chat';
+} from 'chat-shim';
+import { localMessageToNewMessagePayload } from 'chat-shim';
 
 import { initialState, makeChannelReducer } from './channelState';
 import { useCreateChannelStateContext } from './hooks/useCreateChannelStateContext';
@@ -188,7 +188,7 @@ export type ChannelProps = ChannelPropsForwardedToComponentContext & {
     cid: string,
     updatedMessage: LocalMessage | MessageResponse,
     options?: UpdateMessageOptions,
-  ) => Promise<unknown>;
+  ) => ReturnType<StreamChat['updateMessage']>;
   /** Custom UI component to be shown if no active channel is set, defaults to null and skips rendering the Channel component */
   EmptyPlaceholder?: React.ReactElement;
   /** The giphy version to render - check the keys of the [Image Object](https://developers.giphy.com/docs/api/schema#image-object) for possible values. Uses 'fixed_height' by default */
@@ -381,6 +381,7 @@ const ChannelInner = (
                 updateChannelUiUnreadState ? setChannelUnreadUiState : undefined,
               );
             } else {
+              const markReadResponse = await channel.markRead();
               if (updateChannelUiUnreadState && markReadResponse) {
                 _setChannelUnreadUiState({
                   last_read: lastRead.current,
@@ -939,7 +940,7 @@ const ChannelInner = (
       if (doSendMessageRequest) {
         messageResponse = await doSendMessageRequest(channel, message, options);
       } else {
-        await Promise.resolve(undefined);
+        messageResponse = await channel.sendMessage(message, options);
       }
 
       let existingMessage: LocalMessage | undefined = undefined;

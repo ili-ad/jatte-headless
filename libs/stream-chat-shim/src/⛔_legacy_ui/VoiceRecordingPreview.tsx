@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LocalVoiceRecordingAttachment } from 'stream-chat';
+import type { LocalVoiceRecordingAttachment } from 'chat-shim';
 
 export type UploadAttachmentPreviewProps<A> = {
   attachment: A;

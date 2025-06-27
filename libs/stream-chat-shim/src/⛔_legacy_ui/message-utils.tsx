@@ -9,7 +9,7 @@ import type {
   Mute,
   StreamChat,
   UserResponse,
-} from 'stream-chat';
+} from 'chat-shim';
 
 // Placeholder types for compatibility with the UI. These should be
 // replaced with the real definitions once the full code is migrated.

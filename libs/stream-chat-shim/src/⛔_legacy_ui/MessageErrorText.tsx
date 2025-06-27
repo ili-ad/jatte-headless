@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export type MessageErrorTextProps = {
   /** The message that failed to send */

@@ -1,8 +1,6 @@
 import React from 'react';
-
 import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
 import { ButtonWithSubmenu } from '../Dialog';
-
 import type { ComponentProps } from 'react';
 
 export const RemindMeActionButton = ({
@@ -37,9 +35,12 @@ export const RemindMeSubmenu = () => {
         <button
           className='str-chat__message-actions-list-item-button'
           key={`reminder-offset-option--${offsetMs}`}
-            onClick={() => {
-              Promise.resolve(undefined);
-            }}
+          onClick={() => {
+            client.reminders.upsertReminder({
+              messageId: message.id,
+              remind_at: new Date(new Date().getTime() + offsetMs).toISOString(),
+            });
+          }}
         >
           {t('duration/Remind Me', { milliseconds: offsetMs })}
         </button>

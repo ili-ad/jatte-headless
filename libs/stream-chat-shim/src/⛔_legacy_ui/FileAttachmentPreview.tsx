@@ -4,7 +4,7 @@ import type {
   LocalFileAttachment,
   LocalVideoAttachment,
   LocalUploadAttachment,
-} from 'stream-chat';
+} from 'chat-shim';
 
 /**
  * Props for {@link FileAttachmentPreview} component. Mirrors the Stream Chat

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { StreamChat } from 'stream-chat';
+import type { StreamChat } from 'chat-shim';
 
 export type UseReactionsFetcherParams = {
   client: StreamChat;

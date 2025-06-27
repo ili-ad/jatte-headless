@@ -2,7 +2,6 @@ import type { CSSProperties, MutableRefObject } from 'react';
 import React, { useState } from 'react';
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import clsx from 'clsx';
-import type { Attachment } from 'stream-chat';
 
 import { BaseImage as DefaultBaseImage } from './BaseImage';
 import { Modal } from '../Modal';
@@ -11,8 +10,7 @@ import { ModalGallery as DefaultModalGallery } from './ModalGallery';
 import { useComponentContext } from '../../context/ComponentContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 
-type Attachment = any;
-
+import type { Attachment } from 'chat-shim';
 
 export type GalleryProps = {
   images: ((

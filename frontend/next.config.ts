@@ -26,11 +26,14 @@ webpack(cfg) {
   /* 1 ▸ All UI imports go to the new shim barrel */
 
   /* NEW – allow deep asset paths to fall back to the real package */
-  cfg.resolve.alias['stream-chat-react/dist'] =
-    path.resolve(__dirname, '../node_modules/stream-chat-react/dist');
+  // cfg.resolve.alias['stream-chat-react/dist'] =
+  //   path.resolve(__dirname, '../node_modules/stream-chat-react/dist');
 
-  cfg.resolve.alias['stream-chat-react'] =
-    path.resolve(__dirname, '../libs/stream-chat-shim/src');
+  // cfg.resolve.alias['stream-chat-react'] =
+  //   path.resolve(__dirname, '../libs/stream-chat-shim/src');
+
+  cfg.resolve.alias['@iliad/stream-chat-shim'] =
+    path.resolve(__dirname, '../libs/stream-chat-shim/src');  
 
   (cfg.resolve.alias as Record<string,string>)['stream-chat'] =
     path.resolve(__dirname, '../libs/chat-shim');
@@ -40,7 +43,7 @@ webpack(cfg) {
   path.resolve(__dirname);
 
   (cfg.resolve.alias as Record<string,string>)['stream-value-checks'] =
-    path.resolve(__dirname, '../libs/stream-value-shim');    
+    path.resolve(__dirname, '../libs/stream-value-shim'); 
     
   return cfg;
 },

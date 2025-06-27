@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PollAnswer, PollAnswersQueryParams } from 'stream-chat';
+import type { PollAnswer, PollAnswersQueryParams } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `usePollAnswerPagination` hook.

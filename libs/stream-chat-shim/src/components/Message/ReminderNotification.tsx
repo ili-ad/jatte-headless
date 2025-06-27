@@ -1,7 +1,7 @@
-import React from "react";
-import { useTranslationContext } from "../../context";
-import { useStateStore } from "../../store";
-import type { Reminder, ReminderState } from 'stream-chat';
+import React from 'react';
+import { useTranslationContext } from '../../context';
+import { useStateStore } from '../../store';
+import type { Reminder, ReminderState } from 'chat-shim';
 
 export type ReminderNotificationProps = {
   reminder?: Reminder;
@@ -11,12 +11,9 @@ const reminderStateSelector = (state: ReminderState) => ({
   timeLeftMs: state.timeLeftMs,
 });
 
-export const ReminderNotification = ({
-  reminder,
-}: ReminderNotificationProps) => {
+export const ReminderNotification = ({ reminder }: ReminderNotificationProps) => {
   const { t } = useTranslationContext();
-  const { timeLeftMs } =
-    useStateStore(reminder?.state, reminderStateSelector) ?? {};
+  const { timeLeftMs } = useStateStore(reminder?.state, reminderStateSelector) ?? {};
 
   const stopRefreshBoundaryMs = reminder?.timer.stopRefreshBoundaryMs;
   const stopRefreshTimeStamp =
@@ -28,20 +25,20 @@ export const ReminderNotification = ({
     !!stopRefreshTimeStamp && new Date().getTime() > stopRefreshTimeStamp;
 
   return (
-    <p className="str-chat__message-reminder">
-      <span>{t("Saved for later")}</span>
+    <p className='str-chat__message-reminder'>
+      <span>{t('Saved for later')}</span>
       {reminder?.remindAt && timeLeftMs !== null && (
         <>
           <span> | </span>
           <span>
             {isBehindRefreshBoundary
-              ? t("Due since {{ dueSince }}", {
+              ? t('Due since {{ dueSince }}', {
                   dueSince: t(`timestamp/ReminderNotification`, {
                     timestamp: reminder.remindAt,
                   }),
                 })
               : t(`Due {{ timeLeft }}`, {
-                  timeLeft: t("duration/Message reminder", {
+                  timeLeft: t('duration/Message reminder', {
                     milliseconds: timeLeftMs,
                   }),
                 })}

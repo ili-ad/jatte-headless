@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { Thread } from 'stream-chat';
+import type { Thread } from 'chat-shim';
 
 export type ThreadListItemProps = {
   thread: Thread;

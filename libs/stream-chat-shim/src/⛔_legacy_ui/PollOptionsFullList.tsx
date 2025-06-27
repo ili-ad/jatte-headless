@@ -1,6 +1,6 @@
 // libs/stream-chat-shim/src/PollOptionsFullList.tsx
 import React from 'react';
-import type { PollState } from 'stream-chat';
+import type { PollState } from 'chat-shim';
 
 export type FullPollOptionsListingProps = {
   /** Callback fired when the modal should be closed */
