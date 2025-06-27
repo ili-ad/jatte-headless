@@ -7,9 +7,11 @@ import { useChatContext } from '../../context';
 import { useStateStore } from '../../store';
 
 import type { PropsWithChildren } from 'react';
+
 // import type { Thread, ThreadManagerState } from 'stream-chat'; // TODO backend-wire-up
 type Thread = any; // temporary shim
 type ThreadManagerState = any; // temporary shim
+
 import clsx from 'clsx';
 
 type ChatView = 'channels' | 'threads';
