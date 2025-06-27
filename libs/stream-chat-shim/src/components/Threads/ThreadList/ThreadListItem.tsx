@@ -17,7 +17,9 @@ const ThreadListItemContext = createContext<Thread | undefined>(undefined);
 
 export const useThreadListItemContext = () => useContext(ThreadListItemContext);
 
+
 export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItemProps) => {
+
   const { ThreadListItemUI = DefaultThreadListItemUI } = useComponentContext();
 
   return (
@@ -28,8 +30,9 @@ export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItem
 };
 
 // const App = () => {
-//   const route = useRouter();
+
 //
+
 //   return (
 //     <Chat>
 //       {route === '/channels' && (
@@ -53,7 +56,7 @@ export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItem
 // pre-built layout
 
 {
-  /*
+
 <Chat client={chatClient}>
   <Views>
     // has default
