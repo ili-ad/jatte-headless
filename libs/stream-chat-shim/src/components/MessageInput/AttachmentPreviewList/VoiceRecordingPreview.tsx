@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { PlayButton } from '../../Attachment';
 import { RecordingTimer } from '../../MediaRecorder';
 import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
@@ -8,6 +9,7 @@ import { useAudioController } from '../../Attachment/hooks/useAudioController';
 type LocalVoiceRecordingAttachment = any; // temporary shim
 import type { UploadAttachmentPreviewProps } from './types';
 import { useTranslationContext } from '../../../context';
+
 
 export type VoiceRecordingPreviewProps<CustomLocalMetadata = Record<string, unknown>> =
   UploadAttachmentPreviewProps<LocalVoiceRecordingAttachment<CustomLocalMetadata>>;
