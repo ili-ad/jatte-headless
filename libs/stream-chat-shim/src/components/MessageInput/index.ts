@@ -17,5 +17,4 @@ export * from './MessageInput';
 export * from './MessageInputFlat';
 export * from './QuotedMessagePreview';
 export * from './SendButton';
-export * from './StopAIGenerationButton';
 export { WithDragAndDropUpload } from './WithDragAndDropUpload';

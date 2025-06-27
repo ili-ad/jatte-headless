@@ -3,28 +3,16 @@ import debounce from 'lodash.debounce';
 import React, { useMemo } from 'react';
 import { isVoteAnswer } from 'chat-shim';
 import { Avatar } from '../Avatar';
-import { isVoteAnswer } from 'stream-chat';
-import type { PollOption, PollState, PollVote, VotingVisibility } from 'stream-chat';
-// import {
-//   useChannelStateContext,
-//   useMessageContext,
-//   usePollContext,
-//   useTranslationContext,
-const useChannelStateContext = (_?: string) => ({ channelCapabilities: {} });
-const useMessageContext = () => ({ message: { id: '' } });
-const usePollContext = () => ({ poll: { state: {} as PollState } });
-const useTranslationContext = () => ({ t: (s: string, _?: any) => s });
-const useStateStore = (_store: any, _selector: any) => ({
-  is_closed: false,
-  latest_votes_by_option: {} as Record<string, PollVote[]>,
-  maxVotedOptionIds: [] as string[],
-  ownVotesByOptionId: {} as Record<string, PollVote>,
-  vote_counts_by_option: {} as Record<string, number>,
-  voting_visibility: undefined as VotingVisibility | undefined,
-});
+import {
+  useChannelStateContext,
+  useMessageContext,
+  usePollContext,
+  useTranslationContext,
+} from '../../context';
+import { useStateStore } from '../../store';
 import type { PollOption, PollState, PollVote, VotingVisibility } from 'chat-shim';
 
-export type AmountBarProps = {
+type AmountBarProps = {
   amount: number;
   className?: string;
 };
@@ -34,16 +22,20 @@ export const AmountBar = ({ amount, className }: AmountBarProps) => (
     className={clsx('str-chat__amount-bar', className)}
     data-testid='amount-bar'
     role='progressbar'
-    style={{
-      '--str-chat__amount-bar-fulfillment': amount + '%',
-    } as React.CSSProperties}
+    style={
+      {
+        '--str-chat__amount-bar-fulfillment': amount + '%',
+      } as React.CSSProperties
+    }
   />
 );
 
 export type CheckmarkProps = { checked?: boolean };
 
 export const Checkmark = ({ checked }: CheckmarkProps) => (
-  <div className={clsx('str-chat__checkmark', { 'str-chat__checkmark--checked': checked })} />
+  <div
+    className={clsx('str-chat__checkmark', { 'str-chat__checkmark--checked': checked })}
+  />
 );
 
 type PollStateSelectorReturnValue = {
@@ -135,7 +127,7 @@ export const PollOptionSelector = ({
             ? t('{{count}} votes', {
                 count: vote_counts_by_option[option.id] ?? 0,
               })
-            : vote_counts_by_option[option.id] ?? 0}
+            : (vote_counts_by_option[option.id] ?? 0)}
         </div>
       </div>
       <AmountBar
@@ -153,5 +145,3 @@ export const PollOptionSelector = ({
     </div>
   );
 };
-
-export default PollOptionSelector;

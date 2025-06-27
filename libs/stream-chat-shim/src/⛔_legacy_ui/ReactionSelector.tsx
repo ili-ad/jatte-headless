@@ -1,6 +1,6 @@
 // libs/stream-chat-shim/src/ReactionSelector.tsx
 import React from 'react';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
 import type { AvatarProps } from './Avatar';
 
 export type ReactionOptions = Array<{

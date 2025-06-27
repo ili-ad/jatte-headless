@@ -2,7 +2,7 @@
 'use client'
 
 import React from 'react'
-import type { Attachment } from 'stream-chat'
+import type { Attachment } from 'chat-shim'
 
 export type AudioProps = {
   og: Attachment

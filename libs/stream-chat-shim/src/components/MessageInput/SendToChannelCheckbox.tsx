@@ -1,20 +1,19 @@
-import React from 'react'
-import type { MessageComposerState } from 'stream-chat';
-const useMessageComposer = () => ({} as any) // temporary shim
-import type { MessageComposerState } from 'chat-shim'
-import { useStateStore } from '../../store'
-import { useTranslationContext } from '../../context'
+import { useMessageComposer } from './hooks';
+import React from 'react';
+import type { MessageComposerState } from 'chat-shim';
+import { useStateStore } from '../../store';
+import { useTranslationContext } from '../../context';
 
 const stateSelector = (state: MessageComposerState) => ({
   showReplyInChannel: state.showReplyInChannel,
-})
+});
 
 export const SendToChannelCheckbox = () => {
-  const { t } = useTranslationContext()
-  const messageComposer = useMessageComposer()
-  const { showReplyInChannel } = useStateStore(messageComposer.state, stateSelector)
+  const { t } = useTranslationContext();
+  const messageComposer = useMessageComposer();
+  const { showReplyInChannel } = useStateStore(messageComposer.state, stateSelector);
 
-  if (messageComposer.editedMessage || !messageComposer.threadId) return null
+  if (messageComposer.editedMessage || !messageComposer.threadId) return null;
 
   return (
     <div className='str-chat__send-to-channel-checkbox__container'>
@@ -32,5 +31,5 @@ export const SendToChannelCheckbox = () => {
         </label>
       </div>
     </div>
-  )
-}
+  );
+};

@@ -2,22 +2,16 @@ import clsx from 'clsx';
 import throttle from 'lodash.throttle';
 import React from 'react';
 import type { ItemProps, ListItem } from 'react-virtuoso';
-import type { LocalMessage } from 'stream-chat';
 
 import { EmptyStateIndicator as DefaultEmptyStateIndicator } from '../EmptyStateIndicator';
 import { LoadingIndicator as DefaultLoadingIndicator } from '../Loading';
 import { isMessageEdited, Message } from '../Message';
 
 import { useComponentContext } from '../../context';
+import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils';
 
-const getIsFirstUnreadMessage = (_: any) => false; // temporary shim
-const isDateSeparatorMessage = (_: any): boolean => false; // temporary shim
-const isIntroMessage = (_: any): boolean => false; // temporary shim
-
-type LocalMessage = any;
-type GroupStyle = any;
-type RenderedMessage = any;
-
+import type { LocalMessage } from 'chat-shim';
+import type { GroupStyle, RenderedMessage } from './utils';
 import type { VirtuosoContext } from './VirtualizedMessageList';
 import type { UnknownType } from '../../types/types';
 
@@ -45,7 +39,6 @@ export const makeItemsRenderedHandler = (
     renderedItemsActions.forEach((action) =>
       action(renderedMessages as RenderedMessage[]),
     );
-
   }, 200);
 
 type CommonVirtuosoComponentProps = {
@@ -226,4 +219,3 @@ export const messageRenderer = (
     </>
   );
 };
-

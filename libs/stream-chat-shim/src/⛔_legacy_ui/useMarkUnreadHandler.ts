@@ -1,5 +1,5 @@
 import type { BaseSyntheticEvent } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /** Match Stream's ReactEventHandler type. */
 export type ReactEventHandler = (event: BaseSyntheticEvent) => Promise<void> | void;

@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react';
-import type { MessageComposerConfig } from 'stream-chat';
+import type { MessageComposerConfig } from 'chat-shim';
 
 /**
  * Props for the {@link WithDragAndDropUpload} component.

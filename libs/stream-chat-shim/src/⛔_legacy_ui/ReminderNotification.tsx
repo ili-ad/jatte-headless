@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Reminder } from 'stream-chat';
+import type { Reminder } from 'chat-shim';
 
 export type ReminderNotificationProps = {
   /** Reminder object associated with the notification. */

@@ -1,12 +1,11 @@
 import clsx from 'clsx';
 import type { Ref } from 'react';
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
-import type { TextComposerSuggestion } from 'stream-chat';
-const useMessageComposer = () => ({ textComposer: { handleSelect: (_: any) => {} } }); // temporary shim
-export type TextComposerSuggestion = any;
-export type UserItemProps = any;
+import { useMessageComposer } from '../../MessageInput';
+import type { TextComposerSuggestion } from 'chat-shim';
+import type { UserItemProps } from './UserItem';
 import type { CommandItemProps } from './CommandItem';
-export type EmoticonItemProps = any;
+import type { EmoticonItemProps } from './EmoticonItem';
 
 export type DefaultSuggestionListItemEntity =
   | UserItemProps['entity']

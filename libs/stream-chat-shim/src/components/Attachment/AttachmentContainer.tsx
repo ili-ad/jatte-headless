@@ -3,9 +3,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
 import clsx from 'clsx';
 import * as linkify from 'linkifyjs';
-import type { Attachment, LocalAttachment } from 'stream-chat';
-type Attachment = any;
-type LocalAttachment = any;
+import type { Attachment, LocalAttachment } from 'chat-shim';
 
 import { AttachmentActions as DefaultAttachmentActions } from './AttachmentActions';
 import { Audio as DefaultAudio } from './Audio';

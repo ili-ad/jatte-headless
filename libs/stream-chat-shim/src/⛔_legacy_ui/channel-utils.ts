@@ -7,7 +7,7 @@
 const nanoid = () => Math.random().toString(36).slice(2);
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { ChannelState, MessageResponse, StreamChat } from 'stream-chat';
+import type { ChannelState, MessageResponse, StreamChat } from 'chat-shim';
 
 export type ChannelNotifications = { id: string; text: string; type: 'success' | 'error' }[];
 

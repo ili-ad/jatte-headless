@@ -11,13 +11,11 @@ import { useComponentContext } from '../../../context/ComponentContext';
 import { useStateStore } from '../../../store';
 import { InfiniteScrollPaginator } from '../../InfiniteScrollPaginator/InfiniteScrollPaginator';
 import { useMessageComposer } from '../../MessageInput';
-// import type {
-//   SearchSourceState,
-//   TextComposerState,
-//   TextComposerSuggestion,
-type SearchSourceState<T> = any; // temporary shim
-type TextComposerState = any; // temporary shim
-type TextComposerSuggestion = any; // temporary shim
+import type {
+  SearchSourceState,
+  TextComposerState,
+  TextComposerSuggestion,
+} from 'chat-shim';
 import type { UserItemProps } from './UserItem';
 
 type SuggestionTrigger = '/' | ':' | '@' | string;

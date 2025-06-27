@@ -3,7 +3,7 @@ import type {
   ChannelQueryOptions,
   QueryChannelAPIResponse,
   StreamChat,
-} from 'stream-chat';
+} from 'chat-shim';
 
 /**
  * prevent from duplicate invocation of channel.watch()
@@ -66,6 +66,7 @@ export const getChannel = async ({
     await queryPromise;
   } else {
     try {
+      WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid] = theChannel.watch(options);
       await WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];
     } finally {
       delete WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];

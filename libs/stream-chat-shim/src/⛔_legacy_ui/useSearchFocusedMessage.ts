@@ -1,4 +1,4 @@
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `useSearchFocusedMessage` hook.

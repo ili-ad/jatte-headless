@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import type { PropsWithChildren } from 'react'
-import type { Poll } from 'stream-chat'
+import type { Poll } from 'chat-shim'
 
 export type PollContextValue = {
   poll: Poll

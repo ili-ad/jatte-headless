@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import type { PropsWithChildren } from 'react';
-import type { SearchController } from 'stream-chat';
+import type { SearchController } from 'chat-shim';
 
 export type SearchContextValue = {
   /** The type of channel to create on user result select, defaults to `messaging` */

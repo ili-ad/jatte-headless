@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PropsWithChildren } from 'react';
-import type { Channel } from 'stream-chat';
+import type { Channel } from 'chat-shim';
 
 /** Props accepted by {@link ChannelListMessenger} */
 export type ChannelListMessengerProps = {

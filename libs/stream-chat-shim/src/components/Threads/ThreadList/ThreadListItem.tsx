@@ -1,7 +1,6 @@
 import React, { createContext, useContext } from 'react';
-import type { Thread } from 'stream-chat';
 
-type Thread = any;
+import type { Thread } from 'chat-shim';
 
 import { useComponentContext } from '../../../context';
 import { ThreadListItemUI as DefaultThreadListItemUI } from './ThreadListItemUI';
@@ -17,9 +16,10 @@ const ThreadListItemContext = createContext<Thread | undefined>(undefined);
 
 export const useThreadListItemContext = () => useContext(ThreadListItemContext);
 
-
-export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItemProps) => {
-
+export const ThreadListItem = ({
+  thread,
+  threadListItemUIProps,
+}: ThreadListItemProps) => {
   const { ThreadListItemUI = DefaultThreadListItemUI } = useComponentContext();
 
   return (
@@ -30,8 +30,7 @@ export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItem
 };
 
 // const App = () => {
-
-//
+//   const route = useRouter();
 
 //   return (
 //     <Chat>
@@ -56,7 +55,7 @@ export const ThreadListItem = ({ thread, threadListItemUIProps }: ThreadListItem
 // pre-built layout
 
 {
-
+  /* 
 <Chat client={chatClient}>
   <Views>
     // has default

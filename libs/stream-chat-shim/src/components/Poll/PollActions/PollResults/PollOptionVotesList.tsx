@@ -34,5 +34,3 @@ export const PollOptionVotesList = ({ option }: PollOptionVotesListingProps) => 
     </div>
   );
 };
-
-export default PollOptionVotesList;

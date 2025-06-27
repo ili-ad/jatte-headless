@@ -1,6 +1,6 @@
 import type { CSSProperties, MutableRefObject } from 'react';
 import React from 'react';
-import type { Attachment } from 'stream-chat';
+import type { Attachment } from 'chat-shim';
 
 export type GalleryProps = {
   images: ((

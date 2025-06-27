@@ -5,7 +5,7 @@ import type {
   ChannelOptions,
   ChannelSort,
   StreamChat,
-} from 'stream-chat';
+} from 'chat-shim';
 
 export type CustomQueryChannelParams = {
   currentChannels: Array<Channel>;

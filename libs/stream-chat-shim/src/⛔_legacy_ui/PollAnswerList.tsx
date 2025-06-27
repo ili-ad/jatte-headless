@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PollAnswer, PollState } from 'stream-chat';
+import type { PollAnswer, PollState } from 'chat-shim';
 
 export type PollAnswerListProps = {
   /** The poll containing answers. */

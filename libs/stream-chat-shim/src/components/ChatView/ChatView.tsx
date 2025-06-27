@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { Thread, ThreadManagerState } from 'stream-chat';
 
 import { ThreadProvider } from '../Threads';
 import { Icon } from '../Threads/icons';
@@ -8,10 +7,7 @@ import { useChatContext } from '../../context';
 import { useStateStore } from '../../store';
 
 import type { PropsWithChildren } from 'react';
-
-type Thread = any; // temporary shim
-type ThreadManagerState = any; // temporary shim
-
+import type { Thread, ThreadManagerState } from 'chat-shim';
 import clsx from 'clsx';
 
 type ChatView = 'channels' | 'threads';

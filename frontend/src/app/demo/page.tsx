@@ -2,6 +2,7 @@
 
 'use client'
 
+//import { ChatProvider, useChat } from '@/lib/ChatProvider';
 import { ChatProvider, useChat } from '@/lib/ChatProvider';
 import ChatUI from '@/lib/ChatUI';
 import ChatGuard from '@/components/ChatGuard';
@@ -13,34 +14,24 @@ function HelloWorldSender() {
   useEffect(() => {
     if (!channel) return;
 
-    const client = channel.getClient();
-
-    // Stream Chat keeps its websocket on `client.wsConnection`
-    // (non-public, so cast to any to placate TS)
-    const sock: WebSocket | undefined = (client as any).wsConnection;
-
-    const send = () => channel.sendMessage({ text: 'hello world' });
-
-    if (sock?.readyState === WebSocket.OPEN) {
-      // Already connected → fire immediately
-      send();
+    // send once the local state flips to “ready”
+    if (channel.initialized) {
+      channel.sendMessage({ text: 'hello world' });
       return;
     }
 
-    // Otherwise wait once for the connection to open
-    const handleOpen = () => {
-      send();
-      sock?.removeEventListener('open', handleOpen);
+    const handleReady = () => {
+      channel.sendMessage({ text: 'hello world' });
+      channel.off('initialized', handleReady);
     };
 
-    sock?.addEventListener('open', handleOpen);
-
-    // Clean up if the component unmounts before the socket opens
-    return () => sock?.removeEventListener('open', handleOpen);
+    channel.on('initialized', handleReady);
+    return () => channel.off('initialized', handleReady);
   }, [channel]);
 
   return null;
 }
+
 
 export default function DemoPage() {
   return (

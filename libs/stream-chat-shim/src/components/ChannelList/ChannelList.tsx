@@ -1,74 +1,47 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
-// import type {
-//   Channel,
-//   ChannelFilters,
-//   ChannelOptions,
-//   ChannelSort,
-//   Event,
-//   SearchControllerState,
-type Channel = any;
-type ChannelFilters = any;
-type ChannelOptions = any;
-type ChannelSort = any;
-type Event = any;
-type SearchControllerState = any;
+import type {
+  Channel,
+  ChannelFilters,
+  ChannelOptions,
+  ChannelSort,
+  Event,
+  SearchControllerState,
+} from 'chat-shim';
 
-const useConnectionRecoveredListener = () => {};
-const useMobileNavigation = (_a: any, _b: any, _c: any) => {};
-const usePaginatedChannels = (
-  _client: any,
-  _filters: any,
-  _sort: any,
-  _options: any,
-  _handler: any,
-  _recoveryThrottleIntervalMs?: number,
-  _customQueryChannels?: any,
-) => ({ channels: [] as any[], hasNextPage: false, loadNextPage: async () => {}, setChannels: () => {} });
-// import {
-//   useChannelListShape,
-//   usePrepareShapeHandlers,
-const useChannelListShape = (_handler: any) => {};
-const usePrepareShapeHandlers = (_opts: any) => ({ customHandler: undefined, defaultHandler: undefined });
-const useStateStore = (_store: any, _selector: any) => ({ searchIsActive: false });
-const ChannelListMessenger = (_props: any) => <div />;
-const DefaultAvatar = (_props: any) => null;
-const ChannelPreview = (_props: any) => null;
-const DefaultChannelSearch = (_props: any) => null;
-const DefaultEmptyStateIndicator = (_props: any) => null;
-const LoadingChannels = () => null;
-const LoadMorePaginator = (_props: any) => <></>;
-// import {
-//   ChannelListContextProvider,
-//   useChatContext,
-//   useComponentContext,
-const ChannelListContextProvider = (props: any) => <>{props.children}</>;
-const useChatContext = (_name?: string) => ({
-  channel: undefined,
-  channelsQueryState: {} as any,
-  client: {} as any,
-  closeMobileNav: () => {},
-  customClasses: {},
-  navOpen: false,
-  searchController: { state: {} },
-  setActiveChannel: () => {},
-  theme: '',
-  useImageFlagEmojisOnWindows: false,
-});
-const useComponentContext = () => ({ Search: null as any });
-const NullComponent = () => null;
+import { useConnectionRecoveredListener } from './hooks/useConnectionRecoveredListener';
+import { useMobileNavigation } from './hooks/useMobileNavigation';
+import { usePaginatedChannels } from './hooks/usePaginatedChannels';
+import {
+  useChannelListShape,
+  usePrepareShapeHandlers,
+} from './hooks/useChannelListShape';
+import { useStateStore } from '../../store';
+import { ChannelListMessenger } from './ChannelListMessenger';
+import { Avatar as DefaultAvatar } from '../Avatar';
+import { ChannelPreview } from '../ChannelPreview/ChannelPreview';
+import { ChannelSearch as DefaultChannelSearch } from '../ChannelSearch/ChannelSearch';
+import { EmptyStateIndicator as DefaultEmptyStateIndicator } from '../EmptyStateIndicator';
+import { LoadingChannels } from '../Loading/LoadingChannels';
+import { LoadMorePaginator } from '../LoadMore/LoadMorePaginator';
+import {
+  ChannelListContextProvider,
+  useChatContext,
+  useComponentContext,
+} from '../../context';
+import { NullComponent } from '../UtilityComponents';
 import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from './utils';
 import type { CustomQueryChannelsFn } from './hooks/usePaginatedChannels';
-type ChannelListMessengerProps = any;
-type ChannelPreviewUIComponentProps = any;
-type ChannelSearchProps = any;
-type EmptyStateIndicatorProps = any;
-type LoadMorePaginatorProps = any;
-type ChatContextValue = { isMessageAIGenerated?: boolean };
-type ChannelAvatarProps = any;
-type TranslationContextValue = { t: any; userLanguage: any };
-type PaginatorProps = any;
+import type { ChannelListMessengerProps } from './ChannelListMessenger';
+import type { ChannelPreviewUIComponentProps } from '../ChannelPreview/ChannelPreview';
+import type { ChannelSearchProps } from '../ChannelSearch/ChannelSearch';
+import type { EmptyStateIndicatorProps } from '../EmptyStateIndicator';
+import type { LoadMorePaginatorProps } from '../LoadMore/LoadMorePaginator';
+import type { ChatContextValue } from '../../context';
+import type { ChannelAvatarProps } from '../Avatar';
+import type { TranslationContextValue } from '../../context/TranslationContext';
+import type { PaginatorProps } from '../../types/types';
 
 const DEFAULT_FILTERS = {};
 const DEFAULT_OPTIONS = {};
@@ -274,8 +247,9 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-          { id: customActiveChannel } as Channel,
-        ]);
+        [customActiveChannelObject] = await client.queryChannels({
+          id: customActiveChannel,
+        });
       }
 
       if (customActiveChannelObject) {
@@ -407,9 +381,7 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
   const showChannelList =
     (!searchActive && !searchIsActive) || additionalChannelSearchProps?.popupResults;
   return (
-    <ChannelListContextProvider
-      value={{ channels, hasNextPage, loadNextPage, setChannels }}
-    >
+    <ChannelListContextProvider value={{ channels, setChannels }}>
       <div className={className} ref={channelListRef}>
         {showChannelSearch &&
           (Search ? (

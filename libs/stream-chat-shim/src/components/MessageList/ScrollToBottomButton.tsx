@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import type { Event } from 'stream-chat';
 
 import { ArrowDown } from './icons';
 
 import { useChannelStateContext, useChatContext } from '../../context';
 
+import type { Event } from 'chat-shim';
 import type { MessageNotificationProps } from './MessageNotification';
 
 const UnMemoizedScrollToBottomButton = (

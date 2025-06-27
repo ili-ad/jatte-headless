@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Reminder } from 'stream-chat';
+import type { Reminder } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `useMessageReminder` hook.

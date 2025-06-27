@@ -2,7 +2,7 @@
 // Minimal placeholder implementations for Stream's MessageList utilities.
 
 import type { Dispatch, SetStateAction } from 'react'
-import type { LocalMessage, MessageLabel, UserResponse } from 'stream-chat'
+import type { LocalMessage, MessageLabel, UserResponse } from 'chat-shim'
 
 const CUSTOM_MESSAGE_TYPE = {
   intro: 'intro',

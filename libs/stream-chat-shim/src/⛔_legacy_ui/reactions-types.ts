@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { ReactionResponse } from 'stream-chat';
+import type { ReactionResponse } from 'chat-shim';
 
 /** Summary information about a specific reaction type. */
 export interface ReactionSummary {

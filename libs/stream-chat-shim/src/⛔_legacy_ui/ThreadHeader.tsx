@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export interface ThreadHeaderProps {
   /** Callback for closing the thread */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Channel } from 'stream-chat';
+import type { Channel } from 'chat-shim';
 
 /**
  * Minimal replacement for Stream Chat React's `useIsChannelMuted` hook.

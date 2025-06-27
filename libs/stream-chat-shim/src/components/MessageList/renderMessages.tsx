@@ -1,20 +1,15 @@
 import React, { Fragment } from 'react';
-import type { UserResponse } from 'stream-chat';
-const getIsFirstUnreadMessage = () => false; // temporary shim
-const isDateSeparatorMessage = () => false; // temporary shim
-const isIntroMessage = () => false; // temporary shim
+import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils';
 import { Message } from '../Message';
 import { DateSeparator as DefaultDateSeparator } from '../DateSeparator';
 import { EventComponent as DefaultMessageSystem } from '../EventComponent';
-const DefaultUnreadMessagesSeparator = (() => null) as React.ComponentType<any>; // temporary shim
+import { UnreadMessagesSeparator as DefaultUnreadMessagesSeparator } from './UnreadMessagesSeparator';
 import type { ReactNode } from 'react';
 import type { UserResponse } from 'chat-shim';
-type GroupStyle = any; // temporary shim
-type RenderedMessage = any; // temporary shim
+import type { GroupStyle, RenderedMessage } from './utils';
 import type { MessageProps } from '../Message';
-type ComponentContextValue = any;
-type CustomClasses = Record<string, string>;
-type ChannelUnreadUiState = any;
+import type { ComponentContextValue, CustomClasses } from '../../context';
+import type { ChannelUnreadUiState } from '../../types';
 
 export interface RenderMessagesOptions {
   components: ComponentContextValue;
@@ -65,20 +60,20 @@ export function defaultRenderMessages({
     HeaderComponent,
     MessageSystem = DefaultMessageSystem,
     UnreadMessagesSeparator = DefaultUnreadMessagesSeparator,
-  } = components as any;
+  } = components;
 
-  const renderedMessages = [] as Array<ReactNode>;
+  const renderedMessages = [];
   let firstMessage;
   let previousMessage = undefined;
   for (let index = 0; index < messages.length; index++) {
     const message = messages[index];
     if (isDateSeparatorMessage(message)) {
       renderedMessages.push(
-        <li key={`${(message as any).date.toISOString()}-i`}>
+        <li key={`${message.date.toISOString()}-i`}>
           <DateSeparator
-            date={(message as any).date}
+            date={message.date}
             formatDate={messageProps.formatDate}
-            unread={(message as any).unread}
+            unread={message.unread}
           />
         </li>,
       );
@@ -90,52 +85,52 @@ export function defaultRenderMessages({
           </li>,
         );
       }
-    } else if ((message as any).type === 'system') {
+    } else if (message.type === 'system') {
       renderedMessages.push(
         <li
-          data-message-id={(message as any).id}
-          key={(message as any).id || (message as any).created_at.toISOString()}
+          data-message-id={message.id}
+          key={message.id || message.created_at.toISOString()}
         >
-          <MessageSystem message={message as any} />
+          <MessageSystem message={message} />
         </li>,
       );
     } else {
       if (!firstMessage) {
         firstMessage = message;
       }
-      const groupStyles: GroupStyle = messageGroupStyles[(message as any).id] || '';
+      const groupStyles: GroupStyle = messageGroupStyles[message.id] || '';
       const messageClass =
         customClasses?.message || `str-chat__li str-chat__li--${groupStyles}`;
 
       const isFirstUnreadMessage = getIsFirstUnreadMessage({
-        firstUnreadMessageId: (channelUnreadUiState as any)?.first_unread_message_id,
-        isFirstMessage: !!firstMessage?.id && (firstMessage as any).id === (message as any).id,
-        lastReadDate: (channelUnreadUiState as any)?.last_read,
-        lastReadMessageId: (channelUnreadUiState as any)?.last_read_message_id,
-        message: message as any,
+        firstUnreadMessageId: channelUnreadUiState?.first_unread_message_id,
+        isFirstMessage: !!firstMessage?.id && firstMessage.id === message.id,
+        lastReadDate: channelUnreadUiState?.last_read,
+        lastReadMessageId: channelUnreadUiState?.last_read_message_id,
+        message,
         previousMessage,
-        unreadMessageCount: (channelUnreadUiState as any)?.unread_messages,
+        unreadMessageCount: channelUnreadUiState?.unread_messages,
       });
 
       renderedMessages.push(
-        <Fragment key={(message as any).id || (message as any).created_at.toISOString()}>
+        <Fragment key={message.id || message.created_at.toISOString()}>
           {isFirstUnreadMessage && UnreadMessagesSeparator && (
             <li className='str-chat__li str-chat__unread-messages-separator-wrapper'>
               <UnreadMessagesSeparator
-                unreadCount={(channelUnreadUiState as any)?.unread_messages}
+                unreadCount={channelUnreadUiState?.unread_messages}
               />
             </li>
           )}
           <li
             className={messageClass}
-            data-message-id={(message as any).id}
+            data-message-id={message.id}
             data-testid={messageClass}
           >
             <Message
               groupStyles={[groupStyles]} /* TODO: convert to simple string */
               lastReceivedId={lastReceivedId}
-              message={message as any}
-              readBy={readData[(message as any).id] || []}
+              message={message}
+              readBy={readData[message.id] || []}
               {...messageProps}
             />
           </li>

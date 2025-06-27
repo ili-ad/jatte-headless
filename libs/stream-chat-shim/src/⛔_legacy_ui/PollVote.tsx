@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PollVote as StreamPollVote } from 'stream-chat';
+import type { PollVote as StreamPollVote } from 'chat-shim';
 
 export type PollVoteProps = {
   /** Poll vote data to display */

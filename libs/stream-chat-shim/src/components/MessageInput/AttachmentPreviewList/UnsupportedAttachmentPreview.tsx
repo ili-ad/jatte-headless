@@ -1,14 +1,9 @@
 import React from 'react';
-import { isLocalUploadAttachment } from 'stream-chat';
-import type { AnyLocalAttachment, LocalUploadAttachment } from 'stream-chat';
-
 import { isLocalUploadAttachment } from 'chat-shim';
 import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
 import { FileIcon } from '../../ReactFileUtilities';
 import { useTranslationContext } from '../../../context';
-type AnyLocalAttachment<CustomLocalMetadata = Record<string, unknown>> = any;
-type LocalUploadAttachment = any;
-
+import type { AnyLocalAttachment, LocalUploadAttachment } from 'chat-shim';
 
 export type UnsupportedAttachmentPreviewProps<
   CustomLocalMetadata = Record<string, unknown>,

@@ -1,33 +1,43 @@
 import React, { useMemo } from 'react';
-import type { MessageComposerState, TranslationLanguages } from 'stream-chat';
-type TranslationLanguages = any;
 
+import { CloseIcon } from './icons';
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { Avatar as DefaultAvatar } from '../Avatar';
-import { CloseIcon } from './icons';
+import { Poll } from '../Poll';
 
-import { useChannelActionContext } from '../../context/ChannelActionContext';
+import { useChatContext } from '../../context/ChatContext';
 import { useComponentContext } from '../../context/ComponentContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 
-import type { StreamMessage } from '../../context/ChannelStateContext';
-import type { DefaultStreamChatGenerics } from '../../types/types';
+import { useStateStore } from '../../store';
+import { useMessageComposer } from './hooks';
+import { renderText as defaultRenderText } from '../Message/renderText';
+import type { MessageComposerState, TranslationLanguages } from 'chat-shim';
+import type { MessageContextValue } from '../../context';
 
-export const QuotedMessagePreviewHeader = <
-  StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
->() => {
-  const { setQuotedMessage } = useChannelActionContext<StreamChatGenerics>('QuotedMessagePreview');
+const messageComposerStateStoreSelector = (state: MessageComposerState) => ({
+  quotedMessage: state.quotedMessage,
+});
+
+export const QuotedMessagePreviewHeader = () => {
   const { t } = useTranslationContext('QuotedMessagePreview');
+  const messageComposer = useMessageComposer();
+  const { quotedMessage } = useStateStore(
+    messageComposer.state,
+    messageComposerStateStoreSelector,
+  );
+
+  if (!quotedMessage) return null;
 
   return (
     <div className='str-chat__quoted-message-preview-header'>
       <div className='str-chat__quoted-message-reply-to-message'>
-        {t<string>('Reply to Message')}
+        {t('Reply to Message')}
       </div>
       <button
         aria-label={t('aria/Cancel Reply')}
         className='str-chat__quoted-message-remove'
-        onClick={() => setQuotedMessage(undefined)}
+        onClick={() => messageComposer.setQuotedMessage(null)}
       >
         <CloseIcon />
       </button>
@@ -35,37 +45,51 @@ export const QuotedMessagePreviewHeader = <
   );
 };
 
-export type QuotedMessagePreviewProps<
-  StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
-> = {
-  quotedMessage: StreamMessage<StreamChatGenerics>;
+export type QuotedMessagePreviewProps = {
+  renderText?: MessageContextValue['renderText'];
 };
 
-export const QuotedMessagePreview = <
-  StreamChatGenerics extends DefaultStreamChatGenerics = DefaultStreamChatGenerics
->({
-  quotedMessage,
-}: QuotedMessagePreviewProps<StreamChatGenerics>) => {
-  const {
-    Attachment = DefaultAttachment,
-    Avatar = DefaultAvatar,
-  } = useComponentContext<StreamChatGenerics>('QuotedMessagePreview');
+export const QuotedMessagePreview = ({
+  renderText = defaultRenderText,
+}: QuotedMessagePreviewProps) => {
+  const { client } = useChatContext();
+  const { Attachment = DefaultAttachment, Avatar = DefaultAvatar } =
+    useComponentContext('QuotedMessagePreview');
   const { userLanguage } = useTranslationContext('QuotedMessagePreview');
+  const messageComposer = useMessageComposer();
+  const { quotedMessage } = useStateStore(
+    messageComposer.state,
+    messageComposerStateStoreSelector,
+  );
 
-  const quotedMessageText =
-    quotedMessage.i18n?.[`${userLanguage}_text` as `${TranslationLanguages}_text`] ||
-    quotedMessage.text;
+  const quotedMessageText = useMemo(
+    () =>
+      quotedMessage?.i18n?.[`${userLanguage}_text` as `${TranslationLanguages}_text`] ||
+      quotedMessage?.text,
+    [quotedMessage?.i18n, quotedMessage?.text, userLanguage],
+  );
 
-  const quotedMessageAttachment = useMemo(() => {
-    const [attachment] = quotedMessage.attachments ?? [];
-    return attachment ? [attachment] : [];
-  }, [quotedMessage.attachments]);
+  const renderedText = useMemo(
+    () => renderText(quotedMessageText, quotedMessage?.mentioned_users),
+    [quotedMessage, quotedMessageText, renderText],
+  );
 
-  if (!quotedMessageText && !quotedMessageAttachment) return null;
+  const quotedMessageAttachments = useMemo(
+    () =>
+      quotedMessage?.attachments?.length ? quotedMessage.attachments.slice(0, 1) : [],
+    [quotedMessage],
+  );
+
+  const poll = quotedMessage?.poll_id && client.polls.fromState(quotedMessage.poll_id);
+
+  if (!quotedMessageText && !quotedMessageAttachments.length && !poll) return null;
 
   return (
-    <div className='str-chat__quoted-message-preview' data-testid='quoted-message-preview'>
-      {quotedMessage.user && (
+    <div
+      className='str-chat__quoted-message-preview'
+      data-testid='quoted-message-preview'
+    >
+      {quotedMessage?.user && (
         <Avatar
           className='str-chat__avatar--quoted-message-sender'
           image={quotedMessage.user.image}
@@ -74,12 +98,21 @@ export const QuotedMessagePreview = <
         />
       )}
       <div className='str-chat__quoted-message-bubble'>
-        {!!quotedMessageAttachment.length && (
-          <Attachment attachments={quotedMessageAttachment} isQuoted />
+        {poll ? (
+          <Poll isQuoted poll={poll} />
+        ) : (
+          <>
+            {!!quotedMessageAttachments.length && (
+              <Attachment attachments={quotedMessageAttachments} isQuoted />
+            )}
+            <div
+              className='str-chat__quoted-message-text'
+              data-testid='quoted-message-text'
+            >
+              {renderedText}
+            </div>
+          </>
         )}
-        <div className='str-chat__quoted-message-text' data-testid='quoted-message-text'>
-          <p>{quotedMessageText}</p>
-        </div>
       </div>
     </div>
   );

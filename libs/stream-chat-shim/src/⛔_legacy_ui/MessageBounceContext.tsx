@@ -1,6 +1,6 @@
 import type { ReactEventHandler } from 'react';
 import React, { createContext, useContext } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export interface MessageBounceContextValue {
   handleDelete: ReactEventHandler;

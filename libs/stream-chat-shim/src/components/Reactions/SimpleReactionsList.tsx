@@ -1,25 +1,15 @@
 import type { PropsWithChildren } from 'react';
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
 
-type ReactionGroupResponse = any;
-type ReactionResponse = any;
-type MessageContextValue = any;
-const useMessageContext = () => ({} as any);
-const useProcessReactions = () => ({
-  existingReactions: [] as any[],
-  hasReactions: false,
-  totalReactionCount: 0,
-});
-const useEnterLeaveHandlers = (props: any) => ({
-  handleEnter: () => {},
-  handleLeave: () => {},
-  tooltipVisible: false,
-});
-const PopperTooltip = (_: any) => null;
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
+import type { MessageContextValue } from '../../context/MessageContext';
+import { useMessageContext } from '../../context/MessageContext';
+import { useProcessReactions } from './hooks/useProcessReactions';
+import { useEnterLeaveHandlers } from '../Tooltip/hooks';
+import { PopperTooltip } from '../Tooltip';
 
-type ReactionOptions = any;
+import type { ReactionOptions } from './reactionOptions';
 
 type WithTooltipProps = {
   title: React.ReactNode;

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AnyLocalAttachment, LocalUploadAttachment } from 'stream-chat';
+import type { AnyLocalAttachment, LocalUploadAttachment } from 'chat-shim';
 
 export type UnsupportedAttachmentPreviewProps<
   CustomLocalMetadata = Record<string, unknown>,

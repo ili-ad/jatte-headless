@@ -1,6 +1,6 @@
 import React, { type RefObject } from 'react';
 import type { ScrollSeekConfiguration, ScrollSeekPlaceholderProps, VirtuosoHandle, VirtuosoProps } from 'react-virtuoso';
-import type { LocalMessage, UserResponse } from 'stream-chat';
+import type { LocalMessage, UserResponse } from 'chat-shim';
 
 // Placeholder type definitions mirroring the Stream Chat React library
 export type GroupStyle = any;

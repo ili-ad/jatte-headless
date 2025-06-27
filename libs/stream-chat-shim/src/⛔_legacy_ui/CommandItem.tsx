@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
-import type { CommandResponse } from 'stream-chat';
+import type { CommandResponse } from 'chat-shim';
 
 export type CommandItemProps = {
   entity: CommandResponse;

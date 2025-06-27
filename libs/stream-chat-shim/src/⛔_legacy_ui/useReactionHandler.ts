@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useCallback } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /**
  * Minimal shim for Stream's `useReactionHandler` hook.

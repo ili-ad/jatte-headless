@@ -1,4 +1,4 @@
-import type { Event } from 'stream-chat';
+import type { Event } from 'chat-shim';
 
 /**
  * Placeholder for Stream's `draftDeleted` mock event builder.

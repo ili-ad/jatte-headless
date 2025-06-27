@@ -1,8 +1,6 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 import clsx from 'clsx';
-
-const DownloadButton = (props: any) => null as any; // temporary shim
-
+import { DownloadButton } from '../Attachment';
 
 export type BaseImageProps = React.ComponentPropsWithRef<'img'>;
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Channel, ChannelMemberResponse, EventTypes } from 'stream-chat';
+import type { Channel, ChannelMemberResponse, EventTypes } from 'chat-shim';
 
 /**
  * Placeholder hook for Stream's `useChannelMembershipState`.

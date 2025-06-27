@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { LocalVoiceRecordingAttachment } from 'stream-chat';
+import type { LocalVoiceRecordingAttachment } from 'chat-shim';
 
 /** Placeholder enum mirroring Stream's `MediaRecordingState`. */
 export enum MediaRecordingState {

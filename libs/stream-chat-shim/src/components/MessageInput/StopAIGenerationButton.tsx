@@ -1,21 +1,20 @@
-import React from 'react'
-import { CloseIcon } from './icons'
+import React from 'react';
+import { useTranslationContext } from '../../context';
 
-export type StopAIGenerationButtonProps = React.ComponentProps<'button'>
+export type StopAIGenerationButtonProps = React.ComponentProps<'button'>;
 
-/**
- * Placeholder implementation of the StopAIGenerationButton component.
- */
-export const StopAIGenerationButton = ({ children, ...rest }: StopAIGenerationButtonProps) => (
-  <button
-    aria-label='Stop AI generation'
-    className='str-chat__stop-ai-generation-button'
-    data-testid='stop-ai-generation-button'
-    type='button'
-    {...rest}
-  >
-    {children || <CloseIcon />}
-  </button>
-)
-
-export default StopAIGenerationButton
+export const StopAIGenerationButton = ({
+  onClick,
+  ...restProps
+}: StopAIGenerationButtonProps) => {
+  const { t } = useTranslationContext();
+  return (
+    <button
+      aria-label={t('aria/Stop AI Generation')}
+      className='str-chat__stop-ai-generation-button'
+      data-testid='stop-ai-generation-button'
+      onClick={onClick}
+      {...restProps}
+    />
+  );
+};

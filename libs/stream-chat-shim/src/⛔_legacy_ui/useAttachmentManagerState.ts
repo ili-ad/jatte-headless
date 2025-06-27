@@ -1,5 +1,5 @@
-import type { AttachmentManagerState, StateStore } from 'stream-chat';
-import { useStateStore } from 'stream-chat';
+import type { AttachmentManagerState, StateStore } from 'chat-shim';
+import { useStateStore } from 'chat-shim';
 
 /**
  * Hook to access the current attachment manager state.

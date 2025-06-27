@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { StreamChat } from 'stream-chat';
+import { StreamChat } from 'chat-shim';
 import type {
   OwnUserResponse,
   StreamChatOptions,
   TokenOrProvider,
   UserResponse,
-} from 'stream-chat';
+} from 'chat-shim';
 
 /**
  * React hook to create, connect and return `StreamChat` client.

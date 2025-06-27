@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react';
-import type { StreamChat } from 'stream-chat';
+import type { StreamChat } from 'chat-shim';
 
 /**
  * Theme options supported by Stream Chat.

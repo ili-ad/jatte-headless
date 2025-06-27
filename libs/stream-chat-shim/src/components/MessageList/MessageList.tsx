@@ -1,6 +1,5 @@
 import clsx from 'clsx';
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
 
 import {
   useEnrichedMessages,
@@ -32,6 +31,7 @@ import { MessageListMainPanel as DefaultMessageListMainPanel } from './MessageLi
 import { defaultRenderMessages } from './renderMessages';
 import { useStableId } from '../UtilityComponents/useStableId';
 
+import type { LocalMessage } from 'chat-shim';
 import type { MessageRenderer } from './renderMessages';
 import type { GroupStyle, ProcessMessagesParams, RenderedMessage } from './utils';
 import type { MessageProps } from '../Message/types';

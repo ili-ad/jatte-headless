@@ -6,7 +6,6 @@ import { InfiniteScrollPaginator } from '../../InfiniteScrollPaginator/InfiniteS
 import { LoadingIndicator } from '../../Loading';
 import { useStateStore } from '../../../store';
 import { usePollContext, useTranslationContext } from '../../../context';
-import type { PollAnswer, PollState } from 'stream-chat';
 
 import type { PollAnswer, PollState } from 'chat-shim';
 
@@ -65,5 +64,3 @@ export const PollAnswerList = ({
     </div>
   );
 };
-
-export default PollAnswerList;

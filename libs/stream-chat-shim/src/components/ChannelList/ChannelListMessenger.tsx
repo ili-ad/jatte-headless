@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PropsWithChildren } from 'react';
-import type { APIErrorResponse, Channel, ErrorFromResponse } from 'stream-chat';
+import type { APIErrorResponse, Channel, ErrorFromResponse } from 'chat-shim';
 
 import { LoadingChannels } from '../Loading/LoadingChannels';
 import { NullComponent } from '../UtilityComponents';

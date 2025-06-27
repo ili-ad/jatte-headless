@@ -2,12 +2,9 @@ import React, { useMemo } from 'react';
 import type { ReactImageGalleryItem } from 'react-image-gallery';
 import ImageGallery from 'react-image-gallery';
 import { BaseImage } from './BaseImage';
-import type { Attachment } from 'stream-chat';
-
 import { useTranslationContext } from '../../context';
 
-type Attachment = any;
-
+import type { Attachment } from 'chat-shim';
 
 export type ModalGalleryProps = {
   /** The images for the Carousel component */

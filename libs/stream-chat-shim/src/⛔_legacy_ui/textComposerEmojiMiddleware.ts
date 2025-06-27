@@ -3,7 +3,7 @@ import type {
   TextComposerMiddlewareExecutorState,
   TextComposerMiddlewareOptions,
   TextComposerSuggestion,
-} from 'stream-chat';
+} from 'chat-shim';
 import type { EmojiSearchIndex, EmojiSearchIndexResult } from './MessageInput';
 
 /** Suggestion type used by the emoji middleware. */

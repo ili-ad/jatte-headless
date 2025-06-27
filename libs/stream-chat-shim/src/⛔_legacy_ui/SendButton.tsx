@@ -1,5 +1,5 @@
 import React from 'react';
-import type { UpdatedMessage } from 'stream-chat';
+import type { UpdatedMessage } from 'chat-shim';
 
 export type SendButtonProps = {
   sendMessage: (

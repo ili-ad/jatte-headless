@@ -1,7 +1,5 @@
 import React from 'react';
-
-type IconProps = any;
-
+import type { IconProps } from '../../types/types';
 
 export const MenuIcon = () => (
   <svg

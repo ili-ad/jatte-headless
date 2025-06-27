@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Channel, Event, LocalMessage } from 'stream-chat';
+import type { Channel, Event, LocalMessage } from 'chat-shim';
 
 /** Delivery states for a sent message. */
 export enum MessageDeliveryStatus {

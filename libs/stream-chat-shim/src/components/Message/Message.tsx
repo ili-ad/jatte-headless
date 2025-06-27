@@ -1,54 +1,35 @@
 import React, { useCallback, useMemo } from 'react';
 
-// import {
-//   useActionHandler,
-//   useDeleteHandler,
-//   useEditHandler,
-//   useFlagHandler,
-//   useMarkUnreadHandler,
-//   useMentionsHandler,
-//   useMuteHandler,
-//   useOpenThreadHandler,
-//   usePinHandler,
-//   useReactionHandler,
-//   useReactionsFetcher,
-//   useRetryHandler,
-//   useUserHandler,
-//   useUserRole,
-const useActionHandler = () => (() => undefined);
-const useDeleteHandler = () => (() => undefined);
-const useEditHandler = () => ({ clearEdit: () => {}, editing: false, setEdit: () => {} });
-const useFlagHandler = () => (() => undefined);
-const useMarkUnreadHandler = () => (() => undefined);
-const useMentionsHandler = () => ({ onMentionsClick: () => {}, onMentionsHover: () => {} });
-const useMuteHandler = () => (() => undefined);
-const useOpenThreadHandler = () => (() => undefined);
-const usePinHandler = () => ({ canPin: false, handlePin: () => {} });
-const useReactionHandler = () => (() => undefined);
-const useReactionsFetcher = () => (() => undefined);
-const useRetryHandler = () => (() => undefined);
-const useUserHandler = () => ({ onUserClick: () => {}, onUserHover: () => {} });
-const useUserRole = () => ({} as any);
-const areMessagePropsEqual = () => false;
-const getMessageActions = () => [] as any;
-const MESSAGE_ACTIONS = {} as any;
+import {
+  useActionHandler,
+  useDeleteHandler,
+  useEditHandler,
+  useFlagHandler,
+  useMarkUnreadHandler,
+  useMentionsHandler,
+  useMuteHandler,
+  useOpenThreadHandler,
+  usePinHandler,
+  useReactionHandler,
+  useReactionsFetcher,
+  useRetryHandler,
+  useUserHandler,
+  useUserRole,
+} from './hooks';
+import { areMessagePropsEqual, getMessageActions, MESSAGE_ACTIONS } from './utils';
 
-type MessageContextValue = any;
-// import {
-//   MessageProvider,
-//   useChannelActionContext,
-//   useChannelStateContext,
-//   useChatContext,
-//   useComponentContext,
-const MessageProvider = (props: any) => <>{props.children}</>;
-const useChannelActionContext = () => ({} as any);
-const useChannelStateContext = () => ({} as any);
-const useChatContext = () => ({} as any);
-const useComponentContext = () => ({} as any);
+import type { MessageContextValue } from '../../context';
+import {
+  MessageProvider,
+  useChannelActionContext,
+  useChannelStateContext,
+  useChatContext,
+  useComponentContext,
+} from '../../context';
 
-const DefaultMessage = () => null;
+import { MessageSimple as DefaultMessage } from './MessageSimple';
 
-type MessageProps = any;
+import type { MessageProps } from './types';
 
 type MessagePropsToOmit =
   | 'onMentionsClick'

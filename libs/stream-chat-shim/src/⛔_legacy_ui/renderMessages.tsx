@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 import type { MessageProps } from './message-types';
 
 // Placeholder type definitions for Stream UI internals

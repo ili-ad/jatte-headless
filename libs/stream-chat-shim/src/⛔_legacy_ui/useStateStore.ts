@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { StateStore } from 'stream-chat';
+import type { StateStore } from 'chat-shim';
 
 /**
  * React hook that subscribes to a StateStore and returns a selected value.

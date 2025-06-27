@@ -16,7 +16,7 @@ function uniqBy<T>(arr: T[], key: keyof T): T[] {
   return out;
 }
 
-import type { Channel, ChannelSort, ChannelSortBase } from 'stream-chat';
+import type { Channel, ChannelSort, ChannelSortBase } from 'chat-shim';
 import type { ChannelListProps } from './ChannelList';
 
 export const MAX_QUERY_CHANNELS_LIMIT = 30;

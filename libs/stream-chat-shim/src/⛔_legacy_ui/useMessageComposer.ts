@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { MessageComposer } from 'stream-chat';
+import { MessageComposer } from 'chat-shim';
 
 /**
  * Lightweight placeholder for Stream's `useMessageComposer` hook.

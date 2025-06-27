@@ -1,16 +1,8 @@
 import React from 'react';
-const PauseIcon = () => null as any;
-const PlayIcon = () => null as any;
+import { PauseIcon, PlayIcon } from '../../MessageInput/icons';
 import { RecordingTimer } from './RecordingTimer';
-const useAudioController = () => ({
-  audioRef: { current: null } as React.MutableRefObject<HTMLAudioElement | null>,
-  isPlaying: false,
-  progress: 0,
-  secondsElapsed: 0,
-  seek: () => {},
-  togglePlay: () => {},
-});
-const WaveProgressBar = () => null as any;
+import { useAudioController } from '../../Attachment/hooks/useAudioController';
+import { WaveProgressBar } from '../../Attachment';
 
 export type AudioRecordingPlayerProps = React.ComponentProps<'audio'> & {
   durationSeconds: number;

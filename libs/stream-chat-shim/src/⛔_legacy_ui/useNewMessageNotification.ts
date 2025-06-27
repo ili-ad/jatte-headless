@@ -1,6 +1,6 @@
 // libs/stream-chat-shim/src/useNewMessageNotification.ts
 import { useRef, useState } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /** Placeholder type mirroring Stream's `RenderedMessage`. */
 export type RenderedMessage = LocalMessage | Record<string, any>;

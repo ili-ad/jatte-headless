@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { PollOptionVotesQueryParams, PollVote } from 'stream-chat';
+import type { PollOptionVotesQueryParams, PollVote } from 'chat-shim';
 
 export type UsePollOptionVotesPaginationParams = {
   paginationParams: PollOptionVotesQueryParams;

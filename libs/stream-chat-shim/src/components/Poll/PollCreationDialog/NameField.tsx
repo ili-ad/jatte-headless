@@ -1,13 +1,10 @@
 import React from 'react';
 import clsx from 'clsx';
 import { FieldError } from '../../Form/FieldError';
-import type { PollComposerState } from 'stream-chat';
-
 import { useTranslationContext } from '../../../context';
 import { useMessageComposer } from '../../MessageInput';
 import { useStateStore } from '../../../store';
-type PollComposerState = any;
-
+import type { PollComposerState } from 'chat-shim';
 
 const pollComposerStateSelector = (state: PollComposerState) => ({
   error: state.errors.name,

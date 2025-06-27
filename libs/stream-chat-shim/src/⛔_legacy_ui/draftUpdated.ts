@@ -1,4 +1,4 @@
-import type { DraftResponse, StreamChat } from 'stream-chat';
+import type { DraftResponse, StreamChat } from 'chat-shim';
 
 /** Parameters for the `draftUpdated` mock event builder. */
 export interface DraftUpdatedParams {

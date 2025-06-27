@@ -1,6 +1,5 @@
 import type { ComponentType } from 'react';
 import type { ReactionResponse } from 'chat-shim';
-import type { ReactionResponse } from 'stream-chat';
 
 export interface ReactionSummary {
   EmojiComponent: ComponentType | null;

@@ -2,9 +2,7 @@ import clsx from 'clsx';
 import React from 'react';
 import type { AvatarProps } from './Avatar';
 import { Avatar } from './Avatar';
-
-
-export type GroupChannelDisplayInfo = any; // temporary shim
+import type { GroupChannelDisplayInfo } from '../ChannelPreview';
 
 export type GroupAvatarProps = Pick<
   AvatarProps,

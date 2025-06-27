@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { PaginatorProps } from '../../types/types';
 import { deprecationAndReplacementWarning } from '../../utils/deprecationWarning';
 import { DEFAULT_LOAD_PAGE_SCROLL_THRESHOLD } from '../../constants/limits';
@@ -59,7 +59,7 @@ export type InfiniteScrollProps = PaginatorProps & {
 export const InfiniteScroll = (props: PropsWithChildren<InfiniteScrollProps>) => {
   const {
     children,
-    element: Component = 'div',
+    element = 'div',
     hasMore,
     hasMoreNewer,
     hasNextPage,
@@ -83,13 +83,13 @@ export const InfiniteScroll = (props: PropsWithChildren<InfiniteScrollProps>) =>
   const hasNextPageFlag = hasNextPage || hasMoreNewer;
   const hasPreviousPageFlag = hasPreviousPage || hasMore;
 
-  const [scrollComponent, setScrollComponent] = useState<HTMLElement | null>(null);
+  const scrollComponent = useRef<HTMLElement>(undefined);
   const previousOffset = useRef<number | undefined>(undefined);
   const previousReverseOffset = useRef<number | undefined>(undefined);
 
   const scrollListenerRef = useRef<() => void>(undefined);
   scrollListenerRef.current = () => {
-    const element = scrollComponent;
+    const element = scrollComponent.current;
 
     if (!element || element.offsetParent === null) {
       return;
@@ -107,7 +107,6 @@ export const InfiniteScroll = (props: PropsWithChildren<InfiniteScrollProps>) =>
     }
 
     if (isLoading) return;
-
     if (
       previousOffset.current === offset &&
       previousReverseOffset.current === reverseOffset
@@ -148,8 +147,7 @@ export const InfiniteScroll = (props: PropsWithChildren<InfiniteScrollProps>) =>
   }, []);
 
   useEffect(() => {
-    const scrollElement = scrollComponent?.parentNode;
-
+    const scrollElement = scrollComponent.current?.parentNode;
     if (!scrollElement) return;
 
     const scrollListener = () => scrollListenerRef.current?.();
@@ -162,25 +160,32 @@ export const InfiniteScroll = (props: PropsWithChildren<InfiniteScrollProps>) =>
       scrollElement.removeEventListener('scroll', scrollListener, useCapture);
       scrollElement.removeEventListener('resize', scrollListener, useCapture);
     };
-  }, [initialLoad, scrollComponent, useCapture]);
+  }, [initialLoad, useCapture]);
 
   useEffect(() => {
-    const scrollElement = scrollComponent?.parentNode;
-
-    if (!scrollElement) return;
-
-    scrollElement.addEventListener('wheel', mousewheelListener, { passive: false });
-
+    const scrollElement = scrollComponent.current?.parentNode;
+    if (scrollElement) {
+      scrollElement.addEventListener('wheel', mousewheelListener, { passive: false });
+    }
     return () => {
-      scrollElement.removeEventListener('wheel', mousewheelListener, useCapture);
+      if (scrollElement) {
+        scrollElement.removeEventListener('wheel', mousewheelListener, useCapture);
+      }
     };
-  }, [scrollComponent, useCapture]);
+  }, [useCapture]);
 
-  return (
-    <Component {...elementProps} ref={setScrollComponent}>
-      {head}
-      {loader}
-      {children}
-    </Component>
-  );
+  const attributes = {
+    ...elementProps,
+    ref: (element: HTMLElement) => {
+      scrollComponent.current = element;
+    },
+  };
+
+  const childrenArray = [loader, children];
+
+  if (head) {
+    childrenArray.unshift(head);
+  }
+
+  return React.createElement(element, attributes, childrenArray);
 };

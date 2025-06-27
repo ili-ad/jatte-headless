@@ -3,14 +3,11 @@ import { PollOptionWithVotesHeader } from './PollOptionWithVotesHeader';
 import { PollVoteListing } from '../../PollVote';
 import { useStateStore } from '../../../../store';
 import {
-import type { PollOption, PollState, PollVote } from 'stream-chat';
   useChannelStateContext,
   usePollContext,
   useTranslationContext,
 } from '../../../../context';
-type PollOption = any;
-type PollState = any;
-type PollVote = any;
+import type { PollOption, PollState, PollVote } from 'chat-shim';
 
 type PollStateSelectorReturnValue = {
   latest_votes_by_option: Record<string, PollVote[]>;
@@ -57,4 +54,3 @@ export const PollOptionWithLatestVotes = ({
     </div>
   );
 };
-

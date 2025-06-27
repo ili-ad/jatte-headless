@@ -17,7 +17,7 @@ import type {
   UserOptions,
   UsersAPIResponse,
   UserSort,
-} from 'stream-chat';
+} from 'chat-shim';
 import type { SearchBarController } from '../SearchBar';
 import type { SearchInputController } from '../SearchInput';
 import type { SearchResultsController } from '../SearchResults';
@@ -179,6 +179,10 @@ export const useChannelSearch = ({
         setActiveChannel(result);
         selectedChannel = result;
       } else {
+        const newChannel = client.channel(channelType, {
+          members: [client.userID, result.id],
+        });
+        await newChannel.watch();
 
         setActiveChannel(newChannel);
         selectedChannel = newChannel;
@@ -207,11 +211,28 @@ export const useChannelSearch = ({
       try {
         if (searchForChannels) {
           promises.push(
+            client.queryChannels(
+              {
+                members: { $in: [client.userID as string] },
+                name: { $autocomplete: text },
+                ...searchQueryParams?.channelFilters?.filters,
+              },
+              searchQueryParams?.channelFilters?.sort || {},
+              { limit: 5, ...searchQueryParams?.channelFilters?.options },
+            ),
           );
         }
 
         if (searchForUsers) {
           promises.push(
+            client.queryUsers(
+              {
+                $or: [{ id: { $autocomplete: text } }, { name: { $autocomplete: text } }],
+                ...searchQueryParams?.userFilters?.filters,
+              },
+              { id: 1, ...searchQueryParams?.userFilters?.sort },
+              { limit: 8, ...searchQueryParams?.userFilters?.options },
+            ),
           );
         }
 

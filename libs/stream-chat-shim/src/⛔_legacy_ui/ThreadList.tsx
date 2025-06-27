@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import type { VirtuosoProps } from 'react-virtuoso';
-import type { Thread } from 'stream-chat';
+import type { Thread } from 'chat-shim';
 
 export type ThreadListProps = {
   virtuosoProps?: VirtuosoProps<Thread, unknown>;

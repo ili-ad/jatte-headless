@@ -1,17 +1,13 @@
 import type { CSSProperties, MutableRefObject } from 'react';
 import React, { useState } from 'react';
 import { sanitizeUrl } from '@braintree/sanitize-url';
-import type { Attachment } from 'stream-chat';
 
 import { BaseImage as DefaultBaseImage } from './BaseImage';
 import { Modal } from '../Modal';
 import { ModalGallery as DefaultModalGallery } from './ModalGallery';
 import { useComponentContext } from '../../context';
 
-
-
-
-type Attachment = any;
+import type { Attachment } from 'chat-shim';
 import type { Dimensions } from '../../types/types';
 
 export type ImageProps = {

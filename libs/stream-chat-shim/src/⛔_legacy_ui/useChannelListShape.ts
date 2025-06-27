@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Event } from 'stream-chat';
+import type { Event } from 'chat-shim';
 
 /**
  * Placeholder implementation for Stream's `useChannelListShape` hook.

@@ -1,4 +1,4 @@
-import type { UserResponse } from 'stream-chat';
+import type { UserResponse } from 'chat-shim';
 
 export type CustomMentionHandler = (
   event: React.BaseSyntheticEvent,

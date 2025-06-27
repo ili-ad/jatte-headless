@@ -1,6 +1,6 @@
 // libs/stream-chat-shim/src/attachment-utils.tsx
 import type { ReactNode } from 'react';
-import type { Attachment } from 'stream-chat';
+import type { Attachment } from 'chat-shim';
 
 export const SUPPORTED_VIDEO_FORMATS = [
   'video/mp4',

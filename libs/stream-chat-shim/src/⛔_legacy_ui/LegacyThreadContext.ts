@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 /**
  * LegacyThreadContext provides access to the currently active thread message.

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
 
 import type { ReactionsListModalProps } from './ReactionsListModal';
 import { ReactionsListModal as DefaultReactionsListModal } from './ReactionsListModal';
@@ -8,10 +7,9 @@ import { useProcessReactions } from './hooks/useProcessReactions';
 import type { MessageContextValue } from '../../context';
 import { useComponentContext, useTranslationContext } from '../../context';
 
-const MAX_MESSAGE_REACTIONS_TO_FETCH = 1000;
+import { MAX_MESSAGE_REACTIONS_TO_FETCH } from '../Message/hooks';
 
-type ReactionGroupResponse = any;
-type ReactionResponse = any;
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
 import type { ReactionOptions } from './reactionOptions';
 import type {
   ReactionDetailsComparator,

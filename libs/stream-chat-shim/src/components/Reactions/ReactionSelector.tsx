@@ -1,26 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
 
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { useDialog } from '../Dialog';
 import { defaultReactionOptions } from './reactionOptions';
 import { isMutableRef } from './utils/utils';
 
+import { useComponentContext } from '../../context/ComponentContext';
+import { useMessageContext } from '../../context/MessageContext';
 
-const useComponentContext = (_componentName?: string) => ({
-  Avatar: DefaultAvatar,
-  reactionOptions: defaultReactionOptions,
-});
-const useMessageContext = (_componentName?: string) => ({
-  closeReactionSelectorOnClick: false,
-  handleReaction: () => Promise.resolve(),
-  message: { id: '' },
-});
-
-type ReactionGroupResponse = any;
-type ReactionResponse = any;
-
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
 import type { AvatarProps } from '../Avatar';
 
 import type { ReactionOptions } from './reactionOptions';

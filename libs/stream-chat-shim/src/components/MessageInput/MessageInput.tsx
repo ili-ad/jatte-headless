@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from 'react';
 import React, { useEffect } from 'react';
-import type { LocalMessage, Message, SendMessageOptions } from 'stream-chat';
 
 import { MessageInputFlat } from './MessageInputFlat';
 import { useMessageComposer } from './hooks';
@@ -13,7 +12,7 @@ import { MessageInputContextProvider } from '../../context/MessageInputContext';
 import { DialogManagerProvider } from '../../context';
 import { useStableId } from '../UtilityComponents/useStableId';
 
-import type { LocalMessage, Message, SendMessageOptions } from 'stream-chat';
+import type { LocalMessage, Message, SendMessageOptions } from 'chat-shim';
 
 import type { CustomAudioRecordingConfig } from '../MediaRecorder';
 import { useRegisterDropHandlers } from './WithDragAndDropUpload';
@@ -114,8 +113,8 @@ const MessageInputProvider = (props: PropsWithChildren<MessageInputProps>) => {
     const threadId = messageComposer.threadId;
     if (!threadId || !messageComposer.channel || !messageComposer.compositionIsEmpty)
       return;
-    // get draft data for legacy thread composer
-    Promise.resolve({ draft: undefined }).then(({ draft }) => {
+    // get draft data for legacy thead composer
+    messageComposer.channel.getDraft({ parent_id: threadId }).then(({ draft }) => {
       if (draft) {
         messageComposer.initState({ composition: draft });
       }

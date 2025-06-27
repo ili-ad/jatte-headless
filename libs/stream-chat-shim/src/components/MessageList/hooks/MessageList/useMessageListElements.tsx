@@ -1,20 +1,17 @@
 import type React from 'react';
 import { useMemo } from 'react';
-import type { ChannelState as StreamChannelState } from 'stream-chat';
 
-const useLastReadData = () => ({} as any); // temporary shim
-const getLastReceived = () => null as any;
+import { useLastReadData } from '../useLastReadData';
+import { getLastReceived } from '../../utils';
 
-const useChatContext = () => ({ client: {} as any, customClasses: {} as any });
-const useComponentContext = () => ({} as any);
+import { useChatContext } from '../../../../context/ChatContext';
+import { useComponentContext } from '../../../../context/ComponentContext';
 
 import type { ChannelState as StreamChannelState } from 'chat-shim';
 
-type GroupStyle = any;
-type RenderedMessage = any;
+import type { GroupStyle, RenderedMessage } from '../../utils';
 import type { ChannelUnreadUiState } from '../../../../types/types';
-type MessageRenderer = any;
-type SharedMessageProps = any;
+import type { MessageRenderer, SharedMessageProps } from '../../renderMessages';
 
 type UseMessageListElementsProps = {
   enrichedMessages: RenderedMessage[];

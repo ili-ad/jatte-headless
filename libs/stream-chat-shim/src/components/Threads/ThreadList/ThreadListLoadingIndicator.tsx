@@ -1,14 +1,10 @@
 import React from 'react';
-import type { ThreadManagerState } from 'stream-chat';
 
-
-type ThreadManagerState = any; // temporary shim
+import type { ThreadManagerState } from 'chat-shim';
 
 import { LoadingIndicator as DefaultLoadingIndicator } from '../../Loading';
-const useChatContext = () => ({ client: { threads: { state: {} } } } as any);
-const useComponentContext = () => ({ LoadingIndicator: DefaultLoadingIndicator } as any);
-const useStateStore = (_store: any, selector: any) => selector({ pagination: { isLoadingNext: false } });
-
+import { useChatContext, useComponentContext } from '../../../context';
+import { useStateStore } from '../../../store';
 
 const selector = (nextValue: ThreadManagerState) => ({
   isLoadingNext: nextValue.pagination.isLoadingNext,
@@ -27,4 +23,3 @@ export const ThreadListLoadingIndicator = () => {
     </div>
   );
 };
-

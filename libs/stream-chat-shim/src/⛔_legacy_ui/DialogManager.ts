@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { StateStore } from 'stream-chat';
+import { StateStore } from 'chat-shim';
 
 export type GetOrCreateDialogParams = {
   id: DialogId;

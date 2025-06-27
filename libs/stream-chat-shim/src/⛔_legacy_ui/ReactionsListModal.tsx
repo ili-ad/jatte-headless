@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ReactionResponse, ReactionSort } from 'stream-chat';
+import type { ReactionResponse, ReactionSort } from 'chat-shim';
 
 export interface ReactionSummary {
   EmojiComponent: React.ComponentType | null;

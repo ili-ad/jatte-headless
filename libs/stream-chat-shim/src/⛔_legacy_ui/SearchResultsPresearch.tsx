@@ -1,7 +1,7 @@
 // libs/stream-chat-shim/src/SearchResultsPresearch.tsx
 'use client'
 import React from 'react'
-import type { SearchSource } from 'stream-chat'
+import type { SearchSource } from 'chat-shim'
 
 export type SearchResultsPresearchProps = {
   activeSources: SearchSource[]

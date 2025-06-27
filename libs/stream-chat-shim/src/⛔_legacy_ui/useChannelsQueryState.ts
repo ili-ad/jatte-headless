@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { APIErrorResponse, ErrorFromResponse } from 'stream-chat';
+import type { APIErrorResponse, ErrorFromResponse } from 'chat-shim';
 
 /**
  * State tuple returned by useChannelsQueryState.

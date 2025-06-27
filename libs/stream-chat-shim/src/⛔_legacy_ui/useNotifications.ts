@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Notification } from 'stream-chat';
+import type { Notification } from 'chat-shim';
 
 /**
  * Placeholder implementation of Stream's `useNotifications` hook.

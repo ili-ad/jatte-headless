@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export type UseMessageSetKeyParams = {
   messages?: LocalMessage[];

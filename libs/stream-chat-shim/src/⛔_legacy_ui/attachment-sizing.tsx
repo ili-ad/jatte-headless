@@ -1,4 +1,4 @@
-import type { Attachment } from 'stream-chat';
+import type { Attachment } from 'chat-shim';
 
 // Simplified sizing helpers. Real logic from stream-chat-react is omitted.
 // Returns a basic configuration object for image attachments.

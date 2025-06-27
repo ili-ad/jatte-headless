@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
+import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
 
 // Placeholder type definitions mirroring Stream's UI library
 export type ReactionOptions = Array<{

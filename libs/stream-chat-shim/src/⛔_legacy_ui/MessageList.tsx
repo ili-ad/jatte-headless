@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 import type { MessageProps } from './message-types';
 
 // Prop names forwarded from MessageList to the underlying Message component

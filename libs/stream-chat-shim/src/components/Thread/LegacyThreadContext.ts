@@ -1,6 +1,5 @@
 import React, { useContext } from 'react';
-import type { LocalMessage } from 'stream-chat';
-type LocalMessage = any;
+import type { LocalMessage } from 'chat-shim';
 
 export const LegacyThreadContext = React.createContext<{
   legacyThread: LocalMessage | undefined;

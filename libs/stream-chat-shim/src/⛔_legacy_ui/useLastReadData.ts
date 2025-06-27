@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LocalMessage, UserResponse } from 'stream-chat';
+import type { LocalMessage, UserResponse } from 'chat-shim';
 
 const CUSTOM_MESSAGE_TYPE = {
   date: 'message.date',

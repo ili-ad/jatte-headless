@@ -1,10 +1,9 @@
 import React from 'react';
-import type { LocalMessage } from 'stream-chat';
 
 import { useUserRole } from './hooks/useUserRole';
 import { useTranslationContext } from '../../context/TranslationContext';
 
-// import type { LocalMessage } from 'stream-chat';
+import type { LocalMessage } from 'chat-shim';
 
 export type MessageDeletedProps = {
   message: LocalMessage;

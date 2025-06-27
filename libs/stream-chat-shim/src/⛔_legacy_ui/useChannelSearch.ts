@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Channel } from 'stream-chat';
+import type { Channel } from 'chat-shim';
 
 export type ChannelOrUserResponse = Channel | { id: string; name?: string };
 

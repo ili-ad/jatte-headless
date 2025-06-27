@@ -1,0 +1,1350 @@
+.
+├── @types
+│   ├── stream-chat-custom-data.d.ts
+│   └── vite-env.d.ts
+├── components
+│   ├── AIStateIndicator
+│   │   ├── AIStateIndicator.js
+│   │   ├── AIStateIndicator.tsx
+│   │   ├── hooks
+│   │   │   ├── useAIState.js
+│   │   │   └── useAIState.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Attachment
+│   │   ├── Attachment.js
+│   │   ├── Attachment.tsx
+│   │   ├── AttachmentActions.js
+│   │   ├── AttachmentActions.tsx
+│   │   ├── AttachmentContainer.js
+│   │   ├── AttachmentContainer.tsx
+│   │   ├── Audio.js
+│   │   ├── Audio.tsx
+│   │   ├── Card.js
+│   │   ├── Card.tsx
+│   │   ├── FileAttachment.js
+│   │   ├── FileAttachment.tsx
+│   │   ├── UnsupportedAttachment.js
+│   │   ├── UnsupportedAttachment.tsx
+│   │   ├── VoiceRecording.js
+│   │   ├── VoiceRecording.tsx
+│   │   ├── __tests__
+│   │   │   ├── Attachment.test.js
+│   │   │   ├── AttachmentActions.test.js
+│   │   │   ├── Audio.test.js
+│   │   │   ├── Card.test.js
+│   │   │   ├── File.test.js
+│   │   │   ├── VoiceRecording.test.js
+│   │   │   ├── WaveProgressBar.test.js
+│   │   │   ├── __snapshots__
+│   │   │   │   ├── Attachment.test.js.snap
+│   │   │   │   ├── AttachmentActions.test.js.snap
+│   │   │   │   ├── Card.test.js.snap
+│   │   │   │   ├── File.test.js.snap
+│   │   │   │   ├── VoiceRecording.test.js.snap
+│   │   │   │   └── WaveProgressBar.test.js.snap
+│   │   │   ├── audioSampling.test.js
+│   │   │   └── utils.test.js
+│   │   ├── attachment-sizing.js
+│   │   ├── attachment-sizing.tsx
+│   │   ├── audioSampling.js
+│   │   ├── audioSampling.ts
+│   │   ├── components
+│   │   │   ├── DownloadButton.js
+│   │   │   ├── DownloadButton.tsx
+│   │   │   ├── FileSizeIndicator.js
+│   │   │   ├── FileSizeIndicator.tsx
+│   │   │   ├── PlayButton.js
+│   │   │   ├── PlayButton.tsx
+│   │   │   ├── PlaybackRateButton.js
+│   │   │   ├── PlaybackRateButton.tsx
+│   │   │   ├── ProgressBar.js
+│   │   │   ├── ProgressBar.tsx
+│   │   │   ├── WaveProgressBar.js
+│   │   │   ├── WaveProgressBar.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── hooks
+│   │   │   ├── useAudioController.js
+│   │   │   └── useAudioController.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── utils.js
+│   │   └── utils.tsx
+│   ├── Avatar
+│   │   ├── Avatar.js
+│   │   ├── Avatar.tsx
+│   │   ├── ChannelAvatar.js
+│   │   ├── ChannelAvatar.tsx
+│   │   ├── GroupAvatar.js
+│   │   ├── GroupAvatar.tsx
+│   │   ├── __tests__
+│   │   │   └── Avatar.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Channel
+│   │   ├── Channel.js
+│   │   ├── Channel.tsx
+│   │   ├── LoadingChannel.js
+│   │   ├── LoadingChannel.tsx
+│   │   ├── __tests__
+│   │   │   ├── Channel.test.js
+│   │   │   ├── __snapshots__
+│   │   │   │   └── Channel.test.js.snap
+│   │   │   └── useIsMounted.test.js
+│   │   ├── channelState.js
+│   │   ├── channelState.ts
+│   │   ├── constants.js
+│   │   ├── constants.ts
+│   │   ├── hooks
+│   │   │   ├── useChannelContainerClasses.js
+│   │   │   ├── useChannelContainerClasses.ts
+│   │   │   ├── useCreateChannelStateContext.js
+│   │   │   ├── useCreateChannelStateContext.ts
+│   │   │   ├── useCreateTypingContext.js
+│   │   │   ├── useCreateTypingContext.ts
+│   │   │   ├── useEditMessageHandler.js
+│   │   │   ├── useEditMessageHandler.ts
+│   │   │   ├── useIsMounted.js
+│   │   │   ├── useIsMounted.ts
+│   │   │   ├── useMentionsHandlers.js
+│   │   │   └── useMentionsHandlers.ts
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── utils.js
+│   │   └── utils.ts
+│   ├── ChannelHeader
+│   │   ├── ChannelHeader.js
+│   │   ├── ChannelHeader.tsx
+│   │   ├── __tests__
+│   │   │   └── ChannelHeader.test.js
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── ChannelList
+│   │   ├── ChannelList.js
+│   │   ├── ChannelList.tsx
+│   │   ├── ChannelListMessenger.js
+│   │   ├── ChannelListMessenger.tsx
+│   │   ├── __tests__
+│   │   │   ├── ChannelList.test.js
+│   │   │   ├── ChannelListMessenger.test.js
+│   │   │   └── __snapshots__
+│   │   │       └── ChannelListMessenger.test.js.snap
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useChannelDeletedListener.js
+│   │   │   ├── useChannelDeletedListener.ts
+│   │   │   ├── useChannelHiddenListener.js
+│   │   │   ├── useChannelHiddenListener.ts
+│   │   │   ├── useChannelListShape.js
+│   │   │   ├── useChannelListShape.ts
+│   │   │   ├── useChannelMembershipState.js
+│   │   │   ├── useChannelMembershipState.ts
+│   │   │   ├── useChannelTruncatedListener.js
+│   │   │   ├── useChannelTruncatedListener.ts
+│   │   │   ├── useChannelUpdatedListener.js
+│   │   │   ├── useChannelUpdatedListener.ts
+│   │   │   ├── useChannelVisibleListener.js
+│   │   │   ├── useChannelVisibleListener.ts
+│   │   │   ├── useConnectionRecoveredListener.js
+│   │   │   ├── useConnectionRecoveredListener.ts
+│   │   │   ├── useMessageNewListener.js
+│   │   │   ├── useMessageNewListener.ts
+│   │   │   ├── useMobileNavigation.js
+│   │   │   ├── useMobileNavigation.ts
+│   │   │   ├── useNotificationAddedToChannelListener.js
+│   │   │   ├── useNotificationAddedToChannelListener.ts
+│   │   │   ├── useNotificationMessageNewListener.js
+│   │   │   ├── useNotificationMessageNewListener.ts
+│   │   │   ├── useNotificationRemovedFromChannelListener.js
+│   │   │   ├── useNotificationRemovedFromChannelListener.ts
+│   │   │   ├── usePaginatedChannels.js
+│   │   │   ├── usePaginatedChannels.ts
+│   │   │   ├── useSelectedChannelState.js
+│   │   │   ├── useSelectedChannelState.ts
+│   │   │   ├── useUserPresenceChangedListener.js
+│   │   │   └── useUserPresenceChangedListener.ts
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── utils.js
+│   │   └── utils.ts
+│   ├── ChannelPreview
+│   │   ├── ChannelPreview.js
+│   │   ├── ChannelPreview.tsx
+│   │   ├── ChannelPreviewActionButtons.js
+│   │   ├── ChannelPreviewActionButtons.tsx
+│   │   ├── ChannelPreviewMessenger.js
+│   │   ├── ChannelPreviewMessenger.tsx
+│   │   ├── __tests__
+│   │   │   ├── ChannelPreview.test.js
+│   │   │   ├── ChannelPreviewMessenger.test.js
+│   │   │   ├── __snapshots__
+│   │   │   │   └── ChannelPreviewMessenger.test.js.snap
+│   │   │   └── utils.test.js
+│   │   ├── hooks
+│   │   │   ├── __tests__
+│   │   │   │   └── useMessageDeliveryStatus.test.js
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useChannelPreviewInfo.js
+│   │   │   ├── useChannelPreviewInfo.ts
+│   │   │   ├── useIsChannelMuted.js
+│   │   │   ├── useIsChannelMuted.ts
+│   │   │   ├── useMessageDeliveryStatus.js
+│   │   │   └── useMessageDeliveryStatus.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── utils.js
+│   │   └── utils.tsx
+│   ├── ChannelSearch
+│   │   ├── ChannelSearch.js
+│   │   ├── ChannelSearch.tsx
+│   │   ├── SearchBar.js
+│   │   ├── SearchBar.tsx
+│   │   ├── SearchInput.js
+│   │   ├── SearchInput.tsx
+│   │   ├── SearchResults.js
+│   │   ├── SearchResults.tsx
+│   │   ├── __tests__
+│   │   │   ├── ChannelSearch.test.js
+│   │   │   ├── SearchBar.test.js
+│   │   │   ├── SearchResults.test.js
+│   │   │   └── __snapshots__
+│   │   │       ├── ChannelSearch.test.js.snap
+│   │   │       └── SearchBar.test.js.snap
+│   │   ├── hooks
+│   │   │   ├── useChannelSearch.js
+│   │   │   └── useChannelSearch.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── utils.js
+│   │   └── utils.ts
+│   ├── Chat
+│   │   ├── Chat.js
+│   │   ├── Chat.tsx
+│   │   ├── __tests__
+│   │   │   └── Chat.test.js
+│   │   ├── hooks
+│   │   │   ├── useChannelsQueryState.js
+│   │   │   ├── useChannelsQueryState.ts
+│   │   │   ├── useChat.js
+│   │   │   ├── useChat.ts
+│   │   │   ├── useCreateChatClient.js
+│   │   │   ├── useCreateChatClient.ts
+│   │   │   ├── useCreateChatContext.js
+│   │   │   └── useCreateChatContext.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── ChatView
+│   │   ├── ChatView.js
+│   │   ├── ChatView.tsx
+│   │   ├── index.js
+│   │   └── index.tsx
+│   ├── DateSeparator
+│   │   ├── DateSeparator.js
+│   │   ├── DateSeparator.tsx
+│   │   ├── __tests__
+│   │   │   └── DateSeparator.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Dialog
+│   │   ├── ButtonWithSubmenu.js
+│   │   ├── ButtonWithSubmenu.tsx
+│   │   ├── DialogAnchor.js
+│   │   ├── DialogAnchor.tsx
+│   │   ├── DialogManager.js
+│   │   ├── DialogManager.ts
+│   │   ├── DialogMenu.js
+│   │   ├── DialogMenu.tsx
+│   │   ├── DialogPortal.js
+│   │   ├── DialogPortal.tsx
+│   │   ├── FormDialog.js
+│   │   ├── FormDialog.tsx
+│   │   ├── PromptDialog.js
+│   │   ├── PromptDialog.tsx
+│   │   ├── __tests__
+│   │   │   └── DialogsManager.test.js
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useDialog.js
+│   │   │   └── useDialog.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── DragAndDrop
+│   │   ├── DragAndDropContainer.js
+│   │   └── DragAndDropContainer.tsx
+│   ├── EmptyStateIndicator
+│   │   ├── EmptyStateIndicator.js
+│   │   ├── EmptyStateIndicator.tsx
+│   │   ├── __tests__
+│   │   │   └── EmptyStateIndicator.test.js
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── EventComponent
+│   │   ├── EventComponent.js
+│   │   ├── EventComponent.tsx
+│   │   ├── __tests__
+│   │   │   └── EventComponent.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Form
+│   │   ├── FieldError.js
+│   │   ├── FieldError.tsx
+│   │   ├── SwitchField.js
+│   │   └── SwitchField.tsx
+│   ├── Gallery
+│   │   ├── BaseImage.js
+│   │   ├── BaseImage.tsx
+│   │   ├── Gallery.js
+│   │   ├── Gallery.tsx
+│   │   ├── Image.js
+│   │   ├── Image.tsx
+│   │   ├── ModalGallery.js
+│   │   ├── ModalGallery.tsx
+│   │   ├── __tests__
+│   │   │   ├── BaseImage.test.js
+│   │   │   ├── Gallery.test.js
+│   │   │   ├── Image.test.js
+│   │   │   ├── ModalGallery.test.js
+│   │   │   └── __snapshots__
+│   │   │       ├── Gallery.test.js.snap
+│   │   │       └── Image.test.js.snap
+│   │   ├── index.js
+│   │   └── index.tsx
+│   ├── InfiniteScrollPaginator
+│   │   ├── InfiniteScroll.js
+│   │   ├── InfiniteScroll.tsx
+│   │   ├── InfiniteScrollPaginator.js
+│   │   ├── InfiniteScrollPaginator.tsx
+│   │   ├── __tests__
+│   │   │   └── InfiniteScroll.test.js
+│   │   ├── hooks
+│   │   │   ├── useCursorPaginator.js
+│   │   │   └── useCursorPaginator.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── LoadMore
+│   │   ├── LoadMoreButton.js
+│   │   ├── LoadMoreButton.tsx
+│   │   ├── LoadMorePaginator.js
+│   │   ├── LoadMorePaginator.tsx
+│   │   ├── __tests__
+│   │   │   ├── LoadMoreButton.test.js
+│   │   │   └── LoadMorePaginator.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Loading
+│   │   ├── LoadingChannels.js
+│   │   ├── LoadingChannels.tsx
+│   │   ├── LoadingErrorIndicator.js
+│   │   ├── LoadingErrorIndicator.tsx
+│   │   ├── LoadingIndicator.js
+│   │   ├── LoadingIndicator.tsx
+│   │   ├── __tests__
+│   │   │   ├── LoadingChannels.test.js
+│   │   │   ├── LoadingErrorIndicator.test.js
+│   │   │   ├── LoadingIndicator.test.js
+│   │   │   └── __snapshots__
+│   │   │       ├── LoadingChannels.test.js.snap
+│   │   │       └── LoadingIndicator.test.js.snap
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── MML
+│   │   ├── MML.js
+│   │   ├── MML.tsx
+│   │   ├── __tests__
+│   │   │   └── MML.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── MediaRecorder
+│   │   ├── AudioRecorder
+│   │   │   ├── AudioRecorder.js
+│   │   │   ├── AudioRecorder.tsx
+│   │   │   ├── AudioRecordingButtons.js
+│   │   │   ├── AudioRecordingButtons.tsx
+│   │   │   ├── AudioRecordingInProgress.js
+│   │   │   ├── AudioRecordingInProgress.tsx
+│   │   │   ├── AudioRecordingPreview.js
+│   │   │   ├── AudioRecordingPreview.tsx
+│   │   │   ├── RecordingTimer.js
+│   │   │   ├── RecordingTimer.tsx
+│   │   │   ├── __tests__
+│   │   │   │   ├── AudioRecorder.test.js
+│   │   │   │   ├── AudioRecordingPreview.test.js
+│   │   │   │   └── __snapshots__
+│   │   │   │       └── AudioRecorder.test.js.snap
+│   │   │   ├── hooks
+│   │   │   │   ├── useTimeElapsed.js
+│   │   │   │   └── useTimeElapsed.ts
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── RecordingPermissionDeniedNotification.js
+│   │   ├── RecordingPermissionDeniedNotification.tsx
+│   │   ├── classes
+│   │   │   ├── AmplitudeRecorder.js
+│   │   │   ├── AmplitudeRecorder.ts
+│   │   │   ├── BrowserPermission.js
+│   │   │   ├── BrowserPermission.ts
+│   │   │   ├── MediaRecorderController.js
+│   │   │   ├── MediaRecorderController.ts
+│   │   │   ├── __tests__
+│   │   │   │   ├── AmplitudeRecorder.test.js
+│   │   │   │   ├── BrowserPermission.test.js
+│   │   │   │   └── MediaRecorderController.test.js
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── hooks
+│   │   │   ├── __tests__
+│   │   │   │   └── useMediaRecorder.test.js
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useMediaRecorder.js
+│   │   │   └── useMediaRecorder.ts
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── observable
+│   │   │   ├── BehaviorSubject.js
+│   │   │   ├── BehaviorSubject.ts
+│   │   │   ├── Observable.js
+│   │   │   ├── Observable.ts
+│   │   │   ├── Observer.js
+│   │   │   ├── Observer.ts
+│   │   │   ├── Subject.js
+│   │   │   ├── Subject.ts
+│   │   │   ├── Subscription.js
+│   │   │   ├── Subscription.ts
+│   │   │   ├── __tests__
+│   │   │   │   ├── BehaviorSubject.test.js
+│   │   │   │   └── Subject.test.js
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   └── transcode
+│   │       ├── audioProcessing.js
+│   │       ├── audioProcessing.ts
+│   │       ├── index.js
+│   │       ├── index.ts
+│   │       ├── wav.js
+│   │       └── wav.ts
+│   ├── Message
+│   │   ├── FixedHeightMessage.js
+│   │   ├── FixedHeightMessage.tsx
+│   │   ├── Message.js
+│   │   ├── Message.tsx
+│   │   ├── MessageBlocked.js
+│   │   ├── MessageBlocked.tsx
+│   │   ├── MessageDeleted.js
+│   │   ├── MessageDeleted.tsx
+│   │   ├── MessageEditedTimestamp.js
+│   │   ├── MessageEditedTimestamp.tsx
+│   │   ├── MessageErrorText.js
+│   │   ├── MessageErrorText.tsx
+│   │   ├── MessageOptions.js
+│   │   ├── MessageOptions.tsx
+│   │   ├── MessageRepliesCountButton.js
+│   │   ├── MessageRepliesCountButton.tsx
+│   │   ├── MessageSimple.js
+│   │   ├── MessageSimple.tsx
+│   │   ├── MessageStatus.js
+│   │   ├── MessageStatus.tsx
+│   │   ├── MessageText.js
+│   │   ├── MessageText.tsx
+│   │   ├── MessageThreadReplyInChannelButtonIndicator.js
+│   │   ├── MessageThreadReplyInChannelButtonIndicator.tsx
+│   │   ├── MessageTimestamp.js
+│   │   ├── MessageTimestamp.tsx
+│   │   ├── QuotedMessage.js
+│   │   ├── QuotedMessage.tsx
+│   │   ├── ReminderNotification.js
+│   │   ├── ReminderNotification.tsx
+│   │   ├── StreamedMessageText.js
+│   │   ├── StreamedMessageText.tsx
+│   │   ├── Timestamp.js
+│   │   ├── Timestamp.tsx
+│   │   ├── __tests__
+│   │   │   ├── FixedHeightMessage.test.js
+│   │   │   ├── Message.test.js
+│   │   │   ├── MessageDeleted.test.js
+│   │   │   ├── MessageOptions.test.js
+│   │   │   ├── MessageRepliesCountButton.test.js
+│   │   │   ├── MessageSimple.test.js
+│   │   │   ├── MessageStatus.test.js
+│   │   │   ├── MessageText.test.js
+│   │   │   ├── MessageTimestamp.test.js
+│   │   │   ├── QuotedMessage.test.js
+│   │   │   ├── ReminderNotification.test.js
+│   │   │   ├── __snapshots__
+│   │   │   │   ├── MessageStatus.test.js.snap
+│   │   │   │   ├── MessageText.test.js.snap
+│   │   │   │   └── ReminderNotification.test.js.snap
+│   │   │   └── utils.test.js
+│   │   ├── hooks
+│   │   │   ├── __tests__
+│   │   │   │   ├── useActionHandler.test.js
+│   │   │   │   ├── useDeleteHandler.test.js
+│   │   │   │   ├── useEditHandler.test.js
+│   │   │   │   ├── useFlagHandler.test.js
+│   │   │   │   ├── useMentionsHandler.test.js
+│   │   │   │   ├── useMuteHandler.test.js
+│   │   │   │   ├── useOpenThreadHandler.test.js
+│   │   │   │   ├── useReactionHandler.test.js
+│   │   │   │   ├── useReactionsFetcher.js
+│   │   │   │   ├── useRetryHandler.test.js
+│   │   │   │   ├── useUserHandler.test.js
+│   │   │   │   ├── useUserRole.test.js
+│   │   │   │   └── userMarkUnreadHandler.test.js
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useActionHandler.js
+│   │   │   ├── useActionHandler.ts
+│   │   │   ├── useDeleteHandler.js
+│   │   │   ├── useDeleteHandler.ts
+│   │   │   ├── useEditHandler.js
+│   │   │   ├── useEditHandler.ts
+│   │   │   ├── useFlagHandler.js
+│   │   │   ├── useFlagHandler.ts
+│   │   │   ├── useMarkUnreadHandler.js
+│   │   │   ├── useMarkUnreadHandler.ts
+│   │   │   ├── useMentionsHandler.js
+│   │   │   ├── useMentionsHandler.ts
+│   │   │   ├── useMessageReminder.js
+│   │   │   ├── useMessageReminder.ts
+│   │   │   ├── useMessageTextStreaming.js
+│   │   │   ├── useMessageTextStreaming.ts
+│   │   │   ├── useMuteHandler.js
+│   │   │   ├── useMuteHandler.ts
+│   │   │   ├── useOpenThreadHandler.js
+│   │   │   ├── useOpenThreadHandler.ts
+│   │   │   ├── usePinHandler.js
+│   │   │   ├── usePinHandler.ts
+│   │   │   ├── useReactionHandler.js
+│   │   │   ├── useReactionHandler.ts
+│   │   │   ├── useReactionsFetcher.js
+│   │   │   ├── useReactionsFetcher.ts
+│   │   │   ├── useRetryHandler.js
+│   │   │   ├── useRetryHandler.ts
+│   │   │   ├── useUserHandler.js
+│   │   │   ├── useUserHandler.ts
+│   │   │   ├── useUserRole.js
+│   │   │   └── useUserRole.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── renderText
+│   │   │   ├── __tests__
+│   │   │   │   ├── __snapshots__
+│   │   │   │   │   └── renderText.test.js.snap
+│   │   │   │   └── renderText.test.js
+│   │   │   ├── componentRenderers
+│   │   │   │   ├── Anchor.js
+│   │   │   │   ├── Anchor.tsx
+│   │   │   │   ├── Emoji.js
+│   │   │   │   ├── Emoji.tsx
+│   │   │   │   ├── Mention.js
+│   │   │   │   ├── Mention.tsx
+│   │   │   │   ├── index.js
+│   │   │   │   └── index.ts
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── regex.js
+│   │   │   ├── regex.ts
+│   │   │   ├── rehypePlugins
+│   │   │   │   ├── emojiMarkdownPlugin.js
+│   │   │   │   ├── emojiMarkdownPlugin.ts
+│   │   │   │   ├── index.js
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── mentionsMarkdownPlugin.js
+│   │   │   │   └── mentionsMarkdownPlugin.ts
+│   │   │   ├── remarkPlugins
+│   │   │   │   ├── htmlToTextPlugin.js
+│   │   │   │   ├── htmlToTextPlugin.ts
+│   │   │   │   ├── index.js
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── keepLineBreaksPlugin.js
+│   │   │   │   └── keepLineBreaksPlugin.ts
+│   │   │   ├── renderText.js
+│   │   │   ├── renderText.tsx
+│   │   │   ├── types.js
+│   │   │   └── types.ts
+│   │   ├── types.js
+│   │   ├── types.ts
+│   │   ├── utils.js
+│   │   └── utils.tsx
+│   ├── MessageActions
+│   │   ├── CustomMessageActionsList.js
+│   │   ├── CustomMessageActionsList.tsx
+│   │   ├── MessageActions.js
+│   │   ├── MessageActions.tsx
+│   │   ├── MessageActionsBox.js
+│   │   ├── MessageActionsBox.tsx
+│   │   ├── RemindMeSubmenu.js
+│   │   ├── RemindMeSubmenu.tsx
+│   │   ├── __tests__
+│   │   │   ├── CustomMessageActionsList.test.js
+│   │   │   ├── MessageActions.test.js
+│   │   │   └── MessageActionsBox.test.js
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useMessageActionsBoxPopper.js
+│   │   │   └── useMessageActionsBoxPopper.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── MessageBounce
+│   │   ├── MessageBounceModal.js
+│   │   ├── MessageBounceModal.tsx
+│   │   ├── MessageBouncePrompt.js
+│   │   ├── MessageBouncePrompt.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── MessageInput
+│   │   ├── AttachmentPreviewList
+│   │   │   ├── AttachmentPreviewList.js
+│   │   │   ├── AttachmentPreviewList.tsx
+│   │   │   ├── FileAttachmentPreview.js
+│   │   │   ├── FileAttachmentPreview.tsx
+│   │   │   ├── ImageAttachmentPreview.js
+│   │   │   ├── ImageAttachmentPreview.tsx
+│   │   │   ├── UnsupportedAttachmentPreview.js
+│   │   │   ├── UnsupportedAttachmentPreview.tsx
+│   │   │   ├── VoiceRecordingPreview.js
+│   │   │   ├── VoiceRecordingPreview.tsx
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── types.js
+│   │   │   └── types.ts
+│   │   ├── AttachmentSelector.js
+│   │   ├── AttachmentSelector.tsx
+│   │   ├── CooldownTimer.js
+│   │   ├── CooldownTimer.tsx
+│   │   ├── EditMessageForm.js
+│   │   ├── EditMessageForm.tsx
+│   │   ├── LinkPreviewList.js
+│   │   ├── LinkPreviewList.tsx
+│   │   ├── MessageInput.js
+│   │   ├── MessageInput.tsx
+│   │   ├── MessageInputFlat.js
+│   │   ├── MessageInputFlat.tsx
+│   │   ├── QuotedMessagePreview.js
+│   │   ├── QuotedMessagePreview.tsx
+│   │   ├── SendButton.js
+│   │   ├── SendButton.tsx
+│   │   ├── SendToChannelCheckbox.js
+│   │   ├── SendToChannelCheckbox.tsx
+│   │   ├── StopAIGenerationButton.js
+│   │   ├── StopAIGenerationButton.tsx
+│   │   ├── WithDragAndDropUpload.js
+│   │   ├── WithDragAndDropUpload.tsx
+│   │   ├── __tests__
+│   │   │   ├── AttachmentPreviewList.test.js
+│   │   │   ├── AttachmentSelector.test.js
+│   │   │   ├── CooldownTimer.test.js
+│   │   │   ├── EditMessageForm.test.js
+│   │   │   ├── LinkPreviewList.test.js
+│   │   │   ├── MessageInput.test.js
+│   │   │   ├── SendButton.test.js
+│   │   │   ├── ThreadMessageInput.test.js
+│   │   │   └── __snapshots__
+│   │   │       ├── AttachmentPreviewList.test.js.snap
+│   │   │       └── LinkPreviewList.test.js.snap
+│   │   ├── hooks
+│   │   │   ├── __tests__
+│   │   │   │   └── useCooldownTimer.test.js
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useAttachmentManagerState.js
+│   │   │   ├── useAttachmentManagerState.ts
+│   │   │   ├── useCanCreatePoll.js
+│   │   │   ├── useCanCreatePoll.ts
+│   │   │   ├── useCooldownTimer.js
+│   │   │   ├── useCooldownTimer.tsx
+│   │   │   ├── useCreateMessageInputContext.js
+│   │   │   ├── useCreateMessageInputContext.ts
+│   │   │   ├── useMessageComposer.js
+│   │   │   ├── useMessageComposer.ts
+│   │   │   ├── useMessageComposerHasSendableData.js
+│   │   │   ├── useMessageComposerHasSendableData.ts
+│   │   │   ├── useMessageInputControls.js
+│   │   │   ├── useMessageInputControls.ts
+│   │   │   ├── usePasteHandler.js
+│   │   │   ├── usePasteHandler.ts
+│   │   │   ├── useSubmitHandler.js
+│   │   │   ├── useSubmitHandler.ts
+│   │   │   ├── useTextareaRef.js
+│   │   │   ├── useTextareaRef.ts
+│   │   │   ├── useTimer.js
+│   │   │   ├── useTimer.ts
+│   │   │   ├── utils.js
+│   │   │   └── utils.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── MessageList
+│   │   ├── ConnectionStatus.js
+│   │   ├── ConnectionStatus.tsx
+│   │   ├── CustomNotification.js
+│   │   ├── CustomNotification.tsx
+│   │   ├── GiphyPreviewMessage.js
+│   │   ├── GiphyPreviewMessage.tsx
+│   │   ├── MessageList.js
+│   │   ├── MessageList.tsx
+│   │   ├── MessageListMainPanel.js
+│   │   ├── MessageListMainPanel.tsx
+│   │   ├── MessageListNotifications.js
+│   │   ├── MessageListNotifications.tsx
+│   │   ├── MessageNotification.js
+│   │   ├── MessageNotification.tsx
+│   │   ├── ScrollToBottomButton.js
+│   │   ├── ScrollToBottomButton.tsx
+│   │   ├── UnreadMessagesNotification.js
+│   │   ├── UnreadMessagesNotification.tsx
+│   │   ├── UnreadMessagesSeparator.js
+│   │   ├── UnreadMessagesSeparator.tsx
+│   │   ├── VirtualizedMessageList.js
+│   │   ├── VirtualizedMessageList.tsx
+│   │   ├── VirtualizedMessageListComponents.js
+│   │   ├── VirtualizedMessageListComponents.tsx
+│   │   ├── __tests__
+│   │   │   ├── ConnectionStatus.test.js
+│   │   │   ├── CustomNotification.test.js
+│   │   │   ├── MessageList.test.js
+│   │   │   ├── MessageNotification.test.js
+│   │   │   ├── ScrollToBottomButton.test.js
+│   │   │   ├── VirtualizedMessageList.test.js
+│   │   │   ├── VirtualizedMessageListComponents.test.js
+│   │   │   ├── __snapshots__
+│   │   │   │   ├── VirtualizedMessageList.test.js.snap
+│   │   │   │   └── VirtualizedMessageListComponents.test.js.snap
+│   │   │   └── utils.test.js
+│   │   ├── hooks
+│   │   │   ├── MessageList
+│   │   │   │   ├── index.js
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useEnrichedMessages.js
+│   │   │   │   ├── useEnrichedMessages.ts
+│   │   │   │   ├── useMessageListElements.js
+│   │   │   │   ├── useMessageListElements.tsx
+│   │   │   │   ├── useMessageListScrollManager.js
+│   │   │   │   ├── useMessageListScrollManager.ts
+│   │   │   │   ├── useScrollLocationLogic.js
+│   │   │   │   ├── useScrollLocationLogic.tsx
+│   │   │   │   ├── useUnreadMessagesNotification.js
+│   │   │   │   └── useUnreadMessagesNotification.ts
+│   │   │   ├── VirtualizedMessageList
+│   │   │   │   ├── index.js
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── useGiphyPreview.js
+│   │   │   │   ├── useGiphyPreview.ts
+│   │   │   │   ├── useMessageSetKey.js
+│   │   │   │   ├── useMessageSetKey.ts
+│   │   │   │   ├── useNewMessageNotification.js
+│   │   │   │   ├── useNewMessageNotification.ts
+│   │   │   │   ├── usePrependMessagesCount.js
+│   │   │   │   ├── usePrependMessagesCount.ts
+│   │   │   │   ├── useScrollToBottomOnNewMessage.js
+│   │   │   │   ├── useScrollToBottomOnNewMessage.ts
+│   │   │   │   ├── useShouldForceScrollToBottom.js
+│   │   │   │   ├── useShouldForceScrollToBottom.ts
+│   │   │   │   ├── useUnreadMessagesNotificationVirtualized.js
+│   │   │   │   └── useUnreadMessagesNotificationVirtualized.ts
+│   │   │   ├── __tests__
+│   │   │   │   ├── useGiphyPreview.test.js
+│   │   │   │   ├── useMarkRead.test.js
+│   │   │   │   ├── useMessageListScrollManager.test.js
+│   │   │   │   ├── usePrependMessagesCount.test.js
+│   │   │   │   └── useUnreadMessagesNotificationVirtualized.test.js
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useLastReadData.js
+│   │   │   ├── useLastReadData.ts
+│   │   │   ├── useMarkRead.js
+│   │   │   └── useMarkRead.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── renderMessages.js
+│   │   ├── renderMessages.tsx
+│   │   ├── utils.js
+│   │   └── utils.ts
+│   ├── Modal
+│   │   ├── Modal.js
+│   │   ├── Modal.tsx
+│   │   ├── ModalHeader.js
+│   │   ├── ModalHeader.tsx
+│   │   ├── __tests__
+│   │   │   └── Modal.test.js
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Notifications
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useNotifications.js
+│   │   │   └── useNotifications.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Poll
+│   │   ├── Poll.js
+│   │   ├── Poll.tsx
+│   │   ├── PollActions
+│   │   │   ├── AddCommentForm.js
+│   │   │   ├── AddCommentForm.tsx
+│   │   │   ├── EndPollDialog.js
+│   │   │   ├── EndPollDialog.tsx
+│   │   │   ├── PollAction.js
+│   │   │   ├── PollAction.tsx
+│   │   │   ├── PollActions.js
+│   │   │   ├── PollActions.tsx
+│   │   │   ├── PollAnswerList.js
+│   │   │   ├── PollAnswerList.tsx
+│   │   │   ├── PollOptionsFullList.js
+│   │   │   ├── PollOptionsFullList.tsx
+│   │   │   ├── PollResults
+│   │   │   │   ├── PollOptionVotesList.js
+│   │   │   │   ├── PollOptionVotesList.tsx
+│   │   │   │   ├── PollOptionWithLatestVotes.js
+│   │   │   │   ├── PollOptionWithLatestVotes.tsx
+│   │   │   │   ├── PollOptionWithVotesHeader.js
+│   │   │   │   ├── PollOptionWithVotesHeader.tsx
+│   │   │   │   ├── PollResults.js
+│   │   │   │   ├── PollResults.tsx
+│   │   │   │   ├── index.js
+│   │   │   │   └── index.ts
+│   │   │   ├── SuggestPollOptionForm.js
+│   │   │   ├── SuggestPollOptionForm.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── PollContent.js
+│   │   ├── PollContent.tsx
+│   │   ├── PollCreationDialog
+│   │   │   ├── MultipleAnswersField.js
+│   │   │   ├── MultipleAnswersField.tsx
+│   │   │   ├── NameField.js
+│   │   │   ├── NameField.tsx
+│   │   │   ├── OptionFieldSet.js
+│   │   │   ├── OptionFieldSet.tsx
+│   │   │   ├── PollCreationDialog.js
+│   │   │   ├── PollCreationDialog.tsx
+│   │   │   ├── PollCreationDialogControls.js
+│   │   │   ├── PollCreationDialogControls.tsx
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── types.js
+│   │   │   └── types.ts
+│   │   ├── PollHeader.js
+│   │   ├── PollHeader.tsx
+│   │   ├── PollOptionList.js
+│   │   ├── PollOptionList.tsx
+│   │   ├── PollOptionSelector.js
+│   │   ├── PollOptionSelector.tsx
+│   │   ├── PollVote.js
+│   │   ├── PollVote.tsx
+│   │   ├── QuotedPoll.js
+│   │   ├── QuotedPoll.tsx
+│   │   ├── __tests__
+│   │   │   ├── AddCommentForm.test.js
+│   │   │   ├── Poll.test.js
+│   │   │   ├── PollActions.test.js
+│   │   │   ├── PollCreationDialog.test.js
+│   │   │   ├── PollHeader.test.js
+│   │   │   ├── PollOptionList.test.js
+│   │   │   └── SuggestPollOptionForm.test.js
+│   │   ├── constants.js
+│   │   ├── constants.ts
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useManagePollVotesRealtime.js
+│   │   │   ├── useManagePollVotesRealtime.ts
+│   │   │   ├── usePollAnswerPagination.js
+│   │   │   ├── usePollAnswerPagination.ts
+│   │   │   ├── usePollOptionVotesPagination.js
+│   │   │   └── usePollOptionVotesPagination.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Portal
+│   │   ├── Portal.js
+│   │   └── Portal.ts
+│   ├── ReactFileUtilities
+│   │   ├── FileIcon
+│   │   │   ├── FileIcon.js
+│   │   │   ├── FileIcon.tsx
+│   │   │   ├── FileIconSet.js
+│   │   │   ├── FileIconSet.tsx
+│   │   │   ├── iconMap.js
+│   │   │   ├── iconMap.ts
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── mimeTypes.js
+│   │   │   └── mimeTypes.ts
+│   │   ├── LoadingIndicator.js
+│   │   ├── LoadingIndicator.tsx
+│   │   ├── UploadButton.js
+│   │   ├── UploadButton.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── types.js
+│   │   ├── types.ts
+│   │   ├── utils.js
+│   │   └── utils.ts
+│   ├── Reactions
+│   │   ├── ReactionSelector.js
+│   │   ├── ReactionSelector.tsx
+│   │   ├── ReactionSelectorWithButton.js
+│   │   ├── ReactionSelectorWithButton.tsx
+│   │   ├── ReactionsList.js
+│   │   ├── ReactionsList.tsx
+│   │   ├── ReactionsListModal.js
+│   │   ├── ReactionsListModal.tsx
+│   │   ├── SimpleReactionsList.js
+│   │   ├── SimpleReactionsList.tsx
+│   │   ├── SpriteImage.js
+│   │   ├── SpriteImage.tsx
+│   │   ├── StreamEmoji.js
+│   │   ├── StreamEmoji.tsx
+│   │   ├── __tests__
+│   │   │   ├── ReactionSelector.test.js
+│   │   │   ├── ReactionsList.test.js
+│   │   │   ├── ReactionsListModal.test.js
+│   │   │   ├── SimpleReactionsList.test.js
+│   │   │   └── __snapshots__
+│   │   │       └── SimpleReactionsList.test.js.snap
+│   │   ├── hooks
+│   │   │   ├── useFetchReactions.js
+│   │   │   ├── useFetchReactions.ts
+│   │   │   ├── useProcessReactions.js
+│   │   │   └── useProcessReactions.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── reactionOptions.js
+│   │   ├── reactionOptions.tsx
+│   │   ├── types.js
+│   │   ├── types.ts
+│   │   └── utils
+│   │       ├── utils.js
+│   │       └── utils.ts
+│   ├── SafeAnchor
+│   │   ├── SafeAnchor.js
+│   │   ├── SafeAnchor.tsx
+│   │   ├── __tests__
+│   │   │   └── SafeAnchor.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── TextareaComposer
+│   │   ├── SuggestionList
+│   │   │   ├── CommandItem.js
+│   │   │   ├── CommandItem.tsx
+│   │   │   ├── EmoticonItem.js
+│   │   │   ├── EmoticonItem.tsx
+│   │   │   ├── SuggestionList.js
+│   │   │   ├── SuggestionList.tsx
+│   │   │   ├── SuggestionListItem.js
+│   │   │   ├── SuggestionListItem.tsx
+│   │   │   ├── UserItem.js
+│   │   │   ├── UserItem.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── TextareaComposer.js
+│   │   ├── TextareaComposer.tsx
+│   │   ├── __tests__
+│   │   │   ├── CommandItem.test.js
+│   │   │   ├── EmoticonItem.test.js
+│   │   │   └── UserItem.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Thread
+│   │   ├── LegacyThreadContext.js
+│   │   ├── LegacyThreadContext.ts
+│   │   ├── Thread.js
+│   │   ├── Thread.tsx
+│   │   ├── ThreadHead.js
+│   │   ├── ThreadHead.tsx
+│   │   ├── ThreadHeader.js
+│   │   ├── ThreadHeader.tsx
+│   │   ├── ThreadStart.js
+│   │   ├── ThreadStart.tsx
+│   │   ├── __tests__
+│   │   │   ├── Thread.test.js
+│   │   │   └── ThreadStart.test.js
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Threads
+│   │   ├── ThreadContext.js
+│   │   ├── ThreadContext.tsx
+│   │   ├── ThreadList
+│   │   │   ├── ThreadList.js
+│   │   │   ├── ThreadList.tsx
+│   │   │   ├── ThreadListEmptyPlaceholder.js
+│   │   │   ├── ThreadListEmptyPlaceholder.tsx
+│   │   │   ├── ThreadListItem.js
+│   │   │   ├── ThreadListItem.tsx
+│   │   │   ├── ThreadListItemUI.js
+│   │   │   ├── ThreadListItemUI.tsx
+│   │   │   ├── ThreadListLoadingIndicator.js
+│   │   │   ├── ThreadListLoadingIndicator.tsx
+│   │   │   ├── ThreadListUnseenThreadsBanner.js
+│   │   │   ├── ThreadListUnseenThreadsBanner.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── UnreadCountBadge.js
+│   │   ├── UnreadCountBadge.tsx
+│   │   ├── hooks
+│   │   │   ├── useThreadManagerState.js
+│   │   │   ├── useThreadManagerState.ts
+│   │   │   ├── useThreadState.js
+│   │   │   └── useThreadState.ts
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Tooltip
+│   │   ├── Tooltip.js
+│   │   ├── Tooltip.tsx
+│   │   ├── __tests__
+│   │   │   └── Tooltip.test.js
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useEnterLeaveHandlers.js
+│   │   │   └── useEnterLeaveHandlers.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── TypingIndicator
+│   │   ├── TypingIndicator.js
+│   │   ├── TypingIndicator.tsx
+│   │   ├── __tests__
+│   │   │   └── TypingIndicator.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── UtilityComponents
+│   │   ├── ErrorBoundary.js
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── NullComponent.js
+│   │   ├── NullComponent.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── useStableId.js
+│   │   └── useStableId.ts
+│   ├── Window
+│   │   ├── Window.js
+│   │   ├── Window.tsx
+│   │   ├── __tests__
+│   │   │   └── Window.test.js
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── index.js
+│   └── index.ts
+├── constants
+│   ├── limits.js
+│   ├── limits.ts
+│   ├── messageTypes.js
+│   └── messageTypes.ts
+├── context
+│   ├── AttachmentSelectorContext.js
+│   ├── AttachmentSelectorContext.tsx
+│   ├── ChannelActionContext.js
+│   ├── ChannelActionContext.tsx
+│   ├── ChannelListContext.js
+│   ├── ChannelListContext.tsx
+│   ├── ChannelStateContext.js
+│   ├── ChannelStateContext.tsx
+│   ├── ChatContext.js
+│   ├── ChatContext.tsx
+│   ├── ComponentContext.js
+│   ├── ComponentContext.tsx
+│   ├── DialogManagerContext.js
+│   ├── DialogManagerContext.tsx
+│   ├── MessageBounceContext.js
+│   ├── MessageBounceContext.tsx
+│   ├── MessageContext.js
+│   ├── MessageContext.tsx
+│   ├── MessageInputContext.js
+│   ├── MessageInputContext.tsx
+│   ├── MessageListContext.js
+│   ├── MessageListContext.tsx
+│   ├── PollContext.js
+│   ├── PollContext.tsx
+│   ├── TranslationContext.js
+│   ├── TranslationContext.tsx
+│   ├── TypingContext.js
+│   ├── TypingContext.tsx
+│   ├── VirtualizedMessageListContext.js
+│   ├── VirtualizedMessageListContext.tsx
+│   ├── WithComponents.js
+│   ├── WithComponents.tsx
+│   ├── index.js
+│   ├── index.ts
+│   └── utils
+│       ├── getDisplayName.js
+│       └── getDisplayName.ts
+├── experimental
+│   ├── MessageActions
+│   │   ├── MessageActions.js
+│   │   ├── MessageActions.tsx
+│   │   ├── defaults.js
+│   │   ├── defaults.tsx
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useBaseMessageActionSetFilter.js
+│   │   │   ├── useBaseMessageActionSetFilter.ts
+│   │   │   ├── useSplitMessageActionSet.js
+│   │   │   └── useSplitMessageActionSet.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── Search
+│   │   ├── Search.js
+│   │   ├── Search.tsx
+│   │   ├── SearchBar
+│   │   │   ├── SearchBar.js
+│   │   │   ├── SearchBar.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── SearchContext.js
+│   │   ├── SearchContext.tsx
+│   │   ├── SearchResults
+│   │   │   ├── SearchResultItem.js
+│   │   │   ├── SearchResultItem.tsx
+│   │   │   ├── SearchResults.js
+│   │   │   ├── SearchResults.tsx
+│   │   │   ├── SearchResultsHeader.js
+│   │   │   ├── SearchResultsHeader.tsx
+│   │   │   ├── SearchResultsPresearch.js
+│   │   │   ├── SearchResultsPresearch.tsx
+│   │   │   ├── SearchSourceResultList.js
+│   │   │   ├── SearchSourceResultList.tsx
+│   │   │   ├── SearchSourceResultListFooter.js
+│   │   │   ├── SearchSourceResultListFooter.tsx
+│   │   │   ├── SearchSourceResults.js
+│   │   │   ├── SearchSourceResults.tsx
+│   │   │   ├── SearchSourceResultsEmpty.js
+│   │   │   ├── SearchSourceResultsEmpty.tsx
+│   │   │   ├── SearchSourceResultsHeader.js
+│   │   │   ├── SearchSourceResultsHeader.tsx
+│   │   │   ├── SearchSourceResultsLoadingIndicator.js
+│   │   │   ├── SearchSourceResultsLoadingIndicator.tsx
+│   │   │   ├── index.js
+│   │   │   └── index.ts
+│   │   ├── SearchSourceResultsContext.js
+│   │   ├── SearchSourceResultsContext.tsx
+│   │   ├── __tests__
+│   │   │   ├── Search.test.js
+│   │   │   ├── SearchBar.test.js
+│   │   │   ├── SearchResultItem.test.js
+│   │   │   ├── SearchResults.test.js
+│   │   │   ├── SearchResultsHeader.test.js
+│   │   │   ├── SearchSourceResultList.test.js
+│   │   │   ├── SearchSourceResultListFooter.test.js
+│   │   │   └── SearchSourceResults.test.js
+│   │   ├── hooks
+│   │   │   ├── index.js
+│   │   │   ├── index.ts
+│   │   │   ├── useSearchFocusedMessage.js
+│   │   │   ├── useSearchFocusedMessage.ts
+│   │   │   ├── useSearchQueriesInProgress.js
+│   │   │   └── useSearchQueriesInProgress.ts
+│   │   ├── index.js
+│   │   └── index.ts
+│   ├── index.js
+│   └── index.ts
+├── i18n
+│   ├── Streami18n.js
+│   ├── Streami18n.ts
+│   ├── TranslationBuilder
+│   │   ├── TranslationBuilder.js
+│   │   ├── TranslationBuilder.ts
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   └── notifications
+│   │       ├── NotificationTranslationTopic.js
+│   │       ├── NotificationTranslationTopic.ts
+│   │       ├── attachmentUpload.js
+│   │       ├── attachmentUpload.ts
+│   │       ├── index.js
+│   │       ├── index.ts
+│   │       ├── pollComposition.js
+│   │       ├── pollComposition.ts
+│   │       ├── types.js
+│   │       └── types.ts
+│   ├── __tests__
+│   │   ├── NotificationTranslationBuilder.test.js
+│   │   ├── Streami18n.test.js
+│   │   ├── TranslationBuilder.test.js
+│   │   └── utils.test.js
+│   ├── de.json
+│   ├── en.json
+│   ├── es.json
+│   ├── fr.json
+│   ├── hi.json
+│   ├── index.js
+│   ├── index.ts
+│   ├── it.json
+│   ├── ja.json
+│   ├── ko.json
+│   ├── nl.json
+│   ├── pt.json
+│   ├── ru.json
+│   ├── tr.json
+│   ├── translations.js
+│   ├── translations.ts
+│   ├── types.js
+│   ├── types.ts
+│   ├── utils.js
+│   └── utils.ts
+├── index.js
+├── index.ts
+├── inventory.txt
+├── mock-builders
+│   ├── __test__
+│   │   └── translator.test.js
+│   ├── api
+│   │   ├── error.js
+│   │   ├── getOrCreateChannel.js
+│   │   ├── index.js
+│   │   ├── markRead.js
+│   │   ├── queryChannels.js
+│   │   ├── queryMembers.js
+│   │   ├── queryUsers.js
+│   │   ├── sendMessage.js
+│   │   ├── threadReplies.js
+│   │   └── utils.js
+│   ├── browser
+│   │   ├── AnalyserNode.js
+│   │   ├── AudioContext.js
+│   │   ├── EventEmitter.js
+│   │   ├── HTMLMediaElement.js
+│   │   ├── MediaRecorder.js
+│   │   ├── ResizeObserver.js
+│   │   ├── events
+│   │   │   └── dataavailable.js
+│   │   └── index.js
+│   ├── event
+│   │   ├── channelDeleted.js
+│   │   ├── channelHidden.js
+│   │   ├── channelTruncated.js
+│   │   ├── channelUpdated.js
+│   │   ├── channelVisible.js
+│   │   ├── connectionChanged.js
+│   │   ├── connectionRecovered.js
+│   │   ├── draftDeleted.js
+│   │   ├── draftDeleted.ts
+│   │   ├── draftUpdated.js
+│   │   ├── draftUpdated.ts
+│   │   ├── index.js
+│   │   ├── messageDeleted.js
+│   │   ├── messageNew.js
+│   │   ├── messageRead.js
+│   │   ├── messageUndeleted.js
+│   │   ├── messageUpdated.js
+│   │   ├── notificationAddedToChannel.js
+│   │   ├── notificationMarkRead.js
+│   │   ├── notificationMarkUnread.js
+│   │   ├── notificationMessageNew.js
+│   │   ├── notificationMutesUpdated.js
+│   │   ├── notificationRemovedFromChannel.js
+│   │   └── userUpdated.js
+│   ├── generator
+│   │   ├── attachment.js
+│   │   ├── channel.js
+│   │   ├── index.js
+│   │   ├── member.js
+│   │   ├── message.js
+│   │   ├── messageDraft.js
+│   │   ├── messageDraft.ts
+│   │   ├── poll.js
+│   │   ├── reaction.js
+│   │   ├── reminder.js
+│   │   ├── reminder.ts
+│   │   └── user.js
+│   ├── index.js
+│   ├── translator.js
+│   └── utils.js
+├── plugins
+│   ├── Emojis
+│   │   ├── EmojiPicker.js
+│   │   ├── EmojiPicker.tsx
+│   │   ├── icons.js
+│   │   ├── icons.tsx
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   └── middleware
+│   │       ├── index.js
+│   │       ├── index.ts
+│   │       ├── textComposerEmojiMiddleware.js
+│   │       └── textComposerEmojiMiddleware.ts
+│   └── encoders
+│       ├── mp3.js
+│       └── mp3.ts
+├── store
+│   ├── hooks
+│   │   ├── index.js
+│   │   ├── index.ts
+│   │   ├── useStateStore.js
+│   │   └── useStateStore.ts
+│   ├── index.js
+│   └── index.ts
+├── stories
+│   ├── add-message.stories.js
+│   ├── add-message.stories.tsx
+│   ├── attachment-sizing.stories.js
+│   ├── attachment-sizing.stories.tsx
+│   ├── edit-message.stories.js
+│   ├── edit-message.stories.tsx
+│   ├── hello.stories.js
+│   ├── hello.stories.tsx
+│   ├── jump-to-message.stories.js
+│   ├── jump-to-message.stories.tsx
+│   ├── mark-read.stories.js
+│   ├── mark-read.stories.tsx
+│   ├── message-status-readby-tooltip.stories.js
+│   ├── message-status-readby-tooltip.stories.tsx
+│   ├── navigate-long-message-lists.stories.js
+│   ├── navigate-long-message-lists.stories.tsx
+│   ├── pin-message.stories.js
+│   ├── pin-message.stories.tsx
+│   ├── toggle-message-actions.stories.js
+│   ├── toggle-message-actions.stories.tsx
+│   ├── utils.js
+│   └── utils.tsx
+├── types
+│   ├── defaultDataInterfaces.js
+│   ├── defaultDataInterfaces.ts
+│   ├── index.js
+│   ├── index.ts
+│   ├── types.js
+│   └── types.ts
+└── utils
+    ├── __tests__
+    │   └── getChannel.test.js
+    ├── browsers.js
+    ├── browsers.ts
+    ├── deprecationWarning.js
+    ├── deprecationWarning.ts
+    ├── getChannel.js
+    ├── getChannel.ts
+    ├── getWholeChar.js
+    ├── getWholeChar.ts
+    ├── index.js
+    ├── index.ts
+    ├── mergeDeep.js
+    └── mergeDeep.ts
+
+166 directories, 1181 files

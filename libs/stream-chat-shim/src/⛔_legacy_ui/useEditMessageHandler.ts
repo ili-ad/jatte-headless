@@ -4,7 +4,7 @@ import type {
   StreamChat,
   UpdateMessageOptions,
   UpdateMessageAPIResponse,
-} from 'stream-chat';
+} from 'chat-shim';
 
 // Callback type matching Stream Chat React's expectation
 export type UpdateHandler = (

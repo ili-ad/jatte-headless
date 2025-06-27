@@ -1,4 +1,4 @@
-import type { Notification } from 'stream-chat';
+import type { Notification } from 'chat-shim';
 
 export type NotificationTranslatorOptions = {
   notification?: Notification;

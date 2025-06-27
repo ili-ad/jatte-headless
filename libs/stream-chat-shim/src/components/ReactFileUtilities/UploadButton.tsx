@@ -8,9 +8,7 @@ import { useMessageInputContext, useTranslationContext } from '../../context';
 import { useMessageComposer } from '../MessageInput';
 import { useAttachmentManagerState } from '../MessageInput/hooks/useAttachmentManagerState';
 import { useStateStore } from '../../store';
-
 import type { MessageComposerConfig } from 'chat-shim';
-
 import type { PartialSelected } from '../../types/types';
 
 const attachmentManagerConfigStateSelector = (state: MessageComposerConfig) => ({
