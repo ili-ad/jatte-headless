@@ -3,7 +3,9 @@ import React from 'react';
 // import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
 // import type { CustomMessageActions } from '../../context/MessageContext'; // TODO backend-wire-up
+
 type CustomMessageActions = Record<string, (msg: LocalMessage, e: React.MouseEvent<HTMLButtonElement>) => void>;
+
 
 export type CustomMessageActionsListProps = {
   message: LocalMessage;
