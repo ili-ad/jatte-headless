@@ -37,7 +37,9 @@ export const useFlagHandler = (
     }
 
     try {
-      await client.flagMessage(message.id);
+      await Promise.resolve(
+        /* TODO backend-wire-up: flagMessage */ undefined,
+      );
 
       const successMessage =
         getSuccessNotification &&

@@ -48,7 +48,10 @@ var MessageThreadReplyInChannelButtonIndicator = function () {
     var message = (0, context_1.useMessageContext)().message;
     var parentMessageRef = (0, react_1.useRef)(undefined);
     var querySearchParent = function () {
-        return Promise.resolve({ results: [] })
+        return Promise.resolve({
+            /* TODO backend-wire-up: search */
+            results: []
+        })
             .then(function (_a) {
             var results = _a.results;
             if (!results.length) {
@@ -57,17 +60,7 @@ var MessageThreadReplyInChannelButtonIndicator = function () {
             parentMessageRef.current = formatMessage(results[0].message);
         })
             .catch(function (error) {
-            client.notifications.addError({
-                message: t('Thread has not been found'),
-                options: {
-                    originalError: error,
-                    type: 'api:message:search:not-found',
-                },
-                origin: {
-                    context: { threadReply: message },
-                    emitter: 'MessageThreadReplyInChannelButtonIndicator',
-                },
-            });
+            /* TODO backend-wire-up: addError */
         });
     };
     (0, react_1.useEffect)(function () {
@@ -75,7 +68,7 @@ var MessageThreadReplyInChannelButtonIndicator = function () {
             parentMessageRef.current === null ||
             !message.parent_id)
             return;
-        var localMessage = channel.state.findMessage(message.parent_id);
+        var localMessage = undefined; /* TODO backend-wire-up: findMessage */
         if (localMessage) {
             parentMessageRef.current = localMessage;
             return;
