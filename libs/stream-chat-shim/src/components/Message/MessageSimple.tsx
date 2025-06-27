@@ -145,7 +145,8 @@ const MessageSimpleWithContext = (props: MessageSimpleWithContextProps) => {
     },
   );
 
-  const poll = message.poll_id && client.polls.fromState(message.poll_id);
+  const poll = message.poll_id &&
+    /* TODO backend-wire-up: polls.fromState */ undefined;
 
   return (
     <>

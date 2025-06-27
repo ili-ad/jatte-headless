@@ -45,12 +45,11 @@ async function fetchMessageReactions(
   let hasNext = true;
 
   while (hasNext && reactions.length < MAX_MESSAGE_REACTIONS_TO_FETCH) {
-    const response = await client.queryReactions(
-      messageId,
-      reactionType ? { type: reactionType } : {},
-      sort,
-      { limit, next },
-    );
+    const response = await Promise.resolve({
+      /* TODO backend-wire-up: queryReactions */
+      next: undefined,
+      reactions: [],
+    });
 
     reactions.push(...response.reactions);
     next = response.next;
