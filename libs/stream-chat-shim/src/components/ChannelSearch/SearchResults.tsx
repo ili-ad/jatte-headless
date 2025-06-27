@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 
+
 // import { SearchIcon } from './icons'; // TODO backend-wire-up
 const SearchIcon = () => null as any; // temporary shim
 // import { ChannelPreview } from '../ChannelPreview'; // TODO backend-wire-up
@@ -15,6 +16,7 @@ const Avatar = (props: any) => <div {...props} />; // temporary shim
 
 // import { useTranslationContext } from '../../context'; // TODO backend-wire-up
 const useTranslationContext = (_?: string) => ({ t: (key: string) => key });
+
 
 const DefaultSearchEmpty = () => {
   const { t } = useTranslationContext('SearchResults');
