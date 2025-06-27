@@ -28,9 +28,9 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.pinned_at) {
-            channel.unpin();
+            /* TODO backend-wire-up: channel.unpin */
           } else {
-            channel.pin();
+            /* TODO backend-wire-up: channel.pin */
           }
         }}
         title={membership.pinned_at ? t('Unpin') : t('Pin')}
@@ -47,9 +47,9 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.archived_at) {
-            channel.unarchive();
+            /* TODO backend-wire-up: channel.unarchive */
           } else {
-            channel.archive();
+            /* TODO backend-wire-up: channel.archive */
           }
         }}
         title={membership.archived_at ? t('Unarchive') : t('Archive')}

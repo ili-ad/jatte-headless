@@ -62,10 +62,10 @@ export const useMessageDeliveryStatus = ({
       return setMessageDeliveryStatus(MessageDeliveryStatus.DELIVERED);
     };
 
-    channel.on('message.new', handleMessageNew);
+    /* TODO backend-wire-up: channel.on */
 
     return () => {
-      channel.off('message.new', handleMessageNew);
+      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client, isOwnMessage]);
 
@@ -75,10 +75,10 @@ export const useMessageDeliveryStatus = ({
       if (event.user?.id !== client.user?.id)
         setMessageDeliveryStatus(MessageDeliveryStatus.READ);
     };
-    channel.on('message.read', handleMarkRead);
+    /* TODO backend-wire-up: channel.on */
 
     return () => {
-      channel.off('message.read', handleMarkRead);
+      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client, lastMessage, isOwnMessage]);
 
