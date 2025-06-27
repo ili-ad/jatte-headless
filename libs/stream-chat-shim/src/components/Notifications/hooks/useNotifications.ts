@@ -1,13 +1,7 @@
-import { useChatContext } from '../../../context';
-import { useStateStore } from '../../../store';
-import type { Notification, NotificationManagerState } from 'chat-shim';
 
-const selector = (state: NotificationManagerState) => ({
-  notifications: state.notifications,
-});
+import type { Notification } from 'chat-shim';
 
 export const useNotifications = (): Notification[] => {
-  const { client } = useChatContext();
-  const result = useStateStore(client.notifications.store, selector);
-  return result.notifications;
+  /* TODO backend-wire-up: notifications.store */
+  return [];
 };
