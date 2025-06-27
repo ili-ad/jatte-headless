@@ -1,1 +1,2 @@
-// export * from './PollResults'; // TODO backend-wire-up
+export * from './PollResults';
+
