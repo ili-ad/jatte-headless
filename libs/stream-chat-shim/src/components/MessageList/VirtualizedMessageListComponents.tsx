@@ -10,8 +10,10 @@ import { isMessageEdited, Message } from '../Message';
 import { useComponentContext } from '../../context';
 import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils';
 
+
 // import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
+
 import type { GroupStyle, RenderedMessage } from './utils';
 import type { VirtuosoContext } from './VirtualizedMessageList';
 import type { UnknownType } from '../../types/types';
@@ -40,6 +42,7 @@ export const makeItemsRenderedHandler = (
     renderedItemsActions.forEach((action) =>
       action(renderedMessages as RenderedMessage[]),
     );
+
   }, 200);
 
 type CommonVirtuosoComponentProps = {
@@ -220,3 +223,4 @@ export const messageRenderer = (
     </>
   );
 };
+
