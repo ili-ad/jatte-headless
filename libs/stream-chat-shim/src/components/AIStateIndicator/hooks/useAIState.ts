@@ -22,20 +22,13 @@ export const useAIState = (channel?: Channel): { aiState: AIState } => {
       return;
     }
 
-    const indicatorChangedListener = channel.on('ai_indicator.update', (event: Event) => {
-      const { cid } = event;
-      const state = event.ai_state as AIState;
-      if (channel.cid === cid) {
-        setAiState(state);
-      }
-    });
+    const indicatorChangedListener = /* TODO backend-wire-up: on */ {
+      unsubscribe: () => {},
+    } as any;
 
-    const indicatorClearedListener = channel.on('ai_indicator.clear', (event) => {
-      const { cid } = event;
-      if (channel.cid === cid) {
-        setAiState(AIStates.Idle);
-      }
-    });
+    const indicatorClearedListener = /* TODO backend-wire-up: on */ {
+      unsubscribe: () => {},
+    } as any;
 
     return () => {
       indicatorChangedListener.unsubscribe();
