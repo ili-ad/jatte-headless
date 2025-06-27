@@ -104,19 +104,21 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       if (channel.cid === event.cid) setUnread(0);
     };
 
-    client.on('notification.mark_read', handleEvent);
-    return () => client.off('notification.mark_read', handleEvent);
+    /* TODO backend-wire-up: client.on */
+    return () => {
+      /* TODO backend-wire-up: client.off */
+    };
   }, [channel, client]);
 
   useEffect(() => {
     const handleEvent = (event: Event) => {
       if (channel.cid !== event.cid) return;
       if (event.user?.id !== client.user?.id) return;
-      setUnread(channel.countUnread());
+        setUnread(/* TODO backend-wire-up: channel.countUnread */ 0);
     };
-    channel.on('notification.mark_unread', handleEvent);
+    /* TODO backend-wire-up: channel.on */
     return () => {
-      channel.off('notification.mark_unread', handleEvent);
+      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client]);
 
@@ -126,7 +128,7 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
         if (muted) {
           setUnread(0);
         } else {
-          setUnread(channel.countUnread());
+            setUnread(/* TODO backend-wire-up: channel.countUnread */ 0);
         }
       }, 400),
     [channel, muted],
@@ -142,18 +144,18 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       refreshUnreadCount();
     };
 
-    channel.on('message.new', handleEvent);
-    channel.on('message.updated', handleEvent);
-    channel.on('message.deleted', handleEvent);
-    channel.on('message.undeleted', handleEvent);
-    channel.on('channel.truncated', handleEvent);
+      /* TODO backend-wire-up: channel.on */
+      /* TODO backend-wire-up: channel.on */
+      /* TODO backend-wire-up: channel.on */
+      /* TODO backend-wire-up: channel.on */
+      /* TODO backend-wire-up: channel.on */
 
     return () => {
-      channel.off('message.new', handleEvent);
-      channel.off('message.updated', handleEvent);
-      channel.off('message.deleted', handleEvent);
-      channel.off('message.undeleted', handleEvent);
-      channel.off('channel.truncated', handleEvent);
+        /* TODO backend-wire-up: channel.off */
+        /* TODO backend-wire-up: channel.off */
+        /* TODO backend-wire-up: channel.off */
+        /* TODO backend-wire-up: channel.off */
+        /* TODO backend-wire-up: channel.off */
     };
   }, [channel, refreshUnreadCount, channelUpdateCount]);
 

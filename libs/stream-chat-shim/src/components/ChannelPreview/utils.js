@@ -32,7 +32,7 @@ var getLatestMessagePreview = function (channel, t, userLanguage, isMessageAIGen
     }
     if (poll) {
         if (!poll.vote_count) {
-            var createdBy = ((_b = poll.created_by) === null || _b === void 0 ? void 0 : _b.id) === channel.getClient().userID
+            var createdBy = ((_b = poll.created_by) === null || _b === void 0 ? void 0 : _b.id) === /* TODO backend-wire-up: channel.getClient */ ''
                 ? t('You')
                 : ((_d = (_c = poll.created_by) === null || _c === void 0 ? void 0 : _c.name) !== null && _d !== void 0 ? _d : t('Poll'));
             return t('📊 {{createdBy}} created: {{ pollName}}', {
@@ -46,7 +46,7 @@ var getLatestMessagePreview = function (channel, t, userLanguage, isMessageAIGen
             if (option && latestVote_1) {
                 return t('📊 {{votedBy}} voted: {{pollOptionText}}', {
                     pollOptionText: option.text,
-                    votedBy: ((_e = latestVote_1 === null || latestVote_1 === void 0 ? void 0 : latestVote_1.user) === null || _e === void 0 ? void 0 : _e.id) === channel.getClient().userID
+                    votedBy: ((_e = latestVote_1 === null || latestVote_1 === void 0 ? void 0 : latestVote_1.user) === null || _e === void 0 ? void 0 : _e.id) === /* TODO backend-wire-up: channel.getClient */ ''
                         ? t('You')
                         : ((_g = (_f = latestVote_1.user) === null || _f === void 0 ? void 0 : _f.name) !== null && _g !== void 0 ? _g : t('Poll')),
                 });
