@@ -15,8 +15,8 @@ var useGiphyPreview = function (separateGiphyPreview) {
                 setGiphyPreviewMessage(undefined);
             }
         };
-        client.on('message.new', handleEvent);
-        return function () { return client.off('message.new', handleEvent); };
+        /* TODO backend-wire-up: client.on */
+        return function () { /* TODO backend-wire-up: client.off */ };
     }, [client, separateGiphyPreview]);
     return {
         giphyPreviewMessage: giphyPreviewMessage,

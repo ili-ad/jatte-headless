@@ -18,8 +18,10 @@ const UnMemoizedConnectionStatus = () => {
       }
     };
 
-    client.on('connection.changed', connectionChanged);
-    return () => client.off('connection.changed', connectionChanged);
+    /* TODO backend-wire-up: client.on */
+    return () => {
+      /* TODO backend-wire-up: client.off */
+    };
   }, [client, online]);
 
   return (

@@ -75,7 +75,7 @@ export const useMarkRead = ({
       }
     };
 
-    channel.on('message.new', handleMessageNew);
+    /* TODO backend-wire-up: channel.on */
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     if (shouldMarkRead()) {
@@ -83,7 +83,7 @@ export const useMarkRead = ({
     }
 
     return () => {
-      channel.off('message.new', handleMessageNew);
+      /* TODO backend-wire-up: channel.off */
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [
