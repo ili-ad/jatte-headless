@@ -39,7 +39,6 @@ export const makeItemsRenderedHandler = (
         return processedMessages[calculateItemIndex(item.originalIndex, PREPEND_OFFSET)];
       })
       .filter((msg) => !!msg);
-
     renderedItemsActions.forEach((action) =>
       action(renderedMessages as RenderedMessage[]),
     );

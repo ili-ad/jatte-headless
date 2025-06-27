@@ -58,12 +58,18 @@ import type { ComponentContextValue } from '../../context/ComponentContext';
 import { useComponentContext } from '../../context/ComponentContext';
 import { VirtualizedMessageListContextProvider } from '../../context/VirtualizedMessageListContext';
 
-import type {
-  Channel,
-  LocalMessage,
-  ChannelState as StreamChannelState,
-  UserResponse,
-} from 'chat-shim';
+
+// import type {
+//   Channel,
+//   LocalMessage,
+//   ChannelState as StreamChannelState,
+//   UserResponse,
+// } from 'stream-chat'; // TODO backend-wire-up
+type Channel = any;
+type LocalMessage = any;
+type StreamChannelState = any;
+type UserResponse = any;
+
 import type { UnknownType } from '../../types/types';
 import { DEFAULT_NEXT_CHANNEL_PAGE_SIZE } from '../../constants/limits';
 import { useStableId } from '../UtilityComponents/useStableId';
