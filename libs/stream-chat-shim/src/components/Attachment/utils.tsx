@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-// import type { Attachment } from 'stream-chat'; // TODO backend-wire-up
-type Attachment = any;
+import type { Attachment } from 'chat-shim';
+// TODO backend-wire-up: StreamChat import excised
+
 import type { ATTACHMENT_GROUPS_ORDER, AttachmentProps } from './Attachment';
 
 export const SUPPORTED_VIDEO_FORMATS = [
