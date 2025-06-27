@@ -1,8 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { SuggestPollOptionForm } from '../src/SuggestPollOptionForm';
+import { SuggestPollOptionForm } from '../src/components/Poll/PollActions/SuggestPollOptionForm';
 
-test('renders placeholder', () => {
-  const { getByTestId } = render(<SuggestPollOptionForm />);
-  expect(getByTestId('suggest-poll-option-form-placeholder')).toBeTruthy();
+test('renders without crashing', () => {
+  render(<SuggestPollOptionForm close={() => {}} messageId="" />);
 });
