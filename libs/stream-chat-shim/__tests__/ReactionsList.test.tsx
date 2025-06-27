@@ -1,8 +1,8 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { ReactionsList } from '../src/ReactionsList';
+import { ReactionsList } from '../src/components/Reactions/ReactionsList';
 
-test('renders placeholder', () => {
+test('renders without crashing', () => {
   const { getByTestId } = render(<ReactionsList />);
-  expect(getByTestId('reactions-list')).toBeTruthy();
+  expect(getByTestId('reaction-list')).toBeTruthy();
 });
