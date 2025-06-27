@@ -40,9 +40,9 @@ export const useChannelPreviewInfo = (props: ChannelPreviewInfoParams) => {
 
     updateInfo();
 
-    client.on('user.updated', updateInfo);
+    /* TODO backend-wire-up: client.on */
     return () => {
-      client.off('user.updated', updateInfo);
+      /* TODO backend-wire-up: client.off */
     };
   }, [channel, channel.data, client, overrideImage, overrideTitle]);
 

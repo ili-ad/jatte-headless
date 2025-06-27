@@ -47,10 +47,11 @@ export const getLatestMessagePreview = (
 
   if (poll) {
     if (!poll.vote_count) {
-      const createdBy =
-        poll.created_by?.id === channel.getClient().userID
+        const createdBy =
+        poll.created_by?.id ===
+          /* TODO backend-wire-up: channel.getClient */ ''
           ? t('You')
-          : (poll.created_by?.name ?? t('Poll'));
+          : poll.created_by?.name ?? t('Poll');
       return t('📊 {{createdBy}} created: {{ pollName}}', {
         createdBy,
         pollName: poll.name,
@@ -65,10 +66,11 @@ export const getLatestMessagePreview = (
       if (option && latestVote) {
         return t('📊 {{votedBy}} voted: {{pollOptionText}}', {
           pollOptionText: option.text,
-          votedBy:
-            latestVote?.user?.id === channel.getClient().userID
-              ? t('You')
-              : (latestVote.user?.name ?? t('Poll')),
+            votedBy:
+              latestVote?.user?.id ===
+                /* TODO backend-wire-up: channel.getClient */ ''
+                ? t('You')
+                : latestVote.user?.name ?? t('Poll'),
         });
       }
     }

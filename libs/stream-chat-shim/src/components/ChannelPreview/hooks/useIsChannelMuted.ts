@@ -7,13 +7,18 @@ import type { Channel } from 'chat-shim';
 export const useIsChannelMuted = (channel: Channel) => {
   const { client } = useChatContext('useIsChannelMuted');
 
-  const [muted, setMuted] = useState(channel.muteStatus());
+  const [muted, setMuted] = useState(
+    /* TODO backend-wire-up: channel.muteStatus */ false,
+  );
 
   useEffect(() => {
-    const handleEvent = () => setMuted(channel.muteStatus());
+    const handleEvent = () =>
+      setMuted(/* TODO backend-wire-up: channel.muteStatus */ false);
 
-    client.on('notification.channel_mutes_updated', handleEvent);
-    return () => client.off('notification.channel_mutes_updated', handleEvent);
+    /* TODO backend-wire-up: client.on */
+    return () => {
+      /* TODO backend-wire-up: client.off */
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muted]);
 
