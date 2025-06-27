@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { PollContent } from '../src/components/Poll/PollContent';
+import { PollHeader } from '../src/components/Poll/PollHeader';
 
 test('renders without crashing', () => {
-  render(<PollContent />);
+  render(<PollHeader />);
 });

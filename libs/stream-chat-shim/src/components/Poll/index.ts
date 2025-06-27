@@ -1,10 +1,3 @@
-export * from './Poll';
-export * from './PollActions';
-export * from './PollContent';
-export * from './PollCreationDialog';
-export * from './PollHeader';
+
 export * from './PollOptionList';
-export * from './PollOptionSelector';
-export * from './PollVote';
-export * from './QuotedPoll';
-export * from './hooks';
+// TODO backend-wire-up: export other Poll components when ported
