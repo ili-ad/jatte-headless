@@ -182,11 +182,11 @@ useConnectionRecoveredListener(forceUpdate);
             setActiveChannel();
         }
     };
-    client.on('channel.deleted', handleEvent);
-    client.on('channel.hidden', handleEvent);
+    /* TODO backend-wire-up: client.on */
+    /* TODO backend-wire-up: client.on */
     return function () {
-        client.off('channel.deleted', handleEvent);
-        client.off('channel.hidden', handleEvent);
+        /* TODO backend-wire-up: client.off */
+        /* TODO backend-wire-up: client.off */
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [channel === null || channel === void 0 ? void 0 : channel.cid]);

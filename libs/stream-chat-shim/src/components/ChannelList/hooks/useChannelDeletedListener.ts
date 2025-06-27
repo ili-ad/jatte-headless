@@ -30,10 +30,10 @@ export const useChannelDeletedListener = (
       }
     };
 
-    client.on('channel.deleted', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.deleted', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, setChannels]);
 };

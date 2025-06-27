@@ -247,9 +247,7 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-        [customActiveChannelObject] = await client.queryChannels({
-          id: customActiveChannel,
-        });
+        [customActiveChannelObject] = await /* TODO backend-wire-up: client.queryChannels */ Promise.resolve([]);
       }
 
       if (customActiveChannelObject) {
@@ -339,12 +337,12 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       }
     };
 
-    client.on('channel.deleted', handleEvent);
-    client.on('channel.hidden', handleEvent);
+    /* TODO backend-wire-up: client.on */
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.deleted', handleEvent);
-      client.off('channel.hidden', handleEvent);
+      /* TODO backend-wire-up: client.off */
+      /* TODO backend-wire-up: client.off */
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.cid]);
