@@ -2,21 +2,29 @@ import deepequal from 'react-fast-compare';
 import emojiRegex from 'emoji-regex';
 
 import type { TFunction } from 'i18next';
-/* TODO backend-wire-up: StreamChat import excised */
-type ChannelConfigWithInfo = any;
-type LocalMessage = any;
-type LocalMessageBase = any;
-type MessageResponse = any;
-type Mute = any;
-type StreamChat = any;
-type UserResponse = any;
-import type { PinPermissions } from './hooks';
-import type { MessageProps } from './types';
+
 import type {
-  ComponentContextValue,
-  CustomMessageActions,
-  MessageContextValue,
-} from '../../context';
+  ChannelConfigWithInfo,
+  LocalMessage,
+  LocalMessageBase,
+  MessageResponse,
+  Mute,
+  StreamChat,
+  UserResponse,
+} from 'stream-chat';
+// import type { PinPermissions } from './hooks'; // TODO backend-wire-up
+type PinPermissions = any; // temporary shim
+// import type { MessageProps } from './types'; // TODO backend-wire-up
+type MessageProps = any; // temporary shim
+// import type {
+//   ComponentContextValue,
+//   CustomMessageActions,
+//   MessageContextValue,
+// } from '../../context'; // TODO backend-wire-up
+type ComponentContextValue = any;
+type CustomMessageActions = any;
+type MessageContextValue = any;
+
 
 /**
  * Following function validates a function which returns notification message.
