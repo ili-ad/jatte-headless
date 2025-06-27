@@ -13,6 +13,7 @@ import { useTranslationContext } from '../../context/TranslationContext';
 /* TODO backend-wire-up: Attachment type from stream-chat excised */
 type Attachment = any;
 
+
 export type GalleryProps = {
   images: ((
     | {
