@@ -1,8 +1,10 @@
 import React, { useCallback } from 'react';
 import clsx from 'clsx';
 
+
 // import type { FormatMessageResponse, ThreadState } from 'stream-chat'; // TODO backend-wire-up
 type FormatMessageResponse = any;
+
 type ThreadState = any;
 import type { ComponentPropsWithoutRef } from 'react';
 
@@ -39,6 +41,7 @@ const getTitleFromMessage = ({
 }: {
   currentUserId?: string;
   message?: FormatMessageResponse;
+
 }) => {
   const attachment = message?.attachments?.at(0);
 
@@ -46,8 +49,10 @@ const getTitleFromMessage = ({
 
   if (attachment) {
     attachmentIcon +=
+
       attachmentTypeIconMap[(attachment.type as keyof typeof attachmentTypeIconMap) ?? 'file'] ??
       attachmentTypeIconMap.file;
+
   }
 
   const messageBelongsToCurrentUser = message?.user?.id === currentUserId;
@@ -74,6 +79,7 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
   const thread = useThreadListItemContext()!;
 
   const selector = useCallback(
+
     (nextValue: ThreadState) =>
       [
         nextValue.replies.at(-1),
@@ -89,6 +95,7 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
     thread.state,
     selector,
   );
+
 
   const { displayTitle: channelDisplayTitle } = useChannelPreviewInfo({ channel });
 
@@ -107,7 +114,9 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
     >
       <div className='str-chat__thread-list-item__channel'>
         <Icon.MessageBubble />
+
         <div className='str-chat__thread-list-item__channel-text'>{channelDisplayTitle}</div>
+
       </div>
       <div className='str-chat__thread-list-item__parent-message'>
         <div className='str-chat__thread-list-item__parent-message-text'>
@@ -128,7 +137,9 @@ export const ThreadListItemUI = (props: ThreadListItemUIProps) => {
             <div className='str-chat__thread-list-item__latest-reply-text'>
               {deletedAt
                 ? 'This thread was deleted'
+
                 : getTitleFromMessage({ currentUserId: client.user?.id, message: latestReply })}
+
             </div>
             <div className='str-chat__thread-list-item__latest-reply-timestamp'>
               <Timestamp timestamp={deletedAt ?? latestReply?.created_at} />
