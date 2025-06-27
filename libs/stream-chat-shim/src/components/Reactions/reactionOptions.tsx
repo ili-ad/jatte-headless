@@ -2,7 +2,9 @@
 
 import React from 'react';
 
-import { StreamEmoji } from './StreamEmoji';
+// import { StreamEmoji } from './StreamEmoji'; // TODO backend-wire-up
+const StreamEmoji = (props: any) => null;
+
 
 export type ReactionOptions = Array<{
   Component: React.ComponentType;
