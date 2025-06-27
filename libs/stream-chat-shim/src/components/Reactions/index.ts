@@ -1,4 +1,9 @@
 
+export * from './ReactionSelector';
+export * from './ReactionsList';
+export * from './ReactionsListModal';
+export * from './SimpleReactionsList';
 export * from './SpriteImage';
-// TODO backend-wire-up: export other Reactions components when ported
+export * from './StreamEmoji';
+export * from './reactionOptions';
 
