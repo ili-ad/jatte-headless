@@ -36,9 +36,8 @@ export const useCreateChatClient = ({
     const client = new StreamChat(apiKey, undefined, cachedOptions);
     let didUserConnectInterrupt = false;
 
-    const connectionPromise = client
-      .connectUser(cachedUserData, tokenOrProvider)
-      .then(() => {
+    const connectionPromise =
+      /* TODO backend-wire-up: connectUser */ Promise.resolve().then(() => {
         if (!didUserConnectInterrupt) setChatClient(client);
       });
 
@@ -46,7 +45,7 @@ export const useCreateChatClient = ({
       didUserConnectInterrupt = true;
       setChatClient(null);
       connectionPromise
-        .then(() => client.disconnectUser())
+        .then(() => /* TODO backend-wire-up: disconnectUser */ Promise.resolve())
         .then(() => {
           console.log(`Connection for user "${cachedUserData.id}" has been closed`);
         });

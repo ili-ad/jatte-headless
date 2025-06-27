@@ -53,7 +53,10 @@ export const useChat = ({
     if (appSettings.current) {
       return appSettings.current;
     }
-    appSettings.current = client.getAppSettings();
+    appSettings.current =
+      /* TODO backend-wire-up: getAppSettings */ Promise.resolve(
+        {} as any,
+      );
     return appSettings.current;
   };
 
@@ -62,23 +65,23 @@ export const useChat = ({
 
     const version = process.env.STREAM_CHAT_REACT_VERSION;
 
-    const userAgent = client.getUserAgent();
+    const userAgent = /* TODO backend-wire-up: getUserAgent */ '';
     if (!userAgent.includes('stream-chat-react')) {
       // result looks like: 'stream-chat-react-2.3.2-stream-chat-javascript-client-browser-2.2.2'
       // the upper-case text between double underscores is replaced with the actual semantic version of the library
-      client.setUserAgent(`stream-chat-react-${version}-${userAgent}`);
+      /* TODO backend-wire-up: setUserAgent */
     }
 
-    client.threads.registerSubscriptions();
-    client.polls.registerSubscriptions();
-    client.reminders.registerSubscriptions();
-    client.reminders.initTimers();
+    /* TODO backend-wire-up: threads.registerSubscriptions */
+    /* TODO backend-wire-up: polls.registerSubscriptions */
+    /* TODO backend-wire-up: reminders.registerSubscriptions */
+    /* TODO backend-wire-up: reminders.initTimers */
 
     return () => {
-      client.threads.unregisterSubscriptions();
-      client.polls.unregisterSubscriptions();
-      client.reminders.unregisterSubscriptions();
-      client.reminders.clearTimers();
+        /* TODO backend-wire-up: threads.unregisterSubscriptions */
+        /* TODO backend-wire-up: polls.unregisterSubscriptions */
+        /* TODO backend-wire-up: reminders.unregisterSubscriptions */
+        /* TODO backend-wire-up: reminders.clearTimers */
     };
   }, [client]);
 
@@ -89,8 +92,8 @@ export const useChat = ({
       setMutes(event.me?.mutes || []);
     };
 
-    client.on('notification.mutes_updated', handleEvent);
-    return () => client.off('notification.mutes_updated', handleEvent);
+    /* TODO backend-wire-up: on */
+    return () => /* TODO backend-wire-up: off */;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientMutes?.length]);
 
@@ -128,7 +131,7 @@ export const useChat = ({
       if (event && event.preventDefault) event.preventDefault();
 
       if (activeChannel && Object.keys(watchers).length) {
-        await activeChannel.query({ watch: true, watchers });
+        await /* TODO backend-wire-up: query */ Promise.resolve();
       }
 
       setChannel(activeChannel);
