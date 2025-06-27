@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { render } from '@testing-library/react';
-import { LoadingChannel } from '../src/components/Channel/LoadingChannel';
-
+import { ChannelAvatar } from '../src/components/Avatar/ChannelAvatar';
 
 test('renders without crashing', () => {
-  render(<LoadingChannel />);
+  render(<ChannelAvatar />);
 });

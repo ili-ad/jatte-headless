@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { render } from '@testing-library/react';
-import { LoadingChannel } from '../src/components/Channel/LoadingChannel';
-
+import { Card } from '../src/components/Attachment/Card';
 
 test('renders without crashing', () => {
-  render(<LoadingChannel />);
+  render(<Card />);
 });

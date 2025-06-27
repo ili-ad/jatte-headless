@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { render } from '@testing-library/react';
-import { LoadingChannel } from '../src/components/Channel/LoadingChannel';
-
+import { DownloadIcon } from '../src/components/Attachment/icons';
 
 test('renders without crashing', () => {
-  render(<LoadingChannel />);
+  render(<DownloadIcon className="" />);
 });
