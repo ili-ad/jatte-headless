@@ -1,6 +1,6 @@
 import React from 'react';
+import type { ThreadManagerState } from 'stream-chat';
 
-// import type { ThreadManagerState } from 'stream-chat'; // TODO backend-wire-up
 
 type ThreadManagerState = any; // temporary shim
 
@@ -27,7 +27,6 @@ export const ThreadListUnseenThreadsBanner = () => {
         className='str-chat__unseen-threads-banner__button'
 
         onClick={() => {
-          /* TODO backend-wire-up: client.threads.reload */ Promise.resolve(undefined);
         }}
 
       >

@@ -1,13 +1,9 @@
 import type { PropsWithChildren } from 'react';
 import React, { useEffect } from 'react';
 
-// import type { LoadMoreButtonProps } from './LoadMoreButton'; // TODO backend-wire-up
 type LoadMoreButtonProps = any; // temporary shim
-// import { LoadMoreButton as DefaultLoadMoreButton } from './LoadMoreButton'; // TODO backend-wire-up
 const DefaultLoadMoreButton = (() => null) as unknown as React.ComponentType<LoadMoreButtonProps>;
-// import type { PaginatorProps } from '../../types/types'; // TODO backend-wire-up
 type PaginatorProps = any; // temporary shim
-// import { deprecationAndReplacementWarning } from '../../utils/deprecationWarning'; // TODO backend-wire-up
 const deprecationAndReplacementWarning = () => {};
 
 export type LoadMorePaginatorProps = PaginatorProps & {

@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-/* TODO backend-wire-up: StreamChat import excised */
+import type { ChannelResponse } from 'stream-chat';
 import type { ChannelResponse } from 'stream-chat';
 
 import { useChannelStateContext, useChatContext } from '../../../context';

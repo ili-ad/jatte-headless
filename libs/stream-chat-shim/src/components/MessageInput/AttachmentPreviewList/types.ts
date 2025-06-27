@@ -1,4 +1,4 @@
-// import type { LocalUploadAttachment } from 'stream-chat'; // TODO backend-wire-up
+import type { LocalUploadAttachment } from 'stream-chat';
 
 type LocalUploadAttachment = any; // temporary shim
 

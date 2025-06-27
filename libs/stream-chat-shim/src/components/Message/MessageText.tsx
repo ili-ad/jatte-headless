@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import React, { useMemo } from 'react';
+import type { LocalMessage, TranslationLanguages } from 'stream-chat';
 
 import { QuotedMessage as DefaultQuotedMessage } from './QuotedMessage';
 import { isOnlyEmojis, messageHasAttachments } from './utils';
@@ -12,7 +13,6 @@ import {
 import { renderText as defaultRenderText } from './renderText';
 import { MessageErrorText } from './MessageErrorText';
 
-// import type { LocalMessage, TranslationLanguages } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
 type TranslationLanguages = any;
 import type { MessageContextValue } from '../../context';

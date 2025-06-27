@@ -1,9 +1,7 @@
 import React from 'react';
-// import { PauseIcon, PlayIcon } from '../../MessageInput/icons'; // TODO backend-wire-up
 const PauseIcon = () => null as any;
 const PlayIcon = () => null as any;
 import { RecordingTimer } from './RecordingTimer';
-// import { useAudioController } from '../../Attachment/hooks/useAudioController'; // TODO backend-wire-up
 const useAudioController = () => ({
   audioRef: { current: null } as React.MutableRefObject<HTMLAudioElement | null>,
   isPlaying: false,
@@ -12,7 +10,6 @@ const useAudioController = () => ({
   seek: () => {},
   togglePlay: () => {},
 });
-// import { WaveProgressBar } from '../../Attachment'; // TODO backend-wire-up
 const WaveProgressBar = () => null as any;
 
 export type AudioRecordingPlayerProps = React.ComponentProps<'audio'> & {

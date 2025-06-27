@@ -1,5 +1,5 @@
 import React from 'react';
-// import type { Attachment } from 'stream-chat'; // TODO backend-wire-up
+import type { Attachment } from 'stream-chat';
 type Attachment = any;
 
 import { DownloadButton, FileSizeIndicator, PlayButton, ProgressBar } from './components';

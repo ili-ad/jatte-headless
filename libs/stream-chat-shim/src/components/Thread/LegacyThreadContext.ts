@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-/* TODO backend-wire-up: LocalMessage import excised */
+import type { LocalMessage } from 'stream-chat';
 type LocalMessage = any;
 
 export const LegacyThreadContext = React.createContext<{

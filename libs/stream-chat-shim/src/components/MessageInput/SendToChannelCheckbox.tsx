@@ -1,5 +1,5 @@
 import React from 'react'
-// import { useMessageComposer } from './hooks' // TODO backend-wire-up
+import type { MessageComposerState } from 'stream-chat';
 const useMessageComposer = () => ({} as any) // temporary shim
 import type { MessageComposerState } from 'chat-shim'
 import { useStateStore } from '../../store'

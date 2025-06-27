@@ -8,7 +8,6 @@ import { isChannel } from '../utils';
 
 import { useChatContext } from '../../../context/ChatContext';
 
-/* TODO backend-wire-up: StreamChat import excised */
 import type {
   Channel,
   ChannelFilters,
@@ -180,8 +179,6 @@ export const useChannelSearch = ({
         setActiveChannel(result);
         selectedChannel = result;
       } else {
-        const newChannel = /* TODO backend-wire-up: client.channel */ ({}) as any;
-        await /* TODO backend-wire-up: newChannel.watch */ Promise.resolve(undefined);
 
         setActiveChannel(newChannel);
         selectedChannel = newChannel;
@@ -210,13 +207,11 @@ export const useChannelSearch = ({
       try {
         if (searchForChannels) {
           promises.push(
-            /* TODO backend-wire-up: client.queryChannels */ Promise.resolve([] as any),
           );
         }
 
         if (searchForUsers) {
           promises.push(
-            /* TODO backend-wire-up: client.queryUsers */ Promise.resolve({ users: [] } as any),
           );
         }
 

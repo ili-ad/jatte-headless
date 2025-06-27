@@ -1,5 +1,6 @@
 import type { ComponentProps, PropsWithChildren } from 'react';
 import React, {
+import { localMessageToNewMessagePayload } from 'stream-chat';
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -29,7 +30,6 @@ import type {
   Channel as StreamChannel,
   UpdateMessageOptions,
 } from 'stream-chat';
-/* TODO backend-wire-up: StreamChat import excised */
 import { localMessageToNewMessagePayload } from 'stream-chat';
 
 import { initialState, makeChannelReducer } from './channelState';
@@ -381,7 +381,6 @@ const ChannelInner = (
                 updateChannelUiUnreadState ? setChannelUnreadUiState : undefined,
               );
             } else {
-              const markReadResponse = await /* TODO backend-wire-up: markRead */ Promise.resolve(undefined);
               if (updateChannelUiUnreadState && markReadResponse) {
                 _setChannelUnreadUiState({
                   last_read: lastRead.current,
@@ -940,7 +939,6 @@ const ChannelInner = (
       if (doSendMessageRequest) {
         messageResponse = await doSendMessageRequest(channel, message, options);
       } else {
-        messageResponse = await /* TODO backend-wire-up: sendMessage */
         await Promise.resolve(undefined);
       }
 

@@ -1,11 +1,11 @@
 import React from 'react';
+import type { LocalVoiceRecordingAttachment } from 'stream-chat';
 
 import { PlayButton } from '../../Attachment';
 import { RecordingTimer } from '../../MediaRecorder';
 import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
 import { FileIcon } from '../../ReactFileUtilities';
 import { useAudioController } from '../../Attachment/hooks/useAudioController';
-// import type { LocalVoiceRecordingAttachment } from 'stream-chat'; // TODO backend-wire-up
 type LocalVoiceRecordingAttachment = any; // temporary shim
 import type { UploadAttachmentPreviewProps } from './types';
 import { useTranslationContext } from '../../../context';

@@ -1,6 +1,5 @@
 import React from 'react';
 
-// import { useTranslationContext } from '../../context/TranslationContext'; // TODO backend-wire-up
 const useTranslationContext = (_componentName?: string) => ({
   t: (key: string) => key,
 });

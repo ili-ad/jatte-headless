@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-// import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
-// import { formatMessage } from 'stream-chat'; // TODO backend-wire-up
+import type { LocalMessage } from 'stream-chat';
+import { formatMessage } from 'stream-chat';
 const formatMessage = (m: any) => m as any;
 type LocalMessage = any;
 import {
@@ -20,7 +20,6 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
   const parentMessageRef = useRef<LocalMessage | null | undefined>(undefined);
 
   const querySearchParent = () =>
-    /* TODO backend-wire-up: search */
     Promise.resolve<{ results: any[] }>({ results: [] })
       .then(({ results }) => {
         if (!results.length) {

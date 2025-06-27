@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { usePollContext, useTranslationContext } from '../../context';
 import { useStateStore } from '../../store';
 import type { PollOption, PollState } from 'stream-chat';
-/* TODO backend-wire-up: StreamChat import excised */
+import type { PollOption, PollState } from 'stream-chat';
 
 type PollStateSelectorReturnValue = {
   enforce_unique_vote: boolean;

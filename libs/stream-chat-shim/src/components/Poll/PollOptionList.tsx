@@ -1,13 +1,10 @@
 import clsx from 'clsx';
 import React from 'react';
-// import { PollOptionSelector as DefaultPollOptionSelector } from './PollOptionSelector'; // TODO backend-wire-up
+import type { PollOption, PollState } from 'stream-chat';
 const DefaultPollOptionSelector = (_props: any) => null;
-// import { useStateStore } from '../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, _selector: any) => ({ options: [] as any[] });
-// import { useComponentContext, usePollContext } from '../../context'; // TODO backend-wire-up
 const useComponentContext = () => ({ PollOptionSelector: DefaultPollOptionSelector } as any);
 const usePollContext = () => ({ poll: { state: {} as PollState } } as any);
-// import type { PollOption, PollState } from 'stream-chat'; // TODO backend-wire-up
 import type { PollOption, PollState } from 'chat-shim';
 
 type PollStateSelectorReturnValue = { options: PollOption[] };

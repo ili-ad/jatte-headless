@@ -1,10 +1,10 @@
 import React from 'react';
+import type { Event, LocalMessage } from 'stream-chat';
 
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { getDateString } from '../../i18n/utils';
 
-/* TODO backend-wire-up: Event, LocalMessage import excised */
 import type { AvatarProps } from '../Avatar';
 import type { TimestampFormatterOptions } from '../../i18n/types';
 

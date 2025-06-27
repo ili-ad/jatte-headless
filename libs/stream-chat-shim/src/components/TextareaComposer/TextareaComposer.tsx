@@ -9,15 +9,12 @@ import type {
 import { useMemo } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Textarea from 'react-textarea-autosize';
-// import { useMessageComposer } from '../MessageInput'; // TODO backend-wire-up
 const useMessageComposer = () => ({ textComposer: {} }) as any; // temporary shim
 // import type {
 //   MessageComposerConfig,
 //   SearchSourceState,
 //   TextComposerState,
-// } from 'stream-chat'; // TODO backend-wire-up
 import type { MessageComposerConfig, SearchSourceState } from 'chat-shim';
-type TextComposerState = any; // TODO backend-wire-up
 import {
   useComponentContext,
   useMessageInputContext,

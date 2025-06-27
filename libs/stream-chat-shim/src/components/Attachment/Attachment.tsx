@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import type { Attachment as StreamAttachment } from 'stream-chat';
 // import {
 //   isAudioAttachment,
 //   isFileAttachment,
@@ -6,7 +7,6 @@ import React, { useMemo } from 'react';
 //   isScrapedContent,
 //   isVideoAttachment,
 //   isVoiceRecordingAttachment,
-// } from 'stream-chat'; // TODO backend-wire-up
 const isAudioAttachment = (() => false) as any; // temporary shim
 const isFileAttachment = (() => false) as any; // temporary shim
 const isImageAttachment = (() => false) as any; // temporary shim
@@ -27,7 +27,6 @@ import {
 import { SUPPORTED_VIDEO_FORMATS } from './utils';
 
 import type { ReactPlayerProps } from 'react-player';
-// import type { Attachment as StreamAttachment } from 'stream-chat'; // TODO backend-wire-up
 type StreamAttachment = any;
 import type { AttachmentActionsProps } from './AttachmentActions';
 import type { AudioProps } from './Audio';

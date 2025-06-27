@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-// import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
+import type { PollComposerState } from 'stream-chat';
+import { VotingVisibility } from 'stream-chat';
 type PollComposerState = any;
 import { VotingVisibility } from 'chat-shim';
 import { MultipleAnswersField } from './MultipleAnswersField';

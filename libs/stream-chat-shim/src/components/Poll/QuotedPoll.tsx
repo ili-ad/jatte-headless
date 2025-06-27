@@ -1,8 +1,7 @@
 import clsx from 'clsx';
 import React from 'react';
-// import { usePollContext } from '../../context'; // TODO backend-wire-up
+import type { PollState } from 'stream-chat';
 const usePollContext = () => ({ poll: { state: {} as PollState } } as any);
-// import { useStateStore } from '../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, _selector: any) => ({
   is_closed: false,
   name: '',

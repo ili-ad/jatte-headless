@@ -1,4 +1,4 @@
-/* TODO backend-wire-up: StreamChat import excised */
+import type { Channel, UserResponse } from 'stream-chat';
 import type { Channel, UserResponse } from 'stream-chat';
 
 export type ChannelOrUserResponse = Channel | UserResponse;

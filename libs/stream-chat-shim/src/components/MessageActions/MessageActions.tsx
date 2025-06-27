@@ -6,7 +6,6 @@ import { MessageActionsBox } from './MessageActionsBox';
 
 import { DialogAnchor, useDialog, useDialogIsOpen } from '../Dialog';
 import { ActionsIcon as DefaultActionsIcon } from '../Message/icons';
-// import { isUserMuted, shouldRenderMessageActions } from '../Message/utils'; // TODO backend-wire-up
 const isUserMuted = () => false;
 const shouldRenderMessageActions = () => false as any;
 

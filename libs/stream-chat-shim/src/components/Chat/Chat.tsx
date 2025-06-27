@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
-/* TODO backend-wire-up: StreamChat imports excised */
 import type { PropsWithChildren } from 'react';
+import type { StreamChat } from 'stream-chat';
 
 // Minimal stubs until backend integration
 type StreamChat = any;
-class SearchController {
   constructor(_opts: any) {}
 }
 class ChannelSearchSource {

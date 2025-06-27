@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import type { ComputeItemKey, VirtuosoProps } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
+import type { Thread, ThreadManagerState } from 'stream-chat';
 
-// import type { Thread, ThreadManagerState } from 'stream-chat'; // TODO backend-wire-up
 type Thread = any;
 type ThreadManagerState = any;
 
@@ -27,10 +27,8 @@ export const useThreadList = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        /* TODO backend-wire-up: client.threads.activate */
       }
       if (document.visibilityState === 'hidden') {
-        /* TODO backend-wire-up: client.threads.deactivate */
       }
     };
 
@@ -38,7 +36,6 @@ export const useThreadList = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      /* TODO backend-wire-up: client.threads.deactivate */
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [client]);
@@ -62,7 +59,6 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
       <ThreadListUnseenThreadsBanner />
       <Virtuoso
         atBottomStateChange={(atBottom) =>
-          atBottom && /* TODO backend-wire-up: client.threads.loadNextPage */ null
         }
         className='str-chat__thread-list'
         components={{

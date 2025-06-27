@@ -15,7 +15,6 @@ import React, { useCallback, useMemo } from 'react';
 //   useRetryHandler,
 //   useUserHandler,
 //   useUserRole,
-// } from './hooks'; // TODO backend-wire-up
 const useActionHandler = () => (() => undefined);
 const useDeleteHandler = () => (() => undefined);
 const useEditHandler = () => ({ clearEdit: () => {}, editing: false, setEdit: () => {} });
@@ -30,12 +29,10 @@ const useReactionsFetcher = () => (() => undefined);
 const useRetryHandler = () => (() => undefined);
 const useUserHandler = () => ({ onUserClick: () => {}, onUserHover: () => {} });
 const useUserRole = () => ({} as any);
-// import { areMessagePropsEqual, getMessageActions, MESSAGE_ACTIONS } from './utils'; // TODO backend-wire-up
 const areMessagePropsEqual = () => false;
 const getMessageActions = () => [] as any;
 const MESSAGE_ACTIONS = {} as any;
 
-// import type { MessageContextValue } from '../../context'; // TODO backend-wire-up
 type MessageContextValue = any;
 // import {
 //   MessageProvider,
@@ -43,17 +40,14 @@ type MessageContextValue = any;
 //   useChannelStateContext,
 //   useChatContext,
 //   useComponentContext,
-// } from '../../context'; // TODO backend-wire-up
 const MessageProvider = (props: any) => <>{props.children}</>;
 const useChannelActionContext = () => ({} as any);
 const useChannelStateContext = () => ({} as any);
 const useChatContext = () => ({} as any);
 const useComponentContext = () => ({} as any);
 
-// import { MessageSimple as DefaultMessage } from './MessageSimple'; // TODO backend-wire-up
 const DefaultMessage = () => null;
 
-// import type { MessageProps } from './types'; // TODO backend-wire-up
 type MessageProps = any;
 
 type MessagePropsToOmit =

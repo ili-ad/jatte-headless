@@ -1,6 +1,7 @@
 import type { CSSProperties, MutableRefObject } from 'react';
 import React, { useState } from 'react';
 import { sanitizeUrl } from '@braintree/sanitize-url';
+import type { Attachment } from 'stream-chat';
 
 import { BaseImage as DefaultBaseImage } from './BaseImage';
 import { Modal } from '../Modal';
@@ -9,7 +10,6 @@ import { useComponentContext } from '../../context';
 
 
 
-// import type { Attachment } from 'stream-chat'; // TODO backend-wire-up
 
 type Attachment = any;
 import type { Dimensions } from '../../types/types';

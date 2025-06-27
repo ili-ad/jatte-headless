@@ -1,4 +1,4 @@
-/* TODO backend-wire-up: Attachment import excised */
+import type { Attachment } from 'stream-chat';
 // import type { Attachment } from 'stream-chat';
 type Attachment = any;
 import * as linkify from 'linkifyjs';

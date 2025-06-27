@@ -1,4 +1,4 @@
-// import type { ThreadManagerState } from 'stream-chat'; // TODO backend-wire-up
+import type { ThreadManagerState } from 'stream-chat';
 type ThreadManagerState = any;
 
 import { useChatContext } from '../../../context';

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import type { LocalMessage, TranslationLanguages } from 'stream-chat';
 
 import { useDeleteHandler, useUserRole } from './hooks';
 import { MessageDeleted as DefaultMessageDeleted } from './MessageDeleted';
@@ -15,7 +16,6 @@ import { useMessageContext } from '../../context/MessageContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { renderText } from './renderText';
 
-/* TODO backend-wire-up: LocalMessage import excised */
 
 const selectColor = (number: number, dark: boolean) => {
   const hue = number * 137.508; // use golden angle approximation

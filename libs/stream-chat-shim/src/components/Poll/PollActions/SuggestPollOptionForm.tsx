@@ -2,9 +2,7 @@ import React from 'react';
 import { FormDialog } from '../../Dialog/FormDialog';
 import { useChatContext, usePollContext, useTranslationContext } from '../../../context';
 import { useStateStore } from '../../../store';
-// import type { PollOption, PollState } from 'stream-chat'; // TODO backend-wire-up
-type PollOption = any; // TODO backend-wire-up
-type PollState = any; // TODO backend-wire-up
+import type { PollOption, PollState } from 'stream-chat';
 
 type PollStateSelectorReturnValue = { options: PollOption[] };
 const pollStateSelector = (nextValue: PollState): PollStateSelectorReturnValue => ({
@@ -52,9 +50,7 @@ export const SuggestPollOptionForm = ({
         },
       }}
       onSubmit={async (value) => {
-        /* TODO backend-wire-up: createPollOption */
         await Promise.resolve(undefined);
-        /* TODO backend-wire-up: castVote */
       }}
       shouldDisableSubmitButton={(value) => !value.optionText}
       title={t('Suggest an option')}

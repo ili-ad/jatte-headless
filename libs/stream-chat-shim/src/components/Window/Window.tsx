@@ -1,8 +1,8 @@
 import React, { PropsWithChildren } from 'react';
 import clsx from 'clsx';
+import type { LocalMessage } from 'stream-chat';
 
 import { useChannelStateContext } from '../../context/ChannelStateContext';
-// import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
 
 export type WindowProps = {

@@ -1,5 +1,5 @@
 import React from 'react';
-/* TODO backend-wire-up: StreamChat types excised */
+import type { Action, Attachment } from 'stream-chat';
 type Action = any;
 type Attachment = any;
 

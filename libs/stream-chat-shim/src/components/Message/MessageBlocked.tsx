@@ -1,11 +1,8 @@
 import React from 'react';
 import clsx from 'clsx';
 
-// import { useUserRole } from './hooks/useUserRole'; // TODO backend-wire-up
 const useUserRole = (_message: any) => ({ isMyMessage: false } as any);
-// import { useTranslationContext } from '../../context/TranslationContext'; // TODO backend-wire-up
 const useTranslationContext = (_?: string) => ({ t: (key: string) => key } as any);
-// import { useMessageContext } from '../../context'; // TODO backend-wire-up
 const useMessageContext = () => ({ message: { id: '', type: '' } } as any);
 
 export const MessageBlocked = () => {

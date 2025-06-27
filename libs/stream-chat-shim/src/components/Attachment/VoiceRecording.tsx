@@ -1,5 +1,5 @@
 import React from 'react';
-/* TODO backend-wire-up: Attachment import excised */
+import type { Attachment } from 'stream-chat';
 type Attachment = any;
 
 import {

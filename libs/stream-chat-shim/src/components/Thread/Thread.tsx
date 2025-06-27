@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import clsx from 'clsx';
+import type { ThreadState } from 'stream-chat';
 
 import { LegacyThreadContext } from './LegacyThreadContext';
 import { MESSAGE_ACTIONS } from '../Message';
@@ -21,7 +22,6 @@ import { useStateStore } from '../../store';
 
 import type { MessageProps, MessageUIComponentProps } from '../Message/types';
 import type { MessageActionsArray } from '../Message/utils';
-/* TODO backend-wire-up: ThreadState import excised */
 type ThreadState = any;
 
 export type ThreadProps = {

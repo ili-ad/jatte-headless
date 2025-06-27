@@ -13,7 +13,6 @@ import type {
   UserResponse,
 } from 'stream-chat';
 
-/* TODO backend-wire-up: StreamChat import excised */
 import type { PinPermissions } from './hooks';
 import type { MessageProps } from './types';
 import type {

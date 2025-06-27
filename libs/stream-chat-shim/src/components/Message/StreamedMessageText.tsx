@@ -1,8 +1,6 @@
 import React from 'react';
 
-// import type { MessageTextProps } from './MessageText'; // TODO backend-wire-up
 type MessageTextProps = any;
-// import { MessageText } from './MessageText'; // TODO backend-wire-up
 const MessageText = (() => null) as any;
 
 import { useMessageContext } from '../../context';

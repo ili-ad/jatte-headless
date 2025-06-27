@@ -1,11 +1,11 @@
 import React from 'react';
 import clsx from 'clsx';
 import { FieldError } from '../../Form/FieldError';
+import type { PollComposerState } from 'stream-chat';
 
 import { useTranslationContext } from '../../../context';
 import { useMessageComposer } from '../../MessageInput';
 import { useStateStore } from '../../../store';
-// import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
 type PollComposerState = any;
 
 

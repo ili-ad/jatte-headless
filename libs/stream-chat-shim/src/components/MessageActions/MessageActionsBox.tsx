@@ -4,21 +4,17 @@ import React from 'react';
 import { CustomMessageActionsList as DefaultCustomMessageActionsList } from './CustomMessageActionsList';
 import { RemindMeActionButton } from './RemindMeSubmenu';
 
-// import { useMessageReminder } from '../Message'; // TODO backend-wire-up
 const useMessageReminder = (..._args: any[]) => ({} as any);
-// import { useMessageComposer } from '../MessageInput'; // TODO backend-wire-up
 const useMessageComposer = () => ({ setQuotedMessage: (_m: any) => {} });
 // import {
 //   useChatContext,
 //   useComponentContext,
 //   useMessageContext,
 //   useTranslationContext,
-// } from '../../context'; // TODO backend-wire-up
 const useChatContext = () => ({ client: {} } as any);
 const useComponentContext = (_: any) => ({} as any);
 const useMessageContext = (_: any) => ({ customMessageActions: undefined, message: {} as any, threadList: false } as any);
 const useTranslationContext = (_: any) => ({ t: (key: string) => key });
-// import { MESSAGE_ACTIONS } from '../Message/utils'; // TODO backend-wire-up
 const MESSAGE_ACTIONS = {
   delete: 'delete',
   edit: 'edit',
@@ -32,7 +28,6 @@ const MESSAGE_ACTIONS = {
   reply: 'reply',
   saveForLater: 'saveForLater',
 };
-// import type { MessageContextValue } from '../../context'; // TODO backend-wire-up
 type MessageContextValue = any;
 
 
@@ -193,8 +188,6 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
             className={buttonClassName}
             onClick={() =>
               reminder
-                ? /* TODO backend-wire-up: deleteReminder */ Promise.resolve(undefined)
-                : /* TODO backend-wire-up: createReminder */ Promise.resolve(undefined)
             }
             role='option'
           >

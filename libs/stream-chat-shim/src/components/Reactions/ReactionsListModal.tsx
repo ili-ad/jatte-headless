@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
+import type { ReactionSort } from 'stream-chat';
 
 import type { ReactionDetailsComparator, ReactionSummary, ReactionType } from './types';
 
@@ -8,11 +9,8 @@ import { Modal } from '../Modal';
 import { useFetchReactions } from './hooks/useFetchReactions';
 import { LoadingIndicator } from '../Loading';
 import { Avatar } from '../Avatar';
-// import type { MessageContextValue } from '../../context'; // TODO backend-wire-up
 type MessageContextValue = any;
-// import { useMessageContext } from '../../context'; // TODO backend-wire-up
 const useMessageContext = (_?: string) => ({} as any);
-// import type { ReactionSort } from 'stream-chat'; // TODO backend-wire-up
 import type { ReactionSort } from 'chat-shim';
 
 export type ReactionsListModalProps = ModalProps &

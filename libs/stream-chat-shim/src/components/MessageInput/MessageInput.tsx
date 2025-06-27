@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import React, { useEffect } from 'react';
+import type { LocalMessage, Message, SendMessageOptions } from 'stream-chat';
 
 import { MessageInputFlat } from './MessageInputFlat';
 import { useMessageComposer } from './hooks';
@@ -114,7 +115,6 @@ const MessageInputProvider = (props: PropsWithChildren<MessageInputProps>) => {
     if (!threadId || !messageComposer.channel || !messageComposer.compositionIsEmpty)
       return;
     // get draft data for legacy thread composer
-    /* TODO backend-wire-up: getDraft */
     Promise.resolve({ draft: undefined }).then(({ draft }) => {
       if (draft) {
         messageComposer.initState({ composition: draft });

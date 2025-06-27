@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
-// import type { TranslationLanguages } from 'stream-chat'; // TODO backend-wire-up
+import type { TranslationLanguages } from 'stream-chat';
 type TranslationLanguages = any;
 
 import { Attachment as DefaultAttachment } from '../Attachment';
@@ -36,7 +36,6 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
 
   const poll =
     quoted_message?.poll_id &&
-    /* TODO backend-wire-up: polls.fromState */ undefined;
   const quotedMessageDeleted =
     quoted_message?.deleted_at || quoted_message?.type === 'deleted';
 
