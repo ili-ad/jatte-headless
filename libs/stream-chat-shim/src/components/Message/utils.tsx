@@ -2,6 +2,7 @@ import deepequal from 'react-fast-compare';
 import emojiRegex from 'emoji-regex';
 
 import type { TFunction } from 'i18next';
+
 import type {
   ChannelConfigWithInfo,
   LocalMessage,
@@ -23,6 +24,7 @@ type MessageProps = any; // temporary shim
 type ComponentContextValue = any;
 type CustomMessageActions = any;
 type MessageContextValue = any;
+
 
 /**
  * Following function validates a function which returns notification message.
