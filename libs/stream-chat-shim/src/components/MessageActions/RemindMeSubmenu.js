@@ -16,9 +16,11 @@ var RemindMeSubmenu = function () {
     var t = (0, context_1.useTranslationContext)().t;
     var client = (0, context_1.useChatContext)().client;
     var message = (0, context_1.useMessageContext)().message;
+    var scheduledOffsetsMs = [];
+    /* TODO backend-wire-up: reminders.scheduledOffsetsMs */
     return (<div aria-label={t('aria/Remind Me Options')} className='str-chat__message-actions-box__submenu' role='listbox'>
-      {client.reminders.scheduledOffsetsMs.map(function (offsetMs) { return (<button className='str-chat__message-actions-list-item-button' key={"reminder-offset-option--".concat(offsetMs)} onClick={function () {
-                Promise.resolve(undefined);
+      {scheduledOffsetsMs.map(function (offsetMs) { return (<button className='str-chat__message-actions-list-item-button' key={"reminder-offset-option--".concat(offsetMs)} onClick={function () {
+                /* TODO backend-wire-up: reminders.upsertReminder */
             }}>
           {t('duration/Remind Me', { milliseconds: offsetMs })}
         </button>); })}
