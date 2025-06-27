@@ -8,6 +8,8 @@ import { useTranslationContext } from '../../context/TranslationContext';
 
 import type { ChannelPreviewInfoParams } from '../ChannelPreview/hooks/useChannelPreviewInfo';
 /* TODO backend-wire-up: LocalMessage import excised */
+// import type { LocalMessage } from 'stream-chat';
+
 type LocalMessage = any;
 
 export type ThreadHeaderProps = {
