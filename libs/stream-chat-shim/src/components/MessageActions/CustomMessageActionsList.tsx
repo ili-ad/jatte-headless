@@ -1,8 +1,10 @@
 import React from 'react';
 
-/* TODO backend-wire-up: LocalMessage import excised */
-// import type { LocalMessage } from 'stream-chat';
-import type { CustomMessageActions } from '../../context/MessageContext';
+// import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
+type LocalMessage = any;
+// import type { CustomMessageActions } from '../../context/MessageContext'; // TODO backend-wire-up
+type CustomMessageActions = any;
+
 
 export type CustomMessageActionsListProps = {
   message: LocalMessage;
