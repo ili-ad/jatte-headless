@@ -12,3 +12,4 @@ test('renders input', () => {
   const { getByTestId } = render(<SearchInput {...controller} />)
   expect(getByTestId('search-input')).toBeTruthy()
 })
+
