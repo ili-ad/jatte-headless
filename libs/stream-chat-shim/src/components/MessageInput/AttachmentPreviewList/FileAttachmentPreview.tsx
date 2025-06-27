@@ -1,24 +1,20 @@
 import React from 'react';
-// import { useTranslationContext } from '../../../context'; // TODO backend-wire-up
-const useTranslationContext = (_?: string) => ({ t: (s: any) => s });
-// import { FileIcon } from '../../ReactFileUtilities'; // TODO backend-wire-up
-const FileIcon = (_props: any) => null;
-// import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons'; // TODO backend-wire-up
-const CloseIcon = () => null;
-const DownloadIcon = () => null;
-const LoadingIndicatorIcon = (_props: any) => null;
-const RetryIcon = () => null;
+
+import { useTranslationContext } from '../../../context';
+import { FileIcon } from '../../ReactFileUtilities';
+import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
+
 
 // import type {
 //   LocalAudioAttachment,
 //   LocalFileAttachment,
 //   LocalVideoAttachment,
 // } from 'stream-chat'; // TODO backend-wire-up
-import type {
-  LocalAudioAttachment,
-  LocalFileAttachment,
-  LocalVideoAttachment,
-} from '../../../../../chat-shim';
+
+type LocalAudioAttachment = any;
+type LocalFileAttachment = any;
+type LocalVideoAttachment = any;
+
 import type { UploadAttachmentPreviewProps } from './types';
 
 export type FileAttachmentPreviewProps<CustomLocalMetadata = unknown> =
