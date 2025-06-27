@@ -1,7 +1,9 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { InfiniteScroll } from '../src/components/InfiniteScrollPaginator/InfiniteScroll';
+
+import { InfiniteScrollPaginator } from '../src/components/InfiniteScrollPaginator/InfiniteScrollPaginator';
 
 test('renders without crashing', () => {
-  render(<InfiniteScroll />);
+  render(<InfiniteScrollPaginator />);
+
 });
