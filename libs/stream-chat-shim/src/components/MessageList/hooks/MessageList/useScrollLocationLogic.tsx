@@ -1,8 +1,8 @@
 import type React from 'react';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import type { LocalMessage } from 'stream-chat';
 
 import { useMessageListScrollManager } from './useMessageListScrollManager';
-// import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
 
 export type UseScrollLocationLogicParams = {

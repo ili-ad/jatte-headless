@@ -5,7 +5,7 @@ import { FieldError } from '../../Form/FieldError';
 import { useTranslationContext } from '../../../context';
 import { useMessageComposer } from '../../MessageInput';
 import { useStateStore } from '../../../store';
-// import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
+import type { PollComposerState } from 'stream-chat';
 type PollComposerState = any;
 
 const pollComposerStateSelector = (state: PollComposerState) => ({

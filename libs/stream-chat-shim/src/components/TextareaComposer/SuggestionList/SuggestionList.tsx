@@ -15,7 +15,6 @@ import { useMessageComposer } from '../../MessageInput';
 //   SearchSourceState,
 //   TextComposerState,
 //   TextComposerSuggestion,
-// } from 'stream-chat'; // TODO backend-wire-up
 type SearchSourceState<T> = any; // temporary shim
 type TextComposerState = any; // temporary shim
 type TextComposerSuggestion = any; // temporary shim

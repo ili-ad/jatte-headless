@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PropsWithChildren } from 'react';
-/* TODO backend-wire-up: StreamChat import excised */
+import type { APIErrorResponse, Channel, ErrorFromResponse } from 'stream-chat';
 
 import { LoadingChannels } from '../Loading/LoadingChannels';
 import { NullComponent } from '../UtilityComponents';

@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import type { Channel } from 'chat-shim';
+import type { Channel } from 'stream-chat';
 
 import { useChannelMembershipState } from '../ChannelList';
 import { Icon } from './icons';
@@ -28,9 +29,7 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.pinned_at) {
-            /* TODO backend-wire-up: unpin */ Promise.resolve(undefined);
           } else {
-            /* TODO backend-wire-up: pin */ Promise.resolve(undefined);
           }
         }}
         title={membership.pinned_at ? t('Unpin') : t('Pin')}
@@ -47,9 +46,7 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.archived_at) {
-            /* TODO backend-wire-up: unarchive */ Promise.resolve(undefined);
           } else {
-            /* TODO backend-wire-up: archive */ Promise.resolve(undefined);
           }
         }}
         title={membership.archived_at ? t('Unarchive') : t('Archive')}

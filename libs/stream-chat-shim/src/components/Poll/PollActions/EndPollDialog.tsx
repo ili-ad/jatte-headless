@@ -1,6 +1,5 @@
 import { PromptDialog } from '../../Dialog/PromptDialog';
 import React from 'react';
-// import { usePollContext, useTranslationContext } from '../../../context'; // TODO backend-wire-up
 const usePollContext = () => ({ poll: { close: () => {} } } as any); // temporary shim
 const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s }); // temporary shim
 

@@ -3,11 +3,11 @@ import { PollOptionWithVotesHeader } from './PollOptionWithVotesHeader';
 import { PollVoteListing } from '../../PollVote';
 import { useStateStore } from '../../../../store';
 import {
+import type { PollOption, PollState, PollVote } from 'stream-chat';
   useChannelStateContext,
   usePollContext,
   useTranslationContext,
 } from '../../../../context';
-// import type { PollOption, PollState, PollVote } from 'stream-chat'; // TODO backend-wire-up
 type PollOption = any;
 type PollState = any;
 type PollVote = any;

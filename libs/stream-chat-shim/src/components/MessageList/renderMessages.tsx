@@ -1,24 +1,19 @@
 import React, { Fragment } from 'react';
-// import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils'; // TODO backend-wire-up
+import type { UserResponse } from 'stream-chat';
 const getIsFirstUnreadMessage = () => false; // temporary shim
 const isDateSeparatorMessage = () => false; // temporary shim
 const isIntroMessage = () => false; // temporary shim
 import { Message } from '../Message';
 import { DateSeparator as DefaultDateSeparator } from '../DateSeparator';
 import { EventComponent as DefaultMessageSystem } from '../EventComponent';
-// import { UnreadMessagesSeparator as DefaultUnreadMessagesSeparator } from './UnreadMessagesSeparator'; // TODO backend-wire-up
 const DefaultUnreadMessagesSeparator = (() => null) as React.ComponentType<any>; // temporary shim
 import type { ReactNode } from 'react';
 import type { UserResponse } from 'chat-shim';
-// import type { GroupStyle, RenderedMessage } from './utils'; // TODO backend-wire-up
 type GroupStyle = any; // temporary shim
-// eslint-disable-next-line @typescript-eslint/no-redeclare -- TODO backend-wire-up
 type RenderedMessage = any; // temporary shim
 import type { MessageProps } from '../Message';
-// import type { ComponentContextValue, CustomClasses } from '../../context'; // TODO backend-wire-up
 type ComponentContextValue = any;
 type CustomClasses = Record<string, string>;
-// import type { ChannelUnreadUiState } from '../../types'; // TODO backend-wire-up
 type ChannelUnreadUiState = any;
 
 export interface RenderMessagesOptions {

@@ -8,7 +8,6 @@ import type { ReactNode } from 'react';
 //   ChannelSort,
 //   Event,
 //   SearchControllerState,
-// } from 'stream-chat'; // TODO backend-wire-up
 type Channel = any;
 type ChannelFilters = any;
 type ChannelOptions = any;
@@ -16,11 +15,8 @@ type ChannelSort = any;
 type Event = any;
 type SearchControllerState = any;
 
-// import { useConnectionRecoveredListener } from './hooks/useConnectionRecoveredListener'; // TODO backend-wire-up
 const useConnectionRecoveredListener = () => {};
-// import { useMobileNavigation } from './hooks/useMobileNavigation'; // TODO backend-wire-up
 const useMobileNavigation = (_a: any, _b: any, _c: any) => {};
-// import { usePaginatedChannels } from './hooks/usePaginatedChannels'; // TODO backend-wire-up
 const usePaginatedChannels = (
   _client: any,
   _filters: any,
@@ -33,30 +29,20 @@ const usePaginatedChannels = (
 // import {
 //   useChannelListShape,
 //   usePrepareShapeHandlers,
-// } from './hooks/useChannelListShape'; // TODO backend-wire-up
 const useChannelListShape = (_handler: any) => {};
 const usePrepareShapeHandlers = (_opts: any) => ({ customHandler: undefined, defaultHandler: undefined });
-// import { useStateStore } from '../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, _selector: any) => ({ searchIsActive: false });
-// import { ChannelListMessenger } from './ChannelListMessenger'; // TODO backend-wire-up
 const ChannelListMessenger = (_props: any) => <div />;
-// import { Avatar as DefaultAvatar } from '../Avatar'; // TODO backend-wire-up
 const DefaultAvatar = (_props: any) => null;
-// import { ChannelPreview } from '../ChannelPreview/ChannelPreview'; // TODO backend-wire-up
 const ChannelPreview = (_props: any) => null;
-// import { ChannelSearch as DefaultChannelSearch } from '../ChannelSearch/ChannelSearch'; // TODO backend-wire-up
 const DefaultChannelSearch = (_props: any) => null;
-// import { EmptyStateIndicator as DefaultEmptyStateIndicator } from '../EmptyStateIndicator'; // TODO backend-wire-up
 const DefaultEmptyStateIndicator = (_props: any) => null;
-// import { LoadingChannels } from '../Loading/LoadingChannels'; // TODO backend-wire-up
 const LoadingChannels = () => null;
-// import { LoadMorePaginator } from '../LoadMore/LoadMorePaginator'; // TODO backend-wire-up
 const LoadMorePaginator = (_props: any) => <></>;
 // import {
 //   ChannelListContextProvider,
 //   useChatContext,
 //   useComponentContext,
-// } from '../../context'; // TODO backend-wire-up
 const ChannelListContextProvider = (props: any) => <>{props.children}</>;
 const useChatContext = (_name?: string) => ({
   channel: undefined,
@@ -71,27 +57,17 @@ const useChatContext = (_name?: string) => ({
   useImageFlagEmojisOnWindows: false,
 });
 const useComponentContext = () => ({ Search: null as any });
-// import { NullComponent } from '../UtilityComponents'; // TODO backend-wire-up
 const NullComponent = () => null;
 import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from './utils';
 import type { CustomQueryChannelsFn } from './hooks/usePaginatedChannels';
-// import type { ChannelListMessengerProps } from './ChannelListMessenger'; // TODO backend-wire-up
 type ChannelListMessengerProps = any;
-// import type { ChannelPreviewUIComponentProps } from '../ChannelPreview/ChannelPreview'; // TODO backend-wire-up
 type ChannelPreviewUIComponentProps = any;
-// import type { ChannelSearchProps } from '../ChannelSearch/ChannelSearch'; // TODO backend-wire-up
 type ChannelSearchProps = any;
-// import type { EmptyStateIndicatorProps } from '../EmptyStateIndicator'; // TODO backend-wire-up
 type EmptyStateIndicatorProps = any;
-// import type { LoadMorePaginatorProps } from '../LoadMore/LoadMorePaginator'; // TODO backend-wire-up
 type LoadMorePaginatorProps = any;
-// import type { ChatContextValue } from '../../context'; // TODO backend-wire-up
 type ChatContextValue = { isMessageAIGenerated?: boolean };
-// import type { ChannelAvatarProps } from '../Avatar'; // TODO backend-wire-up
 type ChannelAvatarProps = any;
-// import type { TranslationContextValue } from '../../context/TranslationContext'; // TODO backend-wire-up
 type TranslationContextValue = { t: any; userLanguage: any };
-// import type { PaginatorProps } from '../../types/types'; // TODO backend-wire-up
 type PaginatorProps = any;
 
 const DEFAULT_FILTERS = {};
@@ -298,7 +274,6 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-        [customActiveChannelObject] = await /* TODO backend-wire-up: queryChannels */ Promise.resolve([
           { id: customActiveChannel } as Channel,
         ]);
       }

@@ -1,8 +1,7 @@
 import React from 'react';
 import { SendIcon } from './icons';
-// import { useMessageComposerHasSendableData } from './hooks'; // TODO backend-wire-up
+import type { UpdatedMessage } from 'stream-chat';
 const useMessageComposerHasSendableData = () => true;
-// import type { UpdatedMessage } from 'stream-chat'; // TODO backend-wire-up
 type UpdatedMessage = any;
 
 export type SendButtonProps = {

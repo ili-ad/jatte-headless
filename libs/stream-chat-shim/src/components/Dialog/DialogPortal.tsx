@@ -1,11 +1,8 @@
 import type { PropsWithChildren } from 'react';
 import React, { useCallback } from 'react';
-// import { useDialogIsOpen, useOpenedDialogCount } from './hooks'; // TODO backend-wire-up
 const useDialogIsOpen = (_id: string) => false as any; // temporary shim
 const useOpenedDialogCount = () => 0 as any; // temporary shim
-// import { Portal } from '../Portal/Portal'; // TODO backend-wire-up
 const Portal = ({ children }: any) => <>{children}</>; // temporary shim
-// import { useDialogManager } from '../../context'; // TODO backend-wire-up
 const useDialogManager = () => ({ dialogManager: { id: '', closeAll: () => {} } } as any); // temporary shim
 
 export const DialogPortalDestination = () => {

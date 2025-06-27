@@ -2,19 +2,16 @@ import type { CSSProperties, ElementType, PropsWithChildren } from 'react';
 import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import clsx from 'clsx';
-// import type { MessageComposerConfig } from 'stream-chat'; // TODO backend-wire-up
 import type { MessageComposerConfig } from 'chat-shim';
+import type { MessageComposerConfig } from 'stream-chat';
 
-// import { useMessageInputContext, useTranslationContext } from '../../context'; // TODO backend-wire-up
 const useMessageInputContext = (_?: string) => ({} as any); // temporary shim
 const useTranslationContext = (_?: string) => ({ t: (key: string) => key }); // temporary shim
-// import { useAttachmentManagerState, useMessageComposer } from './hooks'; // TODO backend-wire-up
 const useAttachmentManagerState = () => ({ isUploadEnabled: false }); // temporary shim
 const useMessageComposer = () => ({
   attachmentManager: { uploadFiles: (_f: File[]) => Promise.resolve() },
   configState: {} as any,
 }); // temporary shim
-// import { useStateStore } from '../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, selector: any) =>
   selector({ attachments: { acceptedFiles: [], maxNumberOfFilesPerMessage: 1 } });
 

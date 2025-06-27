@@ -66,7 +66,6 @@ export const getChannel = async ({
     await queryPromise;
   } else {
     try {
-      WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid] = /* TODO backend-wire-up: channel.watch */ Promise.resolve(undefined);
       await WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];
     } finally {
       delete WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];

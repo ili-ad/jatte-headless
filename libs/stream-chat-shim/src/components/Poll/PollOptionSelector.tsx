@@ -1,20 +1,19 @@
 import clsx from 'clsx';
 import debounce from 'lodash.debounce';
 import React, { useMemo } from 'react';
-// import { isVoteAnswer } from 'stream-chat'; // TODO backend-wire-up
 import { isVoteAnswer } from 'chat-shim';
 import { Avatar } from '../Avatar';
+import { isVoteAnswer } from 'stream-chat';
+import type { PollOption, PollState, PollVote, VotingVisibility } from 'stream-chat';
 // import {
 //   useChannelStateContext,
 //   useMessageContext,
 //   usePollContext,
 //   useTranslationContext,
-// } from '../../context'; // TODO backend-wire-up
 const useChannelStateContext = (_?: string) => ({ channelCapabilities: {} });
 const useMessageContext = () => ({ message: { id: '' } });
 const usePollContext = () => ({ poll: { state: {} as PollState } });
 const useTranslationContext = () => ({ t: (s: string, _?: any) => s });
-// import { useStateStore } from '../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, _selector: any) => ({
   is_closed: false,
   latest_votes_by_option: {} as Record<string, PollVote[]>,
@@ -23,7 +22,6 @@ const useStateStore = (_store: any, _selector: any) => ({
   vote_counts_by_option: {} as Record<string, number>,
   voting_visibility: undefined as VotingVisibility | undefined,
 });
-// import type { PollOption, PollState, PollVote, VotingVisibility } from 'stream-chat'; // TODO backend-wire-up
 import type { PollOption, PollState, PollVote, VotingVisibility } from 'chat-shim';
 
 export type AmountBarProps = {

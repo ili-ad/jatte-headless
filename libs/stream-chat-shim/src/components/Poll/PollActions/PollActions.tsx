@@ -1,31 +1,18 @@
 import React, { useCallback, useState } from 'react';
-// import { PollAction } from './PollAction'; // TODO backend-wire-up
+import type { PollAnswer, PollOption, PollState } from 'stream-chat';
 const PollAction = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { AddCommentFormProps } from './AddCommentForm'; // TODO backend-wire-up
 type AddCommentFormProps = any;
-// import { AddCommentForm as DefaultAddCommentForm } from './AddCommentForm'; // TODO backend-wire-up
 const DefaultAddCommentForm = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { SuggestPollOptionFormProps } from './SuggestPollOptionForm'; // TODO backend-wire-up
 type SuggestPollOptionFormProps = any;
-// import { SuggestPollOptionForm as DefaultSuggestPollOptionForm } from './SuggestPollOptionForm'; // TODO backend-wire-up
 const DefaultSuggestPollOptionForm = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { EndPollDialogProps } from './EndPollDialog'; // TODO backend-wire-up
 type EndPollDialogProps = any;
-// import { EndPollDialog as DefaultEndPollDialog } from './EndPollDialog'; // TODO backend-wire-up
 const DefaultEndPollDialog = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { PollAnswerListProps } from './PollAnswerList'; // TODO backend-wire-up
 type PollAnswerListProps = any;
-// import { PollAnswerList as DefaultPollAnswerList } from './PollAnswerList'; // TODO backend-wire-up
 const DefaultPollAnswerList = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { FullPollOptionsListingProps } from './PollOptionsFullList'; // TODO backend-wire-up
 type FullPollOptionsListingProps = any;
-// import { PollOptionsFullList as DefaultPollOptionsFullList } from './PollOptionsFullList'; // TODO backend-wire-up
 const DefaultPollOptionsFullList = (() => null) as React.ComponentType<any>; // temporary shim
-// import type { PollResultsProps } from './PollResults'; // TODO backend-wire-up
 type PollResultsProps = any;
-// import { PollResults as DefaultPollResults } from './PollResults'; // TODO backend-wire-up
 const DefaultPollResults = (() => null) as React.ComponentType<any>; // temporary shim
-// import { MAX_OPTIONS_DISPLAYED, MAX_POLL_OPTIONS } from '../constants'; // TODO backend-wire-up
 const MAX_OPTIONS_DISPLAYED = 10;
 const MAX_POLL_OPTIONS = 100;
 // import {
@@ -34,13 +21,11 @@ const MAX_POLL_OPTIONS = 100;
 //   useMessageContext,
 //   usePollContext,
 //   useTranslationContext,
-// } from '../../../context'; // TODO backend-wire-up
 const useChannelStateContext = (_?: string) => ({ channelCapabilities: {} });
 const useChatContext = (_?: string) => ({ client: {} });
 const useMessageContext = (_?: string) => ({ message: { id: '' } });
 const usePollContext = (_?: string) => ({ poll: { state: {} } });
 const useTranslationContext = (_?: string) => ({ t: (s: string, _?: any) => s });
-// import { useStateStore } from '../../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, _selector: any) => ({
   allow_answers: false,
   allow_user_suggested_options: false,
@@ -51,7 +36,6 @@ const useStateStore = (_store: any, _selector: any) => ({
   ownAnswer: undefined,
 });
 
-// import type { PollAnswer, PollOption, PollState } from 'stream-chat'; // TODO backend-wire-up
 import type { PollAnswer, PollOption, PollState } from 'chat-shim';
 
 type ModalName =

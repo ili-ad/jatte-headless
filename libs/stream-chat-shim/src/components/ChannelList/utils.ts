@@ -1,5 +1,5 @@
 import uniqBy from 'lodash.uniqby';
-// import type { Channel, ChannelSort, ChannelSortBase } from 'stream-chat'; // TODO backend-wire-up
+import type { Channel, ChannelSort, ChannelSortBase } from 'stream-chat';
 type Channel = any;
 type ChannelSort = any;
 type ChannelSortBase = any;

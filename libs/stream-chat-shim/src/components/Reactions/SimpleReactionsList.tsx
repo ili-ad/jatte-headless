@@ -1,30 +1,24 @@
 import type { PropsWithChildren } from 'react';
 import React, { useState } from 'react';
 import clsx from 'clsx';
+import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat';
 
-// import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat'; // TODO backend-wire-up
 type ReactionGroupResponse = any;
 type ReactionResponse = any;
-// import type { MessageContextValue } from '../../context/MessageContext'; // TODO backend-wire-up
 type MessageContextValue = any;
-// import { useMessageContext } from '../../context/MessageContext'; // TODO backend-wire-up
 const useMessageContext = () => ({} as any);
-// import { useProcessReactions } from './hooks/useProcessReactions'; // TODO backend-wire-up
 const useProcessReactions = () => ({
   existingReactions: [] as any[],
   hasReactions: false,
   totalReactionCount: 0,
 });
-// import { useEnterLeaveHandlers } from '../Tooltip/hooks'; // TODO backend-wire-up
 const useEnterLeaveHandlers = (props: any) => ({
   handleEnter: () => {},
   handleLeave: () => {},
   tooltipVisible: false,
 });
-// import { PopperTooltip } from '../Tooltip'; // TODO backend-wire-up
 const PopperTooltip = (_: any) => null;
 
-// import type { ReactionOptions } from './reactionOptions'; // TODO backend-wire-up
 type ReactionOptions = any;
 
 type WithTooltipProps = {

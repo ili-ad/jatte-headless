@@ -3,7 +3,7 @@ import { ModalHeader } from '../../Modal/ModalHeader';
 import { PollOptionList } from '../PollOptionList';
 import { useStateStore } from '../../../store';
 import { usePollContext, useTranslationContext } from '../../../context';
-// import type { PollState } from 'stream-chat'; // TODO backend-wire-up
+import type { PollState } from 'stream-chat';
  type PollState = any;
 
 const pollStateSelector = (nextValue: PollState) => ({

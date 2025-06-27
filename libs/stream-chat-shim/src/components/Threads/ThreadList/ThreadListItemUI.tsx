@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
 import clsx from 'clsx';
+import type { LocalMessage, ThreadState } from 'stream-chat';
 
 
-// import type { LocalMessage, ThreadState } from 'stream-chat'; // TODO backend-wire-up
 import type { LocalMessage, ThreadState } from 'chat-shim';
 
 import type { ComponentPropsWithoutRef } from 'react';
@@ -11,17 +11,12 @@ import { Timestamp } from '../../Message/Timestamp';
 import { Avatar } from '../../Avatar';
 import { Icon } from '../icons';
 
-// import { UnreadCountBadge } from '../UnreadCountBadge'; // TODO backend-wire-up
 const UnreadCountBadge = (props: any) => <div {...props} />; // temporary shim
 
-// import { useChannelPreviewInfo } from '../../ChannelPreview'; // TODO backend-wire-up
 const useChannelPreviewInfo = (_: any) => ({ displayTitle: '' }); // temporary shim
-// import { useChatContext } from '../../../context'; // TODO backend-wire-up
 const useChatContext = () => ({ client: {} as any });
 import { useThreadsViewContext } from '../../ChatView';
-// import { useThreadListItemContext } from './ThreadListItem'; // TODO backend-wire-up
 const useThreadListItemContext = () => ({} as any);
-// import { useStateStore } from '../../../store'; // TODO backend-wire-up
 const useStateStore = (_store: any, selector: any) => selector({});
 
 

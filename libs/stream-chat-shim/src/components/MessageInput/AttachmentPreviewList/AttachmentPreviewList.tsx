@@ -8,7 +8,6 @@ import React from 'react';
 //   isLocalVideoAttachment,
 //   isLocalVoiceRecordingAttachment,
 //   isScrapedContent,
-// } from 'stream-chat'; // TODO backend-wire-up
 import {
   isLocalAttachment,
   isLocalAudioAttachment,
@@ -23,7 +22,6 @@ import { UnsupportedAttachmentPreview as DefaultUnknownAttachmentPreview } from 
 import { VoiceRecordingPreview as DefaultVoiceRecordingPreview } from './VoiceRecordingPreview';
 import { FileAttachmentPreview as DefaultFilePreview } from './FileAttachmentPreview';
 import { ImageAttachmentPreview as DefaultImagePreview } from './ImageAttachmentPreview';
-// import { useAttachmentManagerState, useMessageComposer } from '../hooks'; // TODO backend-wire-up
 const useAttachmentManagerState = () => ({ attachments: [] as any[] });
 const useMessageComposer = () => ({
   attachmentManager: {

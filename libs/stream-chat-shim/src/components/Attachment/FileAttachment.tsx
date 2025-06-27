@@ -1,10 +1,8 @@
 import React from 'react';
-// import { FileIcon } from '../ReactFileUtilities'; // TODO backend-wire-up
+import type { Attachment } from 'stream-chat';
 const FileIcon = (() => null) as any; // temporary shim
-// import type { Attachment } from 'stream-chat'; // TODO backend-wire-up
 type Attachment = any;
 
-// import { DownloadButton, FileSizeIndicator } from './components'; // TODO backend-wire-up
 const DownloadButton = (_: any) => null; // temporary shim
 const FileSizeIndicator = (_: any) => null; // temporary shim
 

@@ -6,8 +6,8 @@ import { InfiniteScrollPaginator } from '../../InfiniteScrollPaginator/InfiniteS
 import { LoadingIndicator } from '../../Loading';
 import { useStateStore } from '../../../store';
 import { usePollContext, useTranslationContext } from '../../../context';
+import type { PollAnswer, PollState } from 'stream-chat';
 
-/* TODO backend-wire-up: types from stream-chat replaced */
 import type { PollAnswer, PollState } from 'chat-shim';
 
 type PollStateSelectorReturnValue = {

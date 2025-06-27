@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-// import type { TranslationLanguages } from 'stream-chat'; // TODO backend-wire-up
+import type { MessageComposerState, TranslationLanguages } from 'stream-chat';
 type TranslationLanguages = any;
 
 import { Attachment as DefaultAttachment } from '../Attachment';

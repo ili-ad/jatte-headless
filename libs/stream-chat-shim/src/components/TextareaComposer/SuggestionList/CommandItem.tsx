@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
-// import type { CommandResponse } from 'stream-chat'; // TODO backend-wire-up
+import type { CommandResponse } from 'stream-chat';
 export type CommandResponse = any;
 
 export type CommandItemProps = {

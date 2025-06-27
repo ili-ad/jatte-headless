@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Avatar } from '../Avatar';
-// import { PopperTooltip } from '../Tooltip'; // TODO backend-wire-up
+import type { PollVote as PollVoteType } from 'stream-chat';
 const PopperTooltip = (_: any) => null;
-// import { useEnterLeaveHandlers } from '../Tooltip/hooks'; // TODO backend-wire-up
 const useEnterLeaveHandlers = (_?: any) => ({
   handleEnter: () => {},
   handleLeave: () => {},
@@ -10,7 +9,6 @@ const useEnterLeaveHandlers = (_?: any) => ({
 });
 import { useChatContext, useTranslationContext } from '../../context';
 
-// import type { PollVote as PollVoteType } from 'stream-chat'; // TODO backend-wire-up
 import type { PollVote as PollVoteType } from 'chat-shim';
 
 const PollVoteTimestamp = ({ timestamp }: { timestamp: string }) => {

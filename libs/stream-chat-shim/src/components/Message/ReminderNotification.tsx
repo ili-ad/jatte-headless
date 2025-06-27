@@ -1,9 +1,7 @@
 import React from "react";
 import { useTranslationContext } from "../../context";
 import { useStateStore } from "../../store";
-// import type { Reminder, ReminderState } from 'stream-chat'; // TODO backend-wire-up
-type Reminder = any; // TODO backend-wire-up
-type ReminderState = any; // TODO backend-wire-up
+import type { Reminder, ReminderState } from 'stream-chat';
 
 export type ReminderNotificationProps = {
   reminder?: Reminder;

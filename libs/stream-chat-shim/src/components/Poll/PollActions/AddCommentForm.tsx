@@ -1,9 +1,8 @@
 import React from 'react';
 import { FormDialog } from '../../Dialog/FormDialog';
-// import { useStateStore } from '../../../store'; // TODO backend-wire-up
+import type { PollAnswer, PollState } from 'stream-chat';
 const useStateStore = (_store: any, selector: any) => selector({});
 import { usePollContext, useTranslationContext } from '../../../context';
-// import type { PollAnswer, PollState } from 'stream-chat'; // TODO backend-wire-up
 import type { PollAnswer, PollState } from 'chat-shim';
 
 type PollStateSelectorReturnValue = { ownAnswer: PollAnswer | undefined };
@@ -39,7 +38,6 @@ export const AddCommentForm = ({ close, messageId }: AddCommentFormProps) => {
         },
       }}
       onSubmit={async (value) => {
-        await /* TODO backend-wire-up: poll.addAnswer */ Promise.resolve(undefined);
       }}
       shouldDisableSubmitButton={(value) =>
         !value.comment || value.comment === ownAnswer?.answer_text

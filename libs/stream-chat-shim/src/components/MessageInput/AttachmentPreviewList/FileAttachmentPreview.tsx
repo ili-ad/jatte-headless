@@ -9,7 +9,6 @@ import { CloseIcon, DownloadIcon, LoadingIndicatorIcon, RetryIcon } from '../ico
 //   LocalAudioAttachment,
 //   LocalFileAttachment,
 //   LocalVideoAttachment,
-// } from 'stream-chat'; // TODO backend-wire-up
 
 type LocalAudioAttachment = any;
 type LocalFileAttachment = any;

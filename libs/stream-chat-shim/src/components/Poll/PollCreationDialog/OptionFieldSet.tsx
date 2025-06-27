@@ -2,12 +2,12 @@ import clsx from 'clsx';
 import React, { useCallback } from 'react';
 import { FieldError } from '../../Form/FieldError';
 import { DragAndDropContainer } from '../../DragAndDrop/DragAndDropContainer';
+import type { PollComposerState } from 'stream-chat';
 
 import { useTranslationContext } from '../../../context';
 import { useMessageComposer } from '../../MessageInput';
 import { useStateStore } from '../../../store';
 
-// import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
 type PollComposerState = any;
 
 const pollComposerStateSelector = (state: PollComposerState) => ({

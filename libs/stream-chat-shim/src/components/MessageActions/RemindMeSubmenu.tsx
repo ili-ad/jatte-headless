@@ -38,7 +38,6 @@ export const RemindMeSubmenu = () => {
           className='str-chat__message-actions-list-item-button'
           key={`reminder-offset-option--${offsetMs}`}
             onClick={() => {
-              /* TODO backend-wire-up: upsertReminder */
               Promise.resolve(undefined);
             }}
         >

@@ -25,7 +25,6 @@ export const useEditMessageHandler = (doUpdateMessageRequest?: UpdateHandler) =>
         doUpdateMessageRequest(channel.cid, updatedMessage, options),
       );
     }
-    /* TODO backend-wire-up: updateMessage */
     return Promise.resolve(undefined);
   };
 };

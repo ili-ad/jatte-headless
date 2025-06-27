@@ -1,22 +1,15 @@
 import React from 'react';
 
-// import { MenuIcon as DefaultMenuIcon } from './icons'; // TODO backend-wire-up
 const DefaultMenuIcon = () => null; // temporary shim
-// import { Avatar as DefaultAvatar } from '../Avatar'; // TODO backend-wire-up
 const DefaultAvatar = (() => null) as React.ComponentType<any>; // temporary shim
-// import { useChannelPreviewInfo } from '../ChannelPreview/hooks/useChannelPreviewInfo'; // TODO backend-wire-up
 const useChannelPreviewInfo = () => ({
   displayImage: undefined,
   displayTitle: undefined,
   groupChannelDisplayInfo: undefined,
 });
-// import { useChannelStateContext } from '../../context/ChannelStateContext'; // TODO backend-wire-up
 const useChannelStateContext = (_componentName?: string) => ({} as any); // temporary shim
-// import { useChatContext } from '../../context/ChatContext'; // TODO backend-wire-up
 const useChatContext = (_componentName?: string) => ({} as any); // temporary shim
-// import { useTranslationContext } from '../../context/TranslationContext'; // TODO backend-wire-up
 const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s }); // temporary shim
-// import type { ChannelAvatarProps } from '../Avatar'; // TODO backend-wire-up
 type ChannelAvatarProps = any;
 
 export type ChannelHeaderProps = {

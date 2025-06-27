@@ -1,10 +1,10 @@
+import type { Thread } from 'stream-chat';
 
 import React, { createContext, useContext } from 'react';
 
 import { Channel } from '../../components';
 
 import type { PropsWithChildren } from 'react';
-// import type { Thread } from 'stream-chat'; // TODO backend-wire-up
 type Thread = any;
 
 

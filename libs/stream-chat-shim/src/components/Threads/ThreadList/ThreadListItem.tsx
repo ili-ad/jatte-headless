@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
+import type { Thread } from 'stream-chat';
 
-// import type { Thread } from 'stream-chat'; // TODO backend-wire-up
 type Thread = any;
 
 import { useComponentContext } from '../../../context';
