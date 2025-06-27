@@ -7,16 +7,22 @@ import { defaultReactionOptions } from './reactionOptions';
 import { isMutableRef } from './utils/utils';
 
 // import { useComponentContext } from '../../context/ComponentContext'; // TODO backend-wire-up
-const useComponentContext = () => ({} as any); // temporary shim
-// import { useMessageContext } from '../../context/MessageContext'; // TODO backend-wire-up
-const useMessageContext = () =>
-  ({
-    closeReactionSelectorOnClick: false,
-    handleReaction: async () => {},
-    message: { id: 'placeholder' },
-  } as any); // temporary shim
 
-import type { ReactionGroupResponse, ReactionResponse } from 'chat-shim';
+const useComponentContext = (_componentName?: string) => ({
+  Avatar: DefaultAvatar,
+  reactionOptions: defaultReactionOptions,
+});
+// import { useMessageContext } from '../../context/MessageContext'; // TODO backend-wire-up
+const useMessageContext = (_componentName?: string) => ({
+  closeReactionSelectorOnClick: false,
+  handleReaction: () => Promise.resolve(),
+  message: { id: '' },
+});
+
+// import type { ReactionGroupResponse, ReactionResponse } from 'stream-chat'; // TODO backend-wire-up
+type ReactionGroupResponse = any;
+type ReactionResponse = any;
+
 import type { AvatarProps } from '../Avatar';
 
 import type { ReactionOptions } from './reactionOptions';
