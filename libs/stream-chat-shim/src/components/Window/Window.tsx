@@ -2,7 +2,8 @@ import React, { PropsWithChildren } from 'react';
 import clsx from 'clsx';
 
 import { useChannelStateContext } from '../../context/ChannelStateContext';
-import type { LocalMessage } from 'stream-chat';
+// import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
+type LocalMessage = any;
 
 export type WindowProps = {
   /** optional prop to force addition of class str-chat__main-panel--thread-open to the Window root element */
