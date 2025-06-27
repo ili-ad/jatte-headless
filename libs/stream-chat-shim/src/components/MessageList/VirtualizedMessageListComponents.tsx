@@ -10,7 +10,9 @@ import { isMessageEdited, Message } from '../Message';
 import { useComponentContext } from '../../context';
 import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from './utils';
 
+
 import type { LocalMessage } from 'chat-shim'; // TODO backend-wire-up
+
 import type { GroupStyle, RenderedMessage } from './utils';
 import type { VirtuosoContext } from './VirtualizedMessageList';
 import type { UnknownType } from '../../types/types';
@@ -36,7 +38,9 @@ export const makeItemsRenderedHandler = (
         return processedMessages[calculateItemIndex(item.originalIndex, PREPEND_OFFSET)];
       })
       .filter((msg) => !!msg);
+
     renderedItemsActions.forEach((action) => action(renderedMessages as RenderedMessage[]));
+
   }, 200);
 
 type CommonVirtuosoComponentProps = {
