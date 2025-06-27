@@ -12,6 +12,7 @@ import { getIsFirstUnreadMessage, isDateSeparatorMessage, isIntroMessage } from 
 
 // import type { LocalMessage } from 'stream-chat'; // TODO backend-wire-up
 type LocalMessage = any;
+
 import type { GroupStyle, RenderedMessage } from './utils';
 import type { VirtuosoContext } from './VirtualizedMessageList';
 import type { UnknownType } from '../../types/types';
