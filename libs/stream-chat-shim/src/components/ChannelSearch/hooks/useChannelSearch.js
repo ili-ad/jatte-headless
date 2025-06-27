@@ -132,6 +132,9 @@ var useChannelSearch = function (_a) {
                         selectedChannel = result;
                     }
                     else {
+                        var newChannel =
+                            /* TODO backend-wire-up: client.channel */ ({});
+                        /* TODO backend-wire-up: channel.watch */
                         setActiveChannel(newChannel);
                         selectedChannel = newChannel;
                     }
@@ -165,10 +168,16 @@ var useChannelSearch = function (_a) {
                 case 1:
                     _b.trys.push([1, 4, , 5]);
                     if (searchForChannels) {
-                        promises.push();
+                        promises.push(
+                            /* TODO backend-wire-up: client.queryChannels */
+                            Promise.resolve([])
+                        );
                     }
                     if (searchForUsers) {
-                        promises.push();
+                        promises.push(
+                            /* TODO backend-wire-up: client.queryUsers */
+                            Promise.resolve({ users: [] })
+                        );
                     }
                     if (!promises.length) return [3 /*break*/, 3];
                     searchQueryPromiseInProgress.current = true;
