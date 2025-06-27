@@ -1,7 +1,8 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import { DownloadIcon } from '../src/components/Attachment/icons';
+import React from "react";
+import { render } from "@testing-library/react";
+import { Icon } from "../src/components/ChannelPreview/icons";
 
-test('renders without crashing', () => {
-  render(<DownloadIcon className="" />);
+test("renders ArchiveBox icon", () => {
+  const { container } = render(<Icon.ArchiveBox />);
+  expect(container.querySelector("svg")).toBeTruthy();
 });
