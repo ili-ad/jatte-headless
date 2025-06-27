@@ -18,7 +18,9 @@ var EndPollDialog = function (_a) {
             {
                 children: t('End'),
                 className: 'str-chat__dialog__controls-button--submit str-chat__dialog__controls-button--end-poll',
-                onClick: poll.close,
+                onClick: function () {
+                    /* TODO backend-wire-up: close */
+                },
             },
         ]} className='str-chat__modal__end-vote' prompt={t('Nobody will be able to vote in this poll anymore.')} title={t('End vote')}/>);
 };

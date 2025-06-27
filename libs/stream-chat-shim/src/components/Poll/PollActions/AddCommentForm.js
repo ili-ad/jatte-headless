@@ -62,6 +62,7 @@ var AddCommentForm = function (_a) {
                 },
             },
         }} onSubmit={function (value) { return __awaiter(void 0, void 0, void 0, function () {
+            /* TODO backend-wire-up: addAnswer */
             return __generator(this, function (_a) {
                 return [2 /*return*/];
             });
