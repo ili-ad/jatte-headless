@@ -69,7 +69,7 @@ var getChannel = function (_a) { return __awaiter(void 0, [_a], void 0, function
                 if (!channel && !type) {
                     throw new Error('Channel or channel type have to be provided to query a channel.');
                 }
-                theChannel = channel || client.channel(type, id, { members: members });
+                theChannel = channel || /* TODO backend-wire-up: client.channel */ ({});
                 originalCid = (theChannel === null || theChannel === void 0 ? void 0 : theChannel.id)
                     ? theChannel.cid
                     : members && members.length
