@@ -1,11 +1,7 @@
 import React from 'react';
 
-// import { useChatContext, useMessageContext, useTranslationContext } from '../../context'; // TODO backend-wire-up
-const useChatContext = () => ({ client: { reminders: { scheduledOffsetsMs: [] } } } as any);
-const useMessageContext = () => ({ message: {} as any });
-const useTranslationContext = () => ({ t: (key: string, _?: any) => key });
-// import { ButtonWithSubmenu } from '../Dialog'; // TODO backend-wire-up
-const ButtonWithSubmenu = (props: any) => <button {...props} />;
+import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
+import { ButtonWithSubmenu } from '../Dialog';
 
 import type { ComponentProps } from 'react';
 
@@ -37,14 +33,15 @@ export const RemindMeSubmenu = () => {
       className='str-chat__message-actions-box__submenu'
       role='listbox'
     >
-        {client.reminders.scheduledOffsetsMs.map((offsetMs) => (
-          <button
-            className='str-chat__message-actions-list-item-button'
-            key={`reminder-offset-option--${offsetMs}`}
+      {client.reminders.scheduledOffsetsMs.map((offsetMs) => (
+        <button
+          className='str-chat__message-actions-list-item-button'
+          key={`reminder-offset-option--${offsetMs}`}
             onClick={() => {
-              /* TODO backend-wire-up: upsertReminder */ Promise.resolve(undefined);
+              /* TODO backend-wire-up: upsertReminder */
+              Promise.resolve(undefined);
             }}
-          >
+        >
           {t('duration/Remind Me', { milliseconds: offsetMs })}
         </button>
       ))}
