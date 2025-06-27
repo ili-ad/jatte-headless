@@ -26,10 +26,10 @@ export const useChannelTruncatedListener = (
       }
     };
 
-    client.on('channel.truncated', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.truncated', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, forceUpdate, setChannels]);
 };

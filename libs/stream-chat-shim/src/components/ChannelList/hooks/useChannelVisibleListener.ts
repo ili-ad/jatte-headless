@@ -30,10 +30,10 @@ export const useChannelVisibleListener = (
       }
     };
 
-    client.on('channel.visible', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('channel.visible', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [client, customHandler, setChannels]);
 };
