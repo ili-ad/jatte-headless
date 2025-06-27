@@ -12,18 +12,15 @@ import type {
   StreamChat,
   UserResponse,
 } from 'stream-chat';
-// import type { PinPermissions } from './hooks'; // TODO backend-wire-up
-type PinPermissions = any; // temporary shim
-// import type { MessageProps } from './types'; // TODO backend-wire-up
-type MessageProps = any; // temporary shim
-// import type {
-//   ComponentContextValue,
-//   CustomMessageActions,
-//   MessageContextValue,
-// } from '../../context'; // TODO backend-wire-up
-type ComponentContextValue = any;
-type CustomMessageActions = any;
-type MessageContextValue = any;
+
+/* TODO backend-wire-up: StreamChat import excised */
+import type { PinPermissions } from './hooks';
+import type { MessageProps } from './types';
+import type {
+  ComponentContextValue,
+  CustomMessageActions,
+  MessageContextValue,
+} from '../../context';
 
 
 /**
