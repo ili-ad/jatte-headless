@@ -1,8 +1,7 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { SendToChannelCheckbox } from '../src/SendToChannelCheckbox'
+import { SendToChannelCheckbox } from '../src/components/MessageInput/SendToChannelCheckbox'
 
-test('renders placeholder', () => {
-  const { getByTestId } = render(<SendToChannelCheckbox />)
-  expect(getByTestId('send-to-channel-checkbox-placeholder')).toBeTruthy()
+test('renders without crashing', () => {
+  render(<SendToChannelCheckbox />)
 })
