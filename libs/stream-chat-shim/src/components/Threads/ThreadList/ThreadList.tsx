@@ -25,10 +25,10 @@ export const useThreadList = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        client.threads.activate();
+        /* TODO backend-wire-up: client.threads.activate */
       }
       if (document.visibilityState === 'hidden') {
-        client.threads.deactivate();
+        /* TODO backend-wire-up: client.threads.deactivate */
       }
     };
 
@@ -36,7 +36,7 @@ export const useThreadList = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      client.threads.deactivate();
+      /* TODO backend-wire-up: client.threads.deactivate */
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [client]);
@@ -59,7 +59,9 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
       {/* TODO: allow re-load on stale ThreadManager state */}
       <ThreadListUnseenThreadsBanner />
       <Virtuoso
-        atBottomStateChange={(atBottom) => atBottom && client.threads.loadNextPage()}
+        atBottomStateChange={(atBottom) =>
+          atBottom && /* TODO backend-wire-up: client.threads.loadNextPage */ null
+        }
         className='str-chat__thread-list'
         components={{
           EmptyPlaceholder: ThreadListEmptyPlaceholder,
