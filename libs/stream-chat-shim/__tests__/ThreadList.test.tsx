@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { ThreadListItemUI } from '../src/components/Threads/ThreadList/ThreadListItemUI';
+import { ThreadList } from '../src/components/Threads/ThreadList/ThreadList';
 
 test('renders without crashing', () => {
-  render(<ThreadListItemUI />);
+  render(<ThreadList />);
 });
