@@ -80,7 +80,9 @@ export const QuotedMessagePreview = ({
     [quotedMessage],
   );
 
-  const poll = quotedMessage?.poll_id && client.polls.fromState(quotedMessage.poll_id);
+  const poll = quotedMessage?.poll_id
+    ? /* TODO backend-wire-up: polls.fromState */ undefined
+    : undefined;
 
   if (!quotedMessageText && !quotedMessageAttachments.length && !poll) return null;
 
