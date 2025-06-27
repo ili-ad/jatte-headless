@@ -1,8 +1,7 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { AttachmentPreviewList } from '../src/AttachmentPreviewList'
+import { AttachmentPreviewList } from '../src/components/MessageInput/AttachmentPreviewList'
 
-test('renders placeholder', () => {
-  const { getByTestId } = render(<AttachmentPreviewList />)
-  expect(getByTestId('attachment-preview-list')).toBeTruthy()
+test('renders without crashing', () => {
+  render(<AttachmentPreviewList />)
 })

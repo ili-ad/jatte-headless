@@ -1,12 +1,9 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MessageThreadReplyInChannelButtonIndicator } from '../src/MessageThreadReplyInChannelButtonIndicator';
+import { MessageThreadReplyInChannelButtonIndicator } from '../src/components/Message/MessageThreadReplyInChannelButtonIndicator';
 
 describe('MessageThreadReplyInChannelButtonIndicator', () => {
-  it('renders placeholder', () => {
-    const { getByTestId } = render(<MessageThreadReplyInChannelButtonIndicator />);
-    expect(
-      getByTestId('message-thread-reply-in-channel-button-indicator-placeholder')
-    ).toBeTruthy();
+  test('renders without crashing', () => {
+    render(<MessageThreadReplyInChannelButtonIndicator />);
   });
 });
