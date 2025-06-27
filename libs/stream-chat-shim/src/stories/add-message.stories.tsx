@@ -23,15 +23,13 @@ const Controls = () => {
 
   return (
     <div>
-      <button data-testid='truncate' onClick={() => channel.truncate()}>
+      <button data-testid='truncate' onClick={() => /* TODO backend-wire-up: truncate */}>
         Truncate
       </button>
       <button
         data-testid='add-message'
         onClick={() =>
-          channel.sendMessage({
-            text: 'Hello world!',
-          })
+          /* TODO backend-wire-up: sendMessage */
         }
       >
         Add message

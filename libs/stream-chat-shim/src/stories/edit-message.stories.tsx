@@ -18,27 +18,14 @@ const Controls = () => {
 
   return (
     <div>
-      <button data-testid='truncate' onClick={() => channel.truncate()}>
+      <button data-testid='truncate' onClick={() => /* TODO backend-wire-up: truncate */}>
         Truncate
       </button>
       <button
         data-testid='add-message'
         onClick={() =>
-          channel.sendMessage({
-            attachments: [
-              {
-                fallback: 'A.png',
-                image_url: 'https://getstream.imgix.net/images/random_svg/A.png',
-                type: 'image',
-              },
-              {
-                fallback: 'B.png',
-                image_url: 'https://getstream.imgix.net/images/random_svg/B.png',
-                type: 'image',
-              },
-            ],
-            text: 'chat: https://getstream.io/chat/\nactivity-feeds: https://getstream.io/activity-feeds/',
-          })
+          /* TODO backend-wire-up: sendMessage */
+          
         }
       >
         Add message

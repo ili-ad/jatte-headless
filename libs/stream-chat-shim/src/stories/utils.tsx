@@ -31,7 +31,7 @@ const useClient = ({
     const client = new StreamChat(apiKey);
 
     let didUserConnectInterrupt = false;
-    const connectionPromise = client.connectUser(userData, tokenOrProvider).then(() => {
+    const connectionPromise = Promise.resolve(/* TODO backend-wire-up: connectUser */).then(() => {
       if (!didUserConnectInterrupt) setChatClient(client);
     });
 
@@ -39,7 +39,7 @@ const useClient = ({
       didUserConnectInterrupt = true;
       setChatClient(null);
       connectionPromise
-        .then(() => client.disconnectUser())
+        .then(() => Promise.resolve(/* TODO backend-wire-up: disconnectUser */))
         .then(() => {
           console.log('connection closed');
         });
