@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { ThreadListItemUI } from '../src/components/Threads/ThreadList/ThreadListItemUI';
+import { TextareaComposer } from '../src/components/TextareaComposer/TextareaComposer';
 
 test('renders without crashing', () => {
-  render(<ThreadListItemUI />);
+  render(<TextareaComposer />);
 });

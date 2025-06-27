@@ -1,7 +1,9 @@
 import React from 'react';
 
 // import type { ThreadManagerState } from 'stream-chat'; // TODO backend-wire-up
+
 type ThreadManagerState = any; // temporary shim
+
 
 import { Icon } from '../icons';
 import { useChatContext } from '../../../context';
@@ -23,9 +25,11 @@ export const ThreadListUnseenThreadsBanner = () => {
       {unseenThreadIds.length} unread threads
       <button
         className='str-chat__unseen-threads-banner__button'
+
         onClick={() => {
           /* TODO backend-wire-up: client.threads.reload */ Promise.resolve(undefined);
         }}
+
       >
         <Icon.Reload />
       </button>
