@@ -15,7 +15,8 @@
     "typescript": "5"
   },
   "scripts": {
-    "test": "turbo run test && jest"
+    "test": "turbo run test && jest",
+    "unstub": "tsx scripts/unstub-stream-ui.ts"
   },
   "dependencies": {
     "emoji-dictionary": "1.0.12",
@@ -26,5 +27,5 @@
     "overrides": {
       "stream-chat-react": "13.2.1"
     }
-  }  
+  }
 }
