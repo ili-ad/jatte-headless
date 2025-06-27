@@ -60,7 +60,9 @@ export const MessageInputFlat = () => {
   const { channel } = useChatContext('MessageInputFlat');
   const { aiState } = useAIState(channel);
 
-  const stopGenerating = useCallback(() => channel?.stopAIResponse(), [channel]);
+  const stopGenerating = useCallback(() => {
+    /* TODO backend-wire-up: stopAIResponse */
+  }, [channel]);
 
   const [
     showRecordingPermissionDeniedNotification,
