@@ -1,3 +1,7 @@
+
+export * from './useMessageTextStreaming';
+// TODO backend-wire-up: remaining hooks to be ported
+
 export * from './useActionHandler';
 export * from './useDeleteHandler';
 export * from './useEditHandler';
@@ -14,3 +18,4 @@ export * from './useUserRole';
 export * from './useReactionsFetcher';
 export * from './useMessageTextStreaming';
 export * from './useMessageReminder';
+
