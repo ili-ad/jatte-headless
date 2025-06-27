@@ -133,8 +133,10 @@ const DefaultMessageActionComponents = {
         <DefaultDropdownActionButton
           onClick={() =>
             reminder
-              ? client.reminders.deleteReminder(reminder.id)
-              : client.reminders.createReminder({ messageId: message.id })
+              ? /* TODO backend-wire-up: client.reminders.deleteReminder */
+                Promise.resolve()
+              : /* TODO backend-wire-up: client.reminders.createReminder */
+                Promise.resolve()
           }
         >
           {reminder ? t('Remove reminder') : t('Save for later')}
