@@ -1,26 +1,15 @@
 import React from 'react';
-// import { PlayButton } from '../../Attachment'; // TODO backend-wire-up
-const PlayButton = (_props: any) => null;
-// import { RecordingTimer } from '../../MediaRecorder'; // TODO backend-wire-up
-const RecordingTimer = (_props: any) => null;
-// import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons'; // TODO backend-wire-up
-const CloseIcon = () => null;
-const LoadingIndicatorIcon = (_props: any) => null;
-const RetryIcon = () => null;
-// import { FileIcon } from '../../ReactFileUtilities'; // TODO backend-wire-up
-const FileIcon = (_props: any) => null;
-// import { useAudioController } from '../../Attachment/hooks/useAudioController'; // TODO backend-wire-up
-const useAudioController = (_: any) => ({
-  audioRef: { current: null } as any,
-  isPlaying: false,
-  secondsElapsed: 0,
-  togglePlay: () => {},
-});
+
+import { PlayButton } from '../../Attachment';
+import { RecordingTimer } from '../../MediaRecorder';
+import { CloseIcon, LoadingIndicatorIcon, RetryIcon } from '../icons';
+import { FileIcon } from '../../ReactFileUtilities';
+import { useAudioController } from '../../Attachment/hooks/useAudioController';
 // import type { LocalVoiceRecordingAttachment } from 'stream-chat'; // TODO backend-wire-up
-import type { LocalVoiceRecordingAttachment } from '../../../../../chat-shim';
+type LocalVoiceRecordingAttachment = any; // temporary shim
 import type { UploadAttachmentPreviewProps } from './types';
-// import { useTranslationContext } from '../../../context'; // TODO backend-wire-up
-const useTranslationContext = () => ({ t: (s: any) => s });
+import { useTranslationContext } from '../../../context';
+
 
 export type VoiceRecordingPreviewProps<CustomLocalMetadata = Record<string, unknown>> =
   UploadAttachmentPreviewProps<LocalVoiceRecordingAttachment<CustomLocalMetadata>>;
