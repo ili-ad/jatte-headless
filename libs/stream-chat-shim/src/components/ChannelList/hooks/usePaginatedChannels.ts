@@ -89,11 +89,7 @@ export const usePaginatedChannels = (
           ...options,
         };
 
-        const channelQueryResponse = await client.queryChannels(
-          filters,
-          sort || {},
-          newOptions,
-        );
+        const channelQueryResponse = await /* TODO backend-wire-up: client.queryChannels */ Promise.resolve([]);
 
         const newChannels =
           queryType === 'reload'
@@ -141,7 +137,7 @@ export const usePaginatedChannels = (
 
   useEffect(() => {
     if (client.recoverStateOnReconnect) return;
-    const { unsubscribe } = client.on('connection.recovered', throttleRecover);
+    const { unsubscribe } = /* TODO backend-wire-up: client.on */ { unsubscribe: () => {} };
 
     return () => {
       unsubscribe();

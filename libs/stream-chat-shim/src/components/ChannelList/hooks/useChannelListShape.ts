@@ -110,7 +110,7 @@ export const useChannelListShapeDefaults = () => {
       if (!channelType || !channelId) return;
 
       setChannels((currentChannels) => {
-        const targetChannel = client.channel(channelType, channelId);
+        const targetChannel = /* TODO backend-wire-up: client.channel */ {} as any;
         const targetChannelIndex = currentChannels.indexOf(targetChannel);
         const targetChannelExistsWithinList = targetChannelIndex >= 0;
 
@@ -280,7 +280,7 @@ export const useChannelListShapeDefaults = () => {
       const pinnedAtSort = extractSortValue({ atIndex: 0, sort, targetKey: 'pinned_at' });
 
       setChannels((currentChannels) => {
-        const targetChannel = client.channel(channelType, channelId);
+        const targetChannel = /* TODO backend-wire-up: client.channel */ {} as any;
         // assumes that channel instances are not changing
         const targetChannelIndex = currentChannels.indexOf(targetChannel);
         const targetChannelExistsWithinList = targetChannelIndex >= 0;
@@ -644,7 +644,7 @@ export const useChannelListShape = (handler: (e: Event) => void) => {
   const { client } = useChatContext();
 
   useEffect(() => {
-    const subscription = client.on('all', handler);
+    const subscription = /* TODO backend-wire-up: client.on */ { unsubscribe: () => {} };
 
     return subscription.unsubscribe;
   }, [client, handler]);

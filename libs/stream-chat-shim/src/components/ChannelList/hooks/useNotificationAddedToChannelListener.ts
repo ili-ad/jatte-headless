@@ -38,10 +38,10 @@ export const useNotificationAddedToChannelListener = (
       }
     };
 
-    client.on('notification.added_to_channel', handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off('notification.added_to_channel', handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
   }, [allowNewMessagesFromUnfilteredChannels, client, customHandler, setChannels]);
 };
