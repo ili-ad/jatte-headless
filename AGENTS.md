@@ -1,23 +1,10 @@
 ### TITLE
-Unstub all components in one pass
+Remove SaaS calls in utils/
 
 ### BODY
-Write a Node script (`scripts/unstub-stream-ui.ts`) that:
-
-1. Recursively scans `libs/stream-chat-shim/src/**/*.{ts,tsx}`.
-2. For every file that contains `TODO backend-wire-up`
-   * Load the same relative file from `libs/stream-ui/src/**`.
-   * Copy **only** the import lines that were commented-out / removed.
-     (Hint: they always import from `stream-chat` or `stream-chat-react`.)
-   * Delete the local stub declarations (e.g. `class SearchController {}`).
-3. Overwrite the shim file in place.
-4. When the walk is finished, run  
-   `pnpm build && pnpm -F frontend tsc --noEmit`.
-   Exit with non-zero code if the build fails.
-
-Add the script to `package.json`:
-
-```json
-"scripts": {
-  "unstub": "tsx scripts/unstub-stream-ui.ts"
-}
+Operate only in libs/stream-chat-shim/src/**.  I will chunk this into subfolders specified in the prompt.
+For each reference to StreamChat SDK functions (`client.*`, `channel.*`, etc.)
+replace the call with `/* TODO backend-wire-up: <method> */` (return dummy
+values if async).  
+Do NOT add placeholders for missing imports – they’re already gone.  
+Do not touch tests or other folders.
