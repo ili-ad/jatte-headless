@@ -50,10 +50,9 @@ export const SuggestPollOptionForm = ({
         },
       }}
       onSubmit={async (value) => {
-        const { poll_option } = await client.createPollOption(poll.id, {
-          text: value.optionText,
-        });
-        poll.castVote(poll_option.id, messageId);
+        /* TODO backend-wire-up: createPollOption */
+        /* TODO backend-wire-up: castVote */
+        return Promise.resolve();
       }}
       shouldDisableSubmitButton={(value) => !value.optionText}
       title={t('Suggest an option')}
