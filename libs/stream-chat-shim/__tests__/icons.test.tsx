@@ -1,9 +1,11 @@
 
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MenuIcon, ReturnIcon, XIcon, SearchIcon } from '../src/components/ChannelSearch/icons';
+import { ChatBubble } from '../src/components/EmptyStateIndicator/icons';
 
-test('renders without crashing', () => {
+test('renders chat bubble icon', () => {
+  const { getByTestId } = render(<ChatBubble />);
+  expect(getByTestId('chat-bubble')).toB
   render(<MenuIcon />);
   render(<ReturnIcon />);
   render(<XIcon />);
