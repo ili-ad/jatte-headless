@@ -1,2 +1,6 @@
 export * from './CommandItem';
-// TODO backend-wire-up: export other SuggestionList components when ported
+export * from './EmoticonItem';
+export * from './SuggestionList';
+export * from './SuggestionListItem';
+export * from './UserItem';
+
