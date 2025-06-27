@@ -1,9 +1,11 @@
 import clsx from 'clsx';
 import React, { useEffect, useState } from 'react';
+
 // import type { UserResponse } from 'stream-chat'; // TODO backend-wire-up
 type UserResponse = any;
 
 import { Icon } from '../Threads/icons';
+
 import { getWholeChar } from '../../utils';
 
 export type AvatarProps = {
