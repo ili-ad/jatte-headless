@@ -9,7 +9,7 @@ var UnMemoizedScrollToBottomButton = function (props) {
     var isMessageListScrolledToBottom = props.isMessageListScrolledToBottom, onClick = props.onClick, threadList = props.threadList;
     var _a = (0, context_1.useChatContext)(), activeChannel = _a.channel, client = _a.client;
     var thread = (0, context_1.useChannelStateContext)().thread;
-    var _b = (0, react_1.useState)((activeChannel === null || activeChannel === void 0 ? void 0 : activeChannel.countUnread()) || 0), countUnread = _b[0], setCountUnread = _b[1];
+    var _b = (0, react_1.useState)(/* TODO backend-wire-up: countUnread */ 0), countUnread = _b[0], setCountUnread = _b[1];
     var _c = (0, react_1.useState)((thread === null || thread === void 0 ? void 0 : thread.reply_count) || 0), replyCount = _c[0], setReplyCount = _c[1];
     var observedEvent = threadList ? 'message.updated' : 'message.new';
     (0, react_1.useEffect)(function () {
@@ -35,9 +35,9 @@ var UnMemoizedScrollToBottomButton = function (props) {
                 setCountUnread(function () { return newReplyCount_1 - replyCount; });
             }
         };
-        client.on(observedEvent, handleEvent);
+        /* TODO backend-wire-up: client.on */
         return function () {
-            client.off(observedEvent, handleEvent);
+            /* TODO backend-wire-up: client.off */
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeChannel, isMessageListScrolledToBottom, observedEvent, replyCount, thread]);

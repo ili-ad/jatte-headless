@@ -173,7 +173,10 @@ var VirtualizedMessageListWithContext = function (props) {
     var MessageUIComponent = MessageUIComponentFromProps || MessageUIComponentFromContext;
     var _y = useChatContext('VirtualizedMessageList'), client = _y.client, customClasses = _y.customClasses;
     var virtuoso = (0, react_1.useRef)(null);
-    var lastRead = (0, react_1.useMemo)(function () { var _a; return (_a = channel.lastRead) === null || _a === void 0 ? void 0 : _a.call(channel); }, [channel]);
+    var lastRead = (0, react_1.useMemo)(function () {
+        /* TODO backend-wire-up: lastRead */
+        return undefined;
+    }, [channel]);
     var _z = useUnreadMessagesNotificationVirtualized({
         lastRead: channelUnreadUiState === null || channelUnreadUiState === void 0 ? void 0 : channelUnreadUiState.last_read,
         showAlways: !!showUnreadNotificationAlways,

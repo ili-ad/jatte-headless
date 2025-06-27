@@ -15,8 +15,8 @@ var UnMemoizedConnectionStatus = function () {
                 setOnline(onlineStatus);
             }
         };
-        client.on('connection.changed', connectionChanged);
-        return function () { return client.off('connection.changed', connectionChanged); };
+        /* TODO backend-wire-up: client.on */
+        return function () { /* TODO backend-wire-up: client.off */ };
     }, [client, online]);
     return (<CustomNotification_1.CustomNotification active={!online} className='str-chat__connection-status-notification' type='error'>
       {t('Connection failure, reconnecting now...')}

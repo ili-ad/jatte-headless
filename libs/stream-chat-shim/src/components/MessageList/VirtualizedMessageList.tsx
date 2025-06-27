@@ -247,7 +247,10 @@ const VirtualizedMessageListWithContext = (
 
   const virtuoso = useRef<VirtuosoHandle>(null);
 
-  const lastRead = useMemo(() => channel.lastRead?.(), [channel]);
+  const lastRead = useMemo(() => {
+    /* TODO backend-wire-up: lastRead */
+    return undefined;
+  }, [channel]);
 
   const { show: showUnreadMessagesNotification, toggleShowUnreadMessagesNotification } =
     useUnreadMessagesNotificationVirtualized({

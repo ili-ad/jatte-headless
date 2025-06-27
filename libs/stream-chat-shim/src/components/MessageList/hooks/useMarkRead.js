@@ -65,13 +65,13 @@ var useMarkRead = function (_a) {
                 markRead();
             }
         };
-        channel.on('message.new', handleMessageNew);
+        /* TODO backend-wire-up: channel.on */
         document.addEventListener('visibilitychange', onVisibilityChange);
         if (shouldMarkRead()) {
             markRead();
         }
         return function () {
-            channel.off('message.new', handleMessageNew);
+            /* TODO backend-wire-up: channel.off */
             document.removeEventListener('visibilitychange', onVisibilityChange);
         };
     }, [
