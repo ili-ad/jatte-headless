@@ -42,7 +42,10 @@ export const useEnrichedMessages = (args: {
   const { client } = useChatContext('useEnrichedMessages');
   const { HeaderComponent } = useComponentContext('useEnrichedMessages');
 
-  const lastRead = useMemo(() => channel.lastRead?.(), [channel]);
+  const lastRead = useMemo(() => {
+    /* TODO backend-wire-up: lastRead */
+    return undefined;
+  }, [channel]);
 
   const enableDateSeparator = !disableDateSeparator;
 

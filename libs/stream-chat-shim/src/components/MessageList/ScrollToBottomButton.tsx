@@ -18,7 +18,9 @@ const UnMemoizedScrollToBottomButton = (
 
   const { channel: activeChannel, client } = useChatContext();
   const { thread } = useChannelStateContext();
-  const [countUnread, setCountUnread] = useState(activeChannel?.countUnread() || 0);
+  const [countUnread, setCountUnread] = useState(
+    /* TODO backend-wire-up: countUnread */ 0,
+  );
   const [replyCount, setReplyCount] = useState(thread?.reply_count || 0);
   const observedEvent = threadList ? 'message.updated' : 'message.new';
 
@@ -49,10 +51,10 @@ const UnMemoizedScrollToBottomButton = (
         setCountUnread(() => newReplyCount - replyCount);
       }
     };
-    client.on(observedEvent, handleEvent);
+    /* TODO backend-wire-up: client.on */
 
     return () => {
-      client.off(observedEvent, handleEvent);
+      /* TODO backend-wire-up: client.off */
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChannel, isMessageListScrolledToBottom, observedEvent, replyCount, thread]);

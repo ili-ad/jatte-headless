@@ -19,8 +19,10 @@ export const useGiphyPreview = (separateGiphyPreview: boolean) => {
       }
     };
 
-    client.on('message.new', handleEvent);
-    return () => client.off('message.new', handleEvent);
+    /* TODO backend-wire-up: client.on */
+    return () => {
+      /* TODO backend-wire-up: client.off */
+    };
   }, [client, separateGiphyPreview]);
 
   return {
