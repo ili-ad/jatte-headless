@@ -18,9 +18,10 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
   const parentMessageRef = useRef<LocalMessage | null | undefined>(undefined);
 
   const querySearchParent = () =>
-    channel
-      .getClient()
-      .search({ cid: channel.cid }, { id: message.parent_id })
+    Promise.resolve({
+      /* TODO backend-wire-up: search */
+      results: [],
+    })
       .then(({ results }) => {
         if (!results.length) {
           throw new Error('Thread has not been found');
@@ -28,17 +29,7 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
         parentMessageRef.current = formatMessage(results[0].message);
       })
       .catch((error: Error) => {
-        client.notifications.addError({
-          message: t('Thread has not been found'),
-          options: {
-            originalError: error,
-            type: 'api:message:search:not-found',
-          },
-          origin: {
-            context: { threadReply: message },
-            emitter: 'MessageThreadReplyInChannelButtonIndicator',
-          },
-        });
+        /* TODO backend-wire-up: addError */
       });
 
   useEffect(() => {
@@ -48,7 +39,8 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
       !message.parent_id
     )
       return;
-    const localMessage = channel.state.findMessage(message.parent_id);
+    const localMessage = undefined as unknown as LocalMessage; //
+    /* TODO backend-wire-up: findMessage */
     if (localMessage) {
       parentMessageRef.current = localMessage;
       return;

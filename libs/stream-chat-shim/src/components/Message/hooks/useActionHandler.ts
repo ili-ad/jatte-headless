@@ -38,7 +38,9 @@ export function useActionHandler(message?: LocalMessage): ActionHandlerReturnTyp
     }
 
     if (messageID) {
-      const data = await channel.sendAction(messageID, formData);
+      const data = await Promise.resolve(
+        /* TODO backend-wire-up: sendAction */ undefined,
+      );
 
       if (data?.message) {
         updateMessage(data.message);

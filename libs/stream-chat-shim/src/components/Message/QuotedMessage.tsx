@@ -33,7 +33,9 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
 
   const { quoted_message } = message;
 
-  const poll = quoted_message?.poll_id && client.polls.fromState(quoted_message.poll_id);
+  const poll =
+    quoted_message?.poll_id &&
+    /* TODO backend-wire-up: polls.fromState */ undefined;
   const quotedMessageDeleted =
     quoted_message?.deleted_at || quoted_message?.type === 'deleted';
 

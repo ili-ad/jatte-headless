@@ -71,7 +71,9 @@ export const usePinHandler = (
 
         updateMessage(optimisticMessage);
 
-        await client.pinMessage(message);
+        await Promise.resolve(
+          /* TODO backend-wire-up: pinMessage */ undefined,
+        );
       } catch (e) {
         const errorMessage =
           getErrorNotification && validateAndGetMessage(getErrorNotification, [message]);
@@ -91,7 +93,9 @@ export const usePinHandler = (
 
         updateMessage(optimisticMessage);
 
-        await client.unpinMessage(message);
+        await Promise.resolve(
+          /* TODO backend-wire-up: unpinMessage */ undefined,
+        );
       } catch (e) {
         const errorMessage =
           getErrorNotification && validateAndGetMessage(getErrorNotification, [message]);

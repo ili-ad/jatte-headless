@@ -27,7 +27,9 @@ export const useMarkUnreadHandler = (
     }
 
     try {
-      await channel.markUnread({ message_id: message.id });
+      await Promise.resolve(
+        /* TODO backend-wire-up: markUnread */ undefined,
+      );
       if (!notify) return;
       const successMessage =
         getSuccessNotification &&
