@@ -9,6 +9,7 @@ import type {
 } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
 
+
 // import { GiphyPreviewMessage as DefaultGiphyPreviewMessage } from './GiphyPreviewMessage'; // TODO backend-wire-up
 const DefaultGiphyPreviewMessage = (() => null) as React.ComponentType<any>;
 // import { useLastReadData } from './hooks'; // TODO backend-wire-up
@@ -52,6 +53,7 @@ type RenderedMessage = any;
 const getGroupStyles = (..._args: any[]) => ({} as any);
 const getLastReceived = (..._args: any[]) => null;
 const processMessages = (..._args: any[]) => [] as any[];
+
 import type { MessageProps, MessageUIComponentProps } from '../Message';
 import { MessageSimple } from '../Message';
 import { UnreadMessagesNotification as DefaultUnreadMessagesNotification } from './UnreadMessagesNotification';
@@ -68,6 +70,7 @@ import {
 import { UnreadMessagesSeparator as DefaultUnreadMessagesSeparator } from '../MessageList';
 import { DateSeparator as DefaultDateSeparator } from '../DateSeparator';
 import { EventComponent as DefaultMessageSystem } from '../EventComponent';
+
 
 // import { DialogManagerProvider } from '../../context'; // TODO backend-wire-up
 const DialogManagerProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
@@ -94,6 +97,7 @@ const useComponentContext = (_?: string) => ({} as any);
 // import { VirtualizedMessageListContextProvider } from '../../context/VirtualizedMessageListContext'; // TODO backend-wire-up
 const VirtualizedMessageListContextProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
+
 // import type {
 //   Channel,
 //   LocalMessage,
@@ -104,10 +108,12 @@ type Channel = any;
 type LocalMessage = any;
 type StreamChannelState = any;
 type UserResponse = any;
+
 import type { UnknownType } from '../../types/types';
 import { DEFAULT_NEXT_CHANNEL_PAGE_SIZE } from '../../constants/limits';
 // import { useStableId } from '../UtilityComponents/useStableId'; // TODO backend-wire-up
 const useStableId = () => 'stable-id';
+
 
 type PropsDrilledToMessage =
   | 'additionalMessageInputProps'
