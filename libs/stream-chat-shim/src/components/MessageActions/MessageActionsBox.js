@@ -48,7 +48,6 @@ var MESSAGE_ACTIONS = {
 };
 var UnMemoizedMessageActionsBox = function (props) {
     var className = props.className, getMessageActions = props.getMessageActions, handleDelete = props.handleDelete, handleEdit = props.handleEdit, handleFlag = props.handleFlag, handleMarkUnread = props.handleMarkUnread, handleMute = props.handleMute, handlePin = props.handlePin, isUserMuted = props.isUserMuted, mine = props.mine, open = props.open, restDivProps = __rest(props, ["className", "getMessageActions", "handleDelete", "handleEdit", "handleFlag", "handleMarkUnread", "handleMute", "handlePin", "isUserMuted", "mine", "open"]);
-    var client = useChatContext().client;
     var _a = useComponentContext('MessageActionsBox').CustomMessageActionsList, CustomMessageActionsList = _a === void 0 ? CustomMessageActionsList_1.CustomMessageActionsList : _a;
     var _b = useMessageContext('MessageActionsBox'), customMessageActions = _b.customMessageActions, message = _b.message, threadList = _b.threadList;
     var t = useTranslationContext('MessageActionsBox').t;
@@ -97,7 +96,12 @@ var UnMemoizedMessageActionsBox = function (props) {
           </button>)}
         {messageActions.indexOf(MESSAGE_ACTIONS.remindMe) > -1 && (<RemindMeSubmenu_1.RemindMeActionButton className={buttonClassName} isMine={mine}/>)}
         {messageActions.indexOf(MESSAGE_ACTIONS.saveForLater) > -1 && (<button aria-selected='false' className={buttonClassName} onClick={function () {
-                return reminder;
+                if (reminder) {
+                    /* TODO backend-wire-up: reminders.deleteReminder */
+                }
+                else {
+                    /* TODO backend-wire-up: reminders.createReminder */
+                }
             }} role='option'>
             {reminder ? t('Remove reminder') : t('Save for later')}
           </button>)}

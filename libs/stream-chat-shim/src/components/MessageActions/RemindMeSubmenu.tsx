@@ -25,21 +25,20 @@ export const RemindMeSubmenu = () => {
   const { t } = useTranslationContext();
   const { client } = useChatContext();
   const { message } = useMessageContext();
+  const scheduledOffsetsMs: number[] = [];
+  /* TODO backend-wire-up: reminders.scheduledOffsetsMs */
   return (
     <div
       aria-label={t('aria/Remind Me Options')}
       className='str-chat__message-actions-box__submenu'
       role='listbox'
     >
-      {client.reminders.scheduledOffsetsMs.map((offsetMs) => (
+      {scheduledOffsetsMs.map((offsetMs) => (
         <button
           className='str-chat__message-actions-list-item-button'
           key={`reminder-offset-option--${offsetMs}`}
           onClick={() => {
-            client.reminders.upsertReminder({
-              messageId: message.id,
-              remind_at: new Date(new Date().getTime() + offsetMs).toISOString(),
-            });
+            /* TODO backend-wire-up: reminders.upsertReminder */
           }}
         >
           {t('duration/Remind Me', { milliseconds: offsetMs })}
