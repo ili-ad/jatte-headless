@@ -179,10 +179,9 @@ export const useChannelSearch = ({
         setActiveChannel(result);
         selectedChannel = result;
       } else {
-        const newChannel = client.channel(channelType, {
-          members: [client.userID, result.id],
-        });
-        await newChannel.watch();
+        const newChannel =
+          /* TODO backend-wire-up: client.channel */ ({} as Channel);
+        await /* TODO backend-wire-up: channel.watch */ Promise.resolve();
 
         setActiveChannel(newChannel);
         selectedChannel = newChannel;
@@ -211,28 +210,15 @@ export const useChannelSearch = ({
       try {
         if (searchForChannels) {
           promises.push(
-            client.queryChannels(
-              {
-                members: { $in: [client.userID as string] },
-                name: { $autocomplete: text },
-                ...searchQueryParams?.channelFilters?.filters,
-              },
-              searchQueryParams?.channelFilters?.sort || {},
-              { limit: 5, ...searchQueryParams?.channelFilters?.options },
-            ),
+            /* TODO backend-wire-up: client.queryChannels */
+            Promise.resolve([] as Channel[]),
           );
         }
 
         if (searchForUsers) {
           promises.push(
-            client.queryUsers(
-              {
-                $or: [{ id: { $autocomplete: text } }, { name: { $autocomplete: text } }],
-                ...searchQueryParams?.userFilters?.filters,
-              },
-              { id: 1, ...searchQueryParams?.userFilters?.sort },
-              { limit: 8, ...searchQueryParams?.userFilters?.options },
-            ),
+            /* TODO backend-wire-up: client.queryUsers */
+            Promise.resolve({ users: [] } as UsersAPIResponse),
           );
         }
 
