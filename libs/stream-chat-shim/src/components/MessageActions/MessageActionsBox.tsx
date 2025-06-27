@@ -3,17 +3,38 @@ import type { ComponentProps } from 'react';
 import React from 'react';
 import { CustomMessageActionsList as DefaultCustomMessageActionsList } from './CustomMessageActionsList';
 import { RemindMeActionButton } from './RemindMeSubmenu';
-import { useMessageReminder } from '../Message';
-import { useMessageComposer } from '../MessageInput';
-import {
-  useChatContext,
-  useComponentContext,
-  useMessageContext,
-  useTranslationContext,
-} from '../../context';
+
+// import { useMessageReminder } from '../Message'; // TODO backend-wire-up
+const useMessageReminder = (..._args: any[]) => ({} as any);
+// import { useMessageComposer } from '../MessageInput'; // TODO backend-wire-up
+const useMessageComposer = () => ({ setQuotedMessage: (_m: any) => {} });
+// import {
+//   useChatContext,
+//   useComponentContext,
+//   useMessageContext,
+//   useTranslationContext,
+// } from '../../context'; // TODO backend-wire-up
+const useChatContext = () => ({ client: {} } as any);
+const useComponentContext = (_: any) => ({} as any);
+const useMessageContext = (_: any) => ({ customMessageActions: undefined, message: {} as any, threadList: false } as any);
+const useTranslationContext = (_: any) => ({ t: (key: string) => key });
 // import { MESSAGE_ACTIONS } from '../Message/utils'; // TODO backend-wire-up
-const MESSAGE_ACTIONS = {} as any;
-import type { MessageContextValue } from '../../context';
+const MESSAGE_ACTIONS = {
+  delete: 'delete',
+  edit: 'edit',
+  flag: 'flag',
+  markUnread: 'markUnread',
+  mute: 'mute',
+  pin: 'pin',
+  quote: 'quote',
+  react: 'react',
+  remindMe: 'remindMe',
+  reply: 'reply',
+  saveForLater: 'saveForLater',
+};
+// import type { MessageContextValue } from '../../context'; // TODO backend-wire-up
+type MessageContextValue = any;
+
 
 type PropsDrilledToMessageActionsBox =
   | 'getMessageActions'
@@ -170,9 +191,11 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
           <button
             aria-selected='false'
             className={buttonClassName}
-            onClick={() => {
-              /* TODO backend-wire-up: reminders create/delete */
-            }}
+            onClick={() =>
+              reminder
+                ? /* TODO backend-wire-up: deleteReminder */ Promise.resolve(undefined)
+                : /* TODO backend-wire-up: createReminder */ Promise.resolve(undefined)
+            }
             role='option'
           >
             {reminder ? t('Remove reminder') : t('Save for later')}
