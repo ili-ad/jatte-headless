@@ -381,7 +381,10 @@ const ChannelInner = (
                 updateChannelUiUnreadState ? setChannelUnreadUiState : undefined,
               );
             } else {
-              const markReadResponse = await channel.markRead();
+              const markReadResponse = await (async () => {
+                /* TODO backend-wire-up: channel.markRead */
+                return { event: { last_read_message_id: '' } } as any;
+              })();
               if (updateChannelUiUnreadState && markReadResponse) {
                 _setChannelUnreadUiState({
                   last_read: lastRead.current,
@@ -477,10 +480,10 @@ const ChannelInner = (
        * As the channel state is not normalized we re-fetch the channel data. Thus, we avoid having to search for user references in the channel state.
        */
       // FIXME: we should use channelQueryOptions if they are available
-      await channel.query({
-        messages: { id_lt: oldestID, limit: DEFAULT_NEXT_CHANNEL_PAGE_SIZE },
-        watchers: { limit: DEFAULT_NEXT_CHANNEL_PAGE_SIZE },
-      });
+      await (async () => {
+        /* TODO backend-wire-up: channel.query */
+        return { messages: [] } as any;
+      })();
     }
 
     if (event.type === 'notification.mark_unread')
@@ -561,21 +564,21 @@ const ChannelInner = (
         if (channel.countUnread() > 0 && markReadOnMount)
           markRead({ updateChannelUiUnreadState: false });
         // The more complex sync logic is done in Chat
-        client.on('connection.changed', handleEvent);
-        client.on('connection.recovered', handleEvent);
-        client.on('user.updated', handleEvent);
-        client.on('user.deleted', handleEvent);
-        channel.on(handleEvent);
+        /* TODO backend-wire-up: client.on */
+        /* TODO backend-wire-up: client.on */
+        /* TODO backend-wire-up: client.on */
+        /* TODO backend-wire-up: client.on */
+        /* TODO backend-wire-up: channel.on */
       }
     })();
     const notificationTimeoutsRef = notificationTimeouts.current;
 
     return () => {
       if (errored || !done) return;
-      channel?.off(handleEvent);
-      client.off('connection.changed', handleEvent);
-      client.off('connection.recovered', handleEvent);
-      client.off('user.deleted', handleEvent);
+      /* TODO backend-wire-up: channel.off */
+      /* TODO backend-wire-up: client.off */
+      /* TODO backend-wire-up: client.off */
+      /* TODO backend-wire-up: client.off */
       notificationTimeoutsRef.forEach(clearTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -674,10 +677,10 @@ const ChannelInner = (
     let queryResponse: ChannelAPIResponse;
 
     try {
-      queryResponse = await channel.query({
-        messages: { id_lt: oldestID, limit: perPage },
-        watchers: { limit: perPage },
-      });
+      queryResponse = await (async () => {
+        /* TODO backend-wire-up: channel.query */
+        return { messages: [] } as ChannelAPIResponse;
+      })();
     } catch (e) {
       console.warn('message pagination request failed with error', e);
       dispatch({ loadingMore: false, type: 'setLoadingMore' });
@@ -707,10 +710,10 @@ const ChannelInner = (
     let queryResponse: ChannelAPIResponse;
 
     try {
-      queryResponse = await channel.query({
-        messages: { id_gt: newestId, limit: perPage },
-        watchers: { limit: perPage },
-      });
+      queryResponse = await (async () => {
+        /* TODO backend-wire-up: channel.query */
+        return { messages: [] } as ChannelAPIResponse;
+      })();
     } catch (e) {
       console.warn('message pagination request failed with error', e);
       dispatch({ loadingMoreNewer: false, type: 'setLoadingMoreNewer' });
@@ -732,7 +735,9 @@ const ChannelInner = (
       highlightDuration = DEFAULT_HIGHLIGHT_DURATION,
     ) => {
       dispatch({ loadingMore: true, type: 'setLoadingMore' });
-      await channel.state.loadMessageIntoState(messageId, undefined, messageLimit);
+      await (async () => {
+        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
+      })();
 
       loadMoreFinished(channel.state.messagePagination.hasPrev, channel.state.messages);
       handleHighlightedMessageChange({
@@ -745,7 +750,9 @@ const ChannelInner = (
 
   const jumpToLatestMessage: ChannelActionContextValue['jumpToLatestMessage'] =
     useCallback(async () => {
-      await channel.state.loadMessageIntoState('latest');
+      await (async () => {
+        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
+      })();
       loadMoreFinished(channel.state.messagePagination.hasPrev, channel.state.messages);
       dispatch({
         type: 'jumpToLatestMessage',
@@ -789,15 +796,10 @@ const ChannelInner = (
             let messages;
             try {
               messages = (
-                await channel.query(
-                  {
-                    messages: {
-                      created_at_around: channelUnreadUiState.last_read.toISOString(),
-                      limit: queryMessageLimit,
-                    },
-                  },
-                  'new',
-                )
+                await (async () => {
+                  /* TODO backend-wire-up: channel.query */
+                  return { messages: [] } as ChannelAPIResponse;
+                })()
               ).messages;
             } catch (e) {
               addNotification(t('Failed to jump to the first unread message'), 'error');
@@ -843,11 +845,9 @@ const ChannelInner = (
           dispatch({ loadingMore: true, type: 'setLoadingMore' });
           try {
             const targetId = (firstUnreadMessageId ?? lastReadMessageId) as string;
-            await channel.state.loadMessageIntoState(
-              targetId,
-              undefined,
-              queryMessageLimit,
-            );
+            await (async () => {
+              /* TODO backend-wire-up: channel.state.loadMessageIntoState */
+            })();
             /**
              * if the index of the last read message on the page is beyond the half of the page,
              * we have arrived to the oldest page of the channel
@@ -905,7 +905,10 @@ const ChannelInner = (
       if (doDeleteMessageRequest) {
         deletedMessage = await doDeleteMessageRequest(message);
       } else {
-        const result = await client.deleteMessage(message.id);
+        const result = await (async () => {
+          /* TODO backend-wire-up: client.deleteMessage */
+          return { message: undefined } as any;
+        })();
         deletedMessage = result.message;
       }
 
@@ -940,7 +943,10 @@ const ChannelInner = (
       if (doSendMessageRequest) {
         messageResponse = await doSendMessageRequest(channel, message, options);
       } else {
-        messageResponse = await channel.sendMessage(message, options);
+        messageResponse = await (async () => {
+          /* TODO backend-wire-up: channel.sendMessage */
+          return { message: undefined } as any;
+        })();
       }
 
       let existingMessage: LocalMessage | undefined = undefined;
@@ -1100,10 +1106,10 @@ const ChannelInner = (
     const oldestMessageId = oldMessages[0]?.id;
 
     try {
-      const queryResponse = await channel.getReplies(parentId, {
-        id_lt: oldestMessageId,
-        limit,
-      });
+      const queryResponse = await (async () => {
+        /* TODO backend-wire-up: channel.getReplies */
+        return { messages: [] } as any;
+      })();
 
       const threadHasMoreMessages = hasMoreMessagesProbably(
         queryResponse.messages.length,
