@@ -1,20 +1,13 @@
 import React from 'react';
 import clsx from 'clsx';
 import { FieldError } from '../../Form/FieldError';
-// import { useTranslationContext } from '../../../context'; // TODO backend-wire-up
-const useTranslationContext = (_componentName?: string) => ({ t: (s: string) => s });
-// import { useMessageComposer } from '../../MessageInput'; // TODO backend-wire-up
-const useMessageComposer = () => ({
-  pollComposer: {
-    state: {} as any,
-    handleFieldBlur: (_field: string) => {},
-    updateFields: (_fields: any) => {},
-  },
-});
-// import { useStateStore } from '../../../store'; // TODO backend-wire-up
-const useStateStore = (_store: any, selector: any) => selector(_store);
+
+import { useTranslationContext } from '../../../context';
+import { useMessageComposer } from '../../MessageInput';
+import { useStateStore } from '../../../store';
 // import type { PollComposerState } from 'stream-chat'; // TODO backend-wire-up
-type PollComposerState = any; // temporary shim
+type PollComposerState = any;
+
 
 const pollComposerStateSelector = (state: PollComposerState) => ({
   error: state.errors.name,
