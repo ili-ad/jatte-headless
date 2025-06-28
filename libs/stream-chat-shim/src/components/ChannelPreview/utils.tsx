@@ -49,7 +49,7 @@ export const getLatestMessagePreview = (
     if (!poll.vote_count) {
         const createdBy =
         poll.created_by?.id ===
-          /* TODO backend-wire-up: channel.getClient */ ''
+          channel.getClient()
           ? t('You')
           : poll.created_by?.name ?? t('Poll');
       return t('📊 {{createdBy}} created: {{ pollName}}', {
@@ -68,7 +68,7 @@ export const getLatestMessagePreview = (
           pollOptionText: option.text,
             votedBy:
               latestVote?.user?.id ===
-                /* TODO backend-wire-up: channel.getClient */ ''
+                channel.getClient()
                 ? t('You')
                 : latestVote.user?.name ?? t('Poll'),
         });
