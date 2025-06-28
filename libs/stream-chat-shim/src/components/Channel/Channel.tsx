@@ -92,7 +92,7 @@ import {
   getVideoAttachmentConfiguration,
 } from "../Attachment/attachment-sizing";
 import { useSearchFocusedMessage } from "../../experimental/Search/hooks";
-import { channelGetReplies } from "../../chatSDKShim";
+import { channelGetReplies, channelMarkRead } from "../../chatSDKShim";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -396,10 +396,7 @@ const ChannelInner = (
                   : undefined,
               );
             } else {
-              const markReadResponse = await (async () => {
-                /* TODO backend-wire-up: channel.markRead */
-                return { event: { last_read_message_id: "" } } as any;
-              })();
+              const markReadResponse = await channelMarkRead(channel);
               if (updateChannelUiUnreadState && markReadResponse) {
                 _setChannelUnreadUiState({
                   last_read: lastRead.current,
