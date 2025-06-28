@@ -237,6 +237,20 @@ paths:
                 properties:
                   status:
                     type: string
+  /user-agent/:
+    get:
+      operationId: listUserAgents
+      tags: [users]
+      responses:
+        '200':
+          description: user agent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_agent:
+                    type: string
   /notifications/:
     get:
       operationId: listNotifications
