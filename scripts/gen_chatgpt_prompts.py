@@ -56,17 +56,25 @@ AGENT_HEADER = AGENTS_MD_PATH.read_text().strip()
 PROMPT_DIR.mkdir(exist_ok=True)
 
 TEMPLATE = textwrap.dedent("""\
-    {header}
+{header}
 
-    ---- TASK START ----
-    ### Wire-up task: {operationId}
+---- TASK START ----
+### Wire-up task: {operationId}
 
-    **method**          {method}
-    **path**            {path}
-    **todo stubs in FE** {todoCount}
+**method**           {method}
+**path**             {path}
+**todo stubs in FE** {todoCount}
 
-    Please implement the backend slice described above following all rules in AGENTS.md.
-    """)
+**Scope**
+1. Implement backend endpoint & WS echo.
+2. 🔧 **Front-end** – remove/re-wire every
+   `// TODO backend-wire-up:{operationId}` in `libs/stream-chat-shim/src/`.
+3. Regenerate OpenAPI + flip `"status":"ok"` in the manifest.
+4. Ensure tests and lints pass.
+
+Paste a single patch (multiple files welcome).
+""")
+
 
 for entry in manifest:
     prompt_file = PROMPT_DIR / f"{entry['operationId']}.md"

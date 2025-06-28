@@ -35,19 +35,24 @@ Each task payload you get will look like:
 | **Branch name** | `wireup/<operationId>` (e.g. `wireup/uploadAttachment`).                                        |
 | **Commit msg**  | Conventional Commits, prefix with opId, e.g. `feat(uploadAttachment): implement`                |
 
-## 2 · Definition of Done
 
-    HTTP endpoint & serializer behave per payload spec.
+## 2 · Definition of Done  (backend **and** frontend)
+**Backend**
+  1. HTTP handler + serializer implemented per payload spec.
+  2. WS event emitted where required.
+  3. OpenAPI regenerated (`scripts/gen_openapi.sh`) and diff is clean.
 
-    WebSocket echo/event published where applicable.
+**Front-end wiring**
+  4. Delete or replace *every* matching  
+     `// TODO backend-wire-up:{operationId}` in `libs/stream-chat-shim/src/`.
+     - Prefer a thin typed wrapper in `chatAPI.ts` so future calls can’t regress.
+     - Add/adjust optimistic-update logic if relevant (`sendMessage`, etc.).
 
-    All // TODO backend-wire-up: <operationId> stubs deleted.
-
-    Unit + integration tests green (./manage.py test & pnpm test).
-
-    wireup_manifest.json entry flipped to "status": "ok".
-
-    scripts/diff_openapi.py shows zero new gaps.
+**Quality gates**
+  5. Jest + pytest suites green.
+  6. `rg -q "backend-wire-up:{operationId}" libs/stream-chat-shim/src || true`  
+     must return **non-zero** (no remaining stubs) — CI fails otherwise.
+  7. Commit flips `status` → `"ok"` for this entry in `openapi/wireup_manifest.json`.
 
 ## 3 · Merge-safety / parallelism
 
@@ -78,8 +83,15 @@ Each task payload you get will look like:
 ---- TASK START ----
 ### Wire-up task: listUsers
 
-**method**          GET
-**path**            /users/
+**method**           GET
+**path**             /users/
 **todo stubs in FE** 0
 
-Please implement the backend slice described above following all rules in AGENTS.md.
+**Scope**
+1. Implement backend endpoint & WS echo.
+2. 🔧 **Front-end** – remove/re-wire every
+   `// TODO backend-wire-up:listUsers` in `libs/stream-chat-shim/src/`.
+3. Regenerate OpenAPI + flip `"status":"ok"` in the manifest.
+4. Ensure tests and lints pass.
+
+Paste a single patch (multiple files welcome).
