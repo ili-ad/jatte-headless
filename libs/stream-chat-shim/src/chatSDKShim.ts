@@ -39,3 +39,17 @@ export async function channelMarkRead(
   }
   return undefined;
 }
+
+export function channelOff(
+  channel: { off?: (eventType?: string, handler?: (...args: any[]) => void) => void },
+  eventType?: string,
+  handler?: (...args: any[]) => void,
+): void {
+  if (typeof channel.off === 'function') {
+    // Forward the call to the underlying channel if available
+    (channel.off as (eventType?: string, handler?: (...args: any[]) => void) => void)(
+      eventType,
+      handler,
+    );
+  }
+}
