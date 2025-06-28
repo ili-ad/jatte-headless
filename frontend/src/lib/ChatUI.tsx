@@ -1,6 +1,8 @@
+//frontend/src/lib/ChatUI.tsx
 'use client'
 
-import { Chat, Channel, Window, MessageList, MessageInput } from 'stream-chat-react';
+import { Chat, Channel, Window, MessageList, MessageInput } from '@iliad/stream-chat-shim';
+
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 

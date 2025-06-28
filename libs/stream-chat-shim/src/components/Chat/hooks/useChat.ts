@@ -92,8 +92,8 @@ export const useChat = ({
       setMutes(event.me?.mutes || []);
     };
 
-    /* TODO backend-wire-up: on */
-    return () => /* TODO backend-wire-up: off */;
+    /* TODO backend-wire-up */
+return () => { /* noop */ };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientMutes?.length]);
 

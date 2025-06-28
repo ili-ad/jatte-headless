@@ -1,0 +1,16 @@
+{
+  "name": "@iliad/stream-chat-shim",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",       
+    "react-popper": "^2.3.0"
+  },
+
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

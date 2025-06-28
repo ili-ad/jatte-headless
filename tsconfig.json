@@ -2,11 +2,13 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "jsx": "react-jsx",     
     "paths": {
       "@/*": ["frontend/lib/*", "frontend/src/*"],
       "stream-chat-react": ["libs/stream-chat-shim/src"],
       "stream-chat-react/*": ["libs/stream-chat-shim/src/*"],      
       "stream-chat": ["libs/chat-shim"],
+      "chat-shim": ["libs/chat-shim"],
     },
     "types": ["node", "react", "jest"]
   }

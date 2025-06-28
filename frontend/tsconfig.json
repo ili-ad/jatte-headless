@@ -24,6 +24,7 @@
     "paths": {
       "@/*": ["lib/*", "src/*"],
 
+      "chat-shim": ["../libs/chat-shim"],
       /* make the shim visible */
       "@iliad/stream-chat-shim": ["../libs/stream-chat-shim/src"],
       "@iliad/stream-chat-shim/*": ["../libs/stream-chat-shim/src/*"],
