@@ -344,6 +344,17 @@ export class LocalChatClient {
     return resp.json();
   }
 
+  /** Update a message via the backend */
+  async updateMessage(id: string, text: string): Promise<any> {
+    const resp = await fetch(`/api/messages/${id}/`, {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    return resp.json();
+  }
+
   /** Retrieve a single message by id via the backend */
   async getMessage(id: string): Promise<any> {
     const resp = await fetch(`/api/messages/${id}/`);

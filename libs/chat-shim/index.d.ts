@@ -9,6 +9,7 @@ declare module 'stream-chat' {
     channel(type: string, id?: string): any;
     disconnectUser(): void;
     deleteMessage(id: string): Promise<any>;
+    updateMessage(id: string, text: string): Promise<any>;
     getMessage(id: string): Promise<any>;
     getUserAgent(): string;
     setUserAgent(ua: string): void;
