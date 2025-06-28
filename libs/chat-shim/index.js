@@ -237,6 +237,10 @@ var LocalChannel = /** @class */ (function () {
     LocalChannel.prototype.countUnread = function () {
         return this.state.countUnread(this.getUserId());
     };
+    LocalChannel.prototype.muteStatus = function () {
+        var muted = this.client.mutedChannels.includes(this.cid);
+        return { muted: muted };
+    };
     LocalChannel.prototype.getClient = function () {
         return this.client;
     };

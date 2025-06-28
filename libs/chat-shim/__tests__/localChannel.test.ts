@@ -21,4 +21,14 @@ describe('LocalChannel', () => {
     expect(typeof channel.stateStore.getState).toBe('function');
     expect(channel.stateStore.getState().messages).toEqual([]);
   });
+
+  test('muteStatus reflects client state', async () => {
+    const client = new LocalChatClient();
+    await client.connectUser({ id: 'u1' }, 'jwt');
+    const channel = client.channel('messaging', 'general');
+    await channel.watch();
+    expect(channel.muteStatus().muted).toBe(false);
+    (client as any).mutedChannels.push(channel.cid);
+    expect(channel.muteStatus().muted).toBe(true);
+  });
 });
