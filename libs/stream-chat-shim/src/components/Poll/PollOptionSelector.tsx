@@ -90,8 +90,8 @@ export const PollOptionSelector = ({
         if (!canCastVote) return;
         const haveVotedForTheOption = !!ownVotesByOptionId[option.id];
         return haveVotedForTheOption
-          ? /* TODO backend-wire-up: removeVote */ Promise.resolve()
-          : /* TODO backend-wire-up: castVote */ Promise.resolve();
+          ? Promise.resolve()
+          : Promise.resolve();
       }, 100),
     [canCastVote, message.id, option.id, ownVotesByOptionId, poll],
   );
