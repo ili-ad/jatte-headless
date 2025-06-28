@@ -331,6 +331,12 @@ export class LocalChatClient {
     const resp = await fetch(`/api/messages/${id}/`, { method: "DELETE" });
     return resp.json();
   }
+
+  /** Retrieve a single message by id via the backend */
+  async getMessage(id: string): Promise<any> {
+    const resp = await fetch(`/api/messages/${id}/`);
+    return resp.json();
+  }
 }
 
 /* ------------------------- Link preview manager ------------------------- */
