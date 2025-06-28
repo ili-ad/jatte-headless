@@ -92,7 +92,12 @@ import {
   getVideoAttachmentConfiguration,
 } from "../Attachment/attachment-sizing";
 import { useSearchFocusedMessage } from "../../experimental/Search/hooks";
-import { channelGetReplies, channelMarkRead, channelQuery } from "../../chatSDKShim";
+import {
+  channelGetReplies,
+  channelMarkRead,
+  channelQuery,
+  channelStateLoadMessageIntoState,
+} from "../../chatSDKShim";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -761,9 +766,12 @@ const ChannelInner = (
       highlightDuration = DEFAULT_HIGHLIGHT_DURATION,
     ) => {
       dispatch({ loadingMore: true, type: "setLoadingMore" });
-      await (async () => {
-        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
-      })();
+      await channelStateLoadMessageIntoState(
+        channel,
+        messageId,
+        undefined,
+        messageLimit,
+      );
 
       loadMoreFinished(
         channel.state.messagePagination.hasPrev,
@@ -779,9 +787,7 @@ const ChannelInner = (
 
   const jumpToLatestMessage: ChannelActionContextValue["jumpToLatestMessage"] =
     useCallback(async () => {
-      await (async () => {
-        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
-      })();
+      await channelStateLoadMessageIntoState(channel, "latest");
       loadMoreFinished(
         channel.state.messagePagination.hasPrev,
         channel.state.messages,
@@ -899,9 +905,12 @@ const ChannelInner = (
           try {
             const targetId = (firstUnreadMessageId ??
               lastReadMessageId) as string;
-            await (async () => {
-              /* TODO backend-wire-up: channel.state.loadMessageIntoState */
-            })();
+            await channelStateLoadMessageIntoState(
+              channel,
+              targetId,
+              undefined,
+              queryMessageLimit,
+            );
             /**
              * if the index of the last read message on the page is beyond the half of the page,
              * we have arrived to the oldest page of the channel
