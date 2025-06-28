@@ -87,3 +87,20 @@ export async function channelQuery(
   }
   return { messages: [] };
 }
+
+export async function channelSendMessage(
+  channel: { cid: string },
+  message: Record<string, any>,
+  _options?: any,
+): Promise<any> {
+  const resp = await fetch(
+    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    },
+  );
+  return resp.json();
+}
