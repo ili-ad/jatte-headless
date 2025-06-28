@@ -611,6 +611,50 @@ paths:
                     type: boolean
       tags:
       - api
+  /api/mute/{target_username}/:
+    parameters:
+      - name: target_username
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: muteUser
+      description: Mute the given user for the current user.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+      tags:
+      - api
+  /api/unmute/{target_username}/:
+    parameters:
+      - name: target_username
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: unmuteUser
+      description: Remove mute record for the given user.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+      tags:
+      - api
 components:
   schemas:
     User:
