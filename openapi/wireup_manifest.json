@@ -15,7 +15,7 @@
     "stubName": "channel.sendMessage",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
