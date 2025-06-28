@@ -216,10 +216,7 @@ export const useChannelSearch = ({
         }
 
         if (searchForUsers) {
-          promises.push(
-            /* TODO backend-wire-up: client.queryUsers */
-            Promise.resolve({ users: [] } as UsersAPIResponse),
-          );
+          promises.push(client.queryUsers());
         }
 
         if (promises.length) {
