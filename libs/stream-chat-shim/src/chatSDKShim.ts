@@ -77,3 +77,13 @@ export async function channelPin(
   }
   return undefined;
 }
+
+export async function channelQuery(
+  channel: { query?: (options?: any) => Promise<any> },
+  options?: any,
+): Promise<any> {
+  if (typeof channel.query === 'function') {
+    return channel.query(options);
+  }
+  return { messages: [] };
+}

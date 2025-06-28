@@ -27,5 +27,6 @@
   "channel.markRead": "shim::channel.markRead",
   "channel.on": "shim::channel.on",
   "channel.off": "shim::channel.off",
-  "channel.pin": "shim::channel.pin"
+  "channel.pin": "shim::channel.pin",
+  "channel.query": "shim::channel.query"
 }
