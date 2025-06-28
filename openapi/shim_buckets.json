@@ -1,0 +1,167 @@
+{
+  "client": [
+    "client.on",
+    "client.off",
+    "client.channel",
+    "client.queryChannels",
+    "client.threads.deactivate",
+    "client.threads.state",
+    "client.deleteMessage",
+    "client.updateMessage",
+    "client.queryUsers",
+    "client.threads.activate",
+    "client.threads.loadNextPage",
+    "client.threads.reload",
+    "client.reminders.deleteReminder",
+    "client.reminders.createReminder"
+  ],
+  "channel": [
+    "channel.on",
+    "channel.off",
+    "channel.query",
+    "channel.state.loadMessageIntoState",
+    "channel.watch",
+    "channel.getClient",
+    "channel.countUnread",
+    "channel.muteStatus",
+    "channel.markRead",
+    "channel.sendMessage",
+    "channel.getReplies",
+    "channel.unpin",
+    "channel.pin",
+    "channel.unarchive",
+    "channel.archive"
+  ],
+  "sendMessage": [
+    "sendMessage"
+  ],
+  "deleteMessage": [
+    "deleteMessage"
+  ],
+  "truncate": [
+    "truncate"
+  ],
+  "polls": [
+    "polls.fromState",
+    "polls.registerSubscriptions",
+    "polls.unregisterSubscriptions"
+  ],
+  "search": [
+    "search"
+  ],
+  "lastRead": [
+    "lastRead"
+  ],
+  "connectUser": [
+    "connectUser"
+  ],
+  "disconnectUser": [
+    "disconnectUser"
+  ],
+  "castVote": [
+    "castVote"
+  ],
+  "on": [
+    "on"
+  ],
+  "addError": [
+    "addError"
+  ],
+  "findMessage": [
+    "findMessage"
+  ],
+  "pinMessage": [
+    "pinMessage"
+  ],
+  "unpinMessage": [
+    "unpinMessage"
+  ],
+  "muteUser": [
+    "muteUser"
+  ],
+  "unmuteUser": [
+    "unmuteUser"
+  ],
+  "queryReactions": [
+    "queryReactions"
+  ],
+  "flagMessage": [
+    "flagMessage"
+  ],
+  "sendReaction": [
+    "sendReaction"
+  ],
+  "deleteReaction": [
+    "deleteReaction"
+  ],
+  "markUnread": [
+    "markUnread"
+  ],
+  "sendAction": [
+    "sendAction"
+  ],
+  "stopAIResponse": [
+    "stopAIResponse"
+  ],
+  "getDraft": [
+    "getDraft"
+  ],
+  "stopTyping": [
+    "stopTyping"
+  ],
+  "countUnread": [
+    "countUnread"
+  ],
+  "reminders": [
+    "reminders.deleteReminder",
+    "reminders.createReminder",
+    "reminders.scheduledOffsetsMs",
+    "reminders.upsertReminder",
+    "reminders.registerSubscriptions",
+    "reminders.initTimers",
+    "reminders.unregisterSubscriptions",
+    "reminders.clearTimers"
+  ],
+  "getAppSettings": [
+    "getAppSettings"
+  ],
+  "getUserAgent": [
+    "getUserAgent"
+  ],
+  "setUserAgent": [
+    "setUserAgent"
+  ],
+  "threads": [
+    "threads.registerSubscriptions",
+    "threads.unregisterSubscriptions"
+  ],
+  "query": [
+    "query"
+  ],
+  "removeVote": [
+    "removeVote"
+  ],
+  "on(poll": [
+    "on(poll.vote_casted)",
+    "on(poll.vote_removed)",
+    "on(poll.vote_changed)"
+  ],
+  "queryAnswers": [
+    "queryAnswers"
+  ],
+  "queryOptionVotes": [
+    "queryOptionVotes"
+  ],
+  "createPollOption": [
+    "createPollOption"
+  ],
+  "addAnswer": [
+    "addAnswer"
+  ],
+  "close": [
+    "close"
+  ],
+  "notifications": [
+    "notifications.store"
+  ]
+}

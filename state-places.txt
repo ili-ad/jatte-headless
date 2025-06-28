@@ -1,5 +1,5 @@
-libs/stream-chat-shim/src/experimental/Search/SearchResults/SearchResultItem.tsx:59:    /* TODO backend-wire-up: channel.state.loadMessageIntoState */
 libs/stream-chat-shim/src/components/Channel/Channel.tsx:739:        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
 libs/stream-chat-shim/src/components/Channel/Channel.tsx:754:        /* TODO backend-wire-up: channel.state.loadMessageIntoState */
 libs/stream-chat-shim/src/components/Channel/Channel.tsx:849:              /* TODO backend-wire-up: channel.state.loadMessageIntoState */
 libs/stream-chat-shim/src/components/ChatView/ChatView.tsx:137:  //   /* TODO backend-wire-up: client.threads.state */
+libs/stream-chat-shim/src/experimental/Search/SearchResults/SearchResultItem.tsx:59:    /* TODO backend-wire-up: channel.state.loadMessageIntoState */

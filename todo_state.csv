@@ -1,0 +1,7 @@
+token,count
+client.threads.state,1
+channel.state.loadMessageIntoState,4
+client.threads.activate,1
+client.threads.deactivate,2
+client.threads.loadNextPage,1
+client.threads.reload,1
