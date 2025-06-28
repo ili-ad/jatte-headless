@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from django.utils import timezone
@@ -122,6 +124,24 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
                 decode_responses=True,
             )
             r.delete(f"draft:{self.request.user.username}:{room.uuid}")
+        except Exception:
+            pass
+
+        try:
+            channel_layer = get_channel_layer()
+            cid = f"messaging:{room.uuid}"
+            async_to_sync(channel_layer.group_send)(
+                cid.replace(":", "_"),
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "message.new",
+                        "cid": cid,
+                        "text": serializer.instance.body,
+                        "user": serializer.instance.sent_by,
+                    },
+                },
+            )
         except Exception:
             pass
 

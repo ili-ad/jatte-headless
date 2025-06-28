@@ -943,10 +943,7 @@ const ChannelInner = (
       if (doSendMessageRequest) {
         messageResponse = await doSendMessageRequest(channel, message, options);
       } else {
-        messageResponse = await (async () => {
-          /* TODO backend-wire-up: channel.sendMessage */
-          return { message: undefined } as any;
-        })();
+        messageResponse = await channel.sendMessage(message, options);
       }
 
       let existingMessage: LocalMessage | undefined = undefined;
