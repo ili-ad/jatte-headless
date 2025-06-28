@@ -499,6 +499,48 @@ paths:
           description: ''
       tags:
       - api
+  /api/reminders/:
+    get:
+      operationId: listReminders
+      description: List reminders for the current user.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+    post:
+      operationId: createReminder
+      description: Create a new reminder.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                remind_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reminder:
+                    type: object
+          description: ''
+      tags:
+      - api
 components:
   schemas:
     User:
@@ -530,6 +572,21 @@ components:
         sent_by:
           type: string
           readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+        remind_at:
+          type: string
+          format: date-time
         created_at:
           type: string
           format: date-time
