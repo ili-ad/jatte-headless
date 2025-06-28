@@ -7,13 +7,10 @@ import type { Channel } from 'chat-shim';
 export const useIsChannelMuted = (channel: Channel) => {
   const { client } = useChatContext('useIsChannelMuted');
 
-  const [muted, setMuted] = useState(
-    /* TODO backend-wire-up: channel.muteStatus */ false,
-  );
+  const [muted, setMuted] = useState(channel.muteStatus().muted);
 
   useEffect(() => {
-    const handleEvent = () =>
-      setMuted(/* TODO backend-wire-up: channel.muteStatus */ false);
+    const handleEvent = () => setMuted(channel.muteStatus().muted);
 
     /* TODO backend-wire-up: client.on */
     return () => {
