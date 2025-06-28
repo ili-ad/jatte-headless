@@ -19,5 +19,6 @@
   "polls.registerSubscriptions": "registerSubscriptions",
   "reminders.registerSubscriptions": "registerSubscriptions",
   "client.queryUsers": "listUsers",
-  "client.reminders.createReminder": "createReminder"
+  "client.reminders.createReminder": "createReminder",
+  "channel.archive": "shim::channel.archive"
 }
