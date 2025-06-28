@@ -114,7 +114,7 @@
     "stubName": "channel.muteStatus",
     "ticketType": "api",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
