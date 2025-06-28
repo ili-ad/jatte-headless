@@ -592,7 +592,6 @@ const ChannelInner = (
         /* TODO backend-wire-up: client.on */
         /* TODO backend-wire-up: client.on */
         /* TODO backend-wire-up: client.on */
-        /* TODO backend-wire-up: channel.on */
       }
     })();
     const notificationTimeoutsRef = notificationTimeouts.current;
