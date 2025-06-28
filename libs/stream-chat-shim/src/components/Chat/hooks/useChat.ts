@@ -72,19 +72,19 @@ export const useChat = ({
         if (userAgent.includes('stream-chat-react')) return;
         // result looks like: 'stream-chat-react-2.3.2-stream-chat-javascript-client-browser-2.2.2'
         // the upper-case text between double underscores is replaced with the actual semantic version of the library
-        /* TODO backend-wire-up: setUserAgent */
+        client.setUserAgent(`stream-chat-react-${version}-${userAgent}`);
       });
 
-    /* TODO backend-wire-up: threads.registerSubscriptions */
-    /* TODO backend-wire-up: polls.registerSubscriptions */
-    /* TODO backend-wire-up: reminders.registerSubscriptions */
-    /* TODO backend-wire-up: reminders.initTimers */
+    client.threads.registerSubscriptions();
+    client.polls.registerSubscriptions();
+    client.reminders.registerSubscriptions();
+    client.reminders.initTimers();
 
     return () => {
-        /* TODO backend-wire-up: threads.unregisterSubscriptions */
-        /* TODO backend-wire-up: polls.unregisterSubscriptions */
-        /* TODO backend-wire-up: reminders.unregisterSubscriptions */
-        /* TODO backend-wire-up: reminders.clearTimers */
+        client.threads.unregisterSubscriptions();
+        client.polls.unregisterSubscriptions();
+        client.reminders.unregisterSubscriptions();
+        client.reminders.clearTimers();
     };
   }, [client]);
 
