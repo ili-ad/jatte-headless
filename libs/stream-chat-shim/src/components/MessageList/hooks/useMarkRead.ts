@@ -102,7 +102,6 @@ export const useMarkRead = ({
     }
 
     return () => {
-      /* TODO backend-wire-up: channel.off */
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [

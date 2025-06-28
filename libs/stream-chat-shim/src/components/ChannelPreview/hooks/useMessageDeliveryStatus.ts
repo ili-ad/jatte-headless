@@ -65,7 +65,6 @@ export const useMessageDeliveryStatus = ({
     /* TODO backend-wire-up: channel.on */
 
     return () => {
-      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client, isOwnMessage]);
 
@@ -78,7 +77,6 @@ export const useMessageDeliveryStatus = ({
     /* TODO backend-wire-up: channel.on */
 
     return () => {
-      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client, lastMessage, isOwnMessage]);
 

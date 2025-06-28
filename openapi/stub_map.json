@@ -24,5 +24,6 @@
   "channel.countUnread": "shim::channel.countUnread",
   "channel.getClient": "shim::channel.getClient",
   "channel.getReplies": "shim::channel.getReplies",
-  "channel.markRead": "shim::channel.markRead"
+  "channel.markRead": "shim::channel.markRead",
+  "channel.off": "shim::channel.off"
 }
