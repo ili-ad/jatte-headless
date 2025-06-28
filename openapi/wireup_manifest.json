@@ -6,7 +6,7 @@
     "stubName": "sendMessage",
     "ticketType": "api",
     "todoCount": 10,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -87,7 +87,7 @@
     "stubName": "getDraft",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -96,7 +96,7 @@
     "stubName": "getUserAgent",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -105,7 +105,7 @@
     "stubName": "client.queryUsers",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -114,7 +114,7 @@
     "stubName": "channel.muteStatus",
     "ticketType": "api",
     "todoCount": 2,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -123,7 +123,7 @@
     "stubName": "muteUser",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -132,7 +132,7 @@
     "stubName": "threads.registerSubscriptions",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -141,7 +141,7 @@
     "stubName": "polls.registerSubscriptions",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -150,7 +150,7 @@
     "stubName": "reminders.registerSubscriptions",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
@@ -159,7 +159,7 @@
     "stubName": "setUserAgent",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -177,7 +177,7 @@
     "stubName": "unmuteUser",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "ok"
+    "status": "missing"
   },
   {
     "method": "",
