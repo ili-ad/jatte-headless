@@ -30,3 +30,12 @@ export async function channelGetReplies(
   }
   return { messages: [] };
 }
+
+export async function channelMarkRead(
+  channel: { markRead?: () => Promise<any> },
+): Promise<any> {
+  if (typeof channel.markRead === 'function') {
+    return channel.markRead();
+  }
+  return undefined;
+}
