@@ -92,6 +92,7 @@ import {
   getVideoAttachmentConfiguration,
 } from "../Attachment/attachment-sizing";
 import { useSearchFocusedMessage } from "../../experimental/Search/hooks";
+import { channelGetReplies } from "../../chatSDKShim";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -1176,10 +1177,10 @@ const ChannelInner = (
     const oldestMessageId = oldMessages[0]?.id;
 
     try {
-      const queryResponse = await (async () => {
-        /* TODO backend-wire-up: channel.getReplies */
-        return { messages: [] } as any;
-      })();
+      const queryResponse = await channelGetReplies(channel, parentId, {
+        limit,
+        id_lt: oldestMessageId,
+      });
 
       const threadHasMoreMessages = hasMoreMessagesProbably(
         queryResponse.messages.length,

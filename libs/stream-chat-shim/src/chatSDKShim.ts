@@ -19,3 +19,14 @@ export function channelCountUnread(
 ): number {
   return channel.countUnread();
 }
+
+export async function channelGetReplies(
+  channel: { getReplies?: (id: string, options?: any) => Promise<any> },
+  parentId: string,
+  options?: { limit?: number; id_lt?: string },
+): Promise<{ messages: any[] }> {
+  if (typeof channel.getReplies === 'function') {
+    return channel.getReplies(parentId, options);
+  }
+  return { messages: [] };
+}
