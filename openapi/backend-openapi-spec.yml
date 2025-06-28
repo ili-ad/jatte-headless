@@ -491,7 +491,7 @@ paths:
       - api
   /api/session/:
     delete:
-      operationId: destroySession
+      operationId: endSession
       description: ''
       parameters: []
       responses:
