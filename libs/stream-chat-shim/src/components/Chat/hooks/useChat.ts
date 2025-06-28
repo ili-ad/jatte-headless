@@ -65,12 +65,15 @@ export const useChat = ({
 
     const version = process.env.STREAM_CHAT_REACT_VERSION;
 
-    const userAgent = /* TODO backend-wire-up: getUserAgent */ '';
-    if (!userAgent.includes('stream-chat-react')) {
-      // result looks like: 'stream-chat-react-2.3.2-stream-chat-javascript-client-browser-2.2.2'
-      // the upper-case text between double underscores is replaced with the actual semantic version of the library
-      /* TODO backend-wire-up: setUserAgent */
-    }
+    fetch('/api/user-agent/', { method: 'GET', credentials: 'same-origin' })
+      .then((res) => res.json() as Promise<{ user_agent?: string }>)
+      .then(({ user_agent }) => {
+        const userAgent = user_agent ?? '';
+        if (userAgent.includes('stream-chat-react')) return;
+        // result looks like: 'stream-chat-react-2.3.2-stream-chat-javascript-client-browser-2.2.2'
+        // the upper-case text between double underscores is replaced with the actual semantic version of the library
+        /* TODO backend-wire-up: setUserAgent */
+      });
 
     /* TODO backend-wire-up: threads.registerSubscriptions */
     /* TODO backend-wire-up: polls.registerSubscriptions */
