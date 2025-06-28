@@ -228,6 +228,7 @@ declare module 'stream-chat' {
     registerSubscriptions(): void;
     unregisterSubscriptions(): void;
     initTimers(): void;
+    createReminder(text: string, remind_at: string): Promise<Reminder>;
     clearTimers(): void;
   }
   export class FixedSizeQueueCache<K, T> {
