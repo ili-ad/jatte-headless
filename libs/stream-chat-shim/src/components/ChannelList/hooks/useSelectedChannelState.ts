@@ -29,7 +29,6 @@ export function useSelectedChannelState<O>({
       if (!channel) return noop;
 
       const subscriptions = stateChangeEventKeys.map(
-        () => /* TODO backend-wire-up: channel.on */ { unsubscribe: () => {} },
       );
 
       return () => subscriptions.forEach((subscription) => subscription.unsubscribe());

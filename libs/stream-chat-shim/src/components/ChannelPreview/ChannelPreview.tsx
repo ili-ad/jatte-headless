@@ -116,7 +116,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       if (event.user?.id !== client.user?.id) return;
       setUnread(channel.countUnread());
     };
-    /* TODO backend-wire-up: channel.on */
     return () => {
     };
   }, [channel, client]);
@@ -143,11 +142,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       refreshUnreadCount();
     };
 
-      /* TODO backend-wire-up: channel.on */
-      /* TODO backend-wire-up: channel.on */
-      /* TODO backend-wire-up: channel.on */
-      /* TODO backend-wire-up: channel.on */
-      /* TODO backend-wire-up: channel.on */
 
     return () => {
     };
