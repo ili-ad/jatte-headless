@@ -135,8 +135,10 @@ const DefaultMessageActionComponents = {
             reminder
               ? /* TODO backend-wire-up: client.reminders.deleteReminder */
                 Promise.resolve()
-              : /* TODO backend-wire-up: client.reminders.createReminder */
-                Promise.resolve()
+              : client.reminders.createReminder(
+                  message.text || '',
+                  new Date().toISOString(),
+                )
           }
         >
           {reminder ? t('Remove reminder') : t('Save for later')}
