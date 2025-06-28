@@ -589,6 +589,28 @@ paths:
           description: ''
       tags:
       - api
+  /api/mute-status/{target_username}/:
+    parameters:
+      - name: target_username
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: muteStatus
+      description: Return whether the current user muted the given user.
+      responses:
+        '200':
+          description: mute status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  muted:
+                    type: boolean
+      tags:
+      - api
 components:
   schemas:
     User:
