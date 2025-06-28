@@ -35,38 +35,84 @@ export const useMessageComposer = () => {
   // composer hierarchy
   // edited message (always new) -> thread instance (own) -> thread message (always new) -> channel (own)
   // editedMessage ?? thread ?? parentMessage ?? channel;
+  // const messageComposer = useMemo(() => {
+  //   if (editing && cachedEditedMessage) {
+  //     const tag = MessageComposer.constructTag(cachedEditedMessage);
+
+  //     const cachedComposer = queueCache.get(tag);
+  //     if (cachedComposer) return cachedComposer;
+
+  //     return new MessageComposer({
+  //       client,
+  //       composition: cachedEditedMessage,
+  //       compositionContext: cachedEditedMessage,
+  //     });
+  //   } else if (threadInstance) {
+  //     return threadInstance.messageComposer;
+  //   } else if (cachedParentMessage) {
+  //     const compositionContext = {
+  //       ...cachedParentMessage,
+  //       legacyThreadId: cachedParentMessage.id,
+  //     };
+
+  //     const tag = MessageComposer.constructTag(compositionContext);
+
+  //     const cachedComposer = queueCache.get(tag);
+  //     if (cachedComposer) return cachedComposer;
+
+  //     return new MessageComposer({
+  //       client,
+  //       compositionContext,
+  //     });
+  //   } else {
+  //     return channel.messageComposer;
+  //   }
+  // }, [
+  //   cachedEditedMessage,
+  //   cachedParentMessage,
+  //   channel,
+  //   client,
+  //   editing,
+  //   threadInstance,
+  // ]);
+
+
+  // -------------------------------------------------------------------
+  // build or reuse the correct MessageComposer instance
+  // -------------------------------------------------------------------
   const messageComposer = useMemo(() => {
     if (editing && cachedEditedMessage) {
       const tag = MessageComposer.constructTag(cachedEditedMessage);
 
-      const cachedComposer = queueCache.get(tag);
-      if (cachedComposer) return cachedComposer;
+      const fromCache = queueCache.get(tag);
+      if (fromCache) return fromCache;
 
       return new MessageComposer({
         client,
         composition: cachedEditedMessage,
         compositionContext: cachedEditedMessage,
       });
-    } else if (threadInstance) {
+    }
+
+    if (threadInstance) {
       return threadInstance.messageComposer;
-    } else if (cachedParentMessage) {
+    }
+
+    if (cachedParentMessage) {
       const compositionContext = {
         ...cachedParentMessage,
         legacyThreadId: cachedParentMessage.id,
       };
 
       const tag = MessageComposer.constructTag(compositionContext);
+      const fromCache = queueCache.get(tag);
+      if (fromCache) return fromCache;
 
-      const cachedComposer = queueCache.get(tag);
-      if (cachedComposer) return cachedComposer;
-
-      return new MessageComposer({
-        client,
-        compositionContext,
-      });
-    } else {
-      return channel.messageComposer;
+      return new MessageComposer({ client, compositionContext });
     }
+
+    // fall-back: plain channel composer
+    return channel.messageComposer;
   }, [
     cachedEditedMessage,
     cachedParentMessage,
@@ -75,6 +121,30 @@ export const useMessageComposer = () => {
     editing,
     threadInstance,
   ]);
+
+  // -------------------------------------------------------------------
+  // **PATCH** – guarantee every manager has a `.state.getLatestValue`
+  // so useStateStore() never crashes.
+  // -------------------------------------------------------------------
+  const noopStore = {
+    getLatestValue: () => undefined,
+    subscribe: () => () => {},
+  };
+
+  const ensureStore = (mgr: any) => {
+    if (mgr && (!mgr.state?.getLatestValue || !mgr.state?.subscribe)) {
+      mgr.state = noopStore;
+    }
+  };
+
+  ensureStore(messageComposer);                     // the composer itself
+  ensureStore((messageComposer as any).textComposer);
+  ensureStore((messageComposer as any).attachmentManager);
+  ensureStore((messageComposer as any).linkPreviewsManager);
+  ensureStore((messageComposer as any).pollComposer);
+  ensureStore((messageComposer as any).customDataManager);
+  // -------------------------------------------------------------------
+
 
   if (
     (['legacy_thread', 'message'] as MessageComposer['contextType'][]).includes(

@@ -1,57 +1,64 @@
 import { useCallback, useMemo } from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
-
 import type { StateStore } from 'chat-shim';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
+// ---------------------------------------------------------------------------
+//  useStateStore
+//  A thin wrapper around StateStore that survives “not-yet-wired” stores.
+// ---------------------------------------------------------------------------
+
 const noop = () => {};
 
 export function useStateStore<
   T extends Record<string, unknown>,
-  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>,
+  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>
 >(store: StateStore<T>, selector: (v: T) => O): O;
 export function useStateStore<
   T extends Record<string, unknown>,
-  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>,
+  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>
 >(store: StateStore<T> | undefined, selector: (v: T) => O): O | undefined;
 export function useStateStore<
   T extends Record<string, unknown>,
-  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>,
+  O extends Readonly<Record<string, unknown> | Readonly<unknown[]>>
 >(store: StateStore<T> | undefined, selector: (v: T) => O) {
+  /* ─── early-exit guard ─── */
+  if (!store?.getLatestValue) {
+    // Always return an *object* so callers can safely destructure.
+    return {} as unknown as O;
+  }
+
+  /* ---------- subscription ---------- */
   const wrappedSubscription = useCallback(
     (onStoreChange: () => void) => {
-      const unsubscribe = store?.subscribeWithSelector(selector, onStoreChange);
-      return unsubscribe ?? noop;
+    const unsub = (store as any)?.subscribeWithSelector?.(selector, onStoreChange);
+    return unsub ?? noop;
     },
     [store, selector],
   );
 
+  /* ---------- snapshot ---------- */
   const wrappedSnapshot = useMemo(() => {
     let cachedTuple: [T, O];
 
     return () => {
-      const currentValue = store?.getLatestValue();
-
+      const currentValue = store.getLatestValue();
       if (!currentValue) return undefined;
 
-      // store value hasn't changed, no need to compare individual values
-      if (cachedTuple && cachedTuple[0] === currentValue) {
-        return cachedTuple[1];
-      }
+      // fast-path: same ref as last time
+      if (cachedTuple && cachedTuple[0] === currentValue) return cachedTuple[1];
 
       const newlySelected = selector(currentValue);
 
-      // store value changed but selected values wouldn't have to, double-check selected
+      // shallow compare selected keys
       if (cachedTuple) {
-        let selectededAreEqualToCached = true;
-
+        let equal = true;
         for (const key in cachedTuple[1]) {
-          if (cachedTuple[1][key] === newlySelected[key]) continue;
-          selectededAreEqualToCached = false;
-          break;
+          if (cachedTuple[1][key] !== newlySelected[key]) {
+            equal = false;
+            break;
+          }
         }
-
-        if (selectededAreEqualToCached) return cachedTuple[1];
+        if (equal) return cachedTuple[1];
       }
 
       cachedTuple = [currentValue, newlySelected];
@@ -59,7 +66,9 @@ export function useStateStore<
     };
   }, [store, selector]);
 
+  /* ---------- react 18 external-store ---------- */
   const state = useSyncExternalStore(wrappedSubscription, wrappedSnapshot);
 
-  return state;
+  // never hand undefined to the caller
+  return (state ?? ({} as unknown as O));
 }
