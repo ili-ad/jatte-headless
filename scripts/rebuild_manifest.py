@@ -1,103 +1,102 @@
 #!/usr/bin/env python3
 """
-Re-generate the wireup_manifest.json with `stubName`, `ticketType`, `todoCount`.
-Assumes:
-  • openapi/backend-openapi-spec.yml      (source of operationIds)
-  • openapi/wireup_manifest.json          (old manifest, may lack new fields)
-  • todo_all.csv                          (token,count CSV you produced)
+Re-generate openapi/wireup_manifest.json with correct ticketType.
+
+Logic:
+• If token appears in stub_map.json  →  api (operationId = mapping)
+• else if token == operationId (camel/snake variants allowed) → api
+• else → shim
 """
 
-import json, yaml, csv, pathlib, sys, collections
+import json, yaml, pathlib, re, collections, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "openapi" / "wireup_manifest.json"
 SPEC_PATH     = ROOT / "openapi" / "backend-openapi-spec.yml"
+STUB_MAP_PATH = ROOT / "openapi" / "stub_map.json"
 TODO_CSV      = ROOT / "todo_all.csv"
 
-# -----------------------------------------------------------------------------
-# 1.  Load backend spec → set of operationIds
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 0 · Load data sources
+# --------------------------------------------------------------------------
+stub_map = json.loads(STUB_MAP_PATH.read_text()) if STUB_MAP_PATH.exists() else {}
+
 spec_ops = set()
 spec = yaml.safe_load(SPEC_PATH.read_text())
-for path, path_item in (spec.get("paths") or {}).items():
-    for method, obj in path_item.items():
+for p in spec["paths"].values():
+    for obj in p.values():
         if isinstance(obj, dict) and "operationId" in obj:
             spec_ops.add(obj["operationId"])
 
-# -----------------------------------------------------------------------------
-# 2.  Load stub counts
-# -----------------------------------------------------------------------------
-token_counts = {}
+def camel(s):  # foo_bar → fooBar
+    return re.sub(r'_([a-z])', lambda m: m.group(1).upper(), s)
+
+def snake(s):  # fooBar → foo_bar
+    return re.sub(r'([A-Z])', r'_\1', s).lower().lstrip('_')
+
+# token → count
+todo_counts = {}
 with open(TODO_CSV) as fh:
-    reader = csv.DictReader(fh)
-    for row in reader:
-        token_counts[row["token"]] = int(row["count"])
+    for line in fh.read().splitlines()[1:]:          # skip header
+        token, cnt = line.split(",")
+        todo_counts[token] = int(cnt)
 
-# -----------------------------------------------------------------------------
-# 3.  Existing manifest (if any) → keep method/path/etc.
-# -----------------------------------------------------------------------------
-if MANIFEST_PATH.exists():
-    manifest = json.loads(MANIFEST_PATH.read_text())
-else:
-    manifest = []
-
-# index by operationId for in-place update
-mani_by_op = {entry["operationId"]: entry for entry in manifest}
-
-# -----------------------------------------------------------------------------
-# 4.  Helper: classify each token
-# -----------------------------------------------------------------------------
-def classify(token: str):
-    """Return ('api'|'shim', operationId_or_None)"""
-    # 4-a. direct match (token == operationId)
-    if token in spec_ops:
-        return "api", token
-    # 4-b. camelCase ↔ snake_case / createMessage ↔ sendMessage   (simple heuristics)
-    snake = "".join("_"+c.lower() if c.isupper() else c for c in token).lstrip("_")
-    if snake in spec_ops:
-        return "api", snake
-    camel = "".join(part.capitalize() if i else part
-                    for i, part in enumerate(token.split("_")))
-    if camel in spec_ops:
-        return "api", camel
-    # 4-c. not an API op → shim
-    return "shim", None
-
-# -----------------------------------------------------------------------------
-# 5.  Build / update manifest entries
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 1 · Build manifest entries
+# --------------------------------------------------------------------------
 new_manifest = []
-for token, cnt in token_counts.items():
-    kind, opid = classify(token)
-
-    if kind == "api":
-        # Keep existing entry or create skeleton
-        e = mani_by_op.get(opid, {
-            "method": "",           # fill manually if skeleton
+for token, cnt in todo_counts.items():
+    # -- API via explicit stub_map -------------
+    if token in stub_map:
+        op_id = stub_map[token]
+        entry = {
+            "method": "",
             "path": "",
-            "operationId": opid,
-            "status": "missing",
-        })
-        e.update({
+            "operationId": op_id,
             "stubName": token,
             "ticketType": "api",
             "todoCount": cnt,
-        })
-        new_manifest.append(e)
-    else:
-        # shim ticket (one per unique token)
-        new_manifest.append({
+            "status": "missing",
+        }
+        new_manifest.append(entry)
+        continue
+
+    # -- API via direct name / camel / snake ----
+    direct = (
+        token if token in spec_ops else
+        camel(token) if camel(token) in spec_ops else
+        snake(token) if snake(token) in spec_ops else
+        None
+    )
+    if direct:
+        entry = {
             "method": "",
             "path": "",
-            "operationId": f"shim::{token}",
+            "operationId": direct,
             "stubName": token,
-            "ticketType": "shim",
+            "ticketType": "api",
             "todoCount": cnt,
             "status": "missing",
-        })
+        }
+        new_manifest.append(entry)
+        continue
 
-# sort: api first, keep deterministic order
-new_manifest.sort(key=lambda x: (x["ticketType"], x["operationId"]))
+    # -- otherwise shim ------------------------
+    entry = {
+        "method": "",
+        "path": "",
+        "operationId": f"shim::{token}",
+        "stubName": token,
+        "ticketType": "shim",
+        "todoCount": cnt,
+        "status": "missing",
+    }
+    new_manifest.append(entry)
+
+# deterministic order: api first, then shim
+new_manifest.sort(key=lambda e: (e["ticketType"], e["operationId"]))
 
 MANIFEST_PATH.write_text(json.dumps(new_manifest, indent=2))
-print(f"✅ Rewrote manifest with {len(new_manifest)} entries → {MANIFEST_PATH}")
+print(f"✅ Manifest rewritten with {len(new_manifest)} entries "
+      f"({sum(1 for e in new_manifest if e['ticketType']=='api')} api, "
+      f"{sum(1 for e in new_manifest if e['ticketType']=='shim')} shim)")

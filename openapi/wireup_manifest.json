@@ -2,6 +2,195 @@
   {
     "method": "",
     "path": "",
+    "operationId": "createMessage",
+    "stubName": "sendMessage",
+    "ticketType": "api",
+    "todoCount": 10,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "createMessage",
+    "stubName": "channel.sendMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "createReminder",
+    "stubName": "reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "createReminder",
+    "stubName": "client.reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "deleteMessage",
+    "stubName": "deleteMessage",
+    "ticketType": "api",
+    "todoCount": 6,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "deleteMessage",
+    "stubName": "client.deleteMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "endSession",
+    "stubName": "disconnectUser",
+    "ticketType": "api",
+    "todoCount": 2,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "getAppSettings",
+    "stubName": "getAppSettings",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "getMessage",
+    "stubName": "findMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "listRoomDrafts",
+    "stubName": "getDraft",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "listUserAgents",
+    "stubName": "getUserAgent",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "listUsers",
+    "stubName": "client.queryUsers",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "muteStatus",
+    "stubName": "channel.muteStatus",
+    "ticketType": "api",
+    "todoCount": 2,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "muteUser",
+    "stubName": "muteUser",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "registerSubscriptions",
+    "stubName": "threads.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "registerSubscriptions",
+    "stubName": "polls.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "registerSubscriptions",
+    "stubName": "reminders.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "setUserAgent",
+    "stubName": "setUserAgent",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "syncUser",
+    "stubName": "connectUser",
+    "ticketType": "api",
+    "todoCount": 2,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "unmuteUser",
+    "stubName": "unmuteUser",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
+    "operationId": "updateMessage",
+    "stubName": "client.updateMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "",
+    "path": "",
     "operationId": "shim::addAnswer",
     "stubName": "addAnswer",
     "ticketType": "shim",
@@ -74,15 +263,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::channel.muteStatus",
-    "stubName": "channel.muteStatus",
-    "ticketType": "shim",
-    "todoCount": 2,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::channel.off",
     "stubName": "channel.off",
     "ticketType": "shim",
@@ -114,15 +294,6 @@
     "stubName": "channel.query",
     "ticketType": "shim",
     "todoCount": 4,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::channel.sendMessage",
-    "stubName": "channel.sendMessage",
-    "ticketType": "shim",
-    "todoCount": 1,
     "status": "missing"
   },
   {
@@ -173,15 +344,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::client.deleteMessage",
-    "stubName": "client.deleteMessage",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::client.off",
     "stubName": "client.off",
     "ticketType": "shim",
@@ -204,24 +366,6 @@
     "stubName": "client.queryChannels",
     "ticketType": "shim",
     "todoCount": 3,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::client.queryUsers",
-    "stubName": "client.queryUsers",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::client.reminders.createReminder",
-    "stubName": "client.reminders.createReminder",
-    "ticketType": "shim",
-    "todoCount": 1,
     "status": "missing"
   },
   {
@@ -281,28 +425,10 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::client.updateMessage",
-    "stubName": "client.updateMessage",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::close",
     "stubName": "close",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::connectUser",
-    "stubName": "connectUser",
-    "ticketType": "shim",
-    "todoCount": 2,
     "status": "missing"
   },
   {
@@ -326,15 +452,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::deleteMessage",
-    "stubName": "deleteMessage",
-    "ticketType": "shim",
-    "todoCount": 6,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::deleteReaction",
     "stubName": "deleteReaction",
     "ticketType": "shim",
@@ -344,53 +461,8 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::disconnectUser",
-    "stubName": "disconnectUser",
-    "ticketType": "shim",
-    "todoCount": 2,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::findMessage",
-    "stubName": "findMessage",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::flagMessage",
     "stubName": "flagMessage",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::getAppSettings",
-    "stubName": "getAppSettings",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::getDraft",
-    "stubName": "getDraft",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::getUserAgent",
-    "stubName": "getUserAgent",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "missing"
@@ -409,15 +481,6 @@
     "path": "",
     "operationId": "shim::markUnread",
     "stubName": "markUnread",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::muteUser",
-    "stubName": "muteUser",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "missing"
@@ -488,15 +551,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::polls.registerSubscriptions",
-    "stubName": "polls.registerSubscriptions",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::polls.unregisterSubscriptions",
     "stubName": "polls.unregisterSubscriptions",
     "ticketType": "shim",
@@ -551,15 +605,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::reminders.createReminder",
-    "stubName": "reminders.createReminder",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::reminders.deleteReminder",
     "stubName": "reminders.deleteReminder",
     "ticketType": "shim",
@@ -571,15 +616,6 @@
     "path": "",
     "operationId": "shim::reminders.initTimers",
     "stubName": "reminders.initTimers",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::reminders.registerSubscriptions",
-    "stubName": "reminders.registerSubscriptions",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "missing"
@@ -641,26 +677,8 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::sendMessage",
-    "stubName": "sendMessage",
-    "ticketType": "shim",
-    "todoCount": 10,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::sendReaction",
     "stubName": "sendReaction",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::setUserAgent",
-    "stubName": "setUserAgent",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "missing"
@@ -686,15 +704,6 @@
   {
     "method": "",
     "path": "",
-    "operationId": "shim::threads.registerSubscriptions",
-    "stubName": "threads.registerSubscriptions",
-    "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
     "operationId": "shim::threads.unregisterSubscriptions",
     "stubName": "threads.unregisterSubscriptions",
     "ticketType": "shim",
@@ -708,15 +717,6 @@
     "stubName": "truncate",
     "ticketType": "shim",
     "todoCount": 4,
-    "status": "missing"
-  },
-  {
-    "method": "",
-    "path": "",
-    "operationId": "shim::unmuteUser",
-    "stubName": "unmuteUser",
-    "ticketType": "shim",
-    "todoCount": 1,
     "status": "missing"
   },
   {

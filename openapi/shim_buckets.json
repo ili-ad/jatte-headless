@@ -6,14 +6,10 @@
     "client.queryChannels",
     "client.threads.deactivate",
     "client.threads.state",
-    "client.deleteMessage",
-    "client.updateMessage",
-    "client.queryUsers",
     "client.threads.activate",
     "client.threads.loadNextPage",
     "client.threads.reload",
-    "client.reminders.deleteReminder",
-    "client.reminders.createReminder"
+    "client.reminders.deleteReminder"
   ],
   "channel": [
     "channel.on",
@@ -23,27 +19,18 @@
     "channel.watch",
     "channel.getClient",
     "channel.countUnread",
-    "channel.muteStatus",
     "channel.markRead",
-    "channel.sendMessage",
     "channel.getReplies",
     "channel.unpin",
     "channel.pin",
     "channel.unarchive",
     "channel.archive"
   ],
-  "sendMessage": [
-    "sendMessage"
-  ],
-  "deleteMessage": [
-    "deleteMessage"
-  ],
   "truncate": [
     "truncate"
   ],
   "polls": [
     "polls.fromState",
-    "polls.registerSubscriptions",
     "polls.unregisterSubscriptions"
   ],
   "search": [
@@ -51,12 +38,6 @@
   ],
   "lastRead": [
     "lastRead"
-  ],
-  "connectUser": [
-    "connectUser"
-  ],
-  "disconnectUser": [
-    "disconnectUser"
   ],
   "castVote": [
     "castVote"
@@ -67,20 +48,11 @@
   "addError": [
     "addError"
   ],
-  "findMessage": [
-    "findMessage"
-  ],
   "pinMessage": [
     "pinMessage"
   ],
   "unpinMessage": [
     "unpinMessage"
-  ],
-  "muteUser": [
-    "muteUser"
-  ],
-  "unmuteUser": [
-    "unmuteUser"
   ],
   "queryReactions": [
     "queryReactions"
@@ -103,9 +75,6 @@
   "stopAIResponse": [
     "stopAIResponse"
   ],
-  "getDraft": [
-    "getDraft"
-  ],
   "stopTyping": [
     "stopTyping"
   ],
@@ -114,25 +83,13 @@
   ],
   "reminders": [
     "reminders.deleteReminder",
-    "reminders.createReminder",
     "reminders.scheduledOffsetsMs",
     "reminders.upsertReminder",
-    "reminders.registerSubscriptions",
     "reminders.initTimers",
     "reminders.unregisterSubscriptions",
     "reminders.clearTimers"
   ],
-  "getAppSettings": [
-    "getAppSettings"
-  ],
-  "getUserAgent": [
-    "getUserAgent"
-  ],
-  "setUserAgent": [
-    "setUserAgent"
-  ],
   "threads": [
-    "threads.registerSubscriptions",
     "threads.unregisterSubscriptions"
   ],
   "query": [
