@@ -114,7 +114,9 @@ const MessageInputProvider = (props: PropsWithChildren<MessageInputProps>) => {
     if (!threadId || !messageComposer.channel || !messageComposer.compositionIsEmpty)
       return;
     // get draft data for legacy thead composer
-    /* TODO backend-wire-up: getDraft */
+    if (typeof (messageComposer as any).getDraft === 'function') {
+      (messageComposer as any).getDraft();
+    }
   }, [messageComposer]);
 
   useRegisterDropHandlers();
