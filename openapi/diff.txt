@@ -1,0 +1,1021 @@
+1,38d0
+< components:
+<   schemas:
+<     Message:
+<       properties:
+<         body:
+<           readOnly: true
+<           type: string
+<         created_at:
+<           format: date-time
+<           readOnly: true
+<           type: string
+<         id:
+<           readOnly: true
+<           type: integer
+<         sent_by:
+<           readOnly: true
+<           type: string
+<         text:
+<           type: string
+<           writeOnly: true
+<       type: object
+<     User:
+<       properties:
+<         id:
+<           readOnly: true
+<           type: integer
+<         username:
+<           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+<             only.
+<           maxLength: 150
+<           pattern: ^[\w.@+-]+\z
+<           type: string
+<       required:
+<       - username
+<       type: object
+< info:
+<   title: ''
+<   version: ''
+39a2,4
+> info:
+>   title: Frontend Derived API
+>   version: "1.0.0"
+41c6,34
+<   /:
+---
+>   /sync-user/:
+>     post:
+>       operationId: syncUser
+>       tags: [accounts]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+>       responses:
+>         '200':
+>           description: OK
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   id:
+>                     type: integer
+>                   username:
+>                     type: string
+>   /session/:
+>     delete:
+>       operationId: endSession
+>       tags: [accounts]
+>       responses:
+>         '204':
+>           description: No Content
+>   /client-id/:
+43,45c36,37
+<       description: ''
+<       operationId: listindices
+<       parameters: []
+---
+>       operationId: getClientId
+>       tags: [identity]
+47a40
+>           description: client id
+51,56c44,48
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - ''
+<   /about/:
+---
+>                 type: object
+>                 properties:
+>                   client_id:
+>                     type: string
+>   /connection-id/:
+58,60c50,51
+<       description: ''
+<       operationId: listabouts
+<       parameters: []
+---
+>       operationId: getConnectionId
+>       tags: [identity]
+62a54
+>           description: connection id
+66,71c58,62
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - about
+<   /api/app-settings/:
+---
+>                 type: object
+>                 properties:
+>                   connection_id:
+>                     type: string
+>   /rooms/:
+73,75c64,65
+<       description: ''
+<       operationId: listget_app_settings
+<       parameters: []
+---
+>       operationId: listRooms
+>       tags: [rooms]
+77a68
+>           description: list of rooms
+81d71
+<                 items: {}
+83,86c73,85
+<           description: ''
+<       tags:
+<       - api
+<   /api/client-id/:
+---
+>                 items:
+>                   type: object
+>                   properties:
+>                     id:
+>                       type: integer
+>                     uuid:
+>                       type: string
+>                     name:
+>                       type: string
+>                     data:
+>                       type: object
+>                       additionalProperties: true
+>   /rooms/active/:
+88,90c87,88
+<       description: Return a random client identifier.
+<       operationId: listClientIDs
+<       parameters: []
+---
+>       operationId: listActiveRooms
+>       tags: [rooms]
+92a91
+>           description: active rooms
+96d94
+<                 items: {}
+98,101c96,104
+<           description: ''
+<       tags:
+<       - api
+<   /api/connection-id/:
+---
+>                 items:
+>                   $ref: '#/paths/~1rooms~1/get/responses/200/content/application~1json/schema/items'
+>   /messages/{messageId}/:
+>     parameters:
+>       - name: messageId
+>         in: path
+>         required: true
+>         schema:
+>           type: string
+103,105c106,107
+<       description: ''
+<       operationId: listconnection_ids
+<       parameters: []
+---
+>       operationId: getMessage
+>       tags: [messages]
+107a110
+>           description: message
+111,116c114,170
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/core-user-agent/:
+---
+>                 type: object
+>                 properties:
+>                   id:
+>                     type: string
+>                   text:
+>                     type: string
+>                   user_id:
+>                     type: string
+>                   created_at:
+>                     type: string
+>                     format: date-time
+>     put:
+>       operationId: updateMessage
+>       tags: [messages]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+>               properties:
+>                 text:
+>                   type: string
+>       responses:
+>         '200':
+>           description: updated
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>     delete:
+>       operationId: deleteMessage
+>       tags: [messages]
+>       responses:
+>         '200':
+>           description: deleted
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>   /messages/{messageId}/restore/:
+>     post:
+>       operationId: restoreMessage
+>       tags: [messages]
+>       parameters:
+>         - name: messageId
+>           in: path
+>           required: true
+>           schema:
+>             type: string
+>       responses:
+>         '200':
+>           description: restored
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>   /app-settings/:
+118,120c172,173
+<       description: Return the User-Agent string sent by the client.
+<       operationId: listget_user_agents
+<       parameters: []
+---
+>       operationId: getAppSettings
+>       tags: [settings]
+122a176
+>           description: settings
+126,131c180,184
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/disconnected/:
+---
+>                 type: object
+>                 properties:
+>                   file_uploads:
+>                     type: boolean
+>   /users/:
+133,135c186,187
+<       description: Return whether the current user is marked as disconnected.
+<       operationId: listDisconnecteds
+<       parameters: []
+---
+>       operationId: listUsers
+>       tags: [users]
+137a190
+>           description: users
+141d193
+<                 items: {}
+143,150c195,221
+<           description: ''
+<       tags:
+<       - api
+<   /api/editing-audit-state/:
+<     post:
+<       description: Echo posted editing audit state after JWT auth.
+<       operationId: createediting_audit_state
+<       parameters: []
+---
+>                 items:
+>                   type: object
+>                   properties:
+>                     id:
+>                       type: integer
+>                     username:
+>                       type: string
+>   /user/:
+>     get:
+>       operationId: currentUser
+>       tags: [users]
+>       responses:
+>         '200':
+>           description: current user
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   id:
+>                     type: integer
+>                   username:
+>                     type: string
+>   /core-user-agent/:
+>     post:
+>       operationId: setUserAgent
+>       tags: [users]
+154,158c225,229
+<             schema: {}
+<           application/x-www-form-urlencoded:
+<             schema: {}
+<           multipart/form-data:
+<             schema: {}
+---
+>             schema:
+>               type: object
+>               properties:
+>                 user_agent:
+>                   type: string
+160c231,232
+<         '201':
+---
+>         '200':
+>           description: ok
+163,167c235,240
+<               schema: {}
+<           description: ''
+<       tags:
+<       - api
+<   /api/initialized/:
+---
+>               schema:
+>                 type: object
+>                 properties:
+>                   status:
+>                     type: string
+>   /notifications/:
+169,171c242,243
+<       description: Return whether the current user is marked as initialized.
+<       operationId: listInitializeds
+<       parameters: []
+---
+>       operationId: listNotifications
+>       tags: [notifications]
+173a246
+>           description: notifications
+177d249
+<                 items: {}
+179,182c251,253
+<           description: ''
+<       tags:
+<       - api
+<   /api/refresh-token/:
+---
+>                 items:
+>                   type: object
+>   /polls/:
+184,186c255,256
+<       description: ''
+<       operationId: listRefreshTokens
+<       parameters: []
+---
+>       operationId: listPolls
+>       tags: [polls]
+188a259
+>           description: polls
+192d262
+<                 items: {}
+194,201c264,268
+<           description: ''
+<       tags:
+<       - api
+<   /api/register-subscriptions/:
+<     post:
+<       description: Register web push subscriptions and echo them back.
+<       operationId: createregister_subscriptions
+<       parameters: []
+---
+>                 items:
+>                   type: object
+>     post:
+>       operationId: createPoll
+>       tags: [polls]
+205,209c272,280
+<             schema: {}
+<           application/x-www-form-urlencoded:
+<             schema: {}
+<           multipart/form-data:
+<             schema: {}
+---
+>             schema:
+>               type: object
+>               properties:
+>                 question:
+>                   type: string
+>                 options:
+>                   type: array
+>                   items:
+>                     type: string
+211a283
+>           description: created
+214,218c286,291
+<               schema: {}
+<           description: ''
+<       tags:
+<       - api
+<   /api/rooms/{cid}/config/:
+---
+>               schema:
+>                 type: object
+>                 properties:
+>                   poll:
+>                     type: object
+>   /reminders/:
+220,228c293,294
+<       description: Return basic metadata for the given room.
+<       operationId: listRoomConfigs
+<       parameters:
+<       - description: ''
+<         in: path
+<         name: cid
+<         required: true
+<         schema:
+<           type: string
+---
+>       operationId: listReminders
+>       tags: [reminders]
+230a297
+>           description: reminders
+234d300
+<                 items: {}
+236,249c302,317
+<           description: ''
+<       tags:
+<       - api
+<   /api/rooms/{cid}/members/:
+<     get:
+<       description: Return paginated members for the room identified by cid.
+<       operationId: listRoomMembersCIDs
+<       parameters:
+<       - description: ''
+<         in: path
+<         name: cid
+<         required: true
+<         schema:
+<           type: string
+---
+>                 items:
+>                   type: object
+>     post:
+>       operationId: createReminder
+>       tags: [reminders]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+>               properties:
+>                 text:
+>                   type: string
+>                 remind_at:
+>                   type: string
+>                   format: date-time
+251c319,320
+<         '200':
+---
+>         '201':
+>           description: created
+255,260c324,328
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/rooms/{cid}/messages/:
+---
+>                 type: object
+>                 properties:
+>                   reminder:
+>                     type: object
+>   /threads/:
+262,270c330,331
+<       description: List and create messages for a room.
+<       operationId: listMessages
+<       parameters:
+<       - description: ''
+<         in: path
+<         name: cid
+<         required: true
+<         schema:
+<           type: string
+---
+>       operationId: listThreads
+>       tags: [threads]
+272a334
+>           description: threads
+276,277d337
+<                 items:
+<                   $ref: '#/components/schemas/Message'
+279,281c339,341
+<           description: ''
+<       tags:
+<       - api
+---
+>                 items:
+>                   type: object
+>   /link-preview/:
+283,291c343,344
+<       description: List and create messages for a room.
+<       operationId: createMessage
+<       parameters:
+<       - description: ''
+<         in: path
+<         name: cid
+<         required: true
+<         schema:
+<           type: string
+---
+>       operationId: createLinkPreview
+>       tags: [link]
+296,302c349,352
+<               $ref: '#/components/schemas/Message'
+<           application/x-www-form-urlencoded:
+<             schema:
+<               $ref: '#/components/schemas/Message'
+<           multipart/form-data:
+<             schema:
+<               $ref: '#/components/schemas/Message'
+---
+>               type: object
+>               properties:
+>                 url:
+>                   type: string
+304c354,355
+<         '201':
+---
+>         '200':
+>           description: preview
+308,317c359,367
+<                 $ref: '#/components/schemas/Message'
+<           description: ''
+<       tags:
+<       - api
+<   /api/rooms/{room_uuid}/config-state/:
+<     get:
+<       description: Return message composer configuration for the room.
+<       operationId: listRoomConfigStates
+<       parameters:
+<       - description: ''
+---
+>                 type: object
+>                 properties:
+>                   url:
+>                     type: string
+>                   title:
+>                     type: string
+>   /mute-status/{username}/:
+>     parameters:
+>       - name: username
+319d368
+<         name: room_uuid
+322a372,374
+>     get:
+>       operationId: muteStatus
+>       tags: [mutes]
+324a377,391
+>           description: mute status
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   muted:
+>                     type: boolean
+>   /muted-users/:
+>     get:
+>       operationId: listMutedUsers
+>       tags: [mutes]
+>       responses:
+>         '200':
+>           description: muted users
+328d394
+<                 items: {}
+330,338c396,413
+<           description: ''
+<       tags:
+<       - api
+<   /api/rooms/{room_uuid}/draft/:
+<     delete:
+<       description: Save and retrieve message drafts.
+<       operationId: destroyRoomDraft
+<       parameters:
+<       - description: ''
+---
+>                 items:
+>                   type: object
+>   /muted-channels/:
+>     get:
+>       operationId: listMutedChannels
+>       tags: [mutes]
+>       responses:
+>         '200':
+>           description: muted channels
+>           content:
+>             application/json:
+>               schema:
+>                 type: array
+>                 items:
+>                   type: object
+>   /mute/{username}/:
+>     parameters:
+>       - name: username
+340d414
+<         name: room_uuid
+343a418,420
+>     post:
+>       operationId: muteUser
+>       tags: [mutes]
+345,353c422,433
+<         '204':
+<           description: ''
+<       tags:
+<       - api
+<     get:
+<       description: Save and retrieve message drafts.
+<       operationId: listRoomDrafts
+<       parameters:
+<       - description: ''
+---
+>         '200':
+>           description: ok
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   status:
+>                     type: string
+>   /unmute/{username}/:
+>     parameters:
+>       - name: username
+355d434
+<         name: room_uuid
+358a438,440
+>     post:
+>       operationId: unmuteUser
+>       tags: [mutes]
+360a443
+>           description: ok
+364,368c447,485
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+---
+>                 type: object
+>                 properties:
+>                   status:
+>                     type: string
+>   /recover-state/:
+>     get:
+>       operationId: recoverState
+>       tags: [state]
+>       responses:
+>         '200':
+>           description: recovery state
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   rooms:
+>                     type: array
+>                     items:
+>                       type: object
+>                   notifications:
+>                     type: array
+>                     items:
+>                       type: object
+>   /refresh-token/:
+>     get:
+>       operationId: refreshToken
+>       tags: [auth]
+>       responses:
+>         '200':
+>           description: new token
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   token:
+>                     type: string
+>   /subarray/:
+370,378c487,488
+<       description: Save and retrieve message drafts.
+<       operationId: createRoomDraft
+<       parameters:
+<       - description: ''
+<         in: path
+<         name: room_uuid
+<         required: true
+<         schema:
+<           type: string
+---
+>       operationId: subarray
+>       tags: [utils]
+382,386c492,527
+<             schema: {}
+<           application/x-www-form-urlencoded:
+<             schema: {}
+<           multipart/form-data:
+<             schema: {}
+---
+>             schema:
+>               type: object
+>               properties:
+>                 array:
+>                   type: array
+>                   items: {}
+>                 start:
+>                   type: integer
+>                 end:
+>                   type: integer
+>                   nullable: true
+>       responses:
+>         '200':
+>           description: sliced
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   result:
+>                     type: array
+>                     items: {}
+>   /editing-audit-state/:
+>     post:
+>       operationId: editingAuditState
+>       tags: [state]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+>               properties:
+>                 draft_update:
+>                   type: integer
+>                 state_update:
+>                   type: integer
+388c529,530
+<         '201':
+---
+>         '200':
+>           description: echo
+391,399c533,543
+<               schema: {}
+<           description: ''
+<       tags:
+<       - api
+<   /api/session/:
+<     delete:
+<       description: ''
+<       operationId: destroySession
+<       parameters: []
+---
+>               schema:
+>                 type: object
+>                 properties:
+>                   draft_update:
+>                     type: integer
+>                   state_update:
+>                     type: integer
+>   /ws-auth/:
+>     get:
+>       operationId: wsAuth
+>       tags: [auth]
+401,409c545,557
+<         '204':
+<           description: ''
+<       tags:
+<       - api
+<   /api/sync-user/:
+<     post:
+<       description: ''
+<       operationId: createSyncUser
+<       parameters: []
+---
+>         '200':
+>           description: ok
+>           content:
+>             application/json:
+>               schema:
+>                 type: object
+>                 properties:
+>                   status:
+>                     type: string
+>   /attachments/:
+>     post:
+>       operationId: uploadAttachment
+>       tags: [attachments]
+413,417c561,565
+<             schema: {}
+<           application/x-www-form-urlencoded:
+<             schema: {}
+<           multipart/form-data:
+<             schema: {}
+---
+>             schema:
+>               type: object
+>               properties:
+>                 name:
+>                   type: string
+419a568
+>           description: created
+422,426c571,576
+<               schema: {}
+<           description: ''
+<       tags:
+<       - api
+<   /api/tag/:
+---
+>               schema:
+>                 type: object
+>                 properties:
+>                   attachment:
+>                     type: object
+>   /disconnected/:
+428,430c578,579
+<       description: Return a constant tag value for tests.
+<       operationId: listget_tags
+<       parameters: []
+---
+>       operationId: isDisconnected
+>       tags: [state]
+432a582
+>           description: flag
+436,441c586,590
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/token/:
+---
+>                 type: object
+>                 properties:
+>                   disconnected:
+>                     type: boolean
+>   /initialized/:
+443,445c592,593
+<       description: Return the current user's ID and their Supabase access token.
+<       operationId: listTokens
+<       parameters: []
+---
+>       operationId: isInitialized
+>       tags: [state]
+447a596
+>           description: flag
+451,456c600,604
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/user-agent/:
+---
+>                 type: object
+>                 properties:
+>                   initialized:
+>                     type: boolean
+>   /listeners/:
+458,460c606,607
+<       description: ''
+<       operationId: listUserAgents
+<       parameters: []
+---
+>       operationId: getListeners
+>       tags: [events]
+462a610
+>           description: listeners
+466,470c614,620
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+---
+>                 type: object
+>                 properties:
+>                   listeners:
+>                     type: array
+>                     items:
+>                       type: string
+>   /dispatch-event/:
+472,474c622,623
+<       description: ''
+<       operationId: createUserAgent
+<       parameters: []
+---
+>       operationId: dispatchEvent
+>       tags: [events]
+478,482c627,628
+<             schema: {}
+<           application/x-www-form-urlencoded:
+<             schema: {}
+<           multipart/form-data:
+<             schema: {}
+---
+>             schema:
+>               type: object
+484c630,631
+<         '201':
+---
+>         '200':
+>           description: echo
+487,495c634,647
+<               schema: {}
+<           description: ''
+<       tags:
+<       - api
+<   /api/user/:
+<     get:
+<       description: Return details for the current authenticated user.
+<       operationId: listCurrentUsers
+<       parameters: []
+---
+>               schema:
+>                 type: object
+>                 properties:
+>                   event:
+>                     type: object
+>   /register-subscriptions/:
+>     post:
+>       operationId: registerSubscriptions
+>       tags: [events]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+497a650
+>           description: echo
+501,506c654,658
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/users/:
+---
+>                 type: object
+>                 properties:
+>                   subscriptions:
+>                     type: object
+>   /quoted-message/:
+508,510c660,661
+<       description: ''
+<       operationId: listUsers
+<       parameters: []
+---
+>       operationId: getQuotedMessage
+>       tags: [messages]
+512a664
+>           description: stored message
+516,526c668,684
+<                 items:
+<                   $ref: '#/components/schemas/User'
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+<   /api/ws-auth/:
+<     get:
+<       description: Return a signed websocket URL for authenticated requests.
+<       operationId: listws_auths
+<       parameters: []
+---
+>                 type: object
+>                 properties:
+>                   quoted_message:
+>                     type: object
+>                     nullable: true
+>     post:
+>       operationId: setQuotedMessage
+>       tags: [messages]
+>       requestBody:
+>         content:
+>           application/json:
+>             schema:
+>               type: object
+>               properties:
+>                 quoted_message:
+>                   type: object
+>                   nullable: true
+528a687
+>           description: ok
+532,536c691,694
+<                 items: {}
+<                 type: array
+<           description: ''
+<       tags:
+<       - api
+---
+>                 type: object
+>                 properties:
+>                   status:
+>                     type: string
