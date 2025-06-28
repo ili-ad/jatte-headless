@@ -114,7 +114,7 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
     const handleEvent = (event: Event) => {
       if (channel.cid !== event.cid) return;
       if (event.user?.id !== client.user?.id) return;
-        setUnread(/* TODO backend-wire-up: channel.countUnread */ 0);
+      setUnread(channel.countUnread());
     };
     /* TODO backend-wire-up: channel.on */
     return () => {
@@ -128,7 +128,7 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
         if (muted) {
           setUnread(0);
         } else {
-            setUnread(/* TODO backend-wire-up: channel.countUnread */ 0);
+          setUnread(channel.countUnread());
         }
       }, 400),
     [channel, muted],
