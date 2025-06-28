@@ -290,7 +290,12 @@ export class LocalChatClient {
   }
 
   async queryUsers() {
-    return { users: this.user ? [this.user] : [] };
+    const resp = await fetch('/api/users/', {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
+    const data = await resp.json();
+    return { users: data };
   }
 
   channel(type: string, id?: string) {
