@@ -169,6 +169,12 @@ export class LocalChannel {
     return this.state.countUnread(this.getUserId());
   }
 
+  /** Return whether this channel is muted for the current user */
+  muteStatus() {
+    const muted = this.client.mutedChannels.includes(this.cid);
+    return { muted };
+  }
+
   /** Expose the parent client instance */
   getClient() {
     return this.client;
