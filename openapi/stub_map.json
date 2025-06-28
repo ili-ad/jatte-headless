@@ -22,5 +22,6 @@
   "client.reminders.createReminder": "createReminder",
   "channel.archive": "shim::channel.archive",
   "channel.countUnread": "shim::channel.countUnread",
-  "channel.getClient": "shim::channel.getClient"
+  "channel.getClient": "shim::channel.getClient",
+  "channel.getReplies": "shim::channel.getReplies"
 }
