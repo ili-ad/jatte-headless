@@ -25,45 +25,56 @@ export async function channelGetReplies(
   parentId: string,
   options?: { limit?: number; id_lt?: string },
 ): Promise<{ messages: any[] }> {
-  if (typeof channel.getReplies === 'function') {
+  if (typeof channel.getReplies === "function") {
     return channel.getReplies(parentId, options);
   }
   return { messages: [] };
 }
 
-export async function channelMarkRead(
-  channel: { markRead?: () => Promise<any> },
-): Promise<any> {
-  if (typeof channel.markRead === 'function') {
+export async function channelMarkRead(channel: {
+  markRead?: () => Promise<any>;
+}): Promise<any> {
+  if (typeof channel.markRead === "function") {
     return channel.markRead();
   }
   return undefined;
 }
 
 export function channelOff(
-  channel: { off?: (eventType?: string, handler?: (...args: any[]) => void) => void },
+  channel: {
+    off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
+  },
   eventType?: string,
   handler?: (...args: any[]) => void,
 ): void {
-  if (typeof channel.off === 'function') {
+  if (typeof channel.off === "function") {
     // Forward the call to the underlying channel if available
-    (channel.off as (eventType?: string, handler?: (...args: any[]) => void) => void)(
-      eventType,
-      handler,
-    );
+    (
+      channel.off as (
+        eventType?: string,
+        handler?: (...args: any[]) => void,
+      ) => void
+    )(eventType, handler);
   }
 }
 
 export function channelOn(
-  channel: { on?: (eventType: string, handler: (...args: any[]) => void) => { unsubscribe?: () => void } },
+  channel: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
   eventType: string,
   handler: (...args: any[]) => void,
 ): { unsubscribe?: () => void } | undefined {
-  if (typeof channel.on === 'function') {
-    return (channel.on as (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void })(eventType, handler);
+  if (typeof channel.on === "function") {
+    return (
+      channel.on as (
+        eventType: string,
+        handler: (...args: any[]) => void,
+      ) => { unsubscribe?: () => void }
+    )(eventType, handler);
   }
   return undefined;
 }
@@ -72,7 +83,7 @@ export async function channelPin(
   channel: { pin?: (messageId: string) => Promise<any> },
   messageId: string,
 ): Promise<any> {
-  if (typeof channel.pin === 'function') {
+  if (typeof channel.pin === "function") {
     return channel.pin(messageId);
   }
   return undefined;
@@ -82,7 +93,7 @@ export async function channelQuery(
   channel: { query?: (options?: any) => Promise<any> },
   options?: any,
 ): Promise<any> {
-  if (typeof channel.query === 'function') {
+  if (typeof channel.query === "function") {
     return channel.query(options);
   }
   return { messages: [] };
@@ -96,11 +107,31 @@ export async function channelSendMessage(
   const resp = await fetch(
     `/api/rooms/${encodeURIComponent(channel.cid)}/messages/`,
     {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(message),
     },
   );
   return resp.json();
+}
+
+export async function channelStateLoadMessageIntoState(
+  channel: {
+    state?: {
+      loadMessageIntoState?: (
+        id: string,
+        around?: string,
+        limit?: number,
+      ) => Promise<any>;
+    };
+  },
+  messageId: string,
+  around?: string,
+  messageLimit?: number,
+): Promise<any> {
+  if (channel.state?.loadMessageIntoState) {
+    return channel.state.loadMessageIntoState(messageId, around, messageLimit);
+  }
+  return undefined;
 }
