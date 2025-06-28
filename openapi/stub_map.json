@@ -25,5 +25,6 @@
   "channel.getClient": "shim::channel.getClient",
   "channel.getReplies": "shim::channel.getReplies",
   "channel.markRead": "shim::channel.markRead",
+  "channel.on": "shim::channel.on",
   "channel.off": "shim::channel.off"
 }

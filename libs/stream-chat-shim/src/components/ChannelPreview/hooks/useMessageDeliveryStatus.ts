@@ -62,7 +62,6 @@ export const useMessageDeliveryStatus = ({
       return setMessageDeliveryStatus(MessageDeliveryStatus.DELIVERED);
     };
 
-    /* TODO backend-wire-up: channel.on */
 
     return () => {
     };
@@ -74,7 +73,6 @@ export const useMessageDeliveryStatus = ({
       if (event.user?.id !== client.user?.id)
         setMessageDeliveryStatus(MessageDeliveryStatus.READ);
     };
-    /* TODO backend-wire-up: channel.on */
 
     return () => {
     };

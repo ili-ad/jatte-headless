@@ -53,3 +53,17 @@ export function channelOff(
     );
   }
 }
+
+export function channelOn(
+  channel: { on?: (eventType: string, handler: (...args: any[]) => void) => { unsubscribe?: () => void } },
+  eventType: string,
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  if (typeof channel.on === 'function') {
+    return (channel.on as (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void })(eventType, handler);
+  }
+  return undefined;
+}
