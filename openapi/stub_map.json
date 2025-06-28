@@ -1,0 +1,23 @@
+{
+  "sendMessage": "createMessage",
+  "deleteMessage": "deleteMessage",
+  "connectUser": "syncUser",
+  "disconnectUser": "endSession",
+  "channel.muteStatus": "muteStatus",
+  "findMessage": "getMessage",
+  "muteUser": "muteUser",
+  "unmuteUser": "unmuteUser",
+  "getDraft": "listRoomDrafts",
+  "client.deleteMessage": "deleteMessage",
+  "channel.sendMessage": "createMessage",
+  "client.updateMessage": "updateMessage",
+  "reminders.createReminder": "createReminder",
+  "getAppSettings": "getAppSettings",
+  "getUserAgent": "listUserAgents",
+  "setUserAgent": "setUserAgent",
+  "threads.registerSubscriptions": "registerSubscriptions",
+  "polls.registerSubscriptions": "registerSubscriptions",
+  "reminders.registerSubscriptions": "registerSubscriptions",
+  "client.queryUsers": "listUsers",
+  "client.reminders.createReminder": "createReminder"
+}
