@@ -92,7 +92,7 @@ import {
   getVideoAttachmentConfiguration,
 } from "../Attachment/attachment-sizing";
 import { useSearchFocusedMessage } from "../../experimental/Search/hooks";
-import { channelGetReplies, channelMarkRead } from "../../chatSDKShim";
+import { channelGetReplies, channelMarkRead, channelQuery } from "../../chatSDKShim";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -499,10 +499,7 @@ const ChannelInner = (
        * As the channel state is not normalized we re-fetch the channel data. Thus, we avoid having to search for user references in the channel state.
        */
       // FIXME: we should use channelQueryOptions if they are available
-      await (async () => {
-        /* TODO backend-wire-up: channel.query */
-        return { messages: [] } as any;
-      })();
+      await channelQuery(channel);
     }
 
     if (event.type === "notification.mark_unread")
@@ -703,10 +700,10 @@ const ChannelInner = (
     let queryResponse: ChannelAPIResponse;
 
     try {
-      queryResponse = await (async () => {
-        /* TODO backend-wire-up: channel.query */
-        return { messages: [] } as ChannelAPIResponse;
-      })();
+      queryResponse = await channelQuery(channel, {
+        limit: perPage,
+        id_lt: oldestID,
+      });
     } catch (e) {
       console.warn("message pagination request failed with error", e);
       dispatch({ loadingMore: false, type: "setLoadingMore" });
@@ -739,10 +736,10 @@ const ChannelInner = (
     let queryResponse: ChannelAPIResponse;
 
     try {
-      queryResponse = await (async () => {
-        /* TODO backend-wire-up: channel.query */
-        return { messages: [] } as ChannelAPIResponse;
-      })();
+      queryResponse = await channelQuery(channel, {
+        limit: perPage,
+        id_gt: newestId,
+      });
     } catch (e) {
       console.warn("message pagination request failed with error", e);
       dispatch({ loadingMoreNewer: false, type: "setLoadingMoreNewer" });
@@ -841,10 +838,7 @@ const ChannelInner = (
             let messages;
             try {
               messages = (
-                await (async () => {
-                  /* TODO backend-wire-up: channel.query */
-                  return { messages: [] } as ChannelAPIResponse;
-                })()
+                await channelQuery(channel, { limit: queryMessageLimit })
               ).messages;
             } catch (e) {
               addNotification(
