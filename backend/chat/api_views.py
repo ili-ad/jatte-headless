@@ -1,51 +1,29 @@
+import json
+import uuid
+from urllib.parse import urlparse
+
+import redis
+from accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.http import QueryDict
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django.shortcuts import get_object_or_404
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-
-from accounts_supabase.authentication import DevTokenOrJWTAuthentication
-from django.utils import timezone
-
-from urllib.parse import urlparse
-import uuid
-import json
-from django.http import QueryDict
-import redis
 from .mixins import RoomFromCIDMixin
-from .models import (
-    Room,
-    Channel,
-    Message,
-    ReadState,
-    Draft,
-    Notification,
-    Reaction,
-    PollOption,
-    Poll,
-    Flag,
-    Pin,
-    UserMute,
-    RoomMute,
-    Reminder,
-)
-
-from .serializers import (
-    RoomSerializer,
-    MessageSerializer,
-    NotificationSerializer,
-    ReactionSerializer,
-    PollOptionSerializer,
-    PollSerializer,
-    FlagSerializer,
-    PinSerializer,
-    ReminderSerializer,
-)
-
+from .models import (Channel, Draft, Flag, Message, Notification, Pin, Poll,
+                     PollOption, Reaction, ReadState, Reminder, Room, RoomMute,
+                     UserMute)
+from .serializers import (FlagSerializer, MessageSerializer,
+                          NotificationSerializer, PinSerializer,
+                          PollOptionSerializer, PollSerializer,
+                          ReactionSerializer, ReminderSerializer,
+                          RoomSerializer)
 
 
 class RoomListCreateView(generics.ListCreateAPIView):
@@ -64,9 +42,9 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = "uuid"
 
 
-
 class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
     """List and create messages for a room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MessageSerializer
@@ -111,9 +89,7 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         room = self.get_room()
-        channel, _ = Channel.objects.get_or_create(
-            uuid=room.uuid, client=room.client
-        )
+        channel, _ = Channel.objects.get_or_create(uuid=room.uuid, client=room.client)
         serializer.save(channel=channel, sent_by=self.request.user.username)
         room.messages.add(serializer.instance)
         Draft.objects.filter(user=self.request.user, room=room).delete()
@@ -151,6 +127,7 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 
 class RoomMarkReadView(RoomFromCIDMixin, APIView):
     """Mark all messages in a room as read for the current user."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -166,6 +143,7 @@ class RoomMarkReadView(RoomFromCIDMixin, APIView):
 
 class RoomMarkUnreadView(RoomFromCIDMixin, APIView):
     """Clear the read state for the current user in a room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -177,6 +155,7 @@ class RoomMarkUnreadView(RoomFromCIDMixin, APIView):
 
 class RoomCountUnreadView(RoomFromCIDMixin, APIView):
     """Return number of unread messages for the current user in a room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -192,6 +171,7 @@ class RoomCountUnreadView(RoomFromCIDMixin, APIView):
 
 class RoomLastReadView(RoomFromCIDMixin, APIView):
     """Return the last read timestamp for the current user in a room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -204,6 +184,7 @@ class RoomLastReadView(RoomFromCIDMixin, APIView):
 
 class RoomReadView(RoomFromCIDMixin, APIView):
     """Return read states for all users in the room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -225,6 +206,7 @@ class RoomReadView(RoomFromCIDMixin, APIView):
 
 class RoomDraftView(RoomFromCIDMixin, APIView):
     """Save and retrieve message drafts."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -281,6 +263,7 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
 
 class MessageDetailView(APIView):
     """Retrieve, update or delete a single message."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -303,11 +286,26 @@ class MessageDetailView(APIView):
         msg = get_object_or_404(Message, id=message_id)
         msg.deleted_at = timezone.now()
         msg.save(update_fields=["deleted_at"])
+
+        try:
+            channel_layer = get_channel_layer()
+            cid = f"messaging:{msg.channel.uuid}"
+            async_to_sync(channel_layer.group_send)(
+                cid.replace(":", "_"),
+                {
+                    "type": "chat.message",
+                    "payload": {"type": "message.deleted", "cid": cid, "id": msg.id},
+                },
+            )
+        except Exception:
+            pass
+
         return Response(MessageSerializer(msg).data)
 
 
 class MessageRestoreView(APIView):
     """Restore a previously deleted message."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -315,11 +313,26 @@ class MessageRestoreView(APIView):
         msg = get_object_or_404(Message, id=message_id)
         msg.deleted_at = None
         msg.save(update_fields=["deleted_at"])
+
+        try:
+            channel_layer = get_channel_layer()
+            cid = f"messaging:{msg.channel.uuid}"
+            async_to_sync(channel_layer.group_send)(
+                cid.replace(":", "_"),
+                {
+                    "type": "chat.message",
+                    "payload": {"type": "message.updated", "cid": cid, "id": msg.id},
+                },
+            )
+        except Exception:
+            pass
+
         return Response(MessageSerializer(msg).data)
 
 
 class MessageRepliesView(APIView):
     """Return replies to a given message."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -331,6 +344,7 @@ class MessageRepliesView(APIView):
 
 class MessageReactionsView(APIView):
     """List or create reactions for a message."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -351,7 +365,6 @@ class MessageReactionsView(APIView):
         return Response(ReactionSerializer(reaction).data, status=201)
 
 
-
 class MessageFlagView(APIView):
     """Flag a message for moderation."""
 
@@ -361,16 +374,14 @@ class MessageFlagView(APIView):
     def post(self, request, message_id):
         msg = get_object_or_404(Message, id=message_id)
         flag, _ = Flag.objects.get_or_create(message=msg, user=request.user)
-        return Response({"flag": FlagSerializer(flag).data}, status=201)    
+        return Response({"flag": FlagSerializer(flag).data}, status=201)
 
-      
-      
+
 class ReactionDetailView(APIView):
     """Delete a single reaction."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-
 
     def post(self, request, message_id):
         msg = get_object_or_404(Message, id=message_id)
@@ -378,9 +389,7 @@ class ReactionDetailView(APIView):
         return Response({"flag": FlagSerializer(flag).data}, status=201)
 
     def delete(self, request, message_id, reaction_id):
-        reaction = get_object_or_404(
-            Reaction, id=reaction_id, message_id=message_id
-        )
+        reaction = get_object_or_404(Reaction, id=reaction_id, message_id=message_id)
         reaction.delete()
         return Response(status=204)
 
@@ -427,7 +436,6 @@ class MessageActionView(APIView):
         return Response({"action": data}, status=201)
 
 
-
 class PollOptionCreateView(APIView):
     """Create a new poll option."""
 
@@ -466,7 +474,9 @@ class PollListCreateView(APIView):
             user=request.user,
         )
         for text in request.data.get("options", []):
-            PollOption.objects.create(poll_id=str(poll.id), text=text, user=request.user)
+            PollOption.objects.create(
+                poll_id=str(poll.id), text=text, user=request.user
+            )
         return Response({"poll": PollSerializer(poll).data}, status=201)
 
 
@@ -480,6 +490,7 @@ class PollDetailView(APIView):
         poll = get_object_or_404(Poll, id=poll_id)
         poll.delete()
         return Response(status=204)
+
 
 class RoomConfigView(RoomFromCIDMixin, APIView):
     """Return basic metadata for the given room."""
@@ -501,23 +512,27 @@ class RoomConfigView(RoomFromCIDMixin, APIView):
         return Response({"name": name, "type": room_type, "muted": muted})
 
 
-
 class RoomConfigStateView(RoomFromCIDMixin, APIView):
     """Return message composer configuration for the room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, room_uuid):
         self.get_room(room_uuid)
-        return Response({
-            "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
-            "text": {"enabled": True},
-            "multipleUploads": True,
-            "isUploadEnabled": True,
-        })
+        return Response(
+            {
+                "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
+                "text": {"enabled": True},
+                "multipleUploads": True,
+                "isUploadEnabled": True,
+            }
+        )
 
 
 class RoomArchiveView(RoomFromCIDMixin, APIView):
     """Archive a room by setting its status to CLOSED."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -530,6 +545,7 @@ class RoomArchiveView(RoomFromCIDMixin, APIView):
 
 class RoomUnarchiveView(RoomFromCIDMixin, APIView):
     """Reopen a previously archived room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -542,6 +558,7 @@ class RoomUnarchiveView(RoomFromCIDMixin, APIView):
 
 class RoomCooldownView(RoomFromCIDMixin, APIView):
     """Return cooldown seconds for the given room."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -634,6 +651,7 @@ class RoomQueryView(RoomFromCIDMixin, APIView):
 
 class ActiveRoomListView(generics.ListAPIView):
     """Return all rooms currently marked as ACTIVE."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = RoomSerializer
@@ -644,6 +662,7 @@ class ActiveRoomListView(generics.ListAPIView):
 
 class NotificationListView(APIView):
     """Return notifications for the current user."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -702,6 +721,7 @@ class MutedChannelListView(APIView):
 
 class MuteStatusView(APIView):
     """Return whether the current user muted the given user."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -713,6 +733,7 @@ class MuteStatusView(APIView):
 
 class MutedUsersView(APIView):
     """Return list of users muted by the current user."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -721,7 +742,7 @@ class MutedUsersView(APIView):
         data = [{"id": m.target.id, "username": m.target.username} for m in qs]
         return Response(data)
 
-      
+
 class MuteUserView(APIView):
     """Mute the given user for the current user."""
 
@@ -756,8 +777,8 @@ class AttachmentUploadView(APIView):
         name = request.data.get("name", "")
         att_id = uuid.uuid4()
         return Response({"attachment": {"id": str(att_id), "name": name}}, status=201)
-      
-      
+
+
 class LinkPreviewView(APIView):
     """Return basic metadata for a URL."""
 
@@ -772,7 +793,7 @@ class LinkPreviewView(APIView):
         title = parsed.netloc or url
         return Response({"url": url, "title": title})
 
-      
+
 class RoomHideView(RoomFromCIDMixin, APIView):
     """Mark a room as hidden for the current user."""
 
@@ -866,13 +887,15 @@ class SubarrayView(APIView):
         if not isinstance(array, list):
             return Response({"error": "array must be a list"}, status=400)
         slice_result = array[start:end] if end is not None else array[start:]
-        result = [int(x) if isinstance(x, str) and x.isdigit() else x for x in slice_result]
+        result = [
+            int(x) if isinstance(x, str) and x.isdigit() else x for x in slice_result
+        ]
         return Response({"result": result})
-
 
 
 class TextComposerView(APIView):
     """Echo back posted text for tests."""
+
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -932,13 +955,15 @@ class InitStateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return Response({
-            "text": "",
-            "attachments": [],
-            "poll": None,
-            "custom_data": {},
-            "quoted_message": None,
-        })
+        return Response(
+            {
+                "text": "",
+                "attachments": [],
+                "poll": None,
+                "custom_data": {},
+                "quoted_message": None,
+            }
+        )
 
 
 class StateView(APIView):
@@ -980,11 +1005,11 @@ class QuotedMessageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        request.session['quoted_message'] = request.data.get('quoted_message')
+        request.session["quoted_message"] = request.data.get("quoted_message")
         return Response({"status": "ok"})
 
     def get(self, request):
-        msg = request.session.get('quoted_message')
+        msg = request.session.get("quoted_message")
         return Response({"quoted_message": msg})
 
 

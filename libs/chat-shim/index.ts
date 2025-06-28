@@ -1,8 +1,7 @@
 // libs/chat-shim/index.ts
-"use client"
-import { useSyncExternalStore } from 'react';
-import { createStore } from './stateStore';
-
+"use client";
+import { useSyncExternalStore } from "react";
+import { createStore } from "./stateStore";
 
 /* ----- public types the UI already references ---------------------- */
 export type LocalMessage = any;
@@ -11,10 +10,8 @@ export type StreamChat = {
   threads: { state: ReturnType<typeof createStore<ThreadState>> };
 };
 
-export * from './MessageComposer';
-export * from './noopStore';
-
-
+export * from "./MessageComposer";
+export * from "./noopStore";
 
 /* ----- runtime instance -------------------------------------------- */
 export const streamClient: StreamChat = {
@@ -63,13 +60,6 @@ export class FixedSizeQueueCache<T = any> {
   }
 }
 
-
-
-
-
-
-
-
 /* -------------------------------- Channel -------------------------------- */
 
 export class ChannelState {
@@ -82,18 +72,20 @@ export class ChannelState {
   typing: Record<string, any> = {};
   threads: Record<string, any[]> = {} as any;
 
-  constructor(private notify: (patch: Partial<ChannelState>) => void = () => {}) {}
+  constructor(
+    private notify: (patch: Partial<ChannelState>) => void = () => {},
+  ) {}
 
   addMessageSorted(msg: any) {
     this.messages.push(msg);
     this.notify({ messages: this.messages });
   }
   filterErrorMessages() {
-    this.messages = this.messages.filter(m => m.type !== 'error');
+    this.messages = this.messages.filter((m) => m.type !== "error");
     this.notify({ messages: this.messages });
   }
   removeMessage(msg: any) {
-    this.messages = this.messages.filter(m => m.id !== msg.id);
+    this.messages = this.messages.filter((m) => m.id !== msg.id);
     this.notify({ messages: this.messages });
   }
   countUnread(userId: string) {
@@ -116,12 +108,16 @@ export class LocalChannel {
   readonly stateStore: StateStore<ChannelState>;
   private getUserId: () => string;
 
-  constructor(readonly cid: string, private sock: WebSocket, getUid: () => string) {
-    const [type, id] = cid.split(':');
+  constructor(
+    readonly cid: string,
+    private sock: WebSocket,
+    getUid: () => string,
+  ) {
+    const [type, id] = cid.split(":");
     this.type = type;
-    this.id = id ?? '';
+    this.id = id ?? "";
     this.getUserId = getUid;
-    this.state = new ChannelState(patch => this.stateStore.dispatch(patch));
+    this.state = new ChannelState((patch) => this.stateStore.dispatch(patch));
     this.stateStore = new StateStore(this.state);
     this.messageComposer = new MessageComposer();
     this.messageComposer.submit = () => {
@@ -133,11 +129,13 @@ export class LocalChannel {
   }
 
   async watch() {
-    return this;                   // SDK returns a promise → UI awaits it
+    return this; // SDK returns a promise → UI awaits it
   }
 
   async sendMessage(msg: { text: string }) {
-    this.sock.send(JSON.stringify({ type: 'message.new', cid: this.cid, ...msg }));
+    this.sock.send(
+      JSON.stringify({ type: "message.new", cid: this.cid, ...msg }),
+    );
   }
 
   on(evt: string, cb: (ev: any) => void) {
@@ -157,7 +155,7 @@ export class LocalChannel {
   }
 
   markRead() {
-    this.sock.send(JSON.stringify({ type: 'mark.read', cid: this.cid }));
+    this.sock.send(JSON.stringify({ type: "mark.read", cid: this.cid }));
   }
 
   /** Return basic configuration flags expected by Stream UI */
@@ -182,26 +180,34 @@ export class LocalChatClient {
 
   private sockets = new Map<string, WebSocket>();
   private channels = new Map<string, LocalChannel>();
-  private userId = 'anonymous';
-  private userAgent = 'local-chat-client/0.0.1 stream-chat-react-adapter';
-  private jwt = '';
+  private userId = "anonymous";
+  private userAgent = "local-chat-client/0.0.1 stream-chat-react-adapter";
+  private jwt = "";
   /** properties stream-chat-react pokes at */
-  clientID = '';
+  clientID = "";
   activeChannels: Record<string, LocalChannel> = {};
   listeners: Record<string, Handler[]> = {};
   mutedChannels: any[] = [];
 
   /** Minimal threads helper expected by Stream UI */
   threads = {
-    registerSubscriptions() {/* noop */},
-    unregisterSubscriptions() {/* noop */},
+    registerSubscriptions() {
+      /* noop */
+    },
+    unregisterSubscriptions() {
+      /* noop */
+    },
   };
 
   /** Minimal polls helper expected by Stream UI */
   polls = {
     store: new StateStore<{ polls: any[] }>({ polls: [] }),
-    registerSubscriptions() {/* noop */},
-    unregisterSubscriptions() {/* noop */},
+    registerSubscriptions() {
+      /* noop */
+    },
+    unregisterSubscriptions() {
+      /* noop */
+    },
   };
 
   /** Minimal reminders helper expected by Stream UI */
@@ -210,35 +216,43 @@ export class LocalChatClient {
   /** Minimal notifications helper expected by Stream UI */
   notifications = {
     store: new StateStore<{ notifications: any[] }>({ notifications: [] }),
-    registerSubscriptions() {/* noop */},
-    unregisterSubscriptions() {/* noop */},
+    registerSubscriptions() {
+      /* noop */
+    },
+    unregisterSubscriptions() {
+      /* noop */
+    },
   };
 
-  getUserAgent() { return this.userAgent; }
-  setUserAgent(ua: string) { this.userAgent = ua; }
+  getUserAgent() {
+    return this.userAgent;
+  }
+  setUserAgent(ua: string) {
+    this.userAgent = ua;
+  }
 
   /* ------------------------------------------------------------------- */
   /*  ░░ 2.   tiny event-bus so  stream-chat-react  can  .on/.off()      */
   /* ------------------------------------------------------------------- */
 
   private bus = new Map<string, Set<Handler>>();
-  on   = (evt: string, cb: Handler) => {
+  on = (evt: string, cb: Handler) => {
     if (!this.bus.has(evt)) this.bus.set(evt, new Set());
     this.bus.get(evt)!.add(cb);
     if (!this.listeners[evt]) this.listeners[evt] = [];
     this.listeners[evt].push(cb);
     return { unsubscribe: () => this.off(evt, cb) };
   };
-  off  = (evt: string, cb: Handler) => {
+  off = (evt: string, cb: Handler) => {
     this.bus.get(evt)?.delete(cb);
     const arr = this.listeners[evt];
     if (arr) {
-      this.listeners[evt] = arr.filter(fn => fn !== cb);
+      this.listeners[evt] = arr.filter((fn) => fn !== cb);
       if (this.listeners[evt].length === 0) delete this.listeners[evt];
     }
   };
   private emit = (evt: string, data: any) =>
-    this.bus.get(evt)?.forEach(cb => cb(data));
+    this.bus.get(evt)?.forEach((cb) => cb(data));
 
   /* ------------------------------------------------------------------- */
   /*  ░░ 3.   ultra-thin “state” & “user” objects the hook assumes exist */
@@ -250,7 +264,7 @@ export class LocalChatClient {
   user: { id: string } | undefined;
   /** Connection indicator the SDK's hooks peek at */
   wsConnection = { online: false };
-  getState = () => this.state;   // some helper hooks call this
+  getState = () => this.state; // some helper hooks call this
 
   /* ------------------------------------------------------------------- */
   /*  ░░ 4.   websocket lifecycle                                        */
@@ -272,7 +286,7 @@ export class LocalChatClient {
     /* 4-c ► expose minimal user object & broadcast “online” */
     this.user = { id: this.userId };
     this.wsConnection.online = true;
-    this.emit('connection.changed', { online: true });
+    this.emit("connection.changed", { online: true });
   }
 
   async queryUsers() {
@@ -280,11 +294,11 @@ export class LocalChatClient {
   }
 
   channel(type: string, id?: string) {
-    const cid = `${type}:${id ?? 'local'}`;
+    const cid = `${type}:${id ?? "local"}`;
     if (!this.channels.has(cid)) {
       const url = `ws://${location.host}/ws/${cid}/?token=${this.jwt}`;
       const sock = new WebSocket(url);
-      sock.onmessage = ev => {
+      sock.onmessage = (ev) => {
         const data = JSON.parse(ev.data);
         this.channels.get(data.cid)?.emit(data.type, data);
       };
@@ -298,7 +312,7 @@ export class LocalChatClient {
   }
 
   disconnectUser() {
-    this.sockets.forEach(s => s.close());
+    this.sockets.forEach((s) => s.close());
     this.sockets.clear();
     this.channels.clear();
     this.activeChannels = {};
@@ -307,12 +321,17 @@ export class LocalChatClient {
     this.state.channels.clear();
     this.user = undefined;
     this.wsConnection.online = false;
-    this.userId = 'anonymous';
-    this.clientID = '';
-    this.emit('connection.changed', { online: false });
+    this.userId = "anonymous";
+    this.clientID = "";
+    this.emit("connection.changed", { online: false });
+  }
+
+  /** Delete a message by id via the backend */
+  async deleteMessage(id: string): Promise<any> {
+    const resp = await fetch(`/api/messages/${id}/`, { method: "DELETE" });
+    return resp.json();
   }
 }
-
 
 /* ------------------------- Link preview manager ------------------------- */
 
@@ -324,11 +343,11 @@ export interface LinkPreview {
 }
 
 export enum LinkPreviewStatus {
-  dismissed = 'dismissed',
-  failed    = 'failed',
-  loaded    = 'loaded',
-  loading   = 'loading',
-  pending   = 'pending',
+  dismissed = "dismissed",
+  failed = "failed",
+  loaded = "loaded",
+  loading = "loading",
+  pending = "pending",
 }
 
 /* ------------------------- Link preview manager ------------------------- */
@@ -365,8 +384,13 @@ export class LinkPreviewsManager {
       return cached;
     }
 
-    const resp  = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-    const data: LinkPreview = { ...(await resp.json()), status: LinkPreviewStatus.loaded };
+    const resp = await fetch(
+      `/api/link-preview?url=${encodeURIComponent(url)}`,
+    );
+    const data: LinkPreview = {
+      ...(await resp.json()),
+      status: LinkPreviewStatus.loaded,
+    };
 
     this.cache.set(url, data);
     if (this.cache.size > this.limit) {
@@ -391,23 +415,27 @@ export class LinkPreviewsManager {
 
   /* ── static helpers used by Stream-Chat-React ───────────────────────── */
 
-  static previewIsLoading  (p: LinkPreview) { return p.status === LinkPreviewStatus.loading;   }
-  static previewIsLoaded   (p: LinkPreview) { return p.status === LinkPreviewStatus.loaded;    }
-  static previewIsDismissed(p: LinkPreview) { return p.status === LinkPreviewStatus.dismissed; }
-  static previewIsFailed   (p: LinkPreview) { return p.status === LinkPreviewStatus.failed;    }
-  static previewIsPending  (p: LinkPreview) { return p.status === LinkPreviewStatus.pending || !p.status; }
+  static previewIsLoading(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.loading;
+  }
+  static previewIsLoaded(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.loaded;
+  }
+  static previewIsDismissed(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.dismissed;
+  }
+  static previewIsFailed(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.failed;
+  }
+  static previewIsPending(p: LinkPreview) {
+    return p.status === LinkPreviewStatus.pending || !p.status;
+  }
 
   static getPreviewData(p: LinkPreview) {
     const { status, ...rest } = p;
     return rest;
   }
 }
-
-
-
-
-
-
 
 /* --------------------------- compatibility stub -------------------------- */
 /** Return the *same* LocalChatClient for any api-key – good enough for local */
@@ -421,7 +449,6 @@ export class LinkPreviewsManager {
 //     return _singleton;
 //   }
 // }
-
 
 // /* ------------------------- Link preview manager ------------------------- */
 
@@ -512,18 +539,17 @@ export class LinkPreviewsManager {
 
 export const getLocalClient = () => StreamChat.getInstance();
 
-
 export function formatMessage(text: string): string {
-  const linkified = text.replace(/https?:\/+[^\s]+/g, url =>
-    `<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`
+  const linkified = text.replace(
+    /https?:\/+[^\s]+/g,
+    (url) => `<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`,
   );
-  const emoji = require('emoji-dictionary');
+  const emoji = require("emoji-dictionary");
   return linkified.replace(/:([a-z0-9_+-]+):/gi, (m, name) => {
     const ch = emoji.getUnicode(name);
     return ch || m;
   });
 }
-
 
 /** Convert a LocalMessage (client-side representation) into the payload sent
  *  when creating a new message. Maps `id` → `tmp_id` and attaches
@@ -544,33 +570,35 @@ export function isScrapedContent(a: any): boolean {
 function hasExt(name: string | undefined, exts: string[]): boolean {
   if (!name) return false;
   const n = name.toLowerCase();
-  return exts.some(e => n.endsWith(e));
+  return exts.some((e) => n.endsWith(e));
 }
 
 /** Fallback detection for generic file attachments */
 export function isFileAttachment(a: any): boolean {
-  const mime = (a?.mime_type ?? '').toLowerCase();
-  const name = (a?.name ?? a?.fallback ?? '').toLowerCase();
+  const mime = (a?.mime_type ?? "").toLowerCase();
+  const name = (a?.name ?? a?.fallback ?? "").toLowerCase();
 
-  const isImage = mime.startsWith('image/') || hasExt(name, ['.jpg', '.jpeg', '.png', '.gif']);
-  const isVideo = mime.startsWith('video/') || hasExt(name, ['.mp4', '.webm']);
-  const isAudio = mime.startsWith('audio/') || hasExt(name, ['.mp3', '.wav']);
+  const isImage =
+    mime.startsWith("image/") ||
+    hasExt(name, [".jpg", ".jpeg", ".png", ".gif"]);
+  const isVideo = mime.startsWith("video/") || hasExt(name, [".mp4", ".webm"]);
+  const isAudio = mime.startsWith("audio/") || hasExt(name, [".mp3", ".wav"]);
 
   return !(isImage || isVideo || isAudio || isScrapedContent(a));
 }
 
-
 /* --------------------------- attachment helpers ------------------------- */
 export const isVoiceRecordingAttachment = (a: any): boolean =>
-  !!a && typeof a.mime_type === 'string' &&
-  a.mime_type.startsWith('audio/') && Array.isArray((a as any).waveform);
+  !!a &&
+  typeof a.mime_type === "string" &&
+  a.mime_type.startsWith("audio/") &&
+  Array.isArray((a as any).waveform);
 
 /* ------------------------------------------------------------------------ */
 /*  Make  import { Channel } from 'stream‑chat'  resolve successfully       */
 export type Channel = LocalChannel;
 
 export type UserResponse = any;
-
 
 /* ----------------------------- attachments ------------------------------ */
 
@@ -582,32 +610,30 @@ const IMG_RX = /\.(?:jpe?g|png|gif)$/i;
 const VID_RX = /\.(?:mp4|webm)$/i;
 const AUD_RX = /\.(?:mp3|wav)$/i;
 
-const getMime = (a: any) =>
-  (a?.mime_type || a?.file?.type || '').toLowerCase();
+const getMime = (a: any) => (a?.mime_type || a?.file?.type || "").toLowerCase();
 
-const getName = (a: any) =>
-  (a?.file?.name || '').toLowerCase();
+const getName = (a: any) => (a?.file?.name || "").toLowerCase();
 
 export const isLocalAttachment = (a: any): boolean => {
   if (!a) return false;
-  const hasFile = typeof File !== 'undefined' && a.file instanceof File;
-  return hasFile || a.state === 'uploading';
+  const hasFile = typeof File !== "undefined" && a.file instanceof File;
+  return hasFile || a.state === "uploading";
 };
 
 export const isLocalUploadAttachment = (a: any): boolean =>
-  isLocalAttachment(a) && a.state === 'uploading';
+  isLocalAttachment(a) && a.state === "uploading";
 
 export const isLocalImageAttachment = (a: any): boolean =>
   isLocalAttachment(a) &&
-  (getMime(a).startsWith('image/') || IMG_RX.test(getName(a)));
+  (getMime(a).startsWith("image/") || IMG_RX.test(getName(a)));
 
 export const isLocalVideoAttachment = (a: any): boolean =>
   isLocalAttachment(a) &&
-  (getMime(a).startsWith('video/') || VID_RX.test(getName(a)));
+  (getMime(a).startsWith("video/") || VID_RX.test(getName(a)));
 
 export const isLocalAudioAttachment = (a: any): boolean =>
   isLocalAttachment(a) &&
-  (getMime(a).startsWith('audio/') || AUD_RX.test(getName(a)));
+  (getMime(a).startsWith("audio/") || AUD_RX.test(getName(a)));
 
 export const isLocalVoiceRecordingAttachment = (a: any): boolean =>
   isLocalAudioAttachment(a) && Array.isArray(a.waveform);
@@ -623,42 +649,28 @@ export const isLocalFileAttachment = (a: any): boolean =>
 /* ------------------------------ helpers -------------------------------- */
 
 const _nameFrom = (a: any): string =>
-  (
-    a?.name ||
-    a?.title ||
-    a?.filename ||
-    a?.asset_url ||
-    ''
-  ).toLowerCase();
+  (a?.name || a?.title || a?.filename || a?.asset_url || "").toLowerCase();
 
 const _hasExt = (a: any, exts: string[]) =>
-  exts.some(ext => _nameFrom(a).endsWith(ext));
+  exts.some((ext) => _nameFrom(a).endsWith(ext));
 
 export const isImageAttachment = (a: any): boolean => {
-  const mime = (a?.mime_type || '').toLowerCase();
+  const mime = (a?.mime_type || "").toLowerCase();
   if (/^image\/(jpeg|jpg|png|gif)/.test(mime)) return true;
-  return _hasExt(a, ['.jpeg', '.jpg', '.png', '.gif']);
+  return _hasExt(a, [".jpeg", ".jpg", ".png", ".gif"]);
 };
 
 export const isVideoAttachment = (a: any): boolean => {
-  const mime = (a?.mime_type || '').toLowerCase();
+  const mime = (a?.mime_type || "").toLowerCase();
   if (/^video\/(mp4|webm)/.test(mime)) return true;
-  return _hasExt(a, ['.mp4', '.webm']);
+  return _hasExt(a, [".mp4", ".webm"]);
 };
 
 export const isAudioAttachment = (a: any): boolean => {
-  const mime = (a?.mime_type || '').toLowerCase();
+  const mime = (a?.mime_type || "").toLowerCase();
   if (/^audio\/(mp3|mpeg|wav)/.test(mime)) return true;
-  return _hasExt(a, ['.mp3', '.wav']);
+  return _hasExt(a, [".mp3", ".wav"]);
 };
-
-
-
-
-
-
-
-
 
 /* ------------------------- fixed size queue cache ----------------------- */
 
@@ -717,8 +729,8 @@ export interface MessageComposerConfig {
 }
 
 export class MessageComposer {
-  contextType: 'message' = 'message';
-  state: MessageComposerState = { text: '', attachments: [] };
+  contextType: "message" = "message";
+  state: MessageComposerState = { text: "", attachments: [] };
   /** configuration for the composer, e.g. accepted file types */
   configState: StateStore<MessageComposerConfig>;
   attachmentManager: {
@@ -751,26 +763,35 @@ export class MessageComposer {
       text: { enabled: true, publishTypingEvents: true },
       ..._config,
     });
-    const attState = new StateStore<AttachmentManagerState>({ attachments: [] });
+    const attState = new StateStore<AttachmentManagerState>({
+      attachments: [],
+    });
     this.attachmentManager = {
       state: attState,
       availableUploadSlots: 10,
       async addFiles(files: File[]) {
         const list = [...attState.getLatestValue().attachments];
-        for (const f of files) list.push({ id: `local-${Date.now()}`, file: f });
+        for (const f of files)
+          list.push({ id: `local-${Date.now()}`, file: f });
         attState.dispatch({ attachments: list });
       },
       removeAttachment(id: string) {
-        const list = attState.getLatestValue().attachments.filter(a => a.id !== id);
+        const list = attState
+          .getLatestValue()
+          .attachments.filter((a) => a.id !== id);
         attState.dispatch({ attachments: list });
       },
       replaceAttachment(oldAtt: any, newAtt: any) {
-        const list = attState.getLatestValue().attachments.map(a => a === oldAtt ? newAtt : a);
+        const list = attState
+          .getLatestValue()
+          .attachments.map((a) => (a === oldAtt ? newAtt : a));
         attState.dispatch({ attachments: list });
       },
     };
 
-    const lpState = new StateStore<LinkPreviewsManagerState>({ previews: new Map() });
+    const lpState = new StateStore<LinkPreviewsManagerState>({
+      previews: new Map(),
+    });
     const manager = new LinkPreviewsManager();
     this.linkPreviewsManager = {
       state: lpState,
@@ -794,7 +815,7 @@ export class MessageComposer {
   }
 
   reset() {
-    this.state = { text: '', attachments: [] };
+    this.state = { text: "", attachments: [] };
   }
 
   setText(text: string) {
@@ -815,8 +836,8 @@ export class MessageComposer {
 }
 
 export enum VotingVisibility {
-  anonymous = 'anonymous',
-  public = 'public',
+  anonymous = "anonymous",
+  public = "public",
 }
 
 export interface Poll {
@@ -849,14 +870,13 @@ export type PollVote = {
   user_id?: string;
 };
 
-export type PollAnswer = Omit<PollVote, 'option_id'> & {
+export type PollAnswer = Omit<PollVote, "option_id"> & {
   answer_text: string;
   is_answer: boolean;
 };
 
-export const isVoteAnswer = (
-  vote: PollVote | PollAnswer
-): vote is PollAnswer => !!(vote as PollAnswer).answer_text;
+export const isVoteAnswer = (vote: PollVote | PollAnswer): vote is PollAnswer =>
+  !!(vote as PollAnswer).answer_text;
 
 /* ------------------------------ reminders ------------------------------ */
 
@@ -880,8 +900,12 @@ export class ReminderManager {
   readonly store = new StateStore<ReminderManagerState>({ reminders: [] });
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  registerSubscriptions() {/* noop */}
-  unregisterSubscriptions() {/* noop */}
+  registerSubscriptions() {
+    /* noop */
+  }
+  unregisterSubscriptions() {
+    /* noop */
+  }
 
   /** schedule timers for all reminders in the store */
   initTimers() {
@@ -889,9 +913,12 @@ export class ReminderManager {
     const { reminders } = this.store.getLatestValue();
     for (const r of reminders) {
       const delay = new Date(r.reminder.remind_at).getTime() - Date.now();
-      const t = setTimeout(() => {
-        this.timers.delete(r.reminder.id);
-      }, Math.max(0, delay));
+      const t = setTimeout(
+        () => {
+          this.timers.delete(r.reminder.id);
+        },
+        Math.max(0, delay),
+      );
       r.timer = t;
       this.timers.set(r.reminder.id, t);
     }
@@ -899,9 +926,9 @@ export class ReminderManager {
 
   /** Create a reminder via the backend and store it */
   async createReminder(text: string, remind_at: string): Promise<Reminder> {
-    const resp = await fetch('/api/reminders/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const resp = await fetch("/api/reminders/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, remind_at }),
     });
     const data = await resp.json();
@@ -922,38 +949,45 @@ export class ReminderManager {
   }
 }
 
-
 export function getTriggerCharWithToken(
   text: string,
-  triggers = ['@', '/']
+  triggers = ["@", "/"],
 ): string {
   const words = text.split(/\s+/);
   for (let i = words.length - 1; i >= 0; i--) {
     const w = words[i];
     if (w && triggers.includes(w[0])) return w;
   }
-  return '';
+  return "";
 }
 
-export function insertItemWithTrigger<T extends string>(text: T, item: string, triggers = ['@', '/']): T {
+export function insertItemWithTrigger<T extends string>(
+  text: T,
+  item: string,
+  triggers = ["@", "/"],
+): T {
   const token = getTriggerCharWithToken(String(text), triggers);
   if (!token) return text;
-  return (String(text).replace(token, token[0] + item + ' ') as any) as T;
+  return String(text).replace(token, token[0] + item + " ") as any as T;
 }
 
-export function replaceWordWithEntity<T extends string>(text: T, word: string, entity: string): T {
-  return (String(text).replace(word, entity) as any) as T;
+export function replaceWordWithEntity<T extends string>(
+  text: T,
+  word: string,
+  entity: string,
+): T {
+  return String(text).replace(word, entity) as any as T;
 }
 
 /* ------------------------------- alerts -------------------------------- */
 
 export type ToastNotification = {
-  type: 'toast';
+  type: "toast";
   text: string;
 };
 
 export type BannerNotification = {
-  type: 'banner';
+  type: "banner";
   text: string;
 };
 
@@ -985,7 +1019,6 @@ export interface NotificationManagerState {
 //   /** parallel no-op search */
 //   async search() { return { channels: [], messages: [], users: [] }; }
 // }
-
 
 /* ------------------------------------------------------------------ */
 /*  ⚠️  RUNTIME shims required by stream-chat-react                    */
@@ -1053,9 +1086,12 @@ export function useStateStore<T, O = T>(
     | undefined,
   selector: (v: T) => O = (v) => v as unknown as O,
 ): O | undefined {
-  if (!store || typeof (store as any).subscribe !== 'function') return undefined;
+  if (!store || typeof (store as any).subscribe !== "function")
+    return undefined;
   const getter =
-    (store as any).getLatestValue ?? (store as any).getSnapshot ?? (() => undefined);
+    (store as any).getLatestValue ??
+    (store as any).getSnapshot ??
+    (() => undefined);
   return useSyncExternalStore(
     (store as any).subscribe.bind(store),
     () => selector(getter()),
@@ -1072,9 +1108,9 @@ export interface SearchSourceState {
 }
 
 export enum SearchSourceType {
-  channel = 'channel',
-  message = 'message',
-  user = 'user',
+  channel = "channel",
+  message = "message",
+  user = "user",
 }
 
 export interface SearchSource {
@@ -1128,14 +1164,10 @@ export class SearchController {
   }
 }
 
-
-
 // /* ------------------------------------------------------------------ */
 // /*  ►  DEFERRED polyfill so we break the circular‑import              */
 // /*      (runs on next micro‑task, when this module is fully initial.) */
 // /* ------------------------------------------------------------------ */
-
-
 
 // /* =================================================================== */
 // /*  🔧  Stream‑Chat‑React 13.x compatibility shims                     */
@@ -1187,8 +1219,6 @@ export class SearchController {
 //   // eslint-disable-next-line no-console
 //   console.info('[chat‑shim] Stream‑Chat‑React polyfills installed');
 // });
-
-
 
 // /* ------------------------------------------------------------------ */
 // /*  Deferred patch — runs after this module & SCR have loaded          */

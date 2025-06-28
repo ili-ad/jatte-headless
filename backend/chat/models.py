@@ -1,6 +1,6 @@
-from django.db import models
-from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -22,10 +22,13 @@ class Channel(models.Model):
 class Message(models.Model):
     """Message belonging to a channel."""
 
-    channel = models.ForeignKey(Channel, related_name="messages", on_delete=models.CASCADE)
+    channel = models.ForeignKey(
+        Channel, related_name="messages", on_delete=models.CASCADE
+    )
     body = models.TextField()
     sent_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("created_at",)
@@ -92,7 +95,9 @@ class Notification(models.Model):
 
 
 class Reaction(models.Model):
-    message = models.ForeignKey(Message, related_name="reactions", on_delete=models.CASCADE)
+    message = models.ForeignKey(
+        Message, related_name="reactions", on_delete=models.CASCADE
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     type = models.CharField(max_length=32)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -124,8 +129,12 @@ class Pin(models.Model):
 
 
 class UserMute(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mutes")
-    target = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="muted_by")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mutes"
+    )
+    target = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="muted_by"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
 
