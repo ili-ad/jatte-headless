@@ -280,6 +280,20 @@ class MessageDetailView(APIView):
         serializer = MessageSerializer(msg, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        try:
+            channel_layer = get_channel_layer()
+            cid = f"messaging:{msg.channel.uuid}"
+            async_to_sync(channel_layer.group_send)(
+                cid.replace(":", "_"),
+                {
+                    "type": "chat.message",
+                    "payload": {"type": "message.updated", "cid": cid, "id": msg.id},
+                },
+            )
+        except Exception:
+            pass
+
         return Response(serializer.data)
 
     def delete(self, request, message_id):
