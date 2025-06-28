@@ -53,10 +53,10 @@ export const useChat = ({
     if (appSettings.current) {
       return appSettings.current;
     }
-    appSettings.current =
-      /* TODO backend-wire-up: getAppSettings */ Promise.resolve(
-        {} as any,
-      );
+    appSettings.current = fetch('/api/app-settings/', {
+      method: 'GET',
+      credentials: 'same-origin',
+    }).then((res) => res.json() as Promise<AppSettingsAPIResponse>);
     return appSettings.current;
   };
 
