@@ -41,6 +41,7 @@ declare module 'stream-chat' {
     ): { unsubscribe(): void };
     off(evt: string, cb: (ev: any) => void): void;
     markRead(): void;
+    getClient(): LocalChatClient;
   };
 
   
