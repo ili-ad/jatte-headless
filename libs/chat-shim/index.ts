@@ -112,6 +112,7 @@ export class LocalChannel {
     readonly cid: string,
     private sock: WebSocket,
     getUid: () => string,
+    private client: LocalChatClient,
   ) {
     const [type, id] = cid.split(":");
     this.type = type;
@@ -166,6 +167,11 @@ export class LocalChannel {
   /** Return unread count for the current user */
   countUnread() {
     return this.state.countUnread(this.getUserId());
+  }
+
+  /** Expose the parent client instance */
+  getClient() {
+    return this.client;
   }
 }
 
@@ -315,7 +321,7 @@ export class LocalChatClient {
         this.channels.get(data.cid)?.emit(data.type, data);
       };
       this.sockets.set(cid, sock);
-      const chan = new LocalChannel(cid, sock, () => this.userId);
+      const chan = new LocalChannel(cid, sock, () => this.userId, this);
       this.channels.set(cid, chan);
       this.activeChannels[cid] = chan;
       (this.state.channels as Map<string, any>).set(cid, chan);
