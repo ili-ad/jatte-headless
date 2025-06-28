@@ -499,6 +499,54 @@ paths:
           description: ''
       tags:
       - api
+  /api/messages/{message_id}/:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      operationId: getMessage
+      description: Retrieve, update or delete a single message.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+      tags:
+      - api
+    put:
+      operationId: updateMessage
+      description: Retrieve, update or delete a single message.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+      tags:
+      - api
+    delete:
+      operationId: deleteMessage
+      description: Retrieve, update or delete a single message.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+      tags:
+      - api
   /api/reminders/:
     get:
       operationId: listReminders

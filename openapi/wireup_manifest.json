@@ -6,7 +6,7 @@
     "stubName": "sendMessage",
     "ticketType": "api",
     "todoCount": 10,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -15,7 +15,7 @@
     "stubName": "channel.sendMessage",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -42,7 +42,7 @@
     "stubName": "deleteMessage",
     "ticketType": "api",
     "todoCount": 6,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -51,7 +51,7 @@
     "stubName": "client.deleteMessage",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
