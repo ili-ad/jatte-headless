@@ -94,7 +94,6 @@ export const useMarkRead = ({
       }
     };
 
-    /* TODO backend-wire-up: channel.on */
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     if (shouldMarkRead()) {

@@ -276,7 +276,7 @@
     "stubName": "channel.on",
     "ticketType": "shim",
     "todoCount": 11,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
