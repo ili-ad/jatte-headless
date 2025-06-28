@@ -8,3 +8,7 @@ export async function castVote(
 ): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
+
+export async function archive(): Promise<void> {
+  // Placeholder implementation until backend endpoint is available
+}

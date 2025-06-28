@@ -49,7 +49,6 @@ export function ChannelPreviewActionButtons({
           if (membership.archived_at) {
             /* TODO backend-wire-up: channel.unarchive */
           } else {
-            /* TODO backend-wire-up: channel.archive */
           }
         }}
         title={membership.archived_at ? t('Unarchive') : t('Archive')}
