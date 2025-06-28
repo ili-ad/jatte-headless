@@ -21,5 +21,6 @@
   "client.queryUsers": "listUsers",
   "client.reminders.createReminder": "createReminder",
   "channel.archive": "shim::channel.archive",
-  "channel.countUnread": "shim::channel.countUnread"
+  "channel.countUnread": "shim::channel.countUnread",
+  "channel.getClient": "shim::channel.getClient"
 }

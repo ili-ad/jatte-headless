@@ -170,11 +170,12 @@ var ChannelState = /** @class */ (function () {
 }());
 exports.ChannelState = ChannelState;
 var LocalChannel = /** @class */ (function () {
-    function LocalChannel(cid, sock, getUid) {
+    function LocalChannel(cid, sock, getUid, client) {
         var _this = this;
         this.cid = cid;
         this.sock = sock;
         this.listeners = new Map();
+        this.client = client;
         var _a = cid.split(':'), type = _a[0], id = _a[1];
         this.type = type;
         this.id = id !== null && id !== void 0 ? id : '';
@@ -235,6 +236,9 @@ var LocalChannel = /** @class */ (function () {
     /** Return unread count for the current user */
     LocalChannel.prototype.countUnread = function () {
         return this.state.countUnread(this.getUserId());
+    };
+    LocalChannel.prototype.getClient = function () {
+        return this.client;
     };
     return LocalChannel;
 }());
@@ -351,7 +355,7 @@ var LocalChatClient = /** @class */ (function () {
                 (_a = _this.channels.get(data.cid)) === null || _a === void 0 ? void 0 : _a.emit(data.type, data);
             };
             this.sockets.set(cid, sock);
-            var chan = new LocalChannel(cid, sock, function () { return _this.userId; });
+            var chan = new LocalChannel(cid, sock, function () { return _this.userId; }, _this);
             this.channels.set(cid, chan);
             this.activeChannels[cid] = chan;
             this.state.channels.set(cid, chan);
