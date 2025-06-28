@@ -118,7 +118,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
     };
     /* TODO backend-wire-up: channel.on */
     return () => {
-      /* TODO backend-wire-up: channel.off */
     };
   }, [channel, client]);
 
@@ -151,11 +150,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       /* TODO backend-wire-up: channel.on */
 
     return () => {
-        /* TODO backend-wire-up: channel.off */
-        /* TODO backend-wire-up: channel.off */
-        /* TODO backend-wire-up: channel.off */
-        /* TODO backend-wire-up: channel.off */
-        /* TODO backend-wire-up: channel.off */
     };
   }, [channel, refreshUnreadCount, channelUpdateCount]);
 
