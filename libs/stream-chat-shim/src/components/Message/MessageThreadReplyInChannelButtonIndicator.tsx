@@ -39,12 +39,21 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
       !message.parent_id
     )
       return;
-    const localMessage = undefined as unknown as LocalMessage; //
-    /* TODO backend-wire-up: findMessage */
+    const localMessage = channel.state.messages.find(
+      (m) => m.id === message.parent_id,
+    ) as unknown as LocalMessage | undefined;
     if (localMessage) {
       parentMessageRef.current = localMessage;
       return;
     }
+    (async () => {
+      try {
+        const fetched = await client.getMessage(message.parent_id);
+        parentMessageRef.current = formatMessage(fetched);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
   }, [channel, message]);
 
   if (!message.parent_id) return null;
