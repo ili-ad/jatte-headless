@@ -230,8 +230,8 @@
     "operationId": "shim::channel.countUnread",
     "stubName": "channel.countUnread",
     "ticketType": "shim",
-    "todoCount": 2,
-    "status": "missing"
+    "todoCount": 0,
+    "status": "ok"
   },
   {
     "method": "",

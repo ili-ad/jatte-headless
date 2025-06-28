@@ -12,3 +12,10 @@ export async function castVote(
 export async function archive(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
+
+export function channelCountUnread(
+  channel: { countUnread: () => number },
+  _lastRead?: Date,
+): number {
+  return channel.countUnread();
+}
