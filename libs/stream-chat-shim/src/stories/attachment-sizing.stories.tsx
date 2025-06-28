@@ -45,7 +45,7 @@ const OtherUserControlButtons = () => {
           onClick={async () => {
           const lastReply = threadMessages?.slice(-1)[0];
           if (lastReply) {
-            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
+            await client.deleteMessage(lastReply.id);
           }
         }}
       >
@@ -64,7 +64,7 @@ const OtherUserControlButtons = () => {
           onClick={async () => {
           const lastMessage = messages?.slice(-1)[0];
           if (lastMessage) {
-            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
+            await client.deleteMessage(lastMessage.id);
           }
         }}
       >
@@ -88,7 +88,7 @@ const Controls = () => {
         onClick={async () => {
           const lastReply = threadMessages?.slice(-1)[0];
           if (lastReply) {
-            await Promise.resolve(/* TODO backend-wire-up: deleteMessage */);
+            await client.deleteMessage(lastReply.id);
           }
         }}
       >

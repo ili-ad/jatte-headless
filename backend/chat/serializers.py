@@ -1,32 +1,26 @@
 from rest_framework import serializers
-from .models import (
-    Room,
-    Message,
-    Notification,
-    Reaction,
-    PollOption,
-    Poll,
-    Flag,
-    Reminder,
-    Pin,
-)
+
+from .models import (Flag, Message, Notification, Pin, Poll, PollOption,
+                     Reaction, Reminder, Room)
 
 
 class MessageSerializer(serializers.ModelSerializer):
     """Expose `body` as read-only and accept `text` on input."""
+
     text = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Message
-        fields = ["id", "text", "body", "sent_by", "created_at"]
-        read_only_fields = ["id", "body", "sent_by", "created_at"]
+        fields = ["id", "text", "body", "sent_by", "created_at", "deleted_at"]
+        read_only_fields = ["id", "body", "sent_by", "created_at", "deleted_at"]
 
     def create(self, validated_data):
         # Map the incoming text field to the body column
         if "text" in validated_data:
             validated_data["body"] = validated_data.pop("text")
-        
+
         return super().create(validated_data)
+
 
 class RoomSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
@@ -68,13 +62,12 @@ class RoomSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
-
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "text", "created_at"]
 
-        
+
 class ReactionSerializer(serializers.ModelSerializer):
     user_id = serializers.ReadOnlyField(source="user.username")
 
