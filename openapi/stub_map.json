@@ -20,5 +20,6 @@
   "reminders.registerSubscriptions": "registerSubscriptions",
   "client.queryUsers": "listUsers",
   "client.reminders.createReminder": "createReminder",
-  "channel.archive": "shim::channel.archive"
+  "channel.archive": "shim::channel.archive",
+  "channel.countUnread": "shim::channel.countUnread"
 }
