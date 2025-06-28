@@ -1,152 +1,57 @@
-components:
-  schemas:
-    Message:
-      properties:
-        body:
-          readOnly: true
-          type: string
-        created_at:
-          format: date-time
-          readOnly: true
-          type: string
-        id:
-          readOnly: true
-          type: integer
-        sent_by:
-          readOnly: true
-          type: string
-        text:
-          type: string
-          writeOnly: true
-      type: object
-    User:
-      properties:
-        id:
-          readOnly: true
-          type: integer
-        username:
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          maxLength: 150
-          pattern: ^[\w.@+-]+\z
-          type: string
-      required:
-      - username
-      type: object
+openapi: 3.0.2
 info:
   title: ''
   version: ''
-openapi: 3.1.0
 paths:
-  /:
-    get:
-      description: ''
-      operationId: listindices
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - ''
-  /about/:
-    get:
-      description: ''
-      operationId: listabouts
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - about
-  /api/app-settings/:
-    get:
-      description: ''
-      operationId: listget_app_settings
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
   /api/client-id/:
     get:
-      description: Return a random client identifier.
       operationId: listClientIDs
+      description: Return a random client identifier.
       parameters: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                items: {}
                 type: array
+                items: {}
           description: ''
       tags:
       - api
-  /api/connection-id/:
+  /api/users/:
     get:
+      operationId: listUsers
       description: ''
-      operationId: listconnection_ids
       parameters: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                items: {}
                 type: array
+                items:
+                  $ref: '#/components/schemas/User'
           description: ''
       tags:
       - api
-  /api/core-user-agent/:
+  /api/user-agent/:
     get:
-      description: Return the User-Agent string sent by the client.
-      operationId: listget_user_agents
+      operationId: listUserAgents
+      description: ''
       parameters: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                items: {}
                 type: array
+                items: {}
           description: ''
       tags:
       - api
-  /api/disconnected/:
-    get:
-      description: Return whether the current user is marked as disconnected.
-      operationId: listDisconnecteds
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/editing-audit-state/:
     post:
-      description: Echo posted editing audit state after JWT auth.
-      operationId: createediting_audit_state
+      operationId: createUserAgent
+      description: ''
       parameters: []
       requestBody:
         content:
@@ -164,41 +69,217 @@ paths:
           description: ''
       tags:
       - api
-  /api/initialized/:
+  /api/user/:
     get:
-      description: Return whether the current user is marked as initialized.
-      operationId: listInitializeds
+      operationId: listCurrentUsers
+      description: Return details for the current authenticated user.
       parameters: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                items: {}
                 type: array
+                items: {}
           description: ''
       tags:
       - api
   /api/refresh-token/:
     get:
-      description: ''
       operationId: listRefreshTokens
+      description: ''
       parameters: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                items: {}
                 type: array
+                items: {}
           description: ''
       tags:
       - api
-  /api/register-subscriptions/:
-    post:
-      description: Register web push subscriptions and echo them back.
-      operationId: createregister_subscriptions
+  /api/disconnected/:
+    get:
+      operationId: listDisconnecteds
+      description: Return whether the current user is marked as disconnected.
       parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/initialized/:
+    get:
+      operationId: listInitializeds
+      description: Return whether the current user is marked as initialized.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /:
+    get:
+      operationId: listindices
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - ''
+  /about/:
+    get:
+      operationId: listabouts
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - about
+  /api/app-settings/:
+    get:
+      operationId: listget_app_settings
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/core-user-agent/:
+    get:
+      operationId: listget_user_agents
+      description: Return the User-Agent string sent by the client.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/tag/:
+    get:
+      operationId: listget_tags
+      description: Return a constant tag value for tests.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/token/:
+    get:
+      operationId: listTokens
+      description: Return the current user's ID and their Supabase access token.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/ws-auth/:
+    get:
+      operationId: listws_auths
+      description: Return a signed websocket URL for authenticated requests.
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/connection-id/:
+    get:
+      operationId: listconnection_ids
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/rooms/{room_uuid}/draft/:
+    get:
+      operationId: listRoomDrafts
+      description: Save and retrieve message drafts.
+      parameters:
+      - name: room_uuid
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+    post:
+      operationId: createRoomDraft
+      description: Save and retrieve message drafts.
+      parameters:
+      - name: room_uuid
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
       requestBody:
         content:
           application/json:
@@ -215,57 +296,30 @@ paths:
           description: ''
       tags:
       - api
-  /api/rooms/{cid}/config/:
-    get:
-      description: Return basic metadata for the given room.
-      operationId: listRoomConfigs
+    delete:
+      operationId: destroyRoomDraft
+      description: Save and retrieve message drafts.
       parameters:
-      - description: ''
+      - name: room_uuid
         in: path
-        name: cid
         required: true
+        description: ''
         schema:
           type: string
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/rooms/{cid}/members/:
-    get:
-      description: Return paginated members for the room identified by cid.
-      operationId: listRoomMembersCIDs
-      parameters:
-      - description: ''
-        in: path
-        name: cid
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
+        '204':
           description: ''
       tags:
       - api
   /api/rooms/{cid}/messages/:
     get:
-      description: List and create messages for a room.
       operationId: listMessages
+      description: List and create messages for a room.
       parameters:
-      - description: ''
+      - name: cid
         in: path
-        name: cid
         required: true
+        description: ''
         schema:
           type: string
       responses:
@@ -273,20 +327,20 @@ paths:
           content:
             application/json:
               schema:
+                type: array
                 items:
                   $ref: '#/components/schemas/Message'
-                type: array
           description: ''
       tags:
       - api
     post:
-      description: List and create messages for a room.
       operationId: createMessage
+      description: List and create messages for a room.
       parameters:
-      - description: ''
+      - name: cid
         in: path
-        name: cid
         required: true
+        description: ''
         schema:
           type: string
       requestBody:
@@ -309,15 +363,57 @@ paths:
           description: ''
       tags:
       - api
+  /api/rooms/{cid}/config/:
+    get:
+      operationId: listRoomConfigs
+      description: Return basic metadata for the given room.
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
+  /api/rooms/{cid}/members/:
+    get:
+      operationId: listRoomMembersCIDs
+      description: Return paginated members for the room identified by cid.
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - api
   /api/rooms/{room_uuid}/config-state/:
     get:
-      description: Return message composer configuration for the room.
       operationId: listRoomConfigStates
+      description: Return message composer configuration for the room.
       parameters:
-      - description: ''
+      - name: room_uuid
         in: path
-        name: room_uuid
         required: true
+        description: ''
         schema:
           type: string
       responses:
@@ -325,57 +421,58 @@ paths:
           content:
             application/json:
               schema:
-                items: {}
                 type: array
-          description: ''
-      tags:
-      - api
-  /api/rooms/{room_uuid}/draft/:
-    delete:
-      description: Save and retrieve message drafts.
-      operationId: destroyRoomDraft
-      parameters:
-      - description: ''
-        in: path
-        name: room_uuid
-        required: true
-        schema:
-          type: string
-      responses:
-        '204':
-          description: ''
-      tags:
-      - api
-    get:
-      description: Save and retrieve message drafts.
-      operationId: listRoomDrafts
-      parameters:
-      - description: ''
-        in: path
-        name: room_uuid
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
                 items: {}
-                type: array
           description: ''
       tags:
       - api
+  /api/sync-user/:
     post:
-      description: Save and retrieve message drafts.
-      operationId: createRoomDraft
-      parameters:
-      - description: ''
-        in: path
-        name: room_uuid
-        required: true
-        schema:
-          type: string
+      operationId: createSyncUser
+      description: ''
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+          application/x-www-form-urlencoded:
+            schema: {}
+          multipart/form-data:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - api
+  /api/register-subscriptions/:
+    post:
+      operationId: createregister_subscriptions
+      description: Register web push subscriptions and echo them back.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+          application/x-www-form-urlencoded:
+            schema: {}
+          multipart/form-data:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - api
+  /api/editing-audit-state/:
+    post:
+      operationId: createediting_audit_state
+      description: Echo posted editing audit state after JWT auth.
+      parameters: []
       requestBody:
         content:
           application/json:
@@ -394,143 +491,46 @@ paths:
       - api
   /api/session/:
     delete:
-      description: ''
       operationId: destroySession
+      description: ''
       parameters: []
       responses:
         '204':
           description: ''
       tags:
       - api
-  /api/sync-user/:
-    post:
-      description: ''
-      operationId: createSyncUser
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema: {}
-          application/x-www-form-urlencoded:
-            schema: {}
-          multipart/form-data:
-            schema: {}
-      responses:
-        '201':
-          content:
-            application/json:
-              schema: {}
-          description: ''
-      tags:
-      - api
-  /api/tag/:
-    get:
-      description: Return a constant tag value for tests.
-      operationId: listget_tags
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/token/:
-    get:
-      description: Return the current user's ID and their Supabase access token.
-      operationId: listTokens
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/user-agent/:
-    get:
-      description: ''
-      operationId: listUserAgents
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-    post:
-      description: ''
-      operationId: createUserAgent
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema: {}
-          application/x-www-form-urlencoded:
-            schema: {}
-          multipart/form-data:
-            schema: {}
-      responses:
-        '201':
-          content:
-            application/json:
-              schema: {}
-          description: ''
-      tags:
-      - api
-  /api/user/:
-    get:
-      description: Return details for the current authenticated user.
-      operationId: listCurrentUsers
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/users/:
-    get:
-      description: ''
-      operationId: listUsers
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/User'
-                type: array
-          description: ''
-      tags:
-      - api
-  /api/ws-auth/:
-    get:
-      description: Return a signed websocket URL for authenticated requests.
-      operationId: listws_auths
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items: {}
-                type: array
-          description: ''
-      tags:
-      - api
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+\z
+          maxLength: 150
+      required:
+      - username
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          writeOnly: true
+        body:
+          type: string
+          readOnly: true
+        sent_by:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
