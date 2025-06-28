@@ -599,7 +599,6 @@ const ChannelInner = (
 
     return () => {
       if (errored || !done) return;
-      /* TODO backend-wire-up: channel.off */
       /* TODO backend-wire-up: client.off */
       /* TODO backend-wire-up: client.off */
       /* TODO backend-wire-up: client.off */
