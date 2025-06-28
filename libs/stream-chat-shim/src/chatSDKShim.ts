@@ -67,3 +67,13 @@ export function channelOn(
   }
   return undefined;
 }
+
+export async function channelPin(
+  channel: { pin?: (messageId: string) => Promise<any> },
+  messageId: string,
+): Promise<any> {
+  if (typeof channel.pin === 'function') {
+    return channel.pin(messageId);
+  }
+  return undefined;
+}
