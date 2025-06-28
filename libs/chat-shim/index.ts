@@ -278,6 +278,13 @@ export class LocalChatClient {
     this.listeners = {};
     this.mutedChannels = [];
 
+    /* notify backend we are online */
+    await fetch('/api/sync-user/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Authorization: `Bearer ${jwt}` },
+    });
+
     this.user = undefined;
     this.wsConnection.online = false;
 
