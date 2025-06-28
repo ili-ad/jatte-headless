@@ -449,7 +449,7 @@ paths:
       - api
   /api/register-subscriptions/:
     post:
-      operationId: createregister_subscriptions
+      operationId: registerSubscriptions
       description: Register web push subscriptions and echo them back.
       parameters: []
       requestBody:
@@ -461,7 +461,7 @@ paths:
           multipart/form-data:
             schema: {}
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema: {}
