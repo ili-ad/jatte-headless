@@ -1,7 +1,28 @@
 // libs/chat-shim/index.ts
 "use client"
 import { useSyncExternalStore } from 'react';
+import { createStore } from './stateStore';
 
+
+/* ----- public types the UI already references ---------------------- */
+export type LocalMessage = any;
+export type ThreadState = { unreadThreadCount: number };
+export type StreamChat = {
+  threads: { state: ReturnType<typeof createStore<ThreadState>> };
+};
+
+export * from './MessageComposer';
+export * from './noopStore';
+
+
+
+/* ----- runtime instance -------------------------------------------- */
+export const streamClient: StreamChat = {
+  threads: { state: createStore({ unreadThreadCount: 0 }) },
+};
+
+/* re-export helpers for future backend code */
+export { createStore };
 
 /* ------------------------------------------------------------------ */
 /*  Minimal Fixed‑Size FIFO cache Stream‑UI expects                    */
@@ -390,16 +411,16 @@ export class LinkPreviewsManager {
 
 /* --------------------------- compatibility stub -------------------------- */
 /** Return the *same* LocalChatClient for any api-key – good enough for local */
-let _singleton: StreamChat | undefined;
+// let _singleton: StreamChat | undefined;
 
-/** A lightweight class so it is both a value **and** a type. */
-export class StreamChat extends LocalChatClient {
-  /** Return the same client for any apiKey – good enough for local dev. */
-  static getInstance(_apiKey?: string): StreamChat {
-    if (!_singleton) _singleton = new StreamChat();
-    return _singleton;
-  }
-}
+// /** A lightweight class so it is both a value **and** a type. */
+// export class StreamChat extends LocalChatClient {
+//   /** Return the same client for any apiKey – good enough for local dev. */
+//   static getInstance(_apiKey?: string): StreamChat {
+//     if (!_singleton) _singleton = new StreamChat();
+//     return _singleton;
+//   }
+// }
 
 
 // /* ------------------------- Link preview manager ------------------------- */

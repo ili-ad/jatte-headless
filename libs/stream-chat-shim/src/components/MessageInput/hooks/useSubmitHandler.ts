@@ -3,8 +3,11 @@ import { MessageComposer } from 'chat-shim';
 import { useMessageComposer } from './useMessageComposer';
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useTranslationContext } from '../../../context/TranslationContext';
+import { stopTyping } from 'chat-shim/typing'
 
 import type { MessageInputProps } from '../MessageInput';
+
+
 
 const takeStateSnapshot = (messageComposer: MessageComposer) => {
   const textComposerState = messageComposer.textComposer.state.getLatestValue();
@@ -73,8 +76,12 @@ export const useSubmitHandler = (props: MessageInputProps) => {
           } else {
             await sendMessage({ localMessage, message, options: sendOptions });
           }
-          if (messageComposer.config.text.publishTypingEvents)
-            /* TODO backend-wire-up: stopTyping */
+          // if (messageComposer.config.text.publishTypingEvents)
+          //   /* TODO backend-wire-up: stopTyping */
+          if (messageComposer.config.text.publishTypingEvents) {
+            // safe no-op today; real SDK call tomorrow
+            await stopTyping();
+          }          
         } catch (err) {
           restoreComposerStateSnapshot();
           addNotification(t('Send message request failed'), 'error');

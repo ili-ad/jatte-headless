@@ -1,61 +1,47 @@
-//frontend/next.config.ts
-
-// @ts-nocheck
+// frontend/next.config.ts
+import path from 'path';
 import type { NextConfig } from 'next';
-import type { Configuration } from 'webpack';
-const path = require('path');
 
 const nextConfig: NextConfig = {
-  //transpilePackages: ['@iliad/stream-ui'],
-  transpilePackages: [],
   eslint: { ignoreDuringBuilds: true },
-  // avoid redirecting away from trailing slashes so Django endpoints work
-  skipTrailingSlashRedirect: true,
-  trailingSlash: false,
 
+  webpack(cfg) {
+    cfg.resolve ??= {};
+    cfg.resolve.alias ??= {};
 
-webpack(cfg) {
-  cfg.resolve ??= {};
-  cfg.resolve.alias ??= {};
+    // our chat fork
+    cfg.resolve.alias['stream-chat-react'] =
+      path.resolve(__dirname, '../libs/stream-chat-shim');
+    cfg.resolve.alias['@iliad/stream-chat-shim'] =
+      path.resolve(__dirname, '../libs/stream-chat-shim');
 
-  // existing aliases … -------------------------------------------------
-  // (cfg.resolve.alias as Record<string,string>)['@iliad/stream-ui'] =
-  //   path.resolve(__dirname, './stubs/stream-ui');
+    // backend stub
+    cfg.resolve.alias['chat-shim'] =
+      path.resolve(__dirname, '../libs/chat-shim');
 
-  // WITH the real kit ⬇︎
-  /* 1 ▸ All UI imports go to the new shim barrel */
+    // ← NEW: point every import of decode-named... to our shim
+    cfg.resolve.alias['decode-named-character-reference'] =
+      path.resolve(__dirname, './shims/decode-named-character-reference.js');
 
-  /* NEW – allow deep asset paths to fall back to the real package */
-  // cfg.resolve.alias['stream-chat-react/dist'] =
-  //   path.resolve(__dirname, '../node_modules/stream-chat-react/dist');
+    // don’t let Webpack follow symlinks back into node_modules
+    cfg.resolve.symlinks = false;
 
-  // cfg.resolve.alias['stream-chat-react'] =
-  //   path.resolve(__dirname, '../libs/stream-chat-shim/src');
+    return cfg;
+  },
 
-  cfg.resolve.alias['@iliad/stream-chat-shim'] =
-    path.resolve(__dirname, '../libs/stream-chat-shim/src');  
-
-  (cfg.resolve.alias as Record<string,string>)['stream-chat'] =
-    path.resolve(__dirname, '../libs/chat-shim');
-    
-  // NEW ↓ – lets you write  "@/lib/ChatProvider"  etc.
-  (cfg.resolve.alias as Record<string,string>)['@'] =
-  path.resolve(__dirname);
-
-  (cfg.resolve.alias as Record<string,string>)['stream-value-checks'] =
-    path.resolve(__dirname, '../libs/stream-value-shim'); 
-    
-  return cfg;
-},
-
+  // next.config.ts
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
+        destination: 'http://localhost:8000/api/:path*',   // keeps the slash
       },
     ];
   },
+
+
 };
 
-module.exports = nextConfig;
+
+
+export default nextConfig;

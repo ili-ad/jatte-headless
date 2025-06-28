@@ -10,6 +10,8 @@ import type { PropsWithChildren } from 'react';
 import type { Thread, ThreadManagerState } from 'chat-shim';
 import clsx from 'clsx';
 
+import { noopStore } from 'chat-shim/noopStore';
+
 type ChatView = 'channels' | 'threads';
 
 type ChatViewContextValue = {
@@ -131,10 +133,13 @@ const selector = ({ unreadThreadCount }: ThreadManagerState) => ({
 
 const ChatViewSelector = () => {
   const { client } = useChatContext();
-  const { unreadThreadCount } = useStateStore(
-    /* TODO backend-wire-up: client.threads.state */,
-    selector,
-  );
+  // const { unreadThreadCount } = useStateStore(
+  //   /* TODO backend-wire-up: client.threads.state */
+  //   return () => { /* noop */ };
+  //   selector,
+  // );
+  /** swap in the real store later — for now just use the noop one */
+  const { unreadThreadCount } = useStateStore(noopStore, selector);
 
   const { activeChatView, setActiveChatView } = useContext(ChatViewContext);
 
