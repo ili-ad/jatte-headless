@@ -11,8 +11,23 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ["id", "text", "body", "sent_by", "created_at", "deleted_at"]
-        read_only_fields = ["id", "body", "sent_by", "created_at", "deleted_at"]
+        fields = [
+            "id",
+            "text",
+            "body",
+            "sent_by",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
+        read_only_fields = [
+            "id",
+            "body",
+            "sent_by",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
 
     def create(self, validated_data):
         # Map the incoming text field to the body column

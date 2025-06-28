@@ -26,8 +26,9 @@ export const useEditMessageHandler = (doUpdateMessageRequest?: UpdateHandler) =>
       );
     }
     return (async () => {
-      /* TODO backend-wire-up: client.updateMessage */
-      return undefined as any;
+      const id = (updatedMessage as any).id;
+      const text = (updatedMessage as any).text ?? '';
+      return client.updateMessage(id, text);
     })();
   };
 };
