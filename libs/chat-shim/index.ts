@@ -897,6 +897,22 @@ export class ReminderManager {
     }
   }
 
+  /** Create a reminder via the backend and store it */
+  async createReminder(text: string, remind_at: string): Promise<Reminder> {
+    const resp = await fetch('/api/reminders/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, remind_at }),
+    });
+    const data = await resp.json();
+    const reminder: Reminder = data.reminder;
+    const list = this.store.getLatestValue().reminders.slice();
+    list.push({ reminder });
+    this.store.dispatch({ reminders: list });
+    this.initTimers();
+    return reminder;
+  }
+
   /** clear all scheduled reminders */
   clearTimers() {
     for (const t of this.timers.values()) clearTimeout(t);
