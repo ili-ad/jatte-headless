@@ -28,5 +28,6 @@
   "channel.on": "shim::channel.on",
   "channel.off": "shim::channel.off",
   "channel.pin": "shim::channel.pin",
-  "channel.query": "shim::channel.query"
+  "channel.query": "shim::channel.query",
+  "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState"
 }
