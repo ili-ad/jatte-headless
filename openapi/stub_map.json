@@ -23,5 +23,6 @@
   "channel.archive": "shim::channel.archive",
   "channel.countUnread": "shim::channel.countUnread",
   "channel.getClient": "shim::channel.getClient",
-  "channel.getReplies": "shim::channel.getReplies"
+  "channel.getReplies": "shim::channel.getReplies",
+  "channel.markRead": "shim::channel.markRead"
 }
