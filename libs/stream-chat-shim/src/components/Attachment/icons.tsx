@@ -1,5 +1,6 @@
 import React from 'react';
-import type { IconProps } from '../../types/types';
+
+import type { IconProps } from '../types/types';
 
 export const DownloadIcon = ({ className }: IconProps) => (
   <svg
