@@ -31,15 +31,17 @@ const useClient = ({
     const client = new StreamChat(apiKey);
 
     let didUserConnectInterrupt = false;
-    const connectionPromise = Promise.resolve(/* TODO backend-wire-up: connectUser */).then(() => {
-      if (!didUserConnectInterrupt) setChatClient(client);
-    });
+    const connectionPromise = client
+      .connectUser(userData, tokenOrProvider as string)
+      .then(() => {
+        if (!didUserConnectInterrupt) setChatClient(client);
+      });
 
     return () => {
       didUserConnectInterrupt = true;
       setChatClient(null);
       connectionPromise
-        .then(() => Promise.resolve(/* TODO backend-wire-up: disconnectUser */))
+        .then(() => client.disconnectUser())
         .then(() => {
           console.log('connection closed');
         });
