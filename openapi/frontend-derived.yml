@@ -1,0 +1,694 @@
+openapi: 3.1.0
+info:
+  title: Frontend Derived API
+  version: "1.0.0"
+paths:
+  /sync-user/:
+    post:
+      operationId: syncUser
+      tags: [accounts]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+  /session/:
+    delete:
+      operationId: endSession
+      tags: [accounts]
+      responses:
+        '204':
+          description: No Content
+  /client-id/:
+    get:
+      operationId: getClientId
+      tags: [identity]
+      responses:
+        '200':
+          description: client id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_id:
+                    type: string
+  /connection-id/:
+    get:
+      operationId: getConnectionId
+      tags: [identity]
+      responses:
+        '200':
+          description: connection id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connection_id:
+                    type: string
+  /rooms/:
+    get:
+      operationId: listRooms
+      tags: [rooms]
+      responses:
+        '200':
+          description: list of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    uuid:
+                      type: string
+                    name:
+                      type: string
+                    data:
+                      type: object
+                      additionalProperties: true
+  /rooms/active/:
+    get:
+      operationId: listActiveRooms
+      tags: [rooms]
+      responses:
+        '200':
+          description: active rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/paths/~1rooms~1/get/responses/200/content/application~1json/schema/items'
+  /messages/{messageId}/:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getMessage
+      tags: [messages]
+      responses:
+        '200':
+          description: message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  text:
+                    type: string
+                  user_id:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+    put:
+      operationId: updateMessage
+      tags: [messages]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      operationId: deleteMessage
+      tags: [messages]
+      responses:
+        '200':
+          description: deleted
+          content:
+            application/json:
+              schema:
+                type: object
+  /messages/{messageId}/restore/:
+    post:
+      operationId: restoreMessage
+      tags: [messages]
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: restored
+          content:
+            application/json:
+              schema:
+                type: object
+  /app-settings/:
+    get:
+      operationId: getAppSettings
+      tags: [settings]
+      responses:
+        '200':
+          description: settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file_uploads:
+                    type: boolean
+  /users/:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        '200':
+          description: users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    username:
+                      type: string
+  /user/:
+    get:
+      operationId: currentUser
+      tags: [users]
+      responses:
+        '200':
+          description: current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+  /core-user-agent/:
+    post:
+      operationId: setUserAgent
+      tags: [users]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_agent:
+                  type: string
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /notifications/:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      responses:
+        '200':
+          description: notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /polls/:
+    get:
+      operationId: listPolls
+      tags: [polls]
+      responses:
+        '200':
+          description: polls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      operationId: createPoll
+      tags: [polls]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                options:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  poll:
+                    type: object
+  /reminders/:
+    get:
+      operationId: listReminders
+      tags: [reminders]
+      responses:
+        '200':
+          description: reminders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+    post:
+      operationId: createReminder
+      tags: [reminders]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                remind_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reminder:
+                    type: object
+  /threads/:
+    get:
+      operationId: listThreads
+      tags: [threads]
+      responses:
+        '200':
+          description: threads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /link-preview/:
+    post:
+      operationId: createLinkPreview
+      tags: [link]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+      responses:
+        '200':
+          description: preview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  title:
+                    type: string
+  /mute-status/{username}/:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: muteStatus
+      tags: [mutes]
+      responses:
+        '200':
+          description: mute status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  muted:
+                    type: boolean
+  /muted-users/:
+    get:
+      operationId: listMutedUsers
+      tags: [mutes]
+      responses:
+        '200':
+          description: muted users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /muted-channels/:
+    get:
+      operationId: listMutedChannels
+      tags: [mutes]
+      responses:
+        '200':
+          description: muted channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /mute/{username}/:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: muteUser
+      tags: [mutes]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /unmute/{username}/:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: unmuteUser
+      tags: [mutes]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /recover-state/:
+    get:
+      operationId: recoverState
+      tags: [state]
+      responses:
+        '200':
+          description: recovery state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rooms:
+                    type: array
+                    items:
+                      type: object
+                  notifications:
+                    type: array
+                    items:
+                      type: object
+  /refresh-token/:
+    get:
+      operationId: refreshToken
+      tags: [auth]
+      responses:
+        '200':
+          description: new token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /subarray/:
+    post:
+      operationId: subarray
+      tags: [utils]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                array:
+                  type: array
+                  items: {}
+                start:
+                  type: integer
+                end:
+                  type: integer
+                  nullable: true
+      responses:
+        '200':
+          description: sliced
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: array
+                    items: {}
+  /editing-audit-state/:
+    post:
+      operationId: editingAuditState
+      tags: [state]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                draft_update:
+                  type: integer
+                state_update:
+                  type: integer
+      responses:
+        '200':
+          description: echo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  draft_update:
+                    type: integer
+                  state_update:
+                    type: integer
+  /ws-auth/:
+    get:
+      operationId: wsAuth
+      tags: [auth]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /attachments/:
+    post:
+      operationId: uploadAttachment
+      tags: [attachments]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachment:
+                    type: object
+  /disconnected/:
+    get:
+      operationId: isDisconnected
+      tags: [state]
+      responses:
+        '200':
+          description: flag
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disconnected:
+                    type: boolean
+  /initialized/:
+    get:
+      operationId: isInitialized
+      tags: [state]
+      responses:
+        '200':
+          description: flag
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  initialized:
+                    type: boolean
+  /listeners/:
+    get:
+      operationId: getListeners
+      tags: [events]
+      responses:
+        '200':
+          description: listeners
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  listeners:
+                    type: array
+                    items:
+                      type: string
+  /dispatch-event/:
+    post:
+      operationId: dispatchEvent
+      tags: [events]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: echo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event:
+                    type: object
+  /register-subscriptions/:
+    post:
+      operationId: registerSubscriptions
+      tags: [events]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: echo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptions:
+                    type: object
+  /quoted-message/:
+    get:
+      operationId: getQuotedMessage
+      tags: [messages]
+      responses:
+        '200':
+          description: stored message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quoted_message:
+                    type: object
+                    nullable: true
+    post:
+      operationId: setQuotedMessage
+      tags: [messages]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quoted_message:
+                  type: object
+                  nullable: true
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
