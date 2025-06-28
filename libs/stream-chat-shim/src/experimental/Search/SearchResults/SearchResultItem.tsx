@@ -1,31 +1,34 @@
-import React, { useCallback, useMemo } from 'react';
-import uniqBy from 'lodash.uniqby';
-import type { ComponentType } from 'react';
-import type { Channel, MessageResponse, User } from 'chat-shim';
+import React, { useCallback, useMemo } from "react";
+import uniqBy from "lodash.uniqby";
+import type { ComponentType } from "react";
+import type { Channel, MessageResponse, User } from "chat-shim";
 
-import { useSearchContext } from '../SearchContext';
-import { Avatar } from '../../../components/Avatar';
-import { ChannelPreview } from '../../../components/ChannelPreview';
-import { useChannelListContext, useChatContext } from '../../../context';
-import { DEFAULT_JUMP_TO_PAGE_SIZE } from '../../../constants/limits';
+import { useSearchContext } from "../SearchContext";
+import { Avatar } from "../../../components/Avatar";
+import { ChannelPreview } from "../../../components/ChannelPreview";
+import { useChannelListContext, useChatContext } from "../../../context";
+import { DEFAULT_JUMP_TO_PAGE_SIZE } from "../../../constants/limits";
+import { channelStateLoadMessageIntoState } from "../../../chatSDKShim";
 
 export type ChannelSearchResultItemProps = {
   item: Channel;
 };
 
-export const ChannelSearchResultItem = ({ item }: ChannelSearchResultItemProps) => {
+export const ChannelSearchResultItem = ({
+  item,
+}: ChannelSearchResultItemProps) => {
   const { setActiveChannel } = useChatContext();
   const { setChannels } = useChannelListContext();
 
   const onSelect = useCallback(() => {
     setActiveChannel(item);
-    setChannels?.((channels) => uniqBy([item, ...channels], 'cid'));
+    setChannels?.((channels) => uniqBy([item, ...channels], "cid"));
   }, [item, setActiveChannel, setChannels]);
 
   return (
     <ChannelPreview
       channel={item}
-      className='str-chat__search-result'
+      className="str-chat__search-result"
       onSelect={onSelect}
     />
   );
@@ -47,21 +50,23 @@ export const MessageSearchResultItem = ({
 
   const channel = useMemo(() => {
     const { channel: channelData } = item;
-    const type = channelData?.type ?? 'unknown';
-    const id = channelData?.id ?? 'unknown';
-    return (
-      /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel
-    );
+    const type = channelData?.type ?? "unknown";
+    const id = channelData?.id ?? "unknown";
+    return /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel;
   }, [item]);
 
   const onSelect = useCallback(async () => {
     if (!channel) return;
-    /* TODO backend-wire-up: channel.state.loadMessageIntoState */
-    await Promise.resolve();
+    await channelStateLoadMessageIntoState(
+      channel,
+      item.id,
+      undefined,
+      DEFAULT_JUMP_TO_PAGE_SIZE,
+    );
     // FIXME: message focus should be handled by yet non-existent msg list controller in client packaged
     searchController._internalState.partialNext({ focusedMessage: item });
     setActiveChannel(channel);
-    setChannels?.((channels) => uniqBy([channel, ...channels], 'cid'));
+    setChannels?.((channels) => uniqBy([channel, ...channels], "cid"));
   }, [channel, item, searchController, setActiveChannel, setChannels]);
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -73,10 +78,11 @@ export const MessageSearchResultItem = ({
     <ChannelPreview
       active={
         channel.cid === activeChannel?.cid &&
-        item.id === searchController._internalState.getLatestValue().focusedMessage?.id
+        item.id ===
+          searchController._internalState.getLatestValue().focusedMessage?.id
       }
       channel={channel}
-      className='str-chat__search-result'
+      className="str-chat__search-result"
       getLatestMessagePreview={getLatestMessagePreview}
       onSelect={onSelect}
     />
@@ -94,33 +100,38 @@ export const UserSearchResultItem = ({ item }: UserSearchResultItemProps) => {
 
   const onClick = useCallback(() => {
     const newChannel =
-      /* TODO backend-wire-up: client.channel */ (undefined as unknown as Channel);
+      /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel;
     /* TODO backend-wire-up: channel.watch */
     setActiveChannel(newChannel);
-    setChannels?.((channels) => uniqBy([newChannel, ...channels], 'cid'));
+    setChannels?.((channels) => uniqBy([newChannel, ...channels], "cid"));
   }, [item, setActiveChannel, setChannels, directMessagingChannelType]);
 
   return (
     <button
-      aria-label={`Select User Channel: ${item.name || ''}`}
-      className='str-chat__search-result'
-      data-testid='search-result-user'
+      aria-label={`Select User Channel: ${item.name || ""}`}
+      className="str-chat__search-result"
+      data-testid="search-result-user"
       onClick={onClick}
-      role='option'
+      role="option"
     >
       <Avatar
-        className='str-chat__avatar--channel-preview'
+        className="str-chat__avatar--channel-preview"
         image={item.image}
         name={item.name || item.id}
         user={item}
       />
-      <div className='str-chat__search-result--display-name'>{item.name || item.id}</div>
+      <div className="str-chat__search-result--display-name">
+        {item.name || item.id}
+      </div>
     </button>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SearchResultItemComponents = Record<string, ComponentType<{ item: any }>>;
+export type SearchResultItemComponents = Record<
+  string,
+  ComponentType<{ item: any }>
+>;
 
 export const DefaultSearchResultItems: SearchResultItemComponents = {
   channels: ChannelSearchResultItem,
