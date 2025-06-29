@@ -330,6 +330,18 @@ export function onPollVoteCasted(
   return on(client, "poll.vote_casted", handler);
 }
 
+export function onPollVoteRemoved(
+  client: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  return on(client, "poll.vote_removed", handler);
+}
+
 export function onPollVoteChanged(
   client: {
     on?: (
