@@ -48,5 +48,6 @@
   "createPollOption": "shim::createPollOption",
   "deleteReaction": "shim::deleteReaction",
   "flagMessage": "shim::flagMessage",
+  "markUnread": "shim::markUnread",
   "lastRead": "shim::lastRead"
 }

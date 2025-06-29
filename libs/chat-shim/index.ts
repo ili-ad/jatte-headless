@@ -159,6 +159,12 @@ export class LocalChannel {
     this.sock.send(JSON.stringify({ type: "mark.read", cid: this.cid }));
   }
 
+  markUnread(messageId: string) {
+    this.sock.send(
+      JSON.stringify({ type: "mark.unread", cid: this.cid, id: messageId }),
+    );
+  }
+
   /** Return basic configuration flags expected by Stream UI */
   getConfig() {
     return { typing_events: true, read_events: true };

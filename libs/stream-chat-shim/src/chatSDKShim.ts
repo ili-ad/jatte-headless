@@ -90,6 +90,16 @@ export async function channelMarkRead(channel: {
   return undefined;
 }
 
+export async function markUnread(
+  channel: { markUnread?: (id: string) => Promise<any> },
+  messageId: string,
+): Promise<any> {
+  if (typeof channel.markUnread === "function") {
+    return channel.markUnread(messageId);
+  }
+  return undefined;
+}
+
 export function channelOff(
   channel: {
     off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
