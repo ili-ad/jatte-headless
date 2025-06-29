@@ -92,7 +92,7 @@ export const useReactionHandler = (message?: LocalMessage) => {
             /* TODO backend-wire-up: sendReaction */ { message: tempMessage },
           )
         : await Promise.resolve(
-            /* TODO backend-wire-up: deleteReaction */ { message: tempMessage },
+            { message: tempMessage },
           );
 
       // seems useless as we're expecting WS event to come in and replace this anyway
