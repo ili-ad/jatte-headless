@@ -339,7 +339,7 @@
     "stubName": "client.channel",
     "ticketType": "shim",
     "todoCount": 7,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
