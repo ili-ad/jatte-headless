@@ -522,6 +522,14 @@ export async function flagMessage(messageId: string): Promise<any> {
   return resp.json();
 }
 
+export async function pinMessage(messageId: string): Promise<any> {
+  const resp = await fetch(
+    `/api/messages/${encodeURIComponent(messageId)}/pin/`,
+    { method: 'POST', credentials: 'same-origin' },
+  );
+  return resp.json();
+}
+
 export async function getAppSettings(): Promise<any> {
   const resp = await fetch('/api/app-settings/', {
     credentials: 'same-origin',
