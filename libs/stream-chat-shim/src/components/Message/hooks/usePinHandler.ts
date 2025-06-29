@@ -72,7 +72,7 @@ export const usePinHandler = (
         updateMessage(optimisticMessage);
 
         await Promise.resolve(
-          /* TODO backend-wire-up: pinMessage */ undefined,
+          undefined,
         );
       } catch (e) {
         const errorMessage =
