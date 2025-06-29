@@ -175,3 +175,15 @@ export async function channelWatch(
   const data = await resp.json();
   return { messages: data };
 }
+
+export function clientChannel(
+  client: { channel?: (type: string, id?: string, extra?: any) => any },
+  type: string,
+  id?: string,
+  extra?: any,
+): any {
+  if (typeof client.channel === "function") {
+    return client.channel(type, id, extra);
+  }
+  return undefined;
+}

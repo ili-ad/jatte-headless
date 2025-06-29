@@ -7,6 +7,7 @@ import type { ChannelOrUserResponse } from '../utils';
 import { isChannel } from '../utils';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientChannel } from '../../../chatSDKShim';
 
 import type {
   Channel,
@@ -179,8 +180,11 @@ export const useChannelSearch = ({
         setActiveChannel(result);
         selectedChannel = result;
       } else {
-        const newChannel =
-          /* TODO backend-wire-up: client.channel */ ({} as Channel);
+        const newChannel = clientChannel(
+          client,
+          result.type,
+          result.id,
+        ) as Channel;
         await /* TODO backend-wire-up: channel.watch */ Promise.resolve();
 
         setActiveChannel(newChannel);
