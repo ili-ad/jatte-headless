@@ -592,3 +592,9 @@ export async function pollsRegisterSubscriptions(
     headers,
   });
 }
+
+export function pollsUnregisterSubscriptions(client?: {
+  polls?: { unregisterSubscriptions?: () => void };
+}): void {
+  client?.polls?.unregisterSubscriptions?.();
+}
