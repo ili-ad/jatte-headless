@@ -1,6 +1,7 @@
 import { PromptDialog } from '../../Dialog/PromptDialog';
 import React from 'react';
 import { usePollContext, useTranslationContext } from '../../../context';
+import { close as closePoll } from '../../../chatSDKShim';
 
 export type EndPollDialogProps = {
   close: () => void;
@@ -23,7 +24,7 @@ export const EndPollDialog = ({ close }: EndPollDialogProps) => {
           className:
             '.str-chat__dialog__controls-button--submit str-chat__dialog__controls-button--end-poll',
           onClick: () => {
-            /* TODO backend-wire-up: close */
+            closePoll();
           },
         },
       ]}
