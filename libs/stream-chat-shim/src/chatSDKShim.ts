@@ -313,3 +313,13 @@ export function clientThreadsDeactivate(client: {
 }): void {
   client.threads?.deactivate?.();
 }
+
+export async function clientThreadsLoadNextPage(client: {
+  threads?: { loadNextPage?: () => Promise<any> };
+}): Promise<any> {
+  if (client.threads?.loadNextPage) {
+    return client.threads.loadNextPage();
+  }
+  const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
+  return resp.json();
+}
