@@ -452,3 +452,11 @@ export async function getAppSettings(): Promise<any> {
   });
   return resp.json();
 }
+
+export async function getUserAgent(): Promise<string> {
+  const resp = await fetch('/api/user-agent/', {
+    credentials: 'same-origin',
+  });
+  const data = await resp.json();
+  return data.user_agent;
+}
