@@ -13,6 +13,7 @@ import {
 } from '../utils';
 import { useChatContext } from '../../../context';
 import { getChannel } from '../../../utils';
+import { clientChannel } from '../../../chatSDKShim';
 import type { ChannelListProps } from '../ChannelList';
 
 type SetChannels = Dispatch<SetStateAction<Channel[]>>;
@@ -110,7 +111,11 @@ export const useChannelListShapeDefaults = () => {
       if (!channelType || !channelId) return;
 
       setChannels((currentChannels) => {
-        const targetChannel = /* TODO backend-wire-up: client.channel */ {} as any;
+        const targetChannel = clientChannel(
+          client,
+          channelType,
+          channelId,
+        ) as any;
         const targetChannelIndex = currentChannels.indexOf(targetChannel);
         const targetChannelExistsWithinList = targetChannelIndex >= 0;
 
@@ -280,7 +285,11 @@ export const useChannelListShapeDefaults = () => {
       const pinnedAtSort = extractSortValue({ atIndex: 0, sort, targetKey: 'pinned_at' });
 
       setChannels((currentChannels) => {
-        const targetChannel = /* TODO backend-wire-up: client.channel */ {} as any;
+        const targetChannel = clientChannel(
+          client,
+          event.channel_type!,
+          event.channel_id!,
+        ) as any;
         // assumes that channel instances are not changing
         const targetChannelIndex = currentChannels.indexOf(targetChannel);
         const targetChannelExistsWithinList = targetChannelIndex >= 0;
