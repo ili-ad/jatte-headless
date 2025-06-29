@@ -151,6 +151,13 @@ export async function connectUser(
   return resp.json();
 }
 
+export async function disconnectUser(): Promise<void> {
+  await fetch("/api/session/", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+}
+
 export async function channelQuery(
   channel: { query?: (options?: any) => Promise<any> },
   options?: any,
