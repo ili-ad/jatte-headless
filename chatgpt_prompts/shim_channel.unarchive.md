@@ -649,7 +649,6 @@ Save the output in /openapi/stub_map.json
 **Scope**
 1. Extend or create **chatSDKShim.ts** so calls matching `channel.unarchive` resolve.
 2. Run a codemod (jscodeshift / sed) to remove **all** matching
-   `// TODO backend-wire-up:channel.unarchive` occurrences.
 3. No backend changes expected – just unit tests & lint.
 
 Paste a single patch (multiple files welcome).
