@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { isVoteAnswer } from 'chat-shim';
 import { useChatContext } from '../../../context';
 import type { Event, PollAnswer, PollVote } from 'chat-shim';
+import { on } from '../../../chatSDKShim';
 
 import type { CursorPaginatorStateStore } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
 
@@ -57,12 +58,15 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
       }
     };
 
-    /* TODO backend-wire-up: on(poll.vote_casted) */
-    const voteCastedSubscription = { unsubscribe: () => undefined } as any;
-    /* TODO backend-wire-up: on(poll.vote_removed) */
-    const voteRemovedSubscription = { unsubscribe: () => undefined } as any;
-    /* TODO backend-wire-up: on(poll.vote_changed) */
-    const voteChangedSubscription = { unsubscribe: () => undefined } as any;
+    const voteCastedSubscription =
+      on(client, 'poll.vote_casted', handleVoteEvent) ??
+      ({ unsubscribe: () => undefined } as any);
+    const voteRemovedSubscription =
+      on(client, 'poll.vote_removed', handleVoteEvent) ??
+      ({ unsubscribe: () => undefined } as any);
+    const voteChangedSubscription =
+      on(client, 'poll.vote_changed', handleVoteEvent) ??
+      ({ unsubscribe: () => undefined } as any);
 
     return () => {
       voteCastedSubscription.unsubscribe();

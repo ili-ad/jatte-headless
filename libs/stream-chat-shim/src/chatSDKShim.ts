@@ -297,6 +297,27 @@ export function clientOn(
   return undefined;
 }
 
+export function on(
+  target: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
+  eventType: string,
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  if (typeof target.on === "function") {
+    return (
+      target.on as (
+        eventType: string,
+        handler: (...args: any[]) => void,
+      ) => { unsubscribe?: () => void }
+    )(eventType, handler);
+  }
+  return undefined;
+}
+
 export async function deleteMessage(messageId: string): Promise<any> {
   const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
     method: "DELETE",
