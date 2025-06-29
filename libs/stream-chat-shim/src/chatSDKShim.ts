@@ -16,6 +16,10 @@ export async function archive(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
 
+export async function close(): Promise<void> {
+  // Placeholder implementation until backend endpoint is available
+}
+
 export async function unarchive(channel: { cid: string }): Promise<void> {
   await fetch(`/api/rooms/${encodeURIComponent(channel.cid)}/unarchive`, {
     method: "POST",
