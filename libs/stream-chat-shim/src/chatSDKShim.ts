@@ -437,3 +437,11 @@ export async function deleteReaction(
     { method: 'DELETE', credentials: 'same-origin' },
   );
 }
+
+export async function flagMessage(messageId: string): Promise<any> {
+  const resp = await fetch(
+    `/api/messages/${encodeURIComponent(messageId)}/flag/`,
+    { method: 'POST', credentials: 'same-origin' },
+  );
+  return resp.json();
+}
