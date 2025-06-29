@@ -445,3 +445,10 @@ export async function flagMessage(messageId: string): Promise<any> {
   );
   return resp.json();
 }
+
+export async function getAppSettings(): Promise<any> {
+  const resp = await fetch('/api/app-settings/', {
+    credentials: 'same-origin',
+  });
+  return resp.json();
+}
