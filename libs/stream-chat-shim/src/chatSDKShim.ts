@@ -255,3 +255,9 @@ export async function clientQueryChannels(
   });
   return resp.json();
 }
+
+export async function clientQueryUsers(_client?: unknown): Promise<{ users: any[] }> {
+  const resp = await fetch('/api/users/', { credentials: 'same-origin' });
+  const data = await resp.json();
+  return { users: data };
+}
