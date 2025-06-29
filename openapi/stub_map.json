@@ -50,5 +50,6 @@
   "flagMessage": "shim::flagMessage",
   "markUnread": "shim::markUnread",
   "lastRead": "shim::lastRead",
-  "notifications.store": "shim::notifications.store"
+  "notifications.store": "shim::notifications.store",
+  "on(poll.vote_casted)": "shim::on(poll.vote_casted)"
 }

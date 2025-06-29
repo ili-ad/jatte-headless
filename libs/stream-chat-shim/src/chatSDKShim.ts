@@ -12,6 +12,21 @@ export async function castVote(
   // Placeholder implementation until backend endpoint is available
 }
 
+export function onPollVoteCasted(
+  client: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  if (typeof client.on === 'function') {
+    return client.on('poll.vote_casted', handler);
+  }
+  return undefined;
+}
+
 export async function createPollOption(
   pollId: string,
   data: { text: string },
