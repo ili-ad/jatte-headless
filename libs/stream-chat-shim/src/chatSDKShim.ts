@@ -318,6 +318,18 @@ export function on(
   return undefined;
 }
 
+export function onPollVoteCasted(
+  client: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  return on(client, "poll.vote_casted", handler);
+}
+
 export async function deleteMessage(messageId: string): Promise<any> {
   const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
     method: "DELETE",
