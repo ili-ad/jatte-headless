@@ -188,6 +188,21 @@ export function clientChannel(
   return undefined;
 }
 
+export function clientOff(
+  client: {
+    off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
+  },
+  eventType?: string,
+  handler?: (...args: any[]) => void,
+): void {
+  if (typeof client.off === "function") {
+    (client.off as (
+      eventType?: string,
+      handler?: (...args: any[]) => void,
+    ) => void)(eventType, handler);
+  }
+}
+
 export async function clientDeleteMessage(
   _client: unknown,
   messageId: string,
