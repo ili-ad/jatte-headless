@@ -261,3 +261,20 @@ export async function clientQueryUsers(_client?: unknown): Promise<{ users: any[
   const data = await resp.json();
   return { users: data };
 }
+
+export async function clientRemindersCreateReminder(
+  client: { reminders?: { createReminder?: (text: string, remind_at: string) => Promise<any> } },
+  text: string,
+  remind_at: string,
+): Promise<any> {
+  if (client.reminders?.createReminder) {
+    return client.reminders.createReminder(text, remind_at);
+  }
+  const resp = await fetch('/api/reminders/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, remind_at }),
+  });
+  return resp.json();
+}
