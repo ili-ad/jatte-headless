@@ -17,6 +17,7 @@ import type {
   OwnUserResponse,
   StreamChat,
 } from 'chat-shim';
+import { query } from '../../../chatSDKShim';
 
 export type UseChatParams = {
   client: StreamChat;
@@ -134,7 +135,7 @@ return () => { /* noop */ };
       if (event && event.preventDefault) event.preventDefault();
 
       if (activeChannel && Object.keys(watchers).length) {
-        await /* TODO backend-wire-up: query */ Promise.resolve();
+        await query(activeChannel, watchers);
       }
 
       setChannel(activeChannel);
