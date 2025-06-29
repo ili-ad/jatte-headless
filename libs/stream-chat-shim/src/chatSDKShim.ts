@@ -13,10 +13,19 @@ export async function castVote(
 }
 
 export async function createPollOption(
-  _pollId: string,
-  _data: { text: string },
-): Promise<void> {
-  // Placeholder implementation until backend endpoint is available
+  pollId: string,
+  data: { text: string },
+): Promise<any> {
+  const resp = await fetch(
+    `/api/polls/${encodeURIComponent(pollId)}/options/`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );
+  return resp.json();
 }
 
 export async function archive(): Promise<void> {
