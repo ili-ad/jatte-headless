@@ -187,3 +187,14 @@ export function clientChannel(
   }
   return undefined;
 }
+
+export async function clientDeleteMessage(
+  _client: unknown,
+  messageId: string,
+): Promise<any> {
+  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  return resp.json();
+}
