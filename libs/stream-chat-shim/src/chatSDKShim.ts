@@ -89,6 +89,15 @@ export async function channelPin(
   return undefined;
 }
 
+export async function channelUnpin(
+  channel: { unpin?: () => Promise<any> },
+): Promise<any> {
+  if (typeof channel.unpin === "function") {
+    return channel.unpin();
+  }
+  return undefined;
+}
+
 export async function channelQuery(
   channel: { query?: (options?: any) => Promise<any> },
   options?: any,
