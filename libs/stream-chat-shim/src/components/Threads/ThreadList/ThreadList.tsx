@@ -10,7 +10,10 @@ import { ThreadListUnseenThreadsBanner as DefaultThreadListUnseenThreadsBanner }
 import { ThreadListLoadingIndicator as DefaultThreadListLoadingIndicator } from "./ThreadListLoadingIndicator";
 import { useChatContext, useComponentContext } from "../../../context";
 import { useStateStore } from "../../../store";
-import { clientThreadsDeactivate } from "../../../chatSDKShim";
+import {
+  clientThreadsDeactivate,
+  clientThreadsLoadNextPage,
+} from "../../../chatSDKShim";
 
 const selector = (nextValue: ThreadManagerState) => ({
   threads: nextValue.threads,
@@ -63,8 +66,7 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
       <ThreadListUnseenThreadsBanner />
       <Virtuoso
         atBottomStateChange={(atBottom) =>
-          atBottom &&
-          /* TODO backend-wire-up: client.threads.loadNextPage */ null
+          atBottom && clientThreadsLoadNextPage(client)
         }
         className="str-chat__thread-list"
         components={{
