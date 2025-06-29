@@ -49,5 +49,6 @@
   "deleteReaction": "shim::deleteReaction",
   "flagMessage": "shim::flagMessage",
   "markUnread": "shim::markUnread",
-  "lastRead": "shim::lastRead"
+  "lastRead": "shim::lastRead",
+  "notifications.store": "shim::notifications.store"
 }
