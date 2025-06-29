@@ -4,6 +4,7 @@ import { CloseIcon } from './icons';
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { Poll } from '../Poll';
+import { pollsFromState } from '../../chatSDKShim';
 
 import { useChatContext } from '../../context/ChatContext';
 import { useComponentContext } from '../../context/ComponentContext';
@@ -135,7 +136,7 @@ export const QuotedMessagePreview = ({
   );
 
   const poll = quotedMessage?.poll_id
-    ? /* TODO backend-wire-up: polls.fromState */ undefined
+    ? pollsFromState(client, quotedMessage.poll_id)
     : undefined;
 
   if (!quotedMessageText && !quotedMessageAttachments.length && !poll) return null;
