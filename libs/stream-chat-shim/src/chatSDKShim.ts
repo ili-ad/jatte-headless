@@ -61,6 +61,15 @@ export function countUnread(
   return 0;
 }
 
+export function lastRead(
+  channel: { lastRead?: () => Date | undefined },
+): Date | undefined {
+  if (typeof channel.lastRead === 'function') {
+    return channel.lastRead();
+  }
+  return undefined;
+}
+
 export async function channelGetReplies(
   channel: { getReplies?: (id: string, options?: any) => Promise<any> },
   parentId: string,
