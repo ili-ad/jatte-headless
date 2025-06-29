@@ -168,7 +168,7 @@
     "stubName": "connectUser",
     "ticketType": "api",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
