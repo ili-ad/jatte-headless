@@ -38,5 +38,6 @@
   "client.channel": "shim::client.channel",
   "client.off": "shim::client.off",
   "client.on": "shim::client.on",
-  "client.threads.activate": "shim::client.threads.activate"
+  "client.threads.activate": "shim::client.threads.activate",
+  "client.threads.deactivate": "shim::client.threads.deactivate"
 }

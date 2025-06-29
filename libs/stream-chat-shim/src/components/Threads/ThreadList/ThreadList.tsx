@@ -10,6 +10,7 @@ import { ThreadListUnseenThreadsBanner as DefaultThreadListUnseenThreadsBanner }
 import { ThreadListLoadingIndicator as DefaultThreadListLoadingIndicator } from "./ThreadListLoadingIndicator";
 import { useChatContext, useComponentContext } from "../../../context";
 import { useStateStore } from "../../../store";
+import { clientThreadsDeactivate } from "../../../chatSDKShim";
 
 const selector = (nextValue: ThreadManagerState) => ({
   threads: nextValue.threads,
@@ -30,7 +31,7 @@ export const useThreadList = () => {
         client.threads.activate();
       }
       if (document.visibilityState === "hidden") {
-        /* TODO backend-wire-up: client.threads.deactivate */
+        clientThreadsDeactivate(client);
       }
     };
 
@@ -38,7 +39,7 @@ export const useThreadList = () => {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      /* TODO backend-wire-up: client.threads.deactivate */
+      clientThreadsDeactivate(client);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [client]);
