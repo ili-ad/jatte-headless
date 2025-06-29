@@ -28,6 +28,20 @@ export async function createPollOption(
   return resp.json();
 }
 
+export function pollsFromState(
+  client: { polls?: { store?: StateStore<{ polls: any[] }> } },
+  pollId: string,
+): any | undefined {
+  const polls = client.polls?.store?.getLatestValue().polls;
+  if (!polls) return undefined;
+  for (const p of polls) {
+    if (!p) continue;
+    if (p.id === pollId) return p;
+    if ((p as any).poll?.id === pollId) return (p as any).poll;
+  }
+  return undefined;
+}
+
 export async function archive(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
