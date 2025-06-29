@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import clsx from 'clsx';
-import type { ReactNode } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import clsx from "clsx";
+import type { ReactNode } from "react";
 import type {
   Channel,
   ChannelFilters,
@@ -8,40 +8,41 @@ import type {
   ChannelSort,
   Event,
   SearchControllerState,
-} from 'chat-shim';
+} from "chat-shim";
 
-import { useConnectionRecoveredListener } from './hooks/useConnectionRecoveredListener';
-import { useMobileNavigation } from './hooks/useMobileNavigation';
-import { usePaginatedChannels } from './hooks/usePaginatedChannels';
+import { useConnectionRecoveredListener } from "./hooks/useConnectionRecoveredListener";
+import { useMobileNavigation } from "./hooks/useMobileNavigation";
+import { usePaginatedChannels } from "./hooks/usePaginatedChannels";
 import {
   useChannelListShape,
   usePrepareShapeHandlers,
-} from './hooks/useChannelListShape';
-import { useStateStore } from '../../store';
-import { ChannelListMessenger } from './ChannelListMessenger';
-import { Avatar as DefaultAvatar } from '../Avatar';
-import { ChannelPreview } from '../ChannelPreview/ChannelPreview';
-import { ChannelSearch as DefaultChannelSearch } from '../ChannelSearch/ChannelSearch';
-import { EmptyStateIndicator as DefaultEmptyStateIndicator } from '../EmptyStateIndicator';
-import { LoadingChannels } from '../Loading/LoadingChannels';
-import { LoadMorePaginator } from '../LoadMore/LoadMorePaginator';
+} from "./hooks/useChannelListShape";
+import { useStateStore } from "../../store";
+import { ChannelListMessenger } from "./ChannelListMessenger";
+import { Avatar as DefaultAvatar } from "../Avatar";
+import { ChannelPreview } from "../ChannelPreview/ChannelPreview";
+import { ChannelSearch as DefaultChannelSearch } from "../ChannelSearch/ChannelSearch";
+import { EmptyStateIndicator as DefaultEmptyStateIndicator } from "../EmptyStateIndicator";
+import { LoadingChannels } from "../Loading/LoadingChannels";
+import { LoadMorePaginator } from "../LoadMore/LoadMorePaginator";
 import {
   ChannelListContextProvider,
   useChatContext,
   useComponentContext,
-} from '../../context';
-import { NullComponent } from '../UtilityComponents';
-import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from './utils';
-import type { CustomQueryChannelsFn } from './hooks/usePaginatedChannels';
-import type { ChannelListMessengerProps } from './ChannelListMessenger';
-import type { ChannelPreviewUIComponentProps } from '../ChannelPreview/ChannelPreview';
-import type { ChannelSearchProps } from '../ChannelSearch/ChannelSearch';
-import type { EmptyStateIndicatorProps } from '../EmptyStateIndicator';
-import type { LoadMorePaginatorProps } from '../LoadMore/LoadMorePaginator';
-import type { ChatContextValue } from '../../context';
-import type { ChannelAvatarProps } from '../Avatar';
-import type { TranslationContextValue } from '../../context/TranslationContext';
-import type { PaginatorProps } from '../../types/types';
+} from "../../context";
+import { NullComponent } from "../UtilityComponents";
+import { clientQueryChannels } from "../../chatSDKShim";
+import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from "./utils";
+import type { CustomQueryChannelsFn } from "./hooks/usePaginatedChannels";
+import type { ChannelListMessengerProps } from "./ChannelListMessenger";
+import type { ChannelPreviewUIComponentProps } from "../ChannelPreview/ChannelPreview";
+import type { ChannelSearchProps } from "../ChannelSearch/ChannelSearch";
+import type { EmptyStateIndicatorProps } from "../EmptyStateIndicator";
+import type { LoadMorePaginatorProps } from "../LoadMore/LoadMorePaginator";
+import type { ChatContextValue } from "../../context";
+import type { ChannelAvatarProps } from "../Avatar";
+import type { TranslationContextValue } from "../../context/TranslationContext";
+import type { PaginatorProps } from "../../types/types";
 
 const DEFAULT_FILTERS = {};
 const DEFAULT_OPTIONS = {};
@@ -53,7 +54,7 @@ const searchControllerStateSelector = (nextValue: SearchControllerState) => ({
 
 export type ChannelListProps = {
   /** Additional props for underlying ChannelSearch component and channel search controller, [available props](https://getstream.io/chat/docs/sdk/react/utility-components/channel_search/#props) */
-  additionalChannelSearchProps?: Omit<ChannelSearchProps, 'setChannels'>;
+  additionalChannelSearchProps?: Omit<ChannelSearchProps, "setChannels">;
   /**
    * When the client receives `message.new`, `notification.message_new`, and `notification.added_to_channel` events, we automatically
    * push that channel to the top of the list. If the channel doesn't currently exist in the list, we grab the channel from
@@ -79,9 +80,9 @@ export type ChannelListProps = {
   /** Custom function that generates the message preview in ChannelPreview component */
   getLatestMessagePreview?: (
     channel: Channel,
-    t: TranslationContextValue['t'],
-    userLanguage: TranslationContextValue['userLanguage'],
-    isMessageAIGenerated?: ChatContextValue['isMessageAIGenerated'],
+    t: TranslationContextValue["t"],
+    userLanguage: TranslationContextValue["userLanguage"],
+    isMessageAIGenerated?: ChatContextValue["isMessageAIGenerated"],
   ) => ReactNode;
   /** Custom UI component to display the container for the queried channels, defaults to and accepts same props as: [ChannelListMessenger](https://github.com/GetStream/stream-chat-react/blob/master/src/components/ChannelList/ChannelListMessenger.tsx) */
   List?: React.ComponentType<ChannelListMessengerProps>;
@@ -214,7 +215,7 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
     setActiveChannel,
     theme,
     useImageFlagEmojisOnWindows,
-  } = useChatContext('ChannelList');
+  } = useChatContext("ChannelList");
   const { Search } = useComponentContext(); // FIXME: us component context to retrieve ChannelPreview UI components too
   const channelListRef = useRef<HTMLDivElement | null>(null);
   const [channelUpdateCount, setChannelUpdateCount] = useState(0);
@@ -247,7 +248,7 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-        [customActiveChannelObject] = await /* TODO backend-wire-up: client.queryChannels */ Promise.resolve([]);
+        [customActiveChannelObject] = await clientQueryChannels(client);
       }
 
       if (customActiveChannelObject) {
@@ -274,7 +275,10 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
    * For some events, inner properties on the channel will update but the shallow comparison will not
    * force a re-render. Incrementing this dummy variable ensures the channel previews update.
    */
-  const forceUpdate = useCallback(() => setChannelUpdateCount((count) => count + 1), []);
+  const forceUpdate = useCallback(
+    () => setChannelUpdateCount((count) => count + 1),
+    [],
+  );
 
   const onSearch = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,15 +294,16 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
     additionalChannelSearchProps?.onSearchExit?.();
   }, [additionalChannelSearchProps]);
 
-  const { channels, hasNextPage, loadNextPage, setChannels } = usePaginatedChannels(
-    client,
-    filters || DEFAULT_FILTERS,
-    sort || DEFAULT_SORT,
-    options || DEFAULT_OPTIONS,
-    activeChannelHandler,
-    recoveryThrottleIntervalMs,
-    customQueryChannels,
-  );
+  const { channels, hasNextPage, loadNextPage, setChannels } =
+    usePaginatedChannels(
+      client,
+      filters || DEFAULT_FILTERS,
+      sort || DEFAULT_SORT,
+      options || DEFAULT_OPTIONS,
+      activeChannelHandler,
+      recoveryThrottleIntervalMs,
+      customQueryChannels,
+    );
 
   const loadedChannels = channelRenderFilterFn
     ? channelRenderFilterFn(channels)
@@ -361,27 +366,30 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
     return <ChannelPreview {...previewProps} />;
   };
 
-  const baseClass = 'str-chat__channel-list';
+  const baseClass = "str-chat__channel-list";
   const className = clsx(
-    customClasses?.chat ?? 'str-chat',
+    customClasses?.chat ?? "str-chat",
     theme,
     customClasses?.channelList ?? `${baseClass} ${baseClass}-react`,
     {
-      'str-chat--windows-flags':
+      "str-chat--windows-flags":
         useImageFlagEmojisOnWindows && navigator.userAgent.match(/Win/),
       [`${baseClass}--open`]: navOpen,
     },
   );
 
   const showChannelList =
-    (!searchActive && !searchIsActive) || additionalChannelSearchProps?.popupResults;
+    (!searchActive && !searchIsActive) ||
+    additionalChannelSearchProps?.popupResults;
   return (
     <ChannelListContextProvider value={{ channels, setChannels }}>
       <div className={className} ref={channelListRef}>
         {showChannelSearch &&
           (Search ? (
             <Search
-              directMessagingChannelType={additionalChannelSearchProps?.channelType}
+              directMessagingChannelType={
+                additionalChannelSearchProps?.channelType
+              }
               disabled={additionalChannelSearchProps?.disabled}
               exitSearchOnInputBlur={
                 additionalChannelSearchProps?.clearSearchOnClickOutside
@@ -402,18 +410,20 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
             loadedChannels={sendChannelsToList ? loadedChannels : undefined}
             loading={
               !!channelsQueryState.queryInProgress &&
-              ['reload', 'uninitialized'].includes(channelsQueryState.queryInProgress)
+              ["reload", "uninitialized"].includes(
+                channelsQueryState.queryInProgress,
+              )
             }
             LoadingErrorIndicator={LoadingErrorIndicator}
             LoadingIndicator={LoadingIndicator}
             setChannels={setChannels}
           >
             {!loadedChannels?.length ? (
-              <EmptyStateIndicator listType='channel' />
+              <EmptyStateIndicator listType="channel" />
             ) : (
               <Paginator
                 hasNextPage={hasNextPage}
-                isLoading={channelsQueryState.queryInProgress === 'load-more'}
+                isLoading={channelsQueryState.queryInProgress === "load-more"}
                 loadNextPage={loadNextPage}
               >
                 {renderChannels

@@ -97,9 +97,9 @@ export async function channelPin(
   return undefined;
 }
 
-export async function channelUnpin(
-  channel: { unpin?: () => Promise<any> },
-): Promise<any> {
+export async function channelUnpin(channel: {
+  unpin?: () => Promise<any>;
+}): Promise<any> {
   if (typeof channel.unpin === "function") {
     return channel.unpin();
   }
@@ -196,10 +196,12 @@ export function clientOff(
   handler?: (...args: any[]) => void,
 ): void {
   if (typeof client.off === "function") {
-    (client.off as (
-      eventType?: string,
-      handler?: (...args: any[]) => void,
-    ) => void)(eventType, handler);
+    (
+      client.off as (
+        eventType?: string,
+        handler?: (...args: any[]) => void,
+      ) => void
+    )(eventType, handler);
   }
 }
 
@@ -230,6 +232,25 @@ export async function clientDeleteMessage(
 ): Promise<any> {
   const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
     method: "DELETE",
+    credentials: "same-origin",
+  });
+  return resp.json();
+}
+
+export async function clientQueryChannels(
+  _client: unknown,
+  options?: Record<string, any>,
+): Promise<any[]> {
+  const searchParams = new URLSearchParams();
+  if (options) {
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null) {
+        searchParams.set(key, String(value));
+      }
+    }
+  }
+  const query = searchParams.toString();
+  const resp = await fetch(`/api/rooms/${query ? `?${query}` : ""}`, {
     credentials: "same-origin",
   });
   return resp.json();
