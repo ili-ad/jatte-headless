@@ -13,6 +13,14 @@ export async function archive(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
 
+export async function unarchive(channel: { cid: string }): Promise<void> {
+  await fetch(`/api/rooms/${encodeURIComponent(channel.cid)}/unarchive`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export function channelCountUnread(
   channel: { countUnread: () => number },
   _lastRead?: Date,
