@@ -23,7 +23,7 @@ export const ThreadListUnseenThreadsBanner = () => {
       <button
         className='str-chat__unseen-threads-banner__button'
         onClick={() => {
-          /* TODO backend-wire-up: client.threads.reload */
+          client.threads.reload();
         }}
       >
         <Icon.Reload />
