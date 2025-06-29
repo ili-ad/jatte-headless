@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AIState, Channel, Event } from 'chat-shim';
+import { on } from '../../../chatSDKShim';
 
 export const AIStates = {
   Error: 'AI_STATE_ERROR',
@@ -22,13 +23,20 @@ export const useAIState = (channel?: Channel): { aiState: AIState } => {
       return;
     }
 
-    const indicatorChangedListener = /* TODO backend-wire-up: on */ {
-      unsubscribe: () => {},
-    } as any;
+    const indicatorChangedListener = on(channel, 'ai_indicator.update', (event: Event) => {
+      const { cid } = event;
+      const state = (event as any).ai_state;
+      if (channel.cid === cid) {
+        setAiState(state);
+      }
+    }) ?? { unsubscribe: () => {} };
 
-    const indicatorClearedListener = /* TODO backend-wire-up: on */ {
-      unsubscribe: () => {},
-    } as any;
+    const indicatorClearedListener = on(channel, 'ai_indicator.clear', (event: Event) => {
+      const { cid } = event;
+      if (channel.cid === cid) {
+        setAiState(AIStates.Idle);
+      }
+    }) ?? { unsubscribe: () => {} };
 
     return () => {
       indicatorChangedListener.unsubscribe();
