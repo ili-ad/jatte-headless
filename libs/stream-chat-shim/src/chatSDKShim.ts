@@ -271,6 +271,14 @@ export function clientOn(
   return undefined;
 }
 
+export async function deleteMessage(messageId: string): Promise<any> {
+  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  return resp.json();
+}
+
 export async function clientDeleteMessage(
   _client: unknown,
   messageId: string,
