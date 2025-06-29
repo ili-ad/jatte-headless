@@ -323,3 +323,13 @@ export async function clientThreadsLoadNextPage(client: {
   const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
   return resp.json();
 }
+
+export async function clientThreadsReload(client: {
+  threads?: { reload?: () => Promise<any> };
+}): Promise<any> {
+  if (client.threads?.reload) {
+    return client.threads.reload();
+  }
+  const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
+  return resp.json();
+}
