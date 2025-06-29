@@ -590,10 +590,6 @@ const ChannelInner = (
         if (channel.countUnread() > 0 && markReadOnMount)
           markRead({ updateChannelUiUnreadState: false });
         // The more complex sync logic is done in Chat
-        /* TODO backend-wire-up: client.on */
-        /* TODO backend-wire-up: client.on */
-        /* TODO backend-wire-up: client.on */
-        /* TODO backend-wire-up: client.on */
       }
     })();
     const notificationTimeoutsRef = notificationTimeouts.current;

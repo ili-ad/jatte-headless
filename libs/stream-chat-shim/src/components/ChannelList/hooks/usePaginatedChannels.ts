@@ -137,7 +137,7 @@ export const usePaginatedChannels = (
 
   useEffect(() => {
     if (client.recoverStateOnReconnect) return;
-    const { unsubscribe } = /* TODO backend-wire-up: client.on */ { unsubscribe: () => {} };
+    const { unsubscribe } =  { unsubscribe: () => {} };
 
     return () => {
       unsubscribe();

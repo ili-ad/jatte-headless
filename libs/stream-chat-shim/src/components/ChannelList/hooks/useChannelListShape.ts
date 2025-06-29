@@ -653,7 +653,7 @@ export const useChannelListShape = (handler: (e: Event) => void) => {
   const { client } = useChatContext();
 
   useEffect(() => {
-    const subscription = /* TODO backend-wire-up: client.on */ { unsubscribe: () => {} };
+    const subscription =  { unsubscribe: () => {} };
 
     return subscription.unsubscribe;
   }, [client, handler]);
