@@ -120,6 +120,18 @@ export async function channelUnpin(channel: {
   return undefined;
 }
 
+export async function connectUser(
+  _user: { id: string },
+  jwt: string,
+): Promise<any> {
+  const resp = await fetch("/api/sync-user/", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  return resp.json();
+}
+
 export async function channelQuery(
   channel: { query?: (options?: any) => Promise<any> },
   options?: any,
