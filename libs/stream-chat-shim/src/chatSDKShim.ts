@@ -316,6 +316,13 @@ export async function clientUpdateMessage(
   return resp.json();
 }
 
+export async function findMessage(messageId: string): Promise<any> {
+  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
+    credentials: "same-origin",
+  });
+  return resp.json();
+}
+
 export async function clientQueryChannels(
   _client: unknown,
   options?: Record<string, any>,
