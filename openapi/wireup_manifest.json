@@ -24,7 +24,7 @@
     "stubName": "reminders.createReminder",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -141,7 +141,7 @@
     "stubName": "polls.registerSubscriptions",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

@@ -580,3 +580,15 @@ export async function muteUser(username: string): Promise<void> {
     credentials: 'same-origin',
   });
 }
+
+export async function pollsRegisterSubscriptions(
+  client?: { jwt?: string },
+): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (client?.jwt) headers['Authorization'] = `Bearer ${client.jwt}`;
+  await fetch('/api/register-subscriptions/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+  });
+}
