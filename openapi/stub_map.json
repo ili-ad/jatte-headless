@@ -21,6 +21,7 @@
   "client.queryUsers": "listUsers",
   "client.queryChannels": "listRooms",
   "client.reminders.createReminder": "createReminder",
+  "client.reminders.deleteReminder": "shim::client.reminders.deleteReminder",
   "channel.archive": "shim::channel.archive",
   "channel.countUnread": "shim::channel.countUnread",
   "channel.getClient": "shim::channel.getClient",
