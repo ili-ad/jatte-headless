@@ -30,5 +30,6 @@
   "channel.pin": "shim::channel.pin",
   "channel.unpin": "shim::channel.unpin",
   "channel.query": "shim::channel.query",
+  "channel.watch": "shim::channel.watch",
   "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState"
 }
