@@ -201,6 +201,26 @@ export async function channelQuery(
   return { messages: [] };
 }
 
+export async function query(
+  channel: { cid: string; query?: (opts: any) => Promise<any> },
+  watchers: { limit?: number; offset?: number } = {},
+): Promise<any> {
+  if (typeof channel.query === "function") {
+    return channel.query({ watch: true, watchers });
+  }
+  const params = new URLSearchParams();
+  if (watchers.limit !== undefined) params.set('limit', String(watchers.limit));
+  if (watchers.offset !== undefined)
+    params.set('offset', String(watchers.offset));
+  const q = params.toString();
+  const resp = await fetch(
+    `/api/rooms/${encodeURIComponent(channel.cid)}/members/${q ? `?${q}` : ''}`,
+    { credentials: 'same-origin' },
+  );
+  const data = await resp.json();
+  return { members: data };
+}
+
 export async function channelSendMessage(
   channel: { cid: string },
   message: Record<string, any>,
