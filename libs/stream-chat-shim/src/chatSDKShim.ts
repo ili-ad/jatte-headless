@@ -411,3 +411,15 @@ export function clientThreadsState(client: {
 }): StateStore<any> {
   return client.threads?.state ?? noopStore;
 }
+
+export async function deleteReaction(
+  messageId: string,
+  reactionId: string,
+): Promise<void> {
+  await fetch(
+    `/api/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(
+      reactionId,
+    )}/`,
+    { method: 'DELETE', credentials: 'same-origin' },
+  );
+}
