@@ -487,3 +487,9 @@ export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
   );
   return resp.json();
 }
+
+export function notificationsStore(client: {
+  notifications?: { store?: StateStore<{ notifications: any[] }> };
+}): StateStore<{ notifications: any[] }> {
+  return client.notifications?.store ?? (noopStore as StateStore<any>);
+}
