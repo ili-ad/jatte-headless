@@ -40,5 +40,6 @@
   "client.on": "shim::client.on",
   "client.threads.activate": "shim::client.threads.activate",
   "client.threads.deactivate": "shim::client.threads.deactivate",
-  "client.threads.loadNextPage": "shim::client.threads.loadNextPage"
+  "client.threads.loadNextPage": "shim::client.threads.loadNextPage",
+  "client.threads.reload": "shim::client.threads.reload"
 }
