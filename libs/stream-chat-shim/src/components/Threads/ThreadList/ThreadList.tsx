@@ -10,6 +10,7 @@ import { ThreadListUnseenThreadsBanner as DefaultThreadListUnseenThreadsBanner }
 import { ThreadListLoadingIndicator as DefaultThreadListLoadingIndicator } from "./ThreadListLoadingIndicator";
 import { useChatContext, useComponentContext } from "../../../context";
 import { useStateStore } from "../../../store";
+import { clientThreadsState } from "../../../chatSDKShim";
 import {
   clientThreadsDeactivate,
   clientThreadsLoadNextPage,
@@ -56,7 +57,7 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
     ThreadListLoadingIndicator = DefaultThreadListLoadingIndicator,
     ThreadListUnseenThreadsBanner = DefaultThreadListUnseenThreadsBanner,
   } = useComponentContext();
-  const { threads } = useStateStore(client.threads.state, selector);
+  const { threads } = useStateStore(clientThreadsState(client), selector);
 
   useThreadList();
 
