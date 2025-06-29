@@ -144,3 +144,26 @@ export async function channelStateLoadMessageIntoState(
   }
   return undefined;
 }
+
+export async function channelWatch(
+  channel: { cid: string },
+  options?: Record<string, any>,
+): Promise<{ messages: any[] }> {
+  const searchParams = new URLSearchParams();
+  if (options) {
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== null) {
+        searchParams.set(key, String(value));
+      }
+    }
+  }
+  const query = searchParams.toString();
+  const resp = await fetch(
+    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/${
+      query ? `?${query}` : ""
+    }`,
+    { credentials: "same-origin" },
+  );
+  const data = await resp.json();
+  return { messages: data };
+}
