@@ -487,3 +487,10 @@ export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
   );
   return resp.json();
 }
+
+export async function muteUser(username: string): Promise<void> {
+  await fetch(`/api/mute/${encodeURIComponent(username)}/`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+}

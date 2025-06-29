@@ -651,7 +651,6 @@ Save the output in /openapi/stub_map.json
 **Scope**
 1. Implement backend endpoint (DRF view/serializer) & WS echo if needed.
 2. 🔧 *Front-end* – delete or replace every
-   `// TODO backend-wire-up:muteUser` in `libs/stream-chat-shim/src/`.
 3. Regenerate OpenAPI & flip `"status":"ok"` in the manifest.
 4. Ensure pytest + jest + lints pass.
 
