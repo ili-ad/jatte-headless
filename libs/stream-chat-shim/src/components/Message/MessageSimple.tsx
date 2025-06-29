@@ -36,6 +36,7 @@ import type { MessageContextValue } from '../../context/MessageContext';
 import { useMessageContext } from '../../context/MessageContext';
 
 import { useChatContext, useTranslationContext } from '../../context';
+import { pollsFromState } from '../../chatSDKShim';
 import { MessageEditedTimestamp } from './MessageEditedTimestamp';
 
 import type { MessageUIComponentProps } from './types';
@@ -145,8 +146,7 @@ const MessageSimpleWithContext = (props: MessageSimpleWithContextProps) => {
     },
   );
 
-  const poll = message.poll_id &&
-    /* TODO backend-wire-up: polls.fromState */ undefined;
+  const poll = message.poll_id && pollsFromState(client, message.poll_id);
 
   return (
     <>
