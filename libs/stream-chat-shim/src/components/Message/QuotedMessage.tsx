@@ -5,6 +5,7 @@ import type { TranslationLanguages } from 'chat-shim';
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { Poll } from '../Poll';
+import { pollsFromState } from '../../chatSDKShim';
 import { useChatContext } from '../../context/ChatContext';
 import { useComponentContext } from '../../context/ComponentContext';
 import { useMessageContext } from '../../context/MessageContext';
@@ -33,9 +34,7 @@ export const QuotedMessage = ({ renderText: propsRenderText }: QuotedMessageProp
 
   const { quoted_message } = message;
 
-  const poll =
-    quoted_message?.poll_id &&
-    /* TODO backend-wire-up: polls.fromState */ undefined;
+  const poll = quoted_message?.poll_id && pollsFromState(client, quoted_message.poll_id);
   const quotedMessageDeleted =
     quoted_message?.deleted_at || quoted_message?.type === 'deleted';
 
