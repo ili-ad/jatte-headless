@@ -60,7 +60,7 @@
   "pinMessage": "shim::pinMessage",
   "polls.fromState": "shim::polls.fromState",
   "polls.unregisterSubscriptions": "shim::polls.unregisterSubscriptions",
-  "query": "shim::query",
+  "query": "listRoomMembersCIDs",
   "queryAnswers": "shim::queryAnswers",
   "queryOptionVotes": "shim::queryOptionVotes",
   "queryReactions": "shim::queryReactions",
