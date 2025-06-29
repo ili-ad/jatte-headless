@@ -32,4 +32,5 @@
   "channel.query": "shim::channel.query",
   "channel.watch": "shim::channel.watch",
   "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState"
+  "channel.unarchive": "shim::channel.unarchive"
 }
