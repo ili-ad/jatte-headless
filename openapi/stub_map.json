@@ -47,5 +47,6 @@
   "close": "shim::close",
   "createPollOption": "shim::createPollOption",
   "deleteReaction": "shim::deleteReaction",
-  "flagMessage": "shim::flagMessage"
+  "flagMessage": "shim::flagMessage",
+  "lastRead": "shim::lastRead"
 }
