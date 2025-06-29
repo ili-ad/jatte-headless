@@ -6,6 +6,7 @@ import { useChannelMembershipState } from '../ChannelList';
 import { Icon } from './icons';
 import { useTranslationContext } from '../../context';
 
+import { channelUnpin } from '../../chatSDKShim';
 export type ChannelPreviewActionButtonsProps = {
   channel: Channel;
 };
@@ -28,7 +29,7 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.pinned_at) {
-            /* TODO backend-wire-up: channel.unpin */
+            channelUnpin(channel);
           } else {
             /* TODO backend-wire-up: channel.pin */
           }
