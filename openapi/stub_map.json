@@ -46,5 +46,6 @@
   "client.threads.state": "shim::client.threads.state",
   "close": "shim::close",
   "createPollOption": "shim::createPollOption",
-  "deleteReaction": "shim::deleteReaction"
+  "deleteReaction": "shim::deleteReaction",
+  "flagMessage": "shim::flagMessage"
 }
