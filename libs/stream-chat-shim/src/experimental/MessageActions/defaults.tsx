@@ -133,8 +133,7 @@ const DefaultMessageActionComponents = {
         <DefaultDropdownActionButton
           onClick={() =>
             reminder
-              ? /* TODO backend-wire-up: client.reminders.deleteReminder */
-                Promise.resolve()
+              ? client.reminders.deleteReminder(reminder.id)
               : client.reminders.createReminder(
                   message.text || '',
                   new Date().toISOString(),
