@@ -384,7 +384,7 @@
     "stubName": "client.threads.activate",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

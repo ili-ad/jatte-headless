@@ -256,24 +256,30 @@ export async function clientQueryChannels(
   return resp.json();
 }
 
-export async function clientQueryUsers(_client?: unknown): Promise<{ users: any[] }> {
-  const resp = await fetch('/api/users/', { credentials: 'same-origin' });
+export async function clientQueryUsers(
+  _client?: unknown,
+): Promise<{ users: any[] }> {
+  const resp = await fetch("/api/users/", { credentials: "same-origin" });
   const data = await resp.json();
   return { users: data };
 }
 
 export async function clientRemindersCreateReminder(
-  client: { reminders?: { createReminder?: (text: string, remind_at: string) => Promise<any> } },
+  client: {
+    reminders?: {
+      createReminder?: (text: string, remind_at: string) => Promise<any>;
+    };
+  },
   text: string,
   remind_at: string,
 ): Promise<any> {
   if (client.reminders?.createReminder) {
     return client.reminders.createReminder(text, remind_at);
   }
-  const resp = await fetch('/api/reminders/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
+  const resp = await fetch("/api/reminders/", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, remind_at }),
   });
   return resp.json();
@@ -286,9 +292,18 @@ export async function clientRemindersDeleteReminder(
   if (client.reminders?.deleteReminder) {
     return client.reminders.deleteReminder(reminderId);
   }
-  const resp = await fetch(`/api/reminders/${encodeURIComponent(reminderId)}/`, {
-    method: 'DELETE',
-    credentials: 'same-origin',
-  });
+  const resp = await fetch(
+    `/api/reminders/${encodeURIComponent(reminderId)}/`,
+    {
+      method: "DELETE",
+      credentials: "same-origin",
+    },
+  );
   return resp.json();
+}
+
+export function clientThreadsActivate(client: {
+  threads?: { activate?: () => void };
+}): void {
+  client.threads?.activate?.();
 }
