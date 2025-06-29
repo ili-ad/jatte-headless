@@ -307,3 +307,9 @@ export function clientThreadsActivate(client: {
 }): void {
   client.threads?.activate?.();
 }
+
+export function clientThreadsDeactivate(client: {
+  threads?: { deactivate?: () => void };
+}): void {
+  client.threads?.deactivate?.();
+}

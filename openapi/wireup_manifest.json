@@ -393,7 +393,7 @@
     "stubName": "client.threads.deactivate",
     "ticketType": "shim",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
