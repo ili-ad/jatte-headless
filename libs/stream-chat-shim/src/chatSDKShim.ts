@@ -1,3 +1,6 @@
+import { noopStore } from 'chat-shim/noopStore';
+import type { StateStore } from 'chat-shim';
+
 export async function addAnswer(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
@@ -332,4 +335,10 @@ export async function clientThreadsReload(client: {
   }
   const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
   return resp.json();
+}
+
+export function clientThreadsState(client: {
+  threads?: { state?: StateStore<any> };
+}): StateStore<any> {
+  return client.threads?.state ?? noopStore;
 }
