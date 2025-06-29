@@ -8,7 +8,10 @@ import { Avatar } from "../../../components/Avatar";
 import { ChannelPreview } from "../../../components/ChannelPreview";
 import { useChannelListContext, useChatContext } from "../../../context";
 import { DEFAULT_JUMP_TO_PAGE_SIZE } from "../../../constants/limits";
-import { channelStateLoadMessageIntoState } from "../../../chatSDKShim";
+import {
+  channelStateLoadMessageIntoState,
+  clientChannel,
+} from "../../../chatSDKShim";
 
 export type ChannelSearchResultItemProps = {
   item: Channel;
@@ -45,6 +48,7 @@ export const MessageSearchResultItem = ({
     channel: activeChannel,
     searchController,
     setActiveChannel,
+    client,
   } = useChatContext();
   const { setChannels } = useChannelListContext();
 
@@ -52,7 +56,7 @@ export const MessageSearchResultItem = ({
     const { channel: channelData } = item;
     const type = channelData?.type ?? "unknown";
     const id = channelData?.id ?? "unknown";
-    return /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel;
+    return clientChannel(client, type, id) as Channel;
   }, [item]);
 
   const onSelect = useCallback(async () => {
@@ -94,13 +98,16 @@ export type UserSearchResultItemProps = {
 };
 
 export const UserSearchResultItem = ({ item }: UserSearchResultItemProps) => {
-  const { setActiveChannel } = useChatContext();
+  const { setActiveChannel, client } = useChatContext();
   const { setChannels } = useChannelListContext();
   const { directMessagingChannelType } = useSearchContext();
 
   const onClick = useCallback(() => {
-    const newChannel =
-      /* TODO backend-wire-up: client.channel */ undefined as unknown as Channel;
+    const newChannel = clientChannel(
+      client,
+      directMessagingChannelType,
+      item.id,
+    ) as Channel;
     /* TODO backend-wire-up: channel.watch */
     setActiveChannel(newChannel);
     setChannels?.((channels) => uniqBy([newChannel, ...channels], "cid"));

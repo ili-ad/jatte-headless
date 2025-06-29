@@ -4,6 +4,7 @@ import type {
   QueryChannelAPIResponse,
   StreamChat,
 } from 'chat-shim';
+import { clientChannel } from '../chatSDKShim';
 
 /**
  * prevent from duplicate invocation of channel.watch()
@@ -47,7 +48,7 @@ export const getChannel = async ({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const theChannel =
     channel ||
-    /* TODO backend-wire-up: client.channel */ ({} as Channel);
+    (clientChannel(client, type!, id) as Channel);
 
   // need to keep as with call to channel.watch the id can be changed from undefined to an actual ID generated server-side
   const originalCid = theChannel?.id
