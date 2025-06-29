@@ -24,6 +24,7 @@
   "client.reminders.deleteReminder": "shim::client.reminders.deleteReminder",
   "channel.archive": "shim::channel.archive",
   "channel.countUnread": "shim::channel.countUnread",
+  "countUnread": "shim::countUnread",
   "channel.getClient": "shim::channel.getClient",
   "channel.getReplies": "shim::channel.getReplies",
   "channel.markRead": "shim::channel.markRead",
