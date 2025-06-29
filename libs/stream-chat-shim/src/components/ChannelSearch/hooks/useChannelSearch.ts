@@ -1,13 +1,13 @@
-import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import debounce from 'lodash.debounce';
-import uniqBy from 'lodash.uniqby';
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import debounce from "lodash.debounce";
+import uniqBy from "lodash.uniqby";
 
-import type { ChannelOrUserResponse } from '../utils';
-import { isChannel } from '../utils';
+import type { ChannelOrUserResponse } from "../utils";
+import { isChannel } from "../utils";
 
-import { useChatContext } from '../../../context/ChatContext';
-import { clientChannel } from '../../../chatSDKShim';
+import { useChatContext } from "../../../context/ChatContext";
+import { clientChannel, clientQueryChannels } from "../../../chatSDKShim";
 
 import type {
   Channel,
@@ -18,10 +18,10 @@ import type {
   UserOptions,
   UsersAPIResponse,
   UserSort,
-} from 'chat-shim';
-import type { SearchBarController } from '../SearchBar';
-import type { SearchInputController } from '../SearchInput';
-import type { SearchResultsController } from '../SearchResults';
+} from "chat-shim";
+import type { SearchBarController } from "../SearchBar";
+import type { SearchInputController } from "../SearchInput";
+import type { SearchResultsController } from "../SearchResults";
 
 export type ChannelSearchFunctionParams = {
   setQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -54,7 +54,7 @@ export type ChannelSearchParams = {
   /** Disables execution of the search queries, defaults to false */
   disabled?: boolean;
   /** Callback invoked with every search input change handler */
-  onSearch?: SearchInputController['onSearch'];
+  onSearch?: SearchInputController["onSearch"];
   /** Callback invoked when the search UI is deactivated */
   onSearchExit?: () => void;
   /** Custom handler function to run on search result item selection */
@@ -83,7 +83,7 @@ export type ChannelSearchControllerParams = ChannelSearchParams & {
 };
 
 export const useChannelSearch = ({
-  channelType = 'messaging',
+  channelType = "messaging",
   clearSearchOnClickOutside = true,
   disabled = false,
   onSearch: onSearchCallback,
@@ -96,10 +96,10 @@ export const useChannelSearch = ({
   searchQueryParams,
   setChannels,
 }: ChannelSearchControllerParams): SearchController => {
-  const { client, setActiveChannel } = useChatContext('useChannelSearch');
+  const { client, setActiveChannel } = useChatContext("useChannelSearch");
 
   const [inputIsFocused, setInputIsFocused] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<Array<ChannelOrUserResponse>>([]);
   const [searching, setSearching] = useState(false);
 
@@ -110,7 +110,7 @@ export const useChannelSearch = ({
   const searchBarRef = useRef<HTMLDivElement | null>(null);
 
   const clearState = useCallback(() => {
-    setQuery('');
+    setQuery("");
     setResults([]);
     setSearching(false);
 
@@ -142,21 +142,21 @@ export const useChannelSearch = ({
       }
     };
 
-    document.addEventListener('click', clickListener);
-    return () => document.removeEventListener('click', clickListener);
+    document.addEventListener("click", clickListener);
+    return () => document.removeEventListener("click", clickListener);
   }, [disabled, inputIsFocused, query, exitSearch, clearSearchOnClickOutside]);
 
   useEffect(() => {
     if (!inputRef.current || disabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') return exitSearch();
+      if (event.key === "Escape") return exitSearch();
     };
-    inputRef.current.addEventListener('keydown', handleKeyDown);
+    inputRef.current.addEventListener("keydown", handleKeyDown);
 
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      inputRef.current?.removeEventListener('keydown', handleKeyDown);
+      inputRef.current?.removeEventListener("keydown", handleKeyDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled]);
@@ -190,7 +190,9 @@ export const useChannelSearch = ({
         setActiveChannel(newChannel);
         selectedChannel = newChannel;
       }
-      setChannels?.((channels) => uniqBy([selectedChannel, ...channels], 'cid'));
+      setChannels?.((channels) =>
+        uniqBy([selectedChannel, ...channels], "cid"),
+      );
       if (clearSearchOnClickOutside) {
         exitSearch();
       }
@@ -210,13 +212,11 @@ export const useChannelSearch = ({
     async (text: string) => {
       if (!searchForChannels && !searchForUsers) return;
       let results: ChannelOrUserResponse[] = [];
-      const promises: Array<Promise<Channel[]> | Promise<UsersAPIResponse>> = [];
+      const promises: Array<Promise<Channel[]> | Promise<UsersAPIResponse>> =
+        [];
       try {
         if (searchForChannels) {
-          promises.push(
-            /* TODO backend-wire-up: client.queryChannels */
-            Promise.resolve([] as Channel[]),
-          );
+          promises.push(clientQueryChannels(client));
         }
 
         if (searchForUsers) {
@@ -229,8 +229,14 @@ export const useChannelSearch = ({
           const resolved = await Promise.all(promises);
 
           if (searchForChannels && searchForUsers) {
-            const [channels, { users }] = resolved as [Channel[], UsersAPIResponse];
-            results = [...channels, ...users.filter((u) => u.id !== client.user?.id)];
+            const [channels, { users }] = resolved as [
+              Channel[],
+              UsersAPIResponse,
+            ];
+            results = [
+              ...channels,
+              ...users.filter((u) => u.id !== client.user?.id),
+            ];
           } else if (searchForChannels) {
             const [channels] = resolved as [Channel[]];
             results = [...channels];
