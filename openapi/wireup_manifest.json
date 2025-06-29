@@ -33,7 +33,7 @@
     "stubName": "client.reminders.createReminder",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
