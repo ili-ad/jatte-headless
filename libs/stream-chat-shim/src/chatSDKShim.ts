@@ -240,6 +240,25 @@ export async function clientDeleteMessage(
   return resp.json();
 }
 
+export async function clientUpdateMessage(
+  client: { updateMessage?: (id: string, text: string) => Promise<any> } | unknown,
+  messageId: string,
+  text: string,
+): Promise<any> {
+  if (
+    typeof (client as any).updateMessage === "function"
+  ) {
+    return (client as any).updateMessage(messageId, text);
+  }
+  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  return resp.json();
+}
+
 export async function clientQueryChannels(
   _client: unknown,
   options?: Record<string, any>,
