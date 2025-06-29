@@ -19,6 +19,7 @@
   "polls.registerSubscriptions": "registerSubscriptions",
   "reminders.registerSubscriptions": "registerSubscriptions",
   "client.queryUsers": "listUsers",
+  "client.queryChannels": "listRooms",
   "client.reminders.createReminder": "createReminder",
   "channel.archive": "shim::channel.archive",
   "channel.countUnread": "shim::channel.countUnread",
@@ -31,7 +32,7 @@
   "channel.unpin": "shim::channel.unpin",
   "channel.query": "shim::channel.query",
   "channel.watch": "shim::channel.watch",
-  "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState"
+  "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState",
   "channel.unarchive": "shim::channel.unarchive",
   "client.channel": "shim::client.channel",
   "client.off": "shim::client.off",
