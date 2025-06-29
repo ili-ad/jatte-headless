@@ -87,7 +87,7 @@
     "stubName": "getDraft",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -416,11 +416,11 @@
   {
     "method": "",
     "path": "",
-  "operationId": "shim::client.threads.state",
-  "stubName": "client.threads.state",
-  "ticketType": "shim",
-  "todoCount": 1,
-  "status": "ok"
+    "operationId": "shim::client.threads.state",
+    "stubName": "client.threads.state",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
   },
   {
     "method": "",
