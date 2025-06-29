@@ -43,5 +43,6 @@
   "client.threads.loadNextPage": "shim::client.threads.loadNextPage",
   "client.threads.reload": "shim::client.threads.reload",
   "client.threads.state": "shim::client.threads.state",
-  "close": "shim::close"
+  "close": "shim::close",
+  "createPollOption": "shim::createPollOption"
 }
