@@ -12,8 +12,6 @@ export const useConnectionRecoveredListener = (forceUpdate?: () => void) => {
       }
     };
 
-    /* TODO backend-wire-up: client.on */
-
     return () => {
       /* TODO backend-wire-up: client.off */
     };

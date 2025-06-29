@@ -34,5 +34,6 @@
   "channel.state.loadMessageIntoState": "shim::channel.state.loadMessageIntoState"
   "channel.unarchive": "shim::channel.unarchive",
   "client.channel": "shim::client.channel",
-  "client.off": "shim::client.off"
+  "client.off": "shim::client.off",
+  "client.on": "shim::client.on"
 }

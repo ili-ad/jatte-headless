@@ -19,7 +19,6 @@ export const useGiphyPreview = (separateGiphyPreview: boolean) => {
       }
     };
 
-    /* TODO backend-wire-up: client.on */
     return () => {
       /* TODO backend-wire-up: client.off */
     };

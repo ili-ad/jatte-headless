@@ -104,7 +104,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       if (channel.cid === event.cid) setUnread(0);
     };
 
-    /* TODO backend-wire-up: client.on */
     return () => {
       /* TODO backend-wire-up: client.off */
     };
@@ -141,7 +140,6 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
       );
       refreshUnreadCount();
     };
-
 
     return () => {
     };
