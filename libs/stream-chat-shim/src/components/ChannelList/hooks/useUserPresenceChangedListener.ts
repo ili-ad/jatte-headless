@@ -27,8 +27,6 @@ export const useUserPresenceChangedListener = (
       });
     };
 
-    /* TODO backend-wire-up: client.on */
-
     return () => {
       /* TODO backend-wire-up: client.off */
     };

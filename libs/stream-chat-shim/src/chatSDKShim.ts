@@ -203,6 +203,27 @@ export function clientOff(
   }
 }
 
+export function clientOn(
+  client: {
+    on?: (
+      eventType: string,
+      handler: (...args: any[]) => void,
+    ) => { unsubscribe?: () => void };
+  },
+  eventType: string,
+  handler: (...args: any[]) => void,
+): { unsubscribe?: () => void } | undefined {
+  if (typeof client.on === "function") {
+    return (
+      client.on as (
+        eventType: string,
+        handler: (...args: any[]) => void,
+      ) => { unsubscribe?: () => void }
+    )(eventType, handler);
+  }
+  return undefined;
+}
+
 export async function clientDeleteMessage(
   _client: unknown,
   messageId: string,

@@ -40,7 +40,6 @@ export const useChannelPreviewInfo = (props: ChannelPreviewInfoParams) => {
 
     updateInfo();
 
-    /* TODO backend-wire-up: client.on */
     return () => {
       /* TODO backend-wire-up: client.off */
     };

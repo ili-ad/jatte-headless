@@ -12,7 +12,6 @@ export const useIsChannelMuted = (channel: Channel) => {
   useEffect(() => {
     const handleEvent = () => setMuted(channel.muteStatus().muted);
 
-    /* TODO backend-wire-up: client.on */
     return () => {
       /* TODO backend-wire-up: client.off */
     };
