@@ -44,8 +44,6 @@ export const useChannelUpdatedListener = (
       }
     };
 
-    /* TODO backend-wire-up: client.on */
-
     return () => {
       /* TODO backend-wire-up: client.off */
     };
