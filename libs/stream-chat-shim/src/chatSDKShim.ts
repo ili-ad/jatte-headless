@@ -460,3 +460,11 @@ export async function getUserAgent(): Promise<string> {
   const data = await resp.json();
   return data.user_agent;
 }
+
+export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
+  const resp = await fetch(
+    `/api/rooms/${encodeURIComponent(roomUuid)}/draft/`,
+    { credentials: 'same-origin' },
+  );
+  return resp.json();
+}
