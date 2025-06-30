@@ -35,9 +35,6 @@ const Controls = () => {
       <button
         data-testid='add-message'
         onClick={async () => {
-          await Promise.resolve(/* TODO backend-wire-up: sendMessage */);
-          await Promise.resolve(/* TODO backend-wire-up: sendMessage */);
-          await Promise.resolve(/* TODO backend-wire-up: sendMessage */);
         }}
       >
         Add message

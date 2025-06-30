@@ -24,7 +24,6 @@ const Controls = () => {
       <button
         data-testid='add-message'
         onClick={() =>
-          /* TODO backend-wire-up: sendMessage */
           
         }
       >
