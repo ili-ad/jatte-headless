@@ -752,6 +752,16 @@ export async function getUserAgent(): Promise<string> {
   return data.user_agent;
 }
 
+export async function setUserAgent(userAgent: string): Promise<{ status: string }> {
+  const resp = await fetch('/api/core-user-agent/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_agent: userAgent }),
+  });
+  return resp.json();
+}
+
 export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
   const resp = await fetch(
     `/api/rooms/${encodeURIComponent(roomUuid)}/draft/`,
