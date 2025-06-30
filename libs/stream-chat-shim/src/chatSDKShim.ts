@@ -530,6 +530,23 @@ export async function clientRemindersCreateReminder(
   return resp.json();
 }
 
+export async function remindersCreateReminder(
+  reminders: { createReminder?: (text: string, remind_at: string) => Promise<any> } | undefined,
+  text: string,
+  remind_at: string,
+): Promise<any> {
+  if (reminders?.createReminder) {
+    return reminders.createReminder(text, remind_at);
+  }
+  const resp = await fetch('/api/reminders/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, remind_at }),
+  });
+  return resp.json();
+}
+
 export async function clientRemindersDeleteReminder(
   client: { reminders?: { deleteReminder?: (id: string) => Promise<any> } },
   reminderId: string,
