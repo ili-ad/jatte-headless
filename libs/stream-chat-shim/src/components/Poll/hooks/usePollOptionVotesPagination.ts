@@ -7,6 +7,7 @@ import type {
 import { useCursorPaginator } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
 import { useStateStore } from '../../../store';
 import { usePollContext } from '../../../context';
+import { queryOptionVotes } from '../../../chatSDKShim';
 
 import type { PollOptionVotesQueryParams, PollVote } from 'chat-shim';
 
@@ -29,10 +30,13 @@ export const usePollOptionVotesPagination = ({
 
   const paginationFn = useCallback<PaginationFn<PollVote>>(
     async (next) => {
-      const { next: newNext, votes } = await (async () => {
-        /* TODO backend-wire-up: queryOptionVotes */
-        return { next: undefined, votes: [] as PollVote[] };
-      })();
+      const { next: newNext, votes } = await queryOptionVotes(poll, {
+        filter: paginationParams.filter,
+        options: !next
+          ? paginationParams?.options
+          : { ...(paginationParams?.options ?? {}), next },
+        sort: { created_at: -1, ...(paginationParams?.sort ?? {}) },
+      });
       return { items: votes, next: newNext };
     },
     [paginationParams, poll],

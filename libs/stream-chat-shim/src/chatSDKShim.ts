@@ -48,6 +48,35 @@ export async function queryAnswers(
   return resp.json();
 }
 
+export async function queryOptionVotes(
+  poll: { id: string; queryOptionVotes?: (params?: any) => Promise<any> },
+  params: {
+    filter: { option_id: string };
+    options?: { limit?: number; next?: string };
+    sort?: Record<string, number>;
+  },
+): Promise<{ next?: string; votes: any[] }> {
+  if (typeof poll.queryOptionVotes === 'function') {
+    return poll.queryOptionVotes(params);
+  }
+  const searchParams = new URLSearchParams();
+  if (params.filter?.option_id)
+    searchParams.set('option_id', params.filter.option_id);
+  if (params.options?.limit !== undefined)
+    searchParams.set('limit', String(params.options.limit));
+  if (params.options?.next !== undefined)
+    searchParams.set('next', params.options.next);
+  // ignoring sort except created_at
+  const query = searchParams.toString();
+  const resp = await fetch(
+    `/api/polls/${encodeURIComponent(poll.id)}/votes/${
+      query ? `?${query}` : ''
+    }`,
+    { credentials: 'same-origin' },
+  );
+  return resp.json();
+}
+
 export function pollsFromState(
   client: { polls?: { store?: StateStore<{ polls: any[] }> } },
   pollId: string,
