@@ -804,3 +804,27 @@ export async function remindersUpsertReminder(
   });
   return resp.json();
 }
+
+export async function search(
+  client: {
+    search?: (
+      filter: Record<string, any>,
+      query: Record<string, any>,
+      options?: Record<string, any>,
+    ) => Promise<any>;
+  } | undefined,
+  filter: Record<string, any>,
+  query: Record<string, any>,
+  options?: Record<string, any>,
+): Promise<any> {
+  if (client?.search) {
+    return client.search(filter, query, options);
+  }
+  const resp = await fetch('/api/search/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filter, query, options }),
+  });
+  return resp.json();
+}
