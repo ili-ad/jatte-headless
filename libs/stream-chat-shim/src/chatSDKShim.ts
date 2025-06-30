@@ -613,6 +613,40 @@ export async function pinMessage(messageId: string): Promise<any> {
   return resp.json();
 }
 
+export async function queryReactions(
+  message: { id: string; queryReactions?: (params?: any) => Promise<any> },
+  params: {
+    limit?: number;
+    next?: string;
+    reaction_type?: string;
+    sort?: Record<string, number>;
+  } = {},
+): Promise<{ next?: string; reactions: any[] }> {
+  if (typeof message.queryReactions === 'function') {
+    return message.queryReactions(params);
+  }
+  const searchParams = new URLSearchParams();
+  if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params.next !== undefined) searchParams.set('next', params.next);
+  if (params.reaction_type !== undefined)
+    searchParams.set('reaction_type', params.reaction_type);
+  if (params.sort) {
+    const [field, dir] = Object.entries(params.sort)[0] || [];
+    if (field) {
+      searchParams.set('sort', field);
+      searchParams.set('direction', String(dir));
+    }
+  }
+  const query = searchParams.toString();
+  const resp = await fetch(
+    `/api/messages/${encodeURIComponent(message.id)}/reactions/${
+      query ? `?${query}` : ''
+    }`,
+    { credentials: 'same-origin' },
+  );
+  return resp.json();
+}
+
 export async function getAppSettings(): Promise<any> {
   const resp = await fetch('/api/app-settings/', {
     credentials: 'same-origin',
