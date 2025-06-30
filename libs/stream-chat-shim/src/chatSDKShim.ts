@@ -564,6 +564,20 @@ export async function clientRemindersDeleteReminder(
   return resp.json();
 }
 
+export async function remindersDeleteReminder(
+  reminders: { deleteReminder?: (id: string) => Promise<any> } | undefined,
+  reminderId: string,
+): Promise<any> {
+  if (reminders?.deleteReminder) {
+    return reminders.deleteReminder(reminderId);
+  }
+  const resp = await fetch(`/api/reminders/${encodeURIComponent(reminderId)}/`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  return resp.json();
+}
+
 export function clientThreadsActivate(client: {
   threads?: { activate?: () => void };
 }): void {
