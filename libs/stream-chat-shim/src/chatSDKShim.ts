@@ -12,6 +12,13 @@ export async function castVote(
   // Placeholder implementation until backend endpoint is available
 }
 
+export async function removeVote(
+  _voteId: string,
+  _messageId: string,
+): Promise<void> {
+  // Placeholder implementation until backend endpoint is available
+}
+
 export async function createPollOption(
   pollId: string,
   data: { text: string },
