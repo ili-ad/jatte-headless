@@ -727,6 +727,18 @@ export async function pollsRegisterSubscriptions(
   });
 }
 
+export async function remindersRegisterSubscriptions(
+  client?: { jwt?: string },
+): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (client?.jwt) headers['Authorization'] = `Bearer ${client.jwt}`;
+  await fetch('/api/register-subscriptions/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+  });
+}
+
 export function pollsUnregisterSubscriptions(client?: {
   polls?: { unregisterSubscriptions?: () => void };
 }): void {
