@@ -651,6 +651,22 @@ export async function pinMessage(messageId: string): Promise<any> {
   return resp.json();
 }
 
+export async function sendAction(
+  messageId: string,
+  action: Record<string, unknown>,
+): Promise<any> {
+  const resp = await fetch(
+    `/api/messages/${encodeURIComponent(messageId)}/actions/`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(action),
+    },
+  );
+  return resp.json();
+}
+
 export async function queryReactions(
   message: { id: string; queryReactions?: (params?: any) => Promise<any> },
   params: {
