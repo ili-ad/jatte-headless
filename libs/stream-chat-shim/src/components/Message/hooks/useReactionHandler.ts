@@ -8,6 +8,7 @@ import { useChannelStateContext } from '../../../context/ChannelStateContext';
 import { useChatContext } from '../../../context/ChatContext';
 
 import type { LocalMessage, Reaction, ReactionResponse } from 'chat-shim';
+import { sendReaction, deleteReaction } from '../../../chatSDKShim';
 
 export const reactionHandlerWarning = `Reaction handler was called, but it is missing one of its required arguments.
 Make sure the ChannelAction and ChannelState contexts are properly set and the hook is initialized with a valid message.`;
@@ -88,12 +89,8 @@ export const useReactionHandler = (message?: LocalMessage) => {
       thread?.upsertReplyLocally({ message: tempMessage });
 
       const messageResponse = add
-        ? await Promise.resolve(
-            /* TODO backend-wire-up: sendReaction */ { message: tempMessage },
-          )
-        : await Promise.resolve(
-            { message: tempMessage },
-          );
+        ? await sendReaction(id, type)
+        : await deleteReaction(id, type);
 
       // seems useless as we're expecting WS event to come in and replace this anyway
       updateMessage(messageResponse.message);
