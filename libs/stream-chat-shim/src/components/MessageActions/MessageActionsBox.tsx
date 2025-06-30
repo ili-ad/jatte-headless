@@ -7,6 +7,7 @@ import { useMessageReminder } from '../Message';
 import { useMessageComposer } from '../MessageInput';
 import {
   useComponentContext,
+  useChatContext,
   useMessageContext,
   useTranslationContext,
 } from '../../context';
@@ -52,6 +53,7 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
   const { customMessageActions, message, threadList } =
     useMessageContext('MessageActionsBox');
   const { t } = useTranslationContext('MessageActionsBox');
+  const { client } = useChatContext('MessageActionsBox');
   const messageComposer = useMessageComposer();
   const reminder = useMessageReminder(message.id);
 
@@ -169,9 +171,12 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
             className={buttonClassName}
             onClick={() => {
               if (reminder) {
-                /* TODO backend-wire-up: reminders.deleteReminder */
+                client.reminders.deleteReminder(reminder.id);
               } else {
-                /* TODO backend-wire-up: reminders.createReminder */
+                client.reminders.createReminder(
+                  message.text || '',
+                  new Date().toISOString(),
+                );
               }
             }}
             role='option'
