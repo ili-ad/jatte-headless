@@ -701,3 +701,9 @@ export function pollsUnregisterSubscriptions(client?: {
 }): void {
   client?.polls?.unregisterSubscriptions?.();
 }
+
+export function remindersClearTimers(client?: {
+  reminders?: { clearTimers?: () => void };
+}): void {
+  client?.reminders?.clearTimers?.();
+}
