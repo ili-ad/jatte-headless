@@ -775,3 +775,25 @@ export function remindersScheduledOffsetsMs(client?: {
     ]
   );
 }
+
+export async function remindersUpsertReminder(
+  reminders: {
+    upsertReminder?: (
+      messageId: string,
+      remind_at: string,
+    ) => Promise<any>;
+  } | undefined,
+  messageId: string,
+  remind_at: string,
+): Promise<any> {
+  if (reminders?.upsertReminder) {
+    return reminders.upsertReminder(messageId, remind_at);
+  }
+  const resp = await fetch('/api/reminders/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messageId, remind_at }),
+  });
+  return resp.json();
+}
