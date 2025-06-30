@@ -1,5 +1,6 @@
 import React from 'react';
 import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
+import { remindersScheduledOffsetsMs } from '../../chatSDKShim';
 import { ButtonWithSubmenu } from '../Dialog';
 import type { ComponentProps } from 'react';
 
@@ -25,8 +26,7 @@ export const RemindMeSubmenu = () => {
   const { t } = useTranslationContext();
   const { client } = useChatContext();
   const { message } = useMessageContext();
-  const scheduledOffsetsMs: number[] = [];
-  /* TODO backend-wire-up: reminders.scheduledOffsetsMs */
+  const scheduledOffsetsMs = remindersScheduledOffsetsMs(client);
   return (
     <div
       aria-label={t('aria/Remind Me Options')}
