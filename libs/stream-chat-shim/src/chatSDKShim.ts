@@ -28,6 +28,26 @@ export async function createPollOption(
   return resp.json();
 }
 
+export async function queryAnswers(
+  poll: { id: string; queryAnswers?: (params?: any) => Promise<any> },
+  params: { limit?: number; next?: string } = {},
+): Promise<{ next?: string; votes: any[] }> {
+  if (typeof poll.queryAnswers === 'function') {
+    return poll.queryAnswers(params);
+  }
+  const searchParams = new URLSearchParams();
+  if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
+  if (params.next !== undefined) searchParams.set('next', params.next);
+  const query = searchParams.toString();
+  const resp = await fetch(
+    `/api/polls/${encodeURIComponent(poll.id)}/answers/${
+      query ? `?${query}` : ''
+    }`,
+    { credentials: 'same-origin' },
+  );
+  return resp.json();
+}
+
 export function pollsFromState(
   client: { polls?: { store?: StateStore<{ polls: any[] }> } },
   pollId: string,
