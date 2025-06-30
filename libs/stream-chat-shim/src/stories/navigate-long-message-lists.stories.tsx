@@ -35,7 +35,6 @@ const OtherUserControlButtons = () => {
       <button
         data-testid='receive-reply'
         onClick={() =>
-          /* TODO backend-wire-up: sendMessage */
         }
       >
         Receive reply
@@ -54,7 +53,6 @@ const OtherUserControlButtons = () => {
       <button
         data-testid='add-other-user-message'
         onClick={() =>
-          /* TODO backend-wire-up: sendMessage */
         }
       >
         Receive a message

@@ -257,6 +257,26 @@ export async function channelQuery(
   return { messages: [] };
 }
 
+export async function sendMessage(
+  channel: { cid: string; sendMessage?: (msg: any, options?: any) => Promise<any> },
+  message: Record<string, any>,
+  options?: any,
+): Promise<any> {
+  if (typeof channel.sendMessage === 'function') {
+    return channel.sendMessage(message, options);
+  }
+  const resp = await fetch(
+    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    },
+  );
+  return resp.json();
+}
+
 export async function query(
   channel: { cid: string; query?: (opts: any) => Promise<any> },
   watchers: { limit?: number; offset?: number } = {},
