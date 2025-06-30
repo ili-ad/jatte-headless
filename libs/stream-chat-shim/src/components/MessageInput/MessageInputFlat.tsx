@@ -30,6 +30,7 @@ import { useComponentContext } from '../../context/ComponentContext';
 import { useAttachmentManagerState } from './hooks/useAttachmentManagerState';
 import { useMessageContext } from '../../context';
 import { WithDragAndDropUpload } from './WithDragAndDropUpload';
+import { stopAIResponse } from '../../chatSDKShim';
 
 export const MessageInputFlat = () => {
   const { message } = useMessageContext();
@@ -61,7 +62,7 @@ export const MessageInputFlat = () => {
   const { aiState } = useAIState(channel);
 
   const stopGenerating = useCallback(() => {
-    /* TODO backend-wire-up: stopAIResponse */
+    stopAIResponse(channel);
   }, [channel]);
 
   const [
