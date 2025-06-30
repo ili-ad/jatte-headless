@@ -1,5 +1,6 @@
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useChannelStateContext } from '../../../context/ChannelStateContext';
+import { sendAction } from '../../../chatSDKShim';
 
 import type React from 'react';
 import type { LocalMessage } from 'chat-shim';
@@ -38,9 +39,7 @@ export function useActionHandler(message?: LocalMessage): ActionHandlerReturnTyp
     }
 
     if (messageID) {
-      const data = await Promise.resolve(
-        /* TODO backend-wire-up: sendAction */ undefined,
-      );
+      const data = await sendAction(messageID, formData);
 
       if (data?.message) {
         updateMessage(data.message);
