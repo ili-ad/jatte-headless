@@ -756,3 +756,16 @@ export function remindersClearTimers(client?: {
 }): void {
   client?.reminders?.clearTimers?.();
 }
+
+export function remindersScheduledOffsetsMs(client?: {
+  reminders?: { scheduledOffsetsMs?: number[] };
+}): number[] {
+  return (
+    client?.reminders?.scheduledOffsetsMs ?? [
+      5 * 60 * 1000,
+      30 * 60 * 1000,
+      60 * 60 * 1000,
+      24 * 60 * 60 * 1000,
+    ]
+  );
+}
