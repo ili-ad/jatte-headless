@@ -77,7 +77,6 @@ export const useSubmitHandler = (props: MessageInputProps) => {
             await sendMessage({ localMessage, message, options: sendOptions });
           }
           // if (messageComposer.config.text.publishTypingEvents)
-          //   /* TODO backend-wire-up: stopTyping */
           if (messageComposer.config.text.publishTypingEvents) {
             // safe no-op today; real SDK call tomorrow
             await stopTyping();

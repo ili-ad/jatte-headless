@@ -1,5 +1,6 @@
 import { noopStore } from 'chat-shim/noopStore';
 import type { StateStore } from 'chat-shim';
+import { stopTyping as stopTypingImpl } from 'chat-shim/typing';
 
 export async function addAnswer(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
@@ -895,4 +896,8 @@ export async function stopAIResponse(channel?: {
   stopAIResponse?: () => Promise<void>;
 }): Promise<void> {
   await channel?.stopAIResponse?.();
+}
+
+export async function stopTyping(): Promise<void> {
+  await stopTypingImpl();
 }
