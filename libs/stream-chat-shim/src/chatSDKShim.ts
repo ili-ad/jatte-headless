@@ -821,6 +821,12 @@ export async function threadsRegisterSubscriptions(
   });
 }
 
+export function threadsUnregisterSubscriptions(client?: {
+  threads?: { unregisterSubscriptions?: () => void };
+}): void {
+  client?.threads?.unregisterSubscriptions?.();
+}
+
 export function pollsUnregisterSubscriptions(client?: {
   polls?: { unregisterSubscriptions?: () => void };
 }): void {
