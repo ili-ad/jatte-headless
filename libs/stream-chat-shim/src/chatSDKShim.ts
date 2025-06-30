@@ -793,6 +793,13 @@ export async function muteUser(username: string): Promise<void> {
   });
 }
 
+export async function unmuteUser(username: string): Promise<void> {
+  await fetch(`/api/unmute/${encodeURIComponent(username)}/`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+}
+
 export async function pollsRegisterSubscriptions(
   client?: { jwt?: string },
 ): Promise<void> {
