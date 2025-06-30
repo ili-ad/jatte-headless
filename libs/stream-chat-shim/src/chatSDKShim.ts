@@ -890,3 +890,9 @@ export async function search(
   });
   return resp.json();
 }
+
+export async function stopAIResponse(channel?: {
+  stopAIResponse?: () => Promise<void>;
+}): Promise<void> {
+  await channel?.stopAIResponse?.();
+}
