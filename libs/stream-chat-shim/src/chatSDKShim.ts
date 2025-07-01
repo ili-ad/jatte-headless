@@ -680,6 +680,13 @@ export async function pinMessage(messageId: string): Promise<any> {
   return resp.json();
 }
 
+export async function unpinMessage(messageId: string): Promise<void> {
+  await fetch(`/api/messages/${encodeURIComponent(messageId)}/unpin/`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+}
+
 export async function sendReaction(
   messageId: string,
   type: string,

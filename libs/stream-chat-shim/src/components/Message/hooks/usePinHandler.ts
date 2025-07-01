@@ -1,4 +1,5 @@
 import { defaultPinPermissions, validateAndGetMessage } from '../utils';
+import { unpinMessage } from '../../../chatSDKShim';
 
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useChannelStateContext } from '../../../context/ChannelStateContext';
@@ -93,9 +94,7 @@ export const usePinHandler = (
 
         updateMessage(optimisticMessage);
 
-        await Promise.resolve(
-          /* TODO backend-wire-up: unpinMessage */ undefined,
-        );
+        await unpinMessage(message.id);
       } catch (e) {
         const errorMessage =
           getErrorNotification && validateAndGetMessage(getErrorNotification, [message]);
