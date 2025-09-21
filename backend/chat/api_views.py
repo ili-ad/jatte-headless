@@ -106,15 +106,15 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
         try:
             channel_layer = get_channel_layer()
             cid = f"messaging:{room.uuid}"
+            message_payload = MessageSerializer(serializer.instance).data
             async_to_sync(channel_layer.group_send)(
-                cid.replace(":", "_"),
+                f"channel_{room.uuid}",
                 {
                     "type": "chat.message",
                     "payload": {
                         "type": "message.new",
                         "cid": cid,
-                        "text": serializer.instance.body,
-                        "user": serializer.instance.sent_by,
+                        "message": message_payload,
                     },
                 },
             )
