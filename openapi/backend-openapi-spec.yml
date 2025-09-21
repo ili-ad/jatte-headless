@@ -669,7 +669,6 @@ components:
           readOnly: true
         text:
           type: string
-          writeOnly: true
         body:
           type: string
           readOnly: true
