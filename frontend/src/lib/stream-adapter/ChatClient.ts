@@ -490,12 +490,92 @@ export class ChatClient {
     }
 
     /** Unmute a user */
-    async unmuteUser(userId: string) {
-        const res = await apiFetch(`${API.UNMUTE_USER}${userId}/`, {
+    async unmuteUser(userId: string | number) {
+        const numericId = typeof userId === 'number' ? userId : Number(userId);
+        if (!Number.isInteger(numericId)) {
+            throw new Error('unmuteUser requires numeric user id');
+        }
+
+        const res = await apiFetch(API.UNMUTE_USER, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${this.authToken}` },
+            headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ target_user_id: numericId }),
         });
         if (!res.ok) throw new Error('unmuteUser failed');
+        await res.json().catch(() => null);
+
+        const filterMuteList = (value: unknown): any[] => {
+            if (!Array.isArray(value)) return [];
+            return value.filter((mute) => {
+                const entry = mute as Record<string, unknown>;
+                const directId =
+                    typeof entry.user_id === 'number'
+                        ? entry.user_id
+                        : typeof entry.user_id === 'string'
+                            ? Number.parseInt(entry.user_id, 10)
+                            : null;
+                if (typeof directId === 'number' && !Number.isNaN(directId)) {
+                    return directId !== numericId;
+                }
+
+                const target = entry.target as Record<string, unknown> | undefined;
+                const targetId =
+                    typeof target?.id === 'number'
+                        ? target.id
+                        : typeof target?.id === 'string'
+                            ? Number.parseInt(target.id, 10)
+                            : null;
+                if (typeof targetId === 'number' && !Number.isNaN(targetId)) {
+                    return targetId !== numericId;
+                }
+
+                const genericId =
+                    typeof entry.id === 'number'
+                        ? entry.id
+                        : typeof entry.id === 'string'
+                            ? Number.parseInt(entry.id, 10)
+                            : null;
+                if (typeof genericId === 'number' && !Number.isNaN(genericId)) {
+                    return genericId !== numericId;
+                }
+
+                return true;
+            });
+        };
+
+        const assignFilteredMutes = (userLike: unknown): any[] | undefined => {
+            if (!userLike || typeof userLike !== 'object') return undefined;
+            const next = filterMuteList((userLike as Record<string, unknown>).mutes);
+            (userLike as Record<string, unknown>).mutes = next;
+            return next;
+        };
+
+        let nextUserMutes = assignFilteredMutes(
+            (this as unknown as Record<string, unknown>).user,
+        );
+        if (nextUserMutes === undefined) {
+            nextUserMutes = assignFilteredMutes(
+                this._user as unknown as Record<string, unknown>,
+            );
+        }
+        if (nextUserMutes === undefined) {
+            nextUserMutes = filterMuteList(undefined);
+        }
+
+        this.mutedUsers = this.mutedUsers.filter((mute: any) => {
+            const value =
+                typeof mute?.id === 'number'
+                    ? mute.id
+                    : typeof mute?.id === 'string'
+                        ? Number.parseInt(mute.id, 10)
+                        : null;
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+                return value !== numericId;
+            }
+            return true;
+        });
+
+        this.emit('notification.mutes_updated', { me: { mutes: nextUserMutes } });
     }
 
     /** Pin a message globally */

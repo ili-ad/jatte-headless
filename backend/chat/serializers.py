@@ -15,6 +15,7 @@ from .models import (
     Reminder,
     Room,
     RoomMemberMute,
+    UserMute,
     WebPushSubscription,
 )
 
@@ -316,3 +317,24 @@ class RoomMemberMuteSerializer(serializers.ModelSerializer):
         model = RoomMemberMute
         fields = ["id", "user_id", "muted_until", "muted_by", "created_at"]
         read_only_fields = ["id", "user_id", "muted_by", "created_at"]
+
+
+class UserMuteUnmuteSerializer(serializers.Serializer):
+    """Validate and process a global user unmute request."""
+
+    target_user_id = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.all(),
+        source="target",
+    )
+
+    def validate_target(self, value):
+        request = self.context.get("request")
+        if request and request.user == value:
+            raise serializers.ValidationError("You cannot unmute yourself.")
+        return value
+
+    def save(self, **kwargs):  # type: ignore[override]
+        request = self.context["request"]
+        target = self.validated_data["target"]
+        UserMute.objects.filter(user=request.user, target=target).delete()
+        return {"target_user_id": target.pk, "muted": False}
