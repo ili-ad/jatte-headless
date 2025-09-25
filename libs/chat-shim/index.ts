@@ -928,9 +928,19 @@ export const isVoteAnswer = (vote: PollVote | PollAnswer): vote is PollAnswer =>
 /* ------------------------------ reminders ------------------------------ */
 
 export interface Reminder {
-  id: string;
-  text: string;
+  id: number | string;
   remind_at: string;
+  message_id?: number | null;
+  note?: string | null;
+  created_by?: number;
+  created_at?: string;
+}
+
+export interface ReminderCreateParams {
+  cid: string;
+  remind_at: string;
+  message_id?: number;
+  note?: string;
 }
 
 export interface ReminderState {
@@ -972,14 +982,17 @@ export class ReminderManager {
   }
 
   /** Create a reminder via the backend and store it */
-  async createReminder(text: string, remind_at: string): Promise<Reminder> {
-    const resp = await fetch("/api/reminders/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, remind_at }),
-    });
-    const data = await resp.json();
-    const reminder: Reminder = data.reminder;
+  async createReminder(params: ReminderCreateParams): Promise<Reminder> {
+    const { cid, ...body } = params;
+    const resp = await fetch(
+      `/api/rooms/${encodeURIComponent(cid)}/reminders/`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    const reminder: Reminder = await resp.json();
     const list = this.store.getLatestValue().reminders.slice();
     list.push({ reminder });
     this.store.dispatch({ reminders: list });

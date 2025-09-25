@@ -122,7 +122,53 @@ class PollSerializer(serializers.ModelSerializer):
 
 
 class ReminderSerializer(serializers.ModelSerializer):
+    message_id = serializers.IntegerField(read_only=True, allow_null=True)
+    note = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    created_by = serializers.IntegerField(source="created_by_id", read_only=True)
+
     class Meta:
         model = Reminder
-        fields = ["id", "text", "remind_at", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = [
+            "id",
+            "remind_at",
+            "message_id",
+            "note",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = ["id", "message_id", "created_by", "created_at"]
+
+
+class ReminderCreateSerializer(serializers.Serializer):
+    remind_at = serializers.DateTimeField()
+    message_id = serializers.IntegerField(required=False, allow_null=True)
+    note = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=255
+    )
+
+    def validate_message_id(self, value):
+        if value is None:
+            return value
+        room = self.context.get("room")
+        try:
+            message = Message.objects.get(id=value)
+        except Message.DoesNotExist:
+            raise serializers.ValidationError("Invalid message_id")
+        if room and not room.messages.filter(id=message.id).exists():
+            raise serializers.ValidationError("Message does not belong to this room")
+        self.context["message_obj"] = message
+        return value
+
+    def create(self, validated_data):
+        room = self.context["room"]
+        user = self.context["user"]
+        message = self.context.get("message_obj")
+        note = validated_data.get("note")
+        reminder = Reminder.objects.create(
+            room=room,
+            message=message,
+            created_by=user,
+            note=note,
+            remind_at=validated_data["remind_at"],
+        )
+        return reminder

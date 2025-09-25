@@ -44,6 +44,7 @@ from .api_views import (
     UnmuteUserView,
     AttachmentUploadView,
     ReminderListCreateView,
+    RoomReminderCreateView,
     ThreadListView,
     RecoverStateView,
     TextComposerView,
@@ -183,6 +184,11 @@ urlpatterns = [
     ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
     path("api/reminders/", ReminderListCreateView.as_view(), name="reminders"),
+    path(
+        "api/rooms/<path:cid>/reminders/",
+        RoomReminderCreateView.as_view(),
+        name="room-reminders",
+    ),
     path("api/threads/", ThreadListView.as_view(), name="threads"),
     path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
