@@ -9,15 +9,9 @@ import {
   Streami18n,
 } from '../../../i18n';
 
-import type {
-  AppSettingsAPIResponse,
-  Channel,
-  Event,
-  Mute,
-  OwnUserResponse,
-  StreamChat,
-} from 'chat-shim';
+import type { Channel, Event, Mute, OwnUserResponse, StreamChat } from 'chat-shim';
 import { query } from '../../../chatSDKShim';
+import { chatAPI, type AppSettings } from '../../../api/chatAPI';
 
 export type UseChatParams = {
   client: StreamChat;
@@ -48,16 +42,13 @@ export const useChat = ({
   const closeMobileNav = () => setNavOpen(false);
   const openMobileNav = () => setTimeout(() => setNavOpen(true), 100);
 
-  const appSettings = useRef<Promise<AppSettingsAPIResponse> | null>(null);
+  const appSettings = useRef<Promise<AppSettings> | null>(null);
 
   const getAppSettings = () => {
     if (appSettings.current) {
       return appSettings.current;
     }
-    appSettings.current = fetch('/api/app-settings/', {
-      method: 'GET',
-      credentials: 'same-origin',
-    }).then((res) => res.json() as Promise<AppSettingsAPIResponse>);
+    appSettings.current = chatAPI.getAppSettings();
     return appSettings.current;
   };
 
