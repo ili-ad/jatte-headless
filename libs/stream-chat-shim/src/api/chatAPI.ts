@@ -21,6 +21,8 @@ export type Reminder = {
 
 export type AppSettings = Record<string, unknown>;
 
+export type UserAgentInfo = { user_agent: string };
+
 export type Message = {
   id: number;
   body: string;
@@ -57,6 +59,27 @@ export const getAppSettings = async (): Promise<AppSettings> => {
   }
 
   return (await response.json()) as AppSettings;
+};
+
+export const listUserAgents = async (): Promise<UserAgentInfo> => {
+  const response = await fetch("/api/user-agent/", {
+    method: "GET",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch user agent (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as Partial<UserAgentInfo>;
+  return {
+    user_agent: typeof data.user_agent === "string" ? data.user_agent : "",
+  };
 };
 
 async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<void> {
@@ -177,4 +200,5 @@ export const chatAPI = {
   getMessage,
   getAppSettings,
   listRoomDrafts,
+  listUserAgents,
 };
