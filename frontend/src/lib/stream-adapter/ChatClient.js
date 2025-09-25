@@ -781,18 +781,87 @@ var ChatClient = /** @class */ (function () {
     };
     /** Unmute a user */
     ChatClient.prototype.unmuteUser = function (userId) {
+        var _this = this;
         return __awaiter(this, void 0, void 0, function () {
-            var res;
+            var numericId, res, filterMuteList, assignFilteredMutes, nextUserMutes;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.UNMUTE_USER).concat(userId, "/"), {
-                            method: 'POST',
-                            headers: { Authorization: "Bearer ".concat(this.authToken) },
-                        })];
+                    case 0:
+                        numericId = typeof userId === 'number' ? userId : Number(userId);
+                        if (!Number.isInteger(numericId)) {
+                            throw new Error('unmuteUser requires numeric user id');
+                        }
+                        return [4 /*yield*/, (0, api_1.apiFetch)(constants_1.API.UNMUTE_USER, {
+                                method: 'POST',
+                                headers: _this.buildHeaders({ 'Content-Type': 'application/json' }),
+                                body: JSON.stringify({ target_user_id: numericId }),
+                            })];
                     case 1:
                         res = _a.sent();
                         if (!res.ok)
                             throw new Error('unmuteUser failed');
+                        return [4 /*yield*/, res.json().catch(function () { return null; })];
+                    case 2:
+                        _a.sent();
+                        filterMuteList = function (value) {
+                            if (!Array.isArray(value))
+                                return [];
+                            return value.filter(function (mute) {
+                                var entry = mute;
+                                var directId = typeof entry.user_id === 'number'
+                                    ? entry.user_id
+                                    : typeof entry.user_id === 'string'
+                                        ? Number.parseInt(entry.user_id, 10)
+                                        : null;
+                                if (typeof directId === 'number' && !Number.isNaN(directId)) {
+                                    return directId !== numericId;
+                                }
+                                var target = entry.target;
+                                var targetId = typeof (target === null || target === void 0 ? void 0 : target.id) === 'number'
+                                    ? target.id
+                                    : typeof (target === null || target === void 0 ? void 0 : target.id) === 'string'
+                                        ? Number.parseInt(target.id, 10)
+                                        : null;
+                                if (typeof targetId === 'number' && !Number.isNaN(targetId)) {
+                                    return targetId !== numericId;
+                                }
+                                var genericId = typeof entry.id === 'number'
+                                    ? entry.id
+                                    : typeof entry.id === 'string'
+                                        ? Number.parseInt(entry.id, 10)
+                                        : null;
+                                if (typeof genericId === 'number' && !Number.isNaN(genericId)) {
+                                    return genericId !== numericId;
+                                }
+                                return true;
+                            });
+                        };
+                        assignFilteredMutes = function (userLike) {
+                            if (!userLike || typeof userLike !== 'object')
+                                return undefined;
+                            var next = filterMuteList(userLike.mutes);
+                            userLike.mutes = next;
+                            return next;
+                        };
+                        nextUserMutes = assignFilteredMutes(_this.user);
+                        if (nextUserMutes === undefined) {
+                            nextUserMutes = assignFilteredMutes(_this._user);
+                        }
+                        if (nextUserMutes === undefined) {
+                            nextUserMutes = filterMuteList(undefined);
+                        }
+                        _this.mutedUsers = _this.mutedUsers.filter(function (mute) {
+                            var value = typeof (mute === null || mute === void 0 ? void 0 : mute.id) === 'number'
+                                ? mute.id
+                                : typeof (mute === null || mute === void 0 ? void 0 : mute.id) === 'string'
+                                    ? Number.parseInt(mute.id, 10)
+                                    : null;
+                            if (typeof value === 'number' && !Number.isNaN(value)) {
+                                return value !== numericId;
+                            }
+                            return true;
+                        });
+                        _this.emit('notification.mutes_updated', { me: { mutes: nextUserMutes } });
                         return [2 /*return*/];
                 }
             });

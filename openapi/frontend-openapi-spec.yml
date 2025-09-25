@@ -526,26 +526,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Mute'
-  /unmute/{username}/:
-    parameters:
-      - name: username
-        in: path
-        required: true
-        schema:
-          type: string
+  /user-mutes/unmute/:
     post:
       operationId: unmuteUser
       tags: [mutes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_user_id
+              properties:
+                target_user_id:
+                  type: integer
       responses:
         '200':
-          description: ok
+          description: Unmuted
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
+                  target_user_id:
+                    type: integer
+                  muted:
+                    type: boolean
+                    enum:
+                      - false
   /recover-state/:
     get:
       operationId: recoverState

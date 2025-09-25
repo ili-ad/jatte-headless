@@ -21,7 +21,7 @@ export const API = {
   MUTED_USERS: '/muted-users/',
   MUTED_CHANNELS: '/muted-channels/',
   MUTE_USER: '/mute/',
-  UNMUTE_USER: '/unmute/',
+  UNMUTE_USER: '/user-mutes/unmute/',
   RECOVER_STATE: '/recover-state/',
   REFRESH_TOKEN: '/refresh-token/',
   SUBARRAY: '/subarray/',
