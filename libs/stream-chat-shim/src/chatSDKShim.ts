@@ -7,6 +7,8 @@ import {
   type CreateReminderInput,
   type Message as APIMessage,
   type MuteUserInput,
+  type RegisterSubscriptionsInput,
+  type WebPushSubscription,
   type RoomDraft,
   type User,
   type UserAgentInfo,
@@ -912,40 +914,118 @@ export async function unmuteUser(username: string): Promise<void> {
   });
 }
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toPlainPushSubscription = (
+  value: unknown,
+): Record<string, unknown> | null => {
+  if (!value) return null;
+
+  if (isPlainObject(value) && typeof value.toJSON === 'function') {
+    const json = value.toJSON();
+    if (isPlainObject(json)) {
+      return json;
+    }
+  }
+
+  return isPlainObject(value) ? value : null;
+};
+
+const collectWebPushSubscriptions = (
+  input: unknown,
+): WebPushSubscription[] => {
+  const candidates = Array.isArray(input)
+    ? input
+    : input === undefined
+      ? []
+      : [input];
+
+  const subscriptions: WebPushSubscription[] = [];
+
+  for (const candidate of candidates) {
+    const plain = toPlainPushSubscription(candidate);
+    if (!plain) continue;
+
+    const endpoint = plain.endpoint;
+    if (typeof endpoint !== 'string') continue;
+
+    const keys = plain.keys;
+    if (!isPlainObject(keys)) continue;
+
+    const p256dh = keys.p256dh;
+    const auth = keys.auth;
+    if (typeof p256dh !== 'string' || typeof auth !== 'string') continue;
+
+    const subscription: WebPushSubscription = {
+      endpoint,
+      keys: { p256dh, auth },
+    };
+
+    if ('expirationTime' in plain) {
+      const expiration = plain.expirationTime;
+      if (expiration === null) {
+        subscription.expirationTime = null;
+      } else if (typeof expiration === 'number') {
+        subscription.expirationTime = expiration;
+      }
+    }
+
+    subscriptions.push(subscription);
+  }
+
+  return subscriptions;
+};
+
+const isValidPlatform = (
+  value: unknown,
+): value is RegisterSubscriptionsInput['platform'] =>
+  value === 'web' || value === 'ios' || value === 'android';
+
+const normalizeRegisterSubscriptionsBody = (
+  result: unknown,
+): RegisterSubscriptionsInput => {
+  if (isPlainObject(result) && Array.isArray(result.subscriptions)) {
+    const body: RegisterSubscriptionsInput = {
+      subscriptions: collectWebPushSubscriptions(result.subscriptions),
+    };
+
+    if (typeof result.client_id === 'string') {
+      body.client_id = result.client_id;
+    }
+
+    if (isValidPlatform(result.platform)) {
+      body.platform = result.platform;
+    }
+
+    return body;
+  }
+
+  return { subscriptions: collectWebPushSubscriptions(result) };
+};
+
 export async function pollsRegisterSubscriptions(
-  client?: { jwt?: string },
+  client?: { jwt?: string; polls?: { registerSubscriptions?: () => unknown } },
 ): Promise<void> {
-  const headers: Record<string, string> = {};
-  if (client?.jwt) headers['Authorization'] = `Bearer ${client.jwt}`;
-  await fetch('/api/register-subscriptions/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers,
-  });
+  const result = await client?.polls?.registerSubscriptions?.();
+  const body = normalizeRegisterSubscriptionsBody(result);
+  await chatAPI.registerSubscriptions(body);
 }
 
 export async function remindersRegisterSubscriptions(
-  client?: { jwt?: string },
+  client?: { jwt?: string; reminders?: { registerSubscriptions?: () => unknown } },
 ): Promise<void> {
-  const headers: Record<string, string> = {};
-  if (client?.jwt) headers['Authorization'] = `Bearer ${client.jwt}`;
-  await fetch('/api/register-subscriptions/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers,
-  });
+  const result = await client?.reminders?.registerSubscriptions?.();
+  const body = normalizeRegisterSubscriptionsBody(result);
+  await chatAPI.registerSubscriptions(body);
 }
 
 export async function threadsRegisterSubscriptions(
-  client?: { jwt?: string },
+  client?: { jwt?: string; threads?: { registerSubscriptions?: () => unknown } },
 ): Promise<void> {
-  const headers: Record<string, string> = {};
-  if (client?.jwt) headers['Authorization'] = `Bearer ${client.jwt}`;
-  await fetch('/api/register-subscriptions/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers,
-  });
+  const result = await client?.threads?.registerSubscriptions?.();
+  const body = normalizeRegisterSubscriptionsBody(result);
+  await chatAPI.registerSubscriptions(body);
 }
 
 export function threadsUnregisterSubscriptions(client?: {

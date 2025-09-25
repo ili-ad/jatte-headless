@@ -475,22 +475,20 @@ paths:
   /api/register-subscriptions/:
     post:
       operationId: registerSubscriptions
-      description: Register web push subscriptions and echo them back.
-      parameters: []
+      description: Register web push subscriptions for the current user and echo them back.
       requestBody:
+        required: true
         content:
           application/json:
-            schema: {}
-          application/x-www-form-urlencoded:
-            schema: {}
-          multipart/form-data:
-            schema: {}
+            schema:
+              $ref: '#/components/schemas/RegisterSubscriptionsRequest'
       responses:
-        '200':
+        '201':
+          description: Created
           content:
             application/json:
-              schema: {}
-          description: ''
+              schema:
+                $ref: '#/components/schemas/RegisterSubscriptionsResponse'
       tags:
       - api
   /api/editing-audit-state/:
@@ -746,6 +744,59 @@ components:
           type: string
       required:
       - user_agent
+    WebPushKeys:
+      type: object
+      properties:
+        p256dh:
+          type: string
+        auth:
+          type: string
+      required:
+      - p256dh
+      - auth
+    WebPushSubscription:
+      type: object
+      properties:
+        endpoint:
+          type: string
+        expirationTime:
+          type: number
+          nullable: true
+        keys:
+          $ref: '#/components/schemas/WebPushKeys'
+      required:
+      - endpoint
+      - keys
+    RegisterSubscriptionsRequest:
+      type: object
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebPushSubscription'
+        client_id:
+          type: string
+        platform:
+          type: string
+          enum:
+          - web
+          - ios
+          - android
+      required:
+      - subscriptions
+    RegisterSubscriptionsResponse:
+      type: object
+      properties:
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebPushSubscription'
+        client_id:
+          type: string
+          nullable: true
+        platform:
+          type: string
+          nullable: true
     Message:
       type: object
       properties:
