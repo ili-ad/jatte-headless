@@ -14,7 +14,19 @@ paths:
             application/json:
               schema:
                 type: array
-                items: {}
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    text:
+                      type: string
+                    body:
+                      type: string
+                    updated_at:
+                      type: string
+                      format: date-time
+                  additionalProperties: true
           description: ''
       tags:
       - api
@@ -45,7 +57,19 @@ paths:
             application/json:
               schema:
                 type: array
-                items: {}
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    text:
+                      type: string
+                    body:
+                      type: string
+                    updated_at:
+                      type: string
+                      format: date-time
+                  additionalProperties: true
           description: ''
       tags:
       - api
@@ -256,7 +280,19 @@ paths:
             application/json:
               schema:
                 type: array
-                items: {}
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    text:
+                      type: string
+                    body:
+                      type: string
+                    updated_at:
+                      type: string
+                      format: date-time
+                  additionalProperties: true
           description: ''
       tags:
       - api

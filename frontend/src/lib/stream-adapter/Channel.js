@@ -440,7 +440,7 @@ var Channel = /** @class */ (function () {
                     /** Fetch draft from the backend and sync local state */
                     getDraft: function () {
                         return __awaiter(this, void 0, void 0, function () {
-                            var token, res, data, text;
+                            var token, res, data, drafts, firstDraft, text;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -454,10 +454,16 @@ var Channel = /** @class */ (function () {
                                         res = _a.sent();
                                         if (!res.ok)
                                             throw new Error('getDraft failed');
-                                        return [4 /*yield*/, res.json().catch(function () { return ({ text: '' }); })];
+                                        return [4 /*yield*/, res.json().catch(function () { return []; })];
                                     case 2:
                                         data = _a.sent();
-                                        text = typeof data.text === 'string' ? data.text : '';
+                                        drafts = Array.isArray(data) ? data : [];
+                                        firstDraft = drafts[0] || {};
+                                        text = typeof firstDraft.text === 'string'
+                                            ? firstDraft.text
+                                            : typeof firstDraft.body === 'string'
+                                                ? firstDraft.body || ''
+                                                : '';
                                         textStore._set({ text: text });
                                         return [2 /*return*/, text];
                                 }

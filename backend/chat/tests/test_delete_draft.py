@@ -10,7 +10,7 @@ class DeleteDraftAPITests(APITestCase):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
     def test_delete_draft(self):
-        room = Room.objects.create(uuid="r1", client="c1")
+        room = Room.objects.create(uuid="r1", client="u1")
         token = self.make_token()
         url = reverse("room-draft", kwargs={"room_uuid": room.uuid})
         self.client.post(url, {"text": "hello"}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")

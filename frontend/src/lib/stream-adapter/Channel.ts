@@ -354,8 +354,15 @@ export class Channel {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (!res.ok) throw new Error('getDraft failed');
-                    const data = await res.json().catch(() => ({ text: '' }));
-                    const text = typeof data.text === 'string' ? data.text : '';
+                    const data = await res.json().catch(() => []);
+                    const drafts = Array.isArray(data) ? data : [];
+                    const firstDraft = drafts[0] ?? {};
+                    const text =
+                        typeof firstDraft.text === 'string'
+                            ? firstDraft.text
+                            : typeof firstDraft.body === 'string'
+                              ? firstDraft.body ?? ''
+                              : '';
                     textStore._set({ text });
                     return text;
                 },
