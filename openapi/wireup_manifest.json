@@ -162,8 +162,8 @@
     "status": "ok"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "post",
+    "path": "/api/sync-user/",
     "operationId": "syncUser",
     "stubName": "connectUser",
     "ticketType": "api",
