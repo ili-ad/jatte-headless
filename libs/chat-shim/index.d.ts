@@ -67,7 +67,8 @@ declare module 'stream-chat' {
     off(evt: string, cb: (ev: any) => void): void;
     markRead(): void;
     countUnread(): number;
-    muteStatus(): { muted: boolean };
+    muteStatus(): { muted: boolean; muted_until: string | null };
+    setMuteStatus(status: { muted: boolean; muted_until: string | null }): void;
     getClient(): LocalChatClient;
     getConfig(): { typing_events: boolean; read_events: boolean };
   }

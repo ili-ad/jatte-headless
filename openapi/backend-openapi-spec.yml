@@ -380,6 +380,26 @@ paths:
           description: ''
       tags:
       - api
+  /api/rooms/{cid}/mute/:
+    get:
+      operationId: muteStatus
+      description: Return whether the current user has muted this room.
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MuteStatus'
+          description: ''
+      tags:
+      - api
   /api/rooms/{cid}/config/:
     get:
       operationId: listRoomConfigs
@@ -674,6 +694,17 @@ paths:
       - api
 components:
   schemas:
+    MuteStatus:
+      type: object
+      properties:
+        muted:
+          type: boolean
+        muted_until:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - muted
     User:
       type: object
       properties:
