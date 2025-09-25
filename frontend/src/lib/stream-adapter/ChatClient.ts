@@ -466,10 +466,25 @@ export class ChatClient {
     }
 
     /** Mute a user */
-    async muteUser(userId: string) {
-        const res = await apiFetch(`${API.MUTE_USER}${userId}/`, {
+    async muteUser(
+        userId: string | number,
+        options?: { cid?: string; muted_until?: string },
+    ) {
+        const cid = options?.cid;
+        if (!cid) throw new Error('muteUser requires channel cid');
+
+        const numericId = typeof userId === 'number' ? userId : Number(userId);
+        if (!Number.isInteger(numericId)) {
+            throw new Error('muteUser requires numeric user id');
+        }
+
+        const body: Record<string, unknown> = { user_id: numericId };
+        if (options?.muted_until) body.muted_until = options.muted_until;
+
+        const res = await apiFetch(`${API.ROOMS}${encodeURIComponent(cid)}/mutes/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.authToken}` },
+            body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error('muteUser failed');
     }

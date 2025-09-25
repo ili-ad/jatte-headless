@@ -145,6 +145,25 @@ class RoomMute(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class RoomMemberMute(models.Model):
+    room = models.ForeignKey(Room, related_name="member_mutes", on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="room_mute_targets",
+        on_delete=models.CASCADE,
+    )
+    muted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="room_mutes_issued",
+        on_delete=models.CASCADE,
+    )
+    muted_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("room", "user")
+
+
 class Reminder(models.Model):
     room = models.ForeignKey(
         Room, related_name="reminders", on_delete=models.CASCADE, null=True, blank=True

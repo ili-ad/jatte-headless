@@ -15,9 +15,16 @@ afterEach(() => {
 
 test('muteUser posts to backend endpoint', async () => {
   const client = new ChatClient('u1', 'jwt-test');
-  await client.muteUser('u2');
-  expect(global.fetch).toHaveBeenCalledWith(`${API.MUTE_USER}u2/`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer jwt-test' },
-  });
+  await client.muteUser('42', { cid: 'messaging:general' });
+  expect(global.fetch).toHaveBeenCalledWith(
+    `/api${API.ROOMS}${encodeURIComponent('messaging:general')}/mutes/`,
+    expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer jwt-test',
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify({ user_id: 42 }),
+    }),
+  );
 });

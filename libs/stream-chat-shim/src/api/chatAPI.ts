@@ -25,6 +25,16 @@ export type UserAgentInfo = { user_agent: string };
 
 export type MuteStatus = { muted: boolean; muted_until: string | null };
 
+export type Mute = {
+  id: number;
+  user_id: number;
+  muted_until: string | null;
+  muted_by: number;
+  created_at: string;
+};
+
+export type MuteUserInput = { cid: string; user_id: number; muted_until?: string };
+
 export type Message = {
   id: number;
   body: string;
@@ -102,6 +112,62 @@ async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<
     throw errorWithStatus;
   }
 }
+
+export const muteUser = async ({
+  cid,
+  user_id,
+  muted_until,
+}: MuteUserInput): Promise<Mute> => {
+  const payload: Record<string, unknown> = { user_id };
+  if (muted_until) {
+    payload.muted_until = muted_until;
+  }
+
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/mutes/`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(`Failed to mute user (status ${response.status})`);
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as Partial<Mute>;
+
+  if (
+    typeof data?.id !== "number" ||
+    typeof data.user_id !== "number" ||
+    typeof data.muted_by !== "number" ||
+    typeof data.created_at !== "string"
+  ) {
+    throw new Error("Invalid mute response");
+  }
+
+  let mutedUntil: string | null = null;
+  if (typeof data.muted_until === "string") {
+    mutedUntil = data.muted_until;
+  } else if (data.muted_until === null || data.muted_until === undefined) {
+    mutedUntil = null;
+  } else {
+    throw new Error("Invalid muted_until value");
+  }
+
+  return {
+    id: data.id,
+    user_id: data.user_id,
+    muted_until: mutedUntil,
+    muted_by: data.muted_by,
+    created_at: data.created_at,
+  };
+};
 
 export const muteStatus = async ({ cid }: { cid: string }): Promise<MuteStatus> => {
   const response = await fetch(
@@ -226,6 +292,7 @@ async function endSession(): Promise<void> {
 export const chatAPI = {
   createReminder,
   deleteMessage,
+  muteUser,
   endSession,
   getMessage,
   getAppSettings,
