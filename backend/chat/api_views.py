@@ -132,8 +132,8 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 # New Stream Chat API endpoints below
 
 
-class RoomMessageDeleteView(RoomFromCIDMixin, APIView):
-    """Delete a message in a room."""
+class RoomMessageDetailView(RoomFromCIDMixin, APIView):
+    """Retrieve or delete a message in a room."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -153,6 +153,12 @@ class RoomMessageDeleteView(RoomFromCIDMixin, APIView):
         if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
             return True
         return False
+
+    def get(self, request, cid: str, message_id: int):
+        room = self._get_room(cid)
+        message = get_object_or_404(room.messages, id=message_id)
+        serializer = MessageSerializer(message)
+        return Response(serializer.data)
 
     def delete(self, request, cid: str, message_id: int):
         room = self._get_room(cid)

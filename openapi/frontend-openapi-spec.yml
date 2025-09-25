@@ -96,6 +96,30 @@ paths:
                 items:
                   $ref: '#/paths/~1rooms~1/get/responses/200/content/application~1json/schema/items'
   /api/rooms/{cid}/messages/{message_id}/:
+    get:
+      description: Retrieve a single message by id within a room.
+      operationId: getMessage
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: message_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Not Found
+      tags: [api]
     delete:
       description: Delete a message in a room.
       operationId: deleteMessage
