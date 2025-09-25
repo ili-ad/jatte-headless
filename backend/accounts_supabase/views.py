@@ -6,7 +6,6 @@ from rest_framework import generics, serializers
 from django.contrib.auth import get_user_model
 from accounts_supabase.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
-from django.utils import timezone
 from django.conf import settings
 import jwt
 import uuid
@@ -29,8 +28,6 @@ class SessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request):
-        # Log timestamp for debugging stale tokens
-        print(f"disconnect at {timezone.now()} for {request.user}")
         request.session['disconnected'] = True
         request.session['initialized'] = False
         return Response(status=204)
