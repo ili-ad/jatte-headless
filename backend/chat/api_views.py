@@ -17,8 +17,8 @@ from rest_framework.views import APIView
 
 from .mixins import RoomFromCIDMixin
 from .models import (Channel, Draft, Flag, Message, Notification, Pin, Poll,
-                     PollOption, Reaction, ReadState, Reminder, Room, RoomMute,
-                     UserMute)
+                     PollOption, Reaction, ReadState, Reminder, Room, RoomMemberMute,
+                     RoomMute, UserMute)
 from .serializers import (
     DraftSerializer,
     FlagSerializer,
@@ -31,6 +31,8 @@ from .serializers import (
     ReactionSerializer,
     ReminderCreateSerializer,
     ReminderSerializer,
+    RoomMemberMuteCreateSerializer,
+    RoomMemberMuteSerializer,
     RoomSerializer,
 )
 
@@ -632,6 +634,66 @@ class RoomMuteStatusView(RoomFromCIDMixin, APIView):
             {"muted": mute is not None, "muted_until": muted_until}
         )
         return Response(serializer.data)
+
+
+class RoomMemberMuteCreateView(RoomFromCIDMixin, APIView):
+    """Mute a room member via POST."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _can_mute(self, acting_user, room: Room, target_user) -> bool:
+        if acting_user.id == getattr(target_user, "id", None):
+            return True
+        if room.agent_id and room.agent_id == acting_user.id:
+            return True
+        if getattr(acting_user, "is_staff", False) or getattr(
+            acting_user, "is_superuser", False
+        ):
+            return True
+        return False
+
+    def post(self, request, cid: str):
+        room = self.get_room(cid)
+        serializer = RoomMemberMuteCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_user = serializer.validated_data["user"]
+        muted_until = serializer.validated_data.get("muted_until")
+
+        if not self._can_mute(request.user, room, target_user):
+            return Response(status=403)
+
+        mute, _created = RoomMemberMute.objects.update_or_create(
+            room=room,
+            user=target_user,
+            defaults={"muted_by": request.user, "muted_until": muted_until},
+        )
+
+        response_data = RoomMemberMuteSerializer(mute).data
+
+        try:
+            channel_layer = get_channel_layer()
+            cid_value = cid if ":" in cid else f"messaging:{room.uuid}"
+            async_to_sync(channel_layer.group_send)(
+                f"channel_{room.uuid}",
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "member.muted",
+                        "cid": cid_value,
+                        "user_id": target_user.id,
+                        "muted_until": (
+                            mute.muted_until.isoformat() if mute.muted_until else None
+                        ),
+                        "muted_by": request.user.id,
+                        "ts": timezone.now().isoformat(),
+                    },
+                },
+            )
+        except Exception:
+            pass
+
+        return Response(response_data, status=201)
 
 
 class RoomConfigStateView(RoomFromCIDMixin, APIView):

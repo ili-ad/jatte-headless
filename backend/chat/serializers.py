@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import (
@@ -13,6 +14,7 @@ from .models import (
     Reaction,
     Reminder,
     Room,
+    RoomMemberMute,
 )
 
 
@@ -210,3 +212,21 @@ class MuteStatusSerializer(serializers.Serializer):
             if isinstance(muted_until, datetime):
                 muted_until = muted_until.isoformat()
         return {"muted": muted, "muted_until": muted_until}
+
+
+class RoomMemberMuteCreateSerializer(serializers.Serializer):
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.all(), source="user"
+    )
+    muted_until = serializers.DateTimeField(allow_null=True, required=False)
+
+
+class RoomMemberMuteSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(read_only=True)
+    muted_by = serializers.IntegerField(source="muted_by_id", read_only=True)
+    muted_until = serializers.DateTimeField(allow_null=True, required=False)
+
+    class Meta:
+        model = RoomMemberMute
+        fields = ["id", "user_id", "muted_until", "muted_by", "created_at"]
+        read_only_fields = ["id", "user_id", "muted_by", "created_at"]
