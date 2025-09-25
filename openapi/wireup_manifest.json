@@ -108,13 +108,13 @@
     "status": "missing"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "get",
+    "path": "/api/rooms/{cid}/mute/",
     "operationId": "muteStatus",
     "stubName": "channel.muteStatus",
     "ticketType": "api",
-    "todoCount": 2,
-    "status": "missing"
+    "todoCount": 0,
+    "status": "ok"
   },
   {
     "method": "",

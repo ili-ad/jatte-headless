@@ -23,6 +23,8 @@ export type AppSettings = Record<string, unknown>;
 
 export type UserAgentInfo = { user_agent: string };
 
+export type MuteStatus = { muted: boolean; muted_until: string | null };
+
 export type Message = {
   id: number;
   body: string;
@@ -100,6 +102,34 @@ async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<
     throw errorWithStatus;
   }
 }
+
+export const muteStatus = async ({ cid }: { cid: string }): Promise<MuteStatus> => {
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/mute/`,
+    {
+      method: "GET",
+      credentials: "same-origin",
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch mute status (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as Partial<MuteStatus>;
+  return {
+    muted: Boolean(data?.muted),
+    muted_until:
+      typeof data?.muted_until === "string" || data?.muted_until === null
+        ? (data?.muted_until ?? null)
+        : null,
+  };
+};
 
 export const getMessage = async ({
   cid,
@@ -199,6 +229,7 @@ export const chatAPI = {
   endSession,
   getMessage,
   getAppSettings,
+  muteStatus,
   listRoomDrafts,
   listUserAgents,
 };

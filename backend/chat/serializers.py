@@ -1,7 +1,19 @@
+from datetime import datetime
+
 from rest_framework import serializers
 
-from .models import (Draft, Flag, Message, Notification, Pin, Poll, PollOption,
-                     Reaction, Reminder, Room)
+from .models import (
+    Draft,
+    Flag,
+    Message,
+    Notification,
+    Pin,
+    Poll,
+    PollOption,
+    Reaction,
+    Reminder,
+    Room,
+)
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -184,3 +196,17 @@ class ReminderCreateSerializer(serializers.Serializer):
             remind_at=validated_data["remind_at"],
         )
         return reminder
+
+
+class MuteStatusSerializer(serializers.Serializer):
+    muted = serializers.BooleanField()
+    muted_until = serializers.DateTimeField(allow_null=True, required=False)
+
+    def to_representation(self, instance):
+        muted = bool(instance.get("muted")) if isinstance(instance, dict) else False
+        muted_until = None
+        if isinstance(instance, dict):
+            muted_until = instance.get("muted_until")
+            if isinstance(muted_until, datetime):
+                muted_until = muted_until.isoformat()
+        return {"muted": muted, "muted_until": muted_until}

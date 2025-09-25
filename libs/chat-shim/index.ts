@@ -62,6 +62,8 @@ export class FixedSizeQueueCache<T = any> {
 
 /* -------------------------------- Channel -------------------------------- */
 
+type ChannelMuteStatus = { muted: boolean; muted_until: string | null };
+
 export class ChannelState {
   messages: any[] = [];
   messagePagination = { hasPrev: false, hasNext: false };
@@ -107,6 +109,7 @@ export class LocalChannel {
   /** Store wrapper used by Stream UI hooks */
   readonly stateStore: StateStore<ChannelState>;
   private getUserId: () => string;
+  private muteStatusState: ChannelMuteStatus = { muted: false, muted_until: null };
 
   constructor(
     readonly cid: string,
@@ -176,9 +179,32 @@ export class LocalChannel {
   }
 
   /** Return whether this channel is muted for the current user */
-  muteStatus() {
-    const muted = this.client.mutedChannels.includes(this.cid);
-    return { muted };
+  muteStatus(): ChannelMuteStatus {
+    return { ...this.muteStatusState };
+  }
+
+  setMuteStatus(status: ChannelMuteStatus) {
+    const rawUntil = status?.muted_until;
+    let muted_until: string | null = null;
+    if (typeof rawUntil === "string") {
+      muted_until = rawUntil;
+    } else if (rawUntil instanceof Date) {
+      muted_until = rawUntil.toISOString();
+    }
+
+    this.muteStatusState = {
+      muted: Boolean(status?.muted),
+      muted_until,
+    };
+
+    const index = this.client.mutedChannels.indexOf(this.cid);
+    if (this.muteStatusState.muted) {
+      if (index === -1) {
+        this.client.mutedChannels.push(this.cid);
+      }
+    } else if (index !== -1) {
+      this.client.mutedChannels.splice(index, 1);
+    }
   }
 
   /** Expose the parent client instance */
@@ -205,7 +231,7 @@ export class LocalChatClient {
   clientID = "";
   activeChannels: Record<string, LocalChannel> = {};
   listeners: Record<string, Handler[]> = {};
-  mutedChannels: any[] = [];
+  mutedChannels: string[] = [];
 
   /** Minimal threads helper expected by Stream UI */
   threads = {
