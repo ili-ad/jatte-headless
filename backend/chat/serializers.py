@@ -5,9 +5,9 @@ from .models import (Flag, Message, Notification, Pin, Poll, PollOption,
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    """Expose `body` as read-only and accept `text` on input."""
+    """Expose `body` via the `text` field while keeping the column read-only."""
 
-    text = serializers.CharField(write_only=True, required=False)
+    text = serializers.CharField(source="body", allow_blank=True)
 
     class Meta:
         model = Message
@@ -28,13 +28,6 @@ class MessageSerializer(serializers.ModelSerializer):
             "updated_at",
             "deleted_at",
         ]
-
-    def create(self, validated_data):
-        # Map the incoming text field to the body column
-        if "text" in validated_data:
-            validated_data["body"] = validated_data.pop("text")
-
-        return super().create(validated_data)
 
 
 class RoomSerializer(serializers.ModelSerializer):

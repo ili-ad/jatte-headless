@@ -2,6 +2,14 @@ import { noopStore } from 'chat-shim/noopStore';
 import type { StateStore } from 'chat-shim';
 import { stopTyping as stopTypingImpl } from 'chat-shim/typing';
 
+import {
+  createMessage,
+  type CreateMessagePayload,
+  type CreateMessageResult,
+} from './api/messages';
+
+type SendMessageResponse = { message: CreateMessageResult };
+
 export async function addAnswer(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
@@ -267,23 +275,21 @@ export async function channelQuery(
 }
 
 export async function sendMessage(
-  channel: { cid: string; sendMessage?: (msg: any, options?: any) => Promise<any> },
-  message: Record<string, any>,
+  channel: {
+    cid: string;
+    sendMessage?: (
+      msg: CreateMessagePayload,
+      options?: any,
+    ) => Promise<SendMessageResponse>;
+  },
+  message: CreateMessagePayload,
   options?: any,
-): Promise<any> {
+): Promise<SendMessageResponse> {
   if (typeof channel.sendMessage === 'function') {
     return channel.sendMessage(message, options);
   }
-  const resp = await fetch(
-    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/`,
-    {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(message),
-    },
-  );
-  return resp.json();
+  const saved = await createMessage(channel.cid, message);
+  return { message: saved };
 }
 
 export async function query(
@@ -308,19 +314,11 @@ export async function query(
 
 export async function channelSendMessage(
   channel: { cid: string },
-  message: Record<string, any>,
+  message: CreateMessagePayload,
   _options?: any,
-): Promise<any> {
-  const resp = await fetch(
-    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/`,
-    {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(message),
-    },
-  );
-  return resp.json();
+): Promise<SendMessageResponse> {
+  const saved = await createMessage(channel.cid, message);
+  return { message: saved };
 }
 
 export async function channelStateLoadMessageIntoState(
