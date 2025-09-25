@@ -303,28 +303,6 @@ paths:
                     type: integer
                   username:
                     type: string
-  /core-user-agent/:
-    post:
-      operationId: setUserAgent
-      tags: [users]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                user_agent:
-                  type: string
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
   /user-agent/:
     get:
       operationId: listUserAgents
@@ -335,10 +313,24 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user_agent:
-                    type: string
+                $ref: '#/components/schemas/UserAgentInfo'
+    post:
+      operationId: setUserAgent
+      description: Set or report the client User-Agent for the current user/session.
+      tags: [users]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAgentInfo'
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAgentInfo'
   /notifications/:
     get:
       operationId: listNotifications
@@ -838,6 +830,12 @@ components:
           type: string
           format: date-time
           readOnly: true
+    UserAgentInfo:
+      type: object
+      properties:
+        user_agent:
+          type: string
+      required: [user_agent]
     ReminderCreate:
       type: object
       properties:
