@@ -23,6 +23,7 @@ from .serializers import (
     DraftSerializer,
     FlagSerializer,
     MessageSerializer,
+    MuteStatusSerializer,
     NotificationSerializer,
     PinSerializer,
     PollOptionSerializer,
@@ -615,6 +616,22 @@ class RoomConfigView(RoomFromCIDMixin, APIView):
         muted = RoomMute.objects.filter(user=request.user, room=room).exists()
 
         return Response({"name": name, "type": room_type, "muted": muted})
+
+
+class RoomMuteStatusView(RoomFromCIDMixin, APIView):
+    """Return mute status for the current user in the given room."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, cid: str):
+        room = self.get_room(cid)
+        mute = RoomMute.objects.filter(user=request.user, room=room).first()
+        muted_until = getattr(mute, "muted_until", None)
+        serializer = MuteStatusSerializer(
+            {"muted": mute is not None, "muted_until": muted_until}
+        )
+        return Response(serializer.data)
 
 
 class RoomConfigStateView(RoomFromCIDMixin, APIView):
