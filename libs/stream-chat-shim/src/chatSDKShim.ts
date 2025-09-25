@@ -6,6 +6,7 @@ import {
   type AppSettings,
   type CreateReminderInput,
   type Message as APIMessage,
+  type MuteUserInput,
   type RoomDraft,
 } from './api/chatAPI';
 import {
@@ -886,10 +887,24 @@ export function notificationsStore(client: {
   return client.notifications?.store ?? fallbackNotificationsStore;
 }
 
-export async function muteUser(username: string): Promise<void> {
-  await fetch(`/api/mute/${encodeURIComponent(username)}/`, {
-    method: 'POST',
-    credentials: 'same-origin',
+export async function muteUser(
+  userId: string | number,
+  options?: Pick<MuteUserInput, 'cid' | 'muted_until'>,
+): Promise<void> {
+  const cid = options?.cid;
+  if (!cid) {
+    throw new Error('muteUser requires a channel cid');
+  }
+
+  const numericId = typeof userId === 'number' ? userId : Number(userId);
+  if (!Number.isInteger(numericId)) {
+    throw new Error('muteUser requires a numeric user id');
+  }
+
+  await chatAPI.muteUser({
+    cid,
+    user_id: numericId,
+    muted_until: options?.muted_until,
   });
 }
 

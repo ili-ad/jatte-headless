@@ -648,26 +648,29 @@ paths:
                     type: boolean
       tags:
       - api
-  /api/mute/{target_username}/:
+  /api/rooms/{cid}/mutes/:
     parameters:
-      - name: target_username
+      - name: cid
         in: path
         required: true
         schema:
           type: string
     post:
       operationId: muteUser
-      description: Mute the given user for the current user.
+      description: Mute a member in a room (moderation).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MuteCreate'
       responses:
-        '200':
-          description: ok
+        '201':
+          description: Created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
+                $ref: '#/components/schemas/Mute'
       tags:
       - api
   /api/unmute/{target_username}/:
@@ -704,7 +707,36 @@ components:
           format: date-time
           nullable: true
       required:
-      - muted
+        - muted
+    MuteCreate:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        muted_until:
+          type: string
+          format: date-time
+      required:
+        - user_id
+    Mute:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+        muted_until:
+          type: string
+          format: date-time
+          nullable: true
+        muted_by:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     User:
       type: object
       properties:
