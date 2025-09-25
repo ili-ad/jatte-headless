@@ -57,8 +57,8 @@ export const useChat = ({
 
     const version = process.env.STREAM_CHAT_REACT_VERSION;
 
-    fetch('/api/user-agent/', { method: 'GET', credentials: 'same-origin' })
-      .then((res) => res.json() as Promise<{ user_agent?: string }>)
+    chatAPI
+      .listUserAgents()
       .then(({ user_agent }) => {
         const userAgent = user_agent ?? '';
         if (userAgent.includes('stream-chat-react')) return;

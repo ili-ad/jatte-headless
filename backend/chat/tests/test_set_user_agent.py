@@ -15,9 +15,13 @@ class UserAgentAPITests(APITestCase):
         self.assertEqual(res.data["status"], "ok")
 
         get_url = reverse("user-agent")
-        res = self.client.get(get_url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        res = self.client.get(
+            get_url,
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_USER_AGENT="ua2",
+        )
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data["user_agent"], "ua1")
+        self.assertEqual(res.data["user_agent"], "ua2")
 
     def test_user_agent_requires_auth(self):
         url = reverse("core-user-agent")

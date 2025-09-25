@@ -49,28 +49,19 @@ paths:
   /api/user-agent/:
     get:
       operationId: listUserAgents
-      description: ''
-      parameters: []
+      description: Return the User-Agent string sent by the client.
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    text:
-                      type: string
-                    body:
-                      type: string
-                    updated_at:
-                      type: string
-                      format: date-time
-                  additionalProperties: true
-          description: ''
+                type: object
+                properties:
+                  user_agent:
+                    type: string
+                required:
+                  - user_agent
       tags:
       - api
   /api/user/:
