@@ -21,6 +21,22 @@ async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<
   }
 }
 
+async function endSession(): Promise<void> {
+  const response = await fetch("/api/session/", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to end session (status ${response.status})`,
+    );
+    (error as Record<string, unknown>).status = response.status;
+    throw error;
+  }
+}
+
 export const chatAPI = {
   deleteMessage,
+  endSession,
 };
