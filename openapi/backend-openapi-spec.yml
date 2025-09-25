@@ -33,7 +33,7 @@ paths:
   /api/users/:
     get:
       operationId: listUsers
-      description: ''
+      description: List users.
       parameters: []
       responses:
         '200':
@@ -43,7 +43,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/User'
-          description: ''
+          description: OK
       tags:
       - api
   /api/user-agent/:

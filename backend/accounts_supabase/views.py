@@ -86,6 +86,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class QueryUsersView(generics.ListAPIView):
+    """List users."""
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
