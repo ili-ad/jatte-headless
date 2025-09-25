@@ -7,15 +7,41 @@ describe('LocalChatClient', () => {
   beforeEach(() => {
     server = new WS('ws://localhost/ws/messaging:general/?token=jwt', { jsonProtocol: true });
     (global as any).location = { host: 'localhost' };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 42,
+        username: 'user-1',
+        display_name: 'Ada Lovelace',
+        image_url: 'https://example.com/avatar.png',
+        extra: {},
+      }),
+    });
   });
 
   afterEach(() => {
     WS.clean();
+    jest.resetAllMocks();
+    delete (global as any).fetch;
   });
 
   test('connect, send, echo', async () => {
     const client = new LocalChatClient();
     await client.connectUser({ id: 'u1' }, 'jwt');
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/sync-user/',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: expect.objectContaining({ Authorization: 'Bearer jwt' }),
+      }),
+    );
+    expect(client.user).toMatchObject({
+      id: 'u1',
+      backend_id: 42,
+      username: 'user-1',
+      display_name: 'Ada Lovelace',
+    });
     const channel = client.channel('messaging', 'general');
     await channel.watch();
 
