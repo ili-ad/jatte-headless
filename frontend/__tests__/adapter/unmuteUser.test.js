@@ -41,7 +41,10 @@ var ChatClient_1 = require("../../src/lib/stream-adapter/ChatClient");
 var constants_1 = require("../../src/lib/stream-adapter/constants");
 var originalFetch = global.fetch;
 (0, vitest_1.beforeEach)(function () {
-    global.fetch = vitest_1.vi.fn(function () { return Promise.resolve({ ok: true }); });
+    global.fetch = vitest_1.vi.fn(function () { return Promise.resolve({
+        ok: true,
+        json: function () { return Promise.resolve({ target_user_id: 2, muted: false }); },
+    }); });
 });
 (0, vitest_1.afterEach)(function () {
     global.fetch = originalFetch;
@@ -53,13 +56,17 @@ var originalFetch = global.fetch;
         switch (_a.label) {
             case 0:
                 client = new ChatClient_1.ChatClient('u1', 'jwt-test');
-                return [4 /*yield*/, client.unmuteUser('u2')];
+                return [4 /*yield*/, client.unmuteUser(2)];
             case 1:
                 _a.sent();
-                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.UNMUTE_USER, "u2/"), {
+                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("/api".concat(constants_1.API.UNMUTE_USER), vitest_1.expect.objectContaining({
                     method: 'POST',
-                    headers: { Authorization: 'Bearer jwt-test' },
-                });
+                    headers: vitest_1.expect.objectContaining({
+                        Authorization: 'Bearer jwt-test',
+                        'Content-Type': 'application/json',
+                    }),
+                    body: JSON.stringify({ target_user_id: 2 }),
+                }));
                 return [2 /*return*/];
         }
     });

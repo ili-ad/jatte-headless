@@ -36,6 +36,9 @@ export type Mute = {
 
 export type MuteUserInput = { cid: string; user_id: number; muted_until?: string };
 
+export type UnmuteUserRequest = { target_user_id: number };
+export type UnmuteUserResponse = { target_user_id: number; muted: false };
+
 export type User = { id: number; username: string } & Record<string, unknown>;
 
 export type SyncUserRequest = Partial<Record<string, unknown>>;
@@ -425,6 +428,37 @@ export const muteUser = async ({
   };
 };
 
+export const unmuteUser = async ({
+  target_user_id,
+}: UnmuteUserRequest): Promise<UnmuteUserResponse> => {
+  const response = await fetch("/api/user-mutes/unmute/", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target_user_id }),
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to unmute user (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as Partial<UnmuteUserResponse>;
+
+  if (
+    typeof data?.target_user_id !== "number" ||
+    ("muted" in data && data.muted !== false)
+  ) {
+    throw new Error("Invalid unmute user response");
+  }
+
+  return { target_user_id: data.target_user_id, muted: false };
+};
+
 export const muteStatus = async ({ cid }: { cid: string }): Promise<MuteStatus> => {
   const response = await fetch(
     `/api/rooms/${encodeURIComponent(cid)}/mute/`,
@@ -549,6 +583,7 @@ export const chatAPI = {
   createReminder,
   deleteMessage,
   muteUser,
+  unmuteUser,
   registerSubscriptions,
   endSession,
   getMessage,

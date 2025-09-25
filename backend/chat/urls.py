@@ -266,7 +266,7 @@ urlpatterns = [
         name="user-mute",
     ),
     path(
-        "api/unmute/<str:target_username>/",
+        "api/user-mutes/unmute/",
         UnmuteUserView.as_view(),
         name="user-unmute",
     ),
