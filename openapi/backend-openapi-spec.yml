@@ -81,15 +81,13 @@ paths:
     get:
       operationId: listCurrentUsers
       description: Return details for the current authenticated user.
-      parameters: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
-                type: array
-                items: {}
-          description: ''
+                $ref: '#/components/schemas/User'
       tags:
       - api
   /api/refresh-token/:
@@ -453,23 +451,22 @@ paths:
       - api
   /api/sync-user/:
     post:
-      operationId: createSyncUser
-      description: ''
-      parameters: []
+      operationId: syncUser
+      description: Sync the current user’s profile/metadata after JWT auth; returns the current user.
       requestBody:
+        required: false
         content:
           application/json:
-            schema: {}
-          application/x-www-form-urlencoded:
-            schema: {}
-          multipart/form-data:
-            schema: {}
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '201':
+          description: Created
           content:
             application/json:
-              schema: {}
-          description: ''
+              schema:
+                $ref: '#/components/schemas/User'
       tags:
       - api
   /api/register-subscriptions/:
@@ -735,7 +732,18 @@ components:
             only.
           pattern: ^[\w.@+-]+\z
           maxLength: 150
+        display_name:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+        extra:
+          type: object
+          additionalProperties: true
+          nullable: true
       required:
+      - id
       - username
     UserAgentInfo:
       type: object

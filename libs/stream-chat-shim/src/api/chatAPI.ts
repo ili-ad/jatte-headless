@@ -36,7 +36,10 @@ export type Mute = {
 
 export type MuteUserInput = { cid: string; user_id: number; muted_until?: string };
 
-export type User = { id: number; username: string };
+export type User = { id: number; username: string } & Record<string, unknown>;
+
+export type SyncUserRequest = Partial<Record<string, unknown>>;
+export type SyncUserResponse = User;
 
 export type WebPushKeys = { p256dh: string; auth: string };
 export type WebPushSubscription = {
@@ -190,6 +193,61 @@ export const setUserAgent = async (
   }
 
   return { user_agent: data.user_agent };
+};
+
+export const syncUser = async (
+  body: SyncUserRequest = {},
+): Promise<SyncUserResponse> => {
+  const payload: Record<string, unknown> = {};
+  let token: string | undefined;
+
+  if (isRecord(body)) {
+    Object.entries(body).forEach(([key, value]) => {
+      if (key === "__token" && typeof value === "string") {
+        token = value;
+        return;
+      }
+      payload[key] = value;
+    });
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const payloadKeys = Object.keys(payload);
+  if (payloadKeys.length > 0) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const options: RequestInit = {
+    method: "POST",
+    credentials: "same-origin",
+  };
+
+  if (Object.keys(headers).length > 0) {
+    options.headers = headers;
+  }
+
+  if (payloadKeys.length > 0) {
+    options.body = JSON.stringify(payload);
+  }
+
+  const response = await fetch("/api/sync-user/", options);
+
+  if (!response.ok) {
+    const error = new Error(`Failed to sync user (status ${response.status})`);
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as unknown;
+  if (!isRecord(data) || typeof data.id !== "number" || typeof data.username !== "string") {
+    throw new Error("Invalid sync user response");
+  }
+
+  return data as SyncUserResponse;
 };
 
 export const registerSubscriptions = async (
@@ -500,4 +558,5 @@ export const chatAPI = {
   listUsers,
   listUserAgents,
   setUserAgent,
+  syncUser,
 };

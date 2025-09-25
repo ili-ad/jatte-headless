@@ -1,26 +1,131 @@
 # backend/accounts_supabase/views.py
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework import generics, serializers, status
+from typing import Any, Mapping
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from rest_framework import generics, serializers, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from accounts_supabase.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
-from django.conf import settings
+
 import jwt
 import uuid
 
+class SyncUserRequestSerializer(serializers.Serializer):
+    display_name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    image_url = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    extra = serializers.DictField(
+        child=serializers.JSONField(), required=False, allow_empty=True
+    )
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    display_name = serializers.CharField(
+        source="profile.display_name", allow_null=True, required=False
+    )
+    image_url = serializers.CharField(
+        source="profile.image_url", allow_null=True, required=False
+    )
+    extra = serializers.SerializerMethodField()
+
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "username", "display_name", "image_url", "extra"]
+
+    def get_extra(self, obj):
+        profile = getattr(obj, "profile", None)
+        if not profile:
+            return {}
+        extra = getattr(profile, "extra", {})
+        if isinstance(extra, Mapping):
+            return extra
+        return {}
+
+
+def serialize_current_user(user):
+    data = CurrentUserSerializer(user).data
+    profile = getattr(user, "profile", None)
+    if profile:
+        data["display_name"] = profile.display_name or None
+        data["image_url"] = profile.image_url or None
+        extra = getattr(profile, "extra", {})
+        if isinstance(extra, Mapping):
+            data["extra"] = extra
+        else:
+            data["extra"] = {}
+    else:
+        data.setdefault("display_name", None)
+        data.setdefault("image_url", None)
+        data.setdefault("extra", {})
+    return data
+
+
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
-    authentication_classes = [SupabaseJWTAuthentication]  
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-        UserProfile.objects.get_or_create(user=user)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+
+        incoming_data: Mapping[str, Any]
+        if isinstance(request.data, Mapping):
+            incoming_data = request.data
+        else:
+            incoming_data = {}
+
+        serializer = SyncUserRequestSerializer(
+            data={
+                key: incoming_data[key]
+                for key in ("display_name", "image_url", "extra")
+                if key in incoming_data
+            },
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        validated = dict(serializer.validated_data)
+
+        additional = {
+            key: value
+            for key, value in incoming_data.items()
+            if key not in {"display_name", "image_url", "extra"}
+        }
+        if additional:
+            existing_extra = validated.get("extra") or {}
+            if not isinstance(existing_extra, dict):
+                existing_extra = {}
+            existing_extra.update(additional)
+            validated["extra"] = existing_extra
+
+        update_fields = []
+        if "display_name" in validated:
+            profile.display_name = validated["display_name"] or ""
+            update_fields.append("display_name")
+        if "image_url" in validated:
+            profile.image_url = validated["image_url"] or ""
+            update_fields.append("image_url")
+        if "extra" in validated:
+            profile.extra = validated["extra"]
+            update_fields.append("extra")
+
+        if update_fields:
+            profile.save(update_fields=update_fields)
+
         request.session['disconnected'] = False
         request.session['initialized'] = True
-        return Response({"id": user.id, "username": user.username})
+
+        user.refresh_from_db()
+
+        payload = serialize_current_user(user)
+        return Response(payload, status=status.HTTP_201_CREATED)
 
 
 class SessionView(APIView):
@@ -101,8 +206,7 @@ class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        return Response({"id": user.id, "username": user.username})
+        return Response(serialize_current_user(request.user))
 
 
 class RefreshTokenView(APIView):
