@@ -48,8 +48,21 @@ export const validateAndGetMessage = <T extends unknown[]>(
 export const isUserMuted = (message: LocalMessage, mutes?: Mute[]) => {
   if (!mutes || !message) return false;
 
-  const userMuted = mutes.filter((el) => el.target.id === message.user?.id);
-  return !!userMuted.length;
+  const messageUserId = message.user?.id;
+  if (messageUserId === undefined || messageUserId === null) return false;
+  const messageId = String(messageUserId);
+
+  return mutes.some((mute) => {
+    const targetId = (mute as any)?.target?.id;
+    if (targetId !== undefined && targetId !== null) {
+      return String(targetId) === messageId;
+    }
+    const directId = (mute as any)?.user_id;
+    if (typeof directId === 'number') {
+      return String(directId) === messageId;
+    }
+    return false;
+  });
 };
 
 export const MESSAGE_ACTIONS = {

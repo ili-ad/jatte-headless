@@ -11,6 +11,7 @@ from .api_views import (
     RoomLastReadView,
     RoomReadView,
     RoomConfigView,
+    RoomMemberMuteCreateView,
     RoomMuteStatusView,
     MessageDetailView,
     MessageRepliesView,
@@ -126,6 +127,11 @@ urlpatterns = [
         "api/rooms/<path:cid>/mute/",
         RoomMuteStatusView.as_view(),
         name="room-mute-status",
+    ),
+    path(
+        "api/rooms/<path:cid>/mutes/",
+        RoomMemberMuteCreateView.as_view(),
+        name="room-member-mutes",
     ),
     path("api/rooms/<str:room_uuid>/config-state/", RoomConfigStateView.as_view(), name="room-config-state"),
     path(

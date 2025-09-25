@@ -53,13 +53,17 @@ var originalFetch = global.fetch;
         switch (_a.label) {
             case 0:
                 client = new ChatClient_1.ChatClient('u1', 'jwt-test');
-                return [4 /*yield*/, client.muteUser('u2')];
+                return [4 /*yield*/, client.muteUser('42', { cid: 'messaging:general' })];
             case 1:
                 _a.sent();
-                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.MUTE_USER, "u2/"), {
+                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("/api".concat(constants_1.API.ROOMS).concat(encodeURIComponent('messaging:general'), "/mutes/"), vitest_1.expect.objectContaining({
                     method: 'POST',
-                    headers: { Authorization: 'Bearer jwt-test' },
-                });
+                    headers: vitest_1.expect.objectContaining({
+                        Authorization: 'Bearer jwt-test',
+                        'Content-Type': 'application/json',
+                    }),
+                    body: JSON.stringify({ user_id: 42 }),
+                }));
                 return [2 /*return*/];
         }
     });

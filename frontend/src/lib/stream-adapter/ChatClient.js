@@ -749,15 +749,27 @@ var ChatClient = /** @class */ (function () {
         });
     };
     /** Mute a user */
-    ChatClient.prototype.muteUser = function (userId) {
+    ChatClient.prototype.muteUser = function (userId, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var res;
+            var cid, numericId, body, res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.MUTE_USER).concat(userId, "/"), {
-                            method: 'POST',
-                            headers: { Authorization: "Bearer ".concat(this.authToken) },
-                        })];
+                    case 0:
+                        cid = options === null || options === void 0 ? void 0 : options.cid;
+                        if (!cid)
+                            throw new Error('muteUser requires channel cid');
+                        numericId = typeof userId === 'number' ? userId : Number(userId);
+                        if (!Number.isInteger(numericId))
+                            throw new Error('muteUser requires numeric user id');
+                        body = { user_id: numericId };
+                        if (options === null || options === void 0 ? void 0 : options.muted_until) {
+                            body.muted_until = options.muted_until;
+                        }
+                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(encodeURIComponent(cid), "/mutes/"), {
+                                method: 'POST',
+                                headers: { Authorization: "Bearer ".concat(this.authToken) },
+                                body: JSON.stringify(body),
+                            })];
                     case 1:
                         res = _a.sent();
                         if (!res.ok)

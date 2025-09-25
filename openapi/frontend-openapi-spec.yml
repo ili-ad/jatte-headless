@@ -510,26 +510,30 @@ paths:
                 type: array
                 items:
                   type: object
-  /mute/{username}/:
+  /rooms/{cid}/mutes/:
     parameters:
-      - name: username
+      - name: cid
         in: path
         required: true
         schema:
           type: string
     post:
       operationId: muteUser
-      tags: [mutes]
+      description: Mute a member in a room (moderation).
+      tags: [api]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MuteCreate'
       responses:
-        '200':
-          description: ok
+        '201':
+          description: Created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
+                $ref: '#/components/schemas/Mute'
   /unmute/{username}/:
     parameters:
       - name: username
@@ -806,6 +810,34 @@ components:
           format: date-time
           nullable: true
       required: [muted]
+    MuteCreate:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        muted_until:
+          type: string
+          format: date-time
+      required: [user_id]
+    Mute:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+        muted_until:
+          type: string
+          format: date-time
+          nullable: true
+        muted_by:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     ReminderCreate:
       type: object
       properties:

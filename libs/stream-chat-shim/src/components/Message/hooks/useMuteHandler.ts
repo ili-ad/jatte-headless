@@ -21,7 +21,7 @@ export const useMuteHandler = (
   message?: LocalMessage,
   notifications: MuteUserNotifications = {},
 ): ReactEventHandler => {
-  const { mutes } = useChannelStateContext('useMuteHandler');
+  const { channel, mutes } = useChannelStateContext('useMuteHandler');
   const { client } = useChatContext('useMuteHandler');
   const { t } = useTranslationContext('useMuteHandler');
 
@@ -35,9 +35,15 @@ export const useMuteHandler = (
       return;
     }
 
+    const cid = channel?.cid ?? (message.cid as string | undefined);
+    if (!cid) {
+      console.warn('muteUser requires an active channel cid');
+      return;
+    }
+
     if (!isUserMuted(message, mutes)) {
       try {
-        await client.muteUser(message.user.id);
+        await client.muteUser(message.user.id, { cid });
 
         const successMessage =
           getSuccessNotification &&

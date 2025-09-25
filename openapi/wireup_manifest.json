@@ -117,13 +117,13 @@
     "status": "ok"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "post",
+    "path": "/api/rooms/{cid}/mutes/",
     "operationId": "muteUser",
     "stubName": "muteUser",
     "ticketType": "api",
-    "todoCount": 1,
-    "status": "missing"
+    "todoCount": 0,
+    "status": "ok"
   },
   {
     "method": "",
