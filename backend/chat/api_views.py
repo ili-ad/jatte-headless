@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -29,6 +29,7 @@ from .serializers import (
     PollOptionSerializer,
     PollSerializer,
     ReactionSerializer,
+    RegisterSubscriptionsSerializer,
     ReminderCreateSerializer,
     ReminderSerializer,
     RoomMemberMuteCreateSerializer,
@@ -1352,10 +1353,13 @@ class OnView(APIView):
 
 
 class RegisterSubscriptionsView(APIView):
-    """Echo back posted subscriptions for tests."""
+    """Persist and echo back web push subscriptions for the current user."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        return Response({"subscriptions": request.data})
+        serializer = RegisterSubscriptionsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.save(user=request.user)
+        return Response(data, status=status.HTTP_201_CREATED)
