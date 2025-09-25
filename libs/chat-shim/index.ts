@@ -1,6 +1,7 @@
 // libs/chat-shim/index.ts
 "use client";
 import { useSyncExternalStore } from "react";
+import { chatAPI, type SyncUserRequest, type SyncUserResponse } from "../stream-chat-shim/src/api/chatAPI";
 import { createStore } from "./stateStore";
 
 /* ----- public types the UI already references ---------------------- */
@@ -305,7 +306,7 @@ export class LocalChatClient {
   /** Stream’s SDK keeps run-time data in `client.state`. */
   state = { channels: new Map<string, any>() };
   /** Filled once connectUser() succeeds so Chat context has `client.user` */
-  user: { id: string } | undefined;
+  user: ({ id: string } & Record<string, unknown>) | undefined;
   /** Connection indicator the SDK's hooks peek at */
   wsConnection = { online: false };
   getState = () => this.state; // some helper hooks call this
@@ -314,7 +315,7 @@ export class LocalChatClient {
   /*  ░░ 4.   websocket lifecycle                                        */
   /* ------------------------------------------------------------------- */
 
-  async connectUser(user: { id: string }, jwt: string) {
+  async connectUser(user: { id: string } & Record<string, unknown>, jwt: string) {
     this.userId = user.id;
     this.jwt = jwt;
     this.clientID = `${user.id}--${Math.random().toString(36).slice(2)}`;
@@ -322,12 +323,17 @@ export class LocalChatClient {
     this.listeners = {};
     this.mutedChannels = [];
 
-    /* notify backend we are online */
-    await fetch('/api/sync-user/', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { Authorization: `Bearer ${jwt}` },
-    });
+    const payload: (SyncUserRequest & { __token?: string }) = { __token: jwt };
+    const maybeName = (user as Record<string, unknown>).name;
+    if (typeof maybeName === 'string' && maybeName) {
+      payload.display_name = maybeName;
+    }
+    const maybeImage = (user as Record<string, unknown>).image;
+    if (typeof maybeImage === 'string' && maybeImage) {
+      payload.image_url = maybeImage;
+    }
+
+    const syncedUser: SyncUserResponse = await chatAPI.syncUser(payload);
 
     this.user = undefined;
     this.wsConnection.online = false;
@@ -335,7 +341,13 @@ export class LocalChatClient {
     /* 4-a ► connections will be opened per-channel */
 
     /* 4-c ► expose minimal user object & broadcast “online” */
-    this.user = { id: this.userId };
+    const mergedUser: ({ id: string } & Record<string, unknown>) = {
+      ...syncedUser,
+      ...user,
+      backend_id: syncedUser.id,
+      id: this.userId,
+    };
+    this.user = mergedUser;
     this.wsConnection.online = true;
     this.emit("connection.changed", { online: true });
   }

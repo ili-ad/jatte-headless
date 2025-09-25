@@ -12,6 +12,8 @@ import {
   type RoomDraft,
   type User,
   type UserAgentInfo,
+  type SyncUserRequest,
+  type SyncUserResponse,
 } from './api/chatAPI';
 import {
   createMessage,
@@ -257,15 +259,20 @@ export async function channelUnpin(channel: {
 }
 
 export async function connectUser(
-  _user: { id: string },
+  user: { id: string; name?: string; image?: string } | undefined,
   jwt: string,
-): Promise<any> {
-  const resp = await fetch("/api/sync-user/", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { Authorization: `Bearer ${jwt}` },
-  });
-  return resp.json();
+): Promise<SyncUserResponse> {
+  const payload: (SyncUserRequest & { __token?: string }) = { __token: jwt };
+  if (user && typeof user === 'object') {
+    if (typeof (user as { name?: unknown }).name === 'string' && user.name) {
+      payload.display_name = user.name;
+    }
+    if (typeof (user as { image?: unknown }).image === 'string' && user.image) {
+      payload.image_url = user.image;
+    }
+  }
+
+  return chatAPI.syncUser(payload);
 }
 
 export async function disconnectUser(): Promise<void> {
