@@ -141,17 +141,17 @@ paths:
       - about
   /api/app-settings/:
     get:
-      operationId: listget_app_settings
+      operationId: getAppSettings
       description: ''
       parameters: []
       responses:
         '200':
+          description: OK
           content:
             application/json:
               schema:
-                type: array
-                items: {}
-          description: ''
+                type: object
+                additionalProperties: true
       tags:
       - api
   /api/core-user-agent/:

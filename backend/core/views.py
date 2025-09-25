@@ -1,5 +1,8 @@
+from accounts_supabase.authentication import SupabaseJWTAuthentication
 from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 @api_view(["GET"])
@@ -12,9 +15,14 @@ def about(request):
     return Response({"about": "Jatte headless backend"})
 
 
-@api_view(["GET"])
-def get_app_settings(request):
-    return Response({"file_uploads": True})
+class AppSettingsView(APIView):
+    """Return application-wide settings for the authenticated user."""
+
+    authentication_classes = [SupabaseJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"file_uploads": True})
 
 
 @api_view(["GET"])

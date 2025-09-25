@@ -1,11 +1,7 @@
 import React, { useContext } from 'react';
 import type { PropsWithChildren } from 'react';
-import type {
-  AppSettingsAPIResponse,
-  Channel,
-  Mute,
-  SearchController,
-} from 'chat-shim';
+import type { Channel, Mute, SearchController } from 'chat-shim';
+import type { AppSettings } from '../api/chatAPI';
 
 import { getDisplayName } from './utils/getDisplayName';
 import type { ChatProps } from '../components/Chat/Chat';
@@ -34,7 +30,7 @@ export type ChatContextValue = {
    */
   channelsQueryState: ChannelsQueryState;
   closeMobileNav: () => void;
-  getAppSettings: () => Promise<AppSettingsAPIResponse> | null;
+  getAppSettings: () => Promise<AppSettings> | null;
   latestMessageDatesByChannels: Record<ChannelConfId, Date>;
   mutes: Array<Mute>;
   openMobileNav: () => void;

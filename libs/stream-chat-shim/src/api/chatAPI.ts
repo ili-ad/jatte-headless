@@ -19,9 +19,29 @@ export type Reminder = {
   created_at: string;
 };
 
+export type AppSettings = Record<string, unknown>;
+
 interface ErrorWithStatus extends Error {
   status?: number;
 }
+
+export const getAppSettings = async (): Promise<AppSettings> => {
+  const response = await fetch("/api/app-settings/", {
+    method: "GET",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch app settings (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  return (await response.json()) as AppSettings;
+};
 
 async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<void> {
   const response = await fetch(
@@ -85,4 +105,5 @@ export const chatAPI = {
   createReminder,
   deleteMessage,
   endSession,
+  getAppSettings,
 };
