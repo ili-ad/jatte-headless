@@ -125,6 +125,60 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 # New Stream Chat API endpoints below
 
 
+class RoomMessageDeleteView(RoomFromCIDMixin, APIView):
+    """Delete a message in a room."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_room(self, cid: str) -> Room:
+        if ":" in cid:
+            _, room_uuid = cid.split(":", 1)
+        else:
+            room_uuid = cid
+        return get_object_or_404(Room, uuid=room_uuid)
+
+    def _can_delete(self, user, room: Room, message: Message) -> bool:
+        if message.sent_by == user.username:
+            return True
+        if room.agent_id and room.agent_id == user.id:
+            return True
+        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+            return True
+        return False
+
+    def delete(self, request, cid: str, message_id: int):
+        room = self._get_room(cid)
+        message = get_object_or_404(room.messages, id=message_id)
+
+        if not self._can_delete(request.user, room, message):
+            return Response(status=403)
+
+        deleted_at = timezone.now()
+        message.deleted_at = deleted_at
+        message.save(update_fields=["deleted_at"])
+
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"channel_{room.uuid}",
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "message.deleted",
+                        "cid": room.uuid,
+                        "message_id": message.id,
+                        "deleted_by": request.user.id,
+                        "ts": deleted_at.isoformat(),
+                    },
+                },
+            )
+        except Exception:
+            pass
+
+        return Response(status=204)
+
+
 class RoomMarkReadView(RoomFromCIDMixin, APIView):
     """Mark all messages in a room as read for the current user."""
 
