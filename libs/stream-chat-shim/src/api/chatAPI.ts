@@ -21,6 +21,13 @@ export type Reminder = {
 
 export type AppSettings = Record<string, unknown>;
 
+export type Message = {
+  id: number;
+  body: string;
+  created_at: string;
+  sent_by: string;
+};
+
 interface ErrorWithStatus extends Error {
   status?: number;
 }
@@ -61,6 +68,33 @@ async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<
     throw errorWithStatus;
   }
 }
+
+export const getMessage = async ({
+  cid,
+  message_id,
+}: {
+  cid: string;
+  message_id: number;
+}): Promise<Message> => {
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
+    {
+      method: "GET",
+      credentials: "same-origin",
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch message (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  return (await response.json()) as Message;
+};
 
 async function createReminder({ cid, ...body }: CreateReminderInput): Promise<Reminder> {
   const response = await fetch(
@@ -105,5 +139,6 @@ export const chatAPI = {
   createReminder,
   deleteMessage,
   endSession,
+  getMessage,
   getAppSettings,
 };

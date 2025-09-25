@@ -1,7 +1,12 @@
 import { StateStore } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
-import { chatAPI, type AppSettings, type CreateReminderInput } from './api/chatAPI';
+import {
+  chatAPI,
+  type AppSettings,
+  type CreateReminderInput,
+  type Message as APIMessage,
+} from './api/chatAPI';
 import {
   createMessage,
   type CreateMessagePayload,
@@ -320,12 +325,19 @@ export async function channelSendMessage(
 
 export async function channelStateLoadMessageIntoState(
   channel: {
+    cid: string;
     state?: {
       loadMessageIntoState?: (
         id: string,
         around?: string,
         limit?: number,
       ) => Promise<any>;
+      addMessageSorted?: (
+        message: Record<string, unknown>,
+        timestampChanged?: boolean,
+      ) => void;
+      messages?: Array<Record<string, unknown>>;
+      messagePagination?: { hasNext?: boolean; hasPrev?: boolean };
     };
   },
   messageId: string,
@@ -335,7 +347,81 @@ export async function channelStateLoadMessageIntoState(
   if (channel.state?.loadMessageIntoState) {
     return channel.state.loadMessageIntoState(messageId, around, messageLimit);
   }
-  return undefined;
+
+  const numericMessageId = Number(messageId);
+  if (!channel.cid || Number.isNaN(numericMessageId)) {
+    return undefined;
+  }
+
+  const apiMessage = await chatAPI.getMessage({
+    cid: channel.cid,
+    message_id: numericMessageId,
+  });
+
+  const normalizeMessage = (
+    message: APIMessage,
+  ): Record<string, unknown> & { id: string } => {
+    const createdAt = new Date(message.created_at);
+    const baseMessage = {
+      id: String(message.id),
+      cid: channel.cid,
+      created_at: createdAt,
+      updated_at: createdAt,
+      type: 'regular',
+      status: 'received',
+      text: message.body,
+      html: message.body,
+      body: message.body,
+      user: { id: message.sent_by },
+      user_id: message.sent_by,
+      latest_reactions: [] as unknown[],
+      own_reactions: [] as unknown[],
+      reaction_groups: {},
+    } as Record<string, unknown> & { id: string };
+
+    const existingMessage = channel.state?.messages?.find?.(
+      (msg) => String((msg as { id?: string | number }).id) === baseMessage.id,
+    );
+
+    return existingMessage ? { ...existingMessage, ...baseMessage } : baseMessage;
+  };
+
+  const normalizedMessage = normalizeMessage(apiMessage);
+
+  if (channel.state) {
+    channel.state.messagePagination ??= {};
+    channel.state.messagePagination.hasPrev ??= false;
+    channel.state.messagePagination.hasNext ??= false;
+
+    if (typeof channel.state.addMessageSorted === 'function') {
+      channel.state.addMessageSorted(normalizedMessage, true);
+    } else if (Array.isArray(channel.state.messages)) {
+      const existingIndex = channel.state.messages.findIndex(
+        (msg) => String((msg as { id?: string | number }).id) === normalizedMessage.id,
+      );
+
+      if (existingIndex >= 0) {
+        channel.state.messages.splice(existingIndex, 1, normalizedMessage);
+      } else {
+        channel.state.messages.push(normalizedMessage);
+        channel.state.messages.sort((a, b) => {
+          const aDate = new Date(
+            ((a as { created_at?: string | Date }).created_at ?? 0) as
+              | string
+              | Date,
+          ).getTime();
+          const bDate = new Date(
+            ((b as { created_at?: string | Date }).created_at ?? 0) as
+              | string
+              | Date,
+          ).getTime();
+          return aDate - bDate;
+        });
+      }
+    }
+  }
+
+  return normalizedMessage;
 }
 
 export async function channelWatch(

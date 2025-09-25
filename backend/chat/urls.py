@@ -4,7 +4,7 @@ from .api_views import (
     RoomListCreateView,
     RoomDetailView,
     RoomMessageListCreateView,
-    RoomMessageDeleteView,
+    RoomMessageDetailView,
     RoomMarkReadView,
     RoomMarkUnreadView,
     RoomCountUnreadView,
@@ -83,7 +83,7 @@ urlpatterns = [
     ),
     path(
         "api/rooms/<path:cid>/messages/<int:message_id>/",
-        RoomMessageDeleteView.as_view(),
+        RoomMessageDetailView.as_view(),
         name="room-message-delete",
     ),
     path(
