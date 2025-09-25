@@ -98,6 +98,7 @@ import {
   channelQuery,
   channelStateLoadMessageIntoState,
 } from "../../chatSDKShim";
+import { chatAPI } from "../../api/chatAPI";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -962,22 +963,33 @@ const ChannelInner = (
       ],
     );
 
+  /** Custom action handler to delete a message via the backend */
   const deleteMessage = useCallback(
     async (message: LocalMessage): Promise<MessageResponse> => {
       if (!message?.id) {
         throw new Error("Cannot delete a message - missing message ID.");
       }
-      let deletedMessage;
-      if (doDeleteMessageRequest) {
-        deletedMessage = await doDeleteMessageRequest(message);
-      } else {
-        const result = await client.deleteMessage(message.id);
-        deletedMessage = result;
+      if (!channel?.cid) {
+        throw new Error("Cannot delete a message - missing channel CID.");
       }
 
-      return deletedMessage;
+      if (doDeleteMessageRequest) {
+        return await doDeleteMessageRequest(message);
+      }
+
+      const messageId = Number(message.id);
+      if (Number.isNaN(messageId)) {
+        throw new Error(
+          `Cannot delete a message - invalid message ID "${message.id}".`,
+        );
+      }
+
+      await chatAPI.deleteMessage({ cid: channel.cid, message_id: messageId });
+
+      const deletedAt = new Date().toISOString();
+      return { ...message, deleted_at: deletedAt } as MessageResponse;
     },
-    [client, doDeleteMessageRequest],
+    [channel, doDeleteMessageRequest],
   );
 
   const updateMessage = (updatedMessage: MessageResponse | LocalMessage) => {
