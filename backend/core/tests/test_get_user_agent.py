@@ -8,7 +8,7 @@ class GetUserAgentTests(APITestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data, {'user_agent': 'Vitest'})
 
-    def test_wrong_method(self):
+    def test_post_requires_auth(self):
         url = reverse('core:user-agent')
         res = self.client.post(url)
-        self.assertEqual(res.status_code, 405)
+        self.assertEqual(res.status_code, 403)

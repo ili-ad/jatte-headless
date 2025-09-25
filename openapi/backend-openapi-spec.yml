@@ -56,12 +56,25 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  user_agent:
-                    type: string
-                required:
-                  - user_agent
+                $ref: '#/components/schemas/UserAgentInfo'
+      tags:
+      - api
+    post:
+      operationId: setUserAgent
+      description: Set or report the client User-Agent for the current user/session.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAgentInfo'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAgentInfo'
       tags:
       - api
   /api/user/:
@@ -167,31 +180,6 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-      tags:
-      - api
-  /api/core-user-agent/:
-    post:
-      operationId: setUserAgent
-      description: ''
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                user_agent:
-                  type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-          description: ok
       tags:
       - api
   /api/tag/:
@@ -751,6 +739,13 @@ components:
           maxLength: 150
       required:
       - username
+    UserAgentInfo:
+      type: object
+      properties:
+        user_agent:
+          type: string
+      required:
+      - user_agent
     Message:
       type: object
       properties:
