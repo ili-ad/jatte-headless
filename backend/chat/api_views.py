@@ -19,11 +19,18 @@ from .mixins import RoomFromCIDMixin
 from .models import (Channel, Draft, Flag, Message, Notification, Pin, Poll,
                      PollOption, Reaction, ReadState, Reminder, Room, RoomMute,
                      UserMute)
-from .serializers import (FlagSerializer, MessageSerializer,
-                          NotificationSerializer, PinSerializer,
-                          PollOptionSerializer, PollSerializer,
-                          ReactionSerializer, ReminderSerializer,
-                          RoomSerializer)
+from .serializers import (
+    FlagSerializer,
+    MessageSerializer,
+    NotificationSerializer,
+    PinSerializer,
+    PollOptionSerializer,
+    PollSerializer,
+    ReactionSerializer,
+    ReminderCreateSerializer,
+    ReminderSerializer,
+    RoomSerializer,
+)
 
 
 class RoomListCreateView(generics.ListCreateAPIView):
@@ -747,19 +754,54 @@ class ReminderListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        reminders = Reminder.objects.filter(user=request.user)
+        reminders = Reminder.objects.filter(created_by=request.user)
         serializer = ReminderSerializer(reminders, many=True)
         return Response(serializer.data)
 
-    def post(self, request):
-        serializer = ReminderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        reminder = Reminder.objects.create(
-            user=request.user,
-            text=serializer.validated_data["text"],
-            remind_at=serializer.validated_data["remind_at"],
+
+class RoomReminderCreateView(RoomFromCIDMixin, APIView):
+    """Create a reminder scoped to a room."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, cid: str):
+        room = self.get_room(cid)
+        username = request.user.username
+        is_member = (
+            room.agent_id == request.user.id
+            or room.client == username
+            or room.messages.filter(sent_by=username).exists()
+            or getattr(request.user, "is_staff", False)
+            or getattr(request.user, "is_superuser", False)
         )
-        return Response({"reminder": ReminderSerializer(reminder).data}, status=201)
+        if not is_member:
+            return Response(status=403)
+        serializer = ReminderCreateSerializer(
+            data=request.data, context={"room": room, "user": request.user}
+        )
+        serializer.is_valid(raise_exception=True)
+        reminder = serializer.save()
+        reminder_data = ReminderSerializer(reminder).data
+
+        try:
+            channel_layer = get_channel_layer()
+            cid_value = f"messaging:{room.uuid}" if ":" not in cid else cid
+            async_to_sync(channel_layer.group_send)(
+                f"channel_{room.uuid}",
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "reminder.created",
+                        "cid": cid_value,
+                        "reminder": reminder_data,
+                    },
+                },
+            )
+        except Exception:
+            pass
+
+        return Response(reminder_data, status=201)
 
 
 class ThreadListView(APIView):

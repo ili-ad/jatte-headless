@@ -2,6 +2,10 @@ export type CreateMessagePayload = { text: string } & Record<string, unknown>;
 
 export type CreateMessageResult = Record<string, unknown>;
 
+interface ErrorWithStatus extends Error {
+  status?: number;
+}
+
 /**
  * Persist a new message for the given channel identifier.
  */
@@ -28,8 +32,9 @@ export async function createMessage(
     const error = new Error(
       `Failed to create message (status ${response.status})`,
     );
-    (error as Record<string, unknown>).status = response.status;
-    throw error;
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
   }
 
   return (await response.json()) as CreateMessageResult;

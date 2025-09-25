@@ -214,9 +214,19 @@ declare module 'stream-chat' {
   export function isVoteAnswer(vote: PollVote | PollAnswer): vote is PollAnswer;
 
   export interface Reminder {
-    id: string;
-    text: string;
+    id: number | string;
     remind_at: string;
+    message_id?: number | null;
+    note?: string | null;
+    created_by?: number;
+    created_at?: string;
+  }
+
+  export interface ReminderCreateParams {
+    cid: string;
+    remind_at: string;
+    message_id?: number;
+    note?: string;
   }
 
   export interface ReminderState {
@@ -233,7 +243,7 @@ declare module 'stream-chat' {
     registerSubscriptions(): void;
     unregisterSubscriptions(): void;
     initTimers(): void;
-    createReminder(text: string, remind_at: string): Promise<Reminder>;
+    createReminder(params: ReminderCreateParams): Promise<Reminder>;
     clearTimers(): void;
   }
   export class FixedSizeQueueCache<K, T> {

@@ -12,6 +12,7 @@ import {
   useTranslationContext,
 } from '../../context';
 import { MESSAGE_ACTIONS } from '../Message/utils';
+import { chatAPI, type CreateReminderInput } from '../../api/chatAPI';
 import type { MessageContextValue } from '../../context';
 
 type PropsDrilledToMessageActionsBox =
@@ -53,7 +54,7 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
   const { customMessageActions, message, threadList } =
     useMessageContext('MessageActionsBox');
   const { t } = useTranslationContext('MessageActionsBox');
-  const { client } = useChatContext('MessageActionsBox');
+  const { client, channel } = useChatContext('MessageActionsBox');
   const messageComposer = useMessageComposer();
   const reminder = useMessageReminder(message.id);
 
@@ -169,14 +170,37 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
           <button
             aria-selected='false'
             className={buttonClassName}
-            onClick={() => {
+            onClick={async () => {
               if (reminder) {
-                client.reminders.deleteReminder(reminder.id);
+                await client.reminders.deleteReminder(reminder.id);
+                return;
+              }
+              const cid = channel?.cid ?? (message.cid as string | undefined);
+              if (!cid) return;
+              const remindAt = new Date().toISOString();
+              const rawMessageId =
+                typeof message.id === 'number'
+                  ? message.id
+                  : typeof message.id === 'string'
+                  ? Number.parseInt(message.id, 10)
+                  : undefined;
+              const params: CreateReminderInput = {
+                cid,
+                remind_at: remindAt,
+                note: message.text || undefined,
+              };
+              if (typeof rawMessageId === 'number' && !Number.isNaN(rawMessageId)) {
+                params.message_id = rawMessageId;
+              }
+              const createReminder = client.reminders?.createReminder;
+              if (createReminder) {
+                if (typeof createReminder.length === 'number' && createReminder.length >= 2) {
+                  await createReminder(params.note ?? '', params.remind_at);
+                } else {
+                  await createReminder(params);
+                }
               } else {
-                client.reminders.createReminder(
-                  message.text || '',
-                  new Date().toISOString(),
-                );
+                await chatAPI.createReminder(params);
               }
             }}
             role='option'
