@@ -1,7 +1,7 @@
 import { StateStore } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
-import { chatAPI, type CreateReminderInput } from './api/chatAPI';
+import { chatAPI, type AppSettings, type CreateReminderInput } from './api/chatAPI';
 import {
   createMessage,
   type CreateMessagePayload,
@@ -748,11 +748,8 @@ export async function queryReactions(
   return resp.json();
 }
 
-export async function getAppSettings(): Promise<any> {
-  const resp = await fetch('/api/app-settings/', {
-    credentials: 'same-origin',
-  });
-  return resp.json();
+export async function getAppSettings(): Promise<AppSettings> {
+  return chatAPI.getAppSettings();
 }
 
 export async function getUserAgent(): Promise<string> {
