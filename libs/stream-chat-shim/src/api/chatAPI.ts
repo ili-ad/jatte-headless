@@ -38,6 +38,23 @@ export type MuteUserInput = { cid: string; user_id: number; muted_until?: string
 
 export type User = { id: number; username: string };
 
+export type WebPushKeys = { p256dh: string; auth: string };
+export type WebPushSubscription = {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: WebPushKeys;
+};
+export type RegisterSubscriptionsInput = {
+  subscriptions: WebPushSubscription[];
+  client_id?: string;
+  platform?: 'web' | 'ios' | 'android';
+};
+export type RegisterSubscriptionsResponse = {
+  subscriptions: WebPushSubscription[];
+  client_id?: string | null;
+  platform?: 'web' | 'ios' | 'android' | null;
+};
+
 export type Message = {
   id: number;
   body: string;
@@ -57,6 +74,50 @@ export interface RoomDraft {
 interface ErrorWithStatus extends Error {
   status?: number;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null;
+};
+
+const parseWebPushKeys = (value: unknown): WebPushKeys => {
+  if (!isRecord(value)) {
+    throw new Error('Invalid web push keys response');
+  }
+  const { p256dh, auth } = value;
+  if (typeof p256dh !== 'string' || typeof auth !== 'string') {
+    throw new Error('Invalid web push keys response');
+  }
+  return { p256dh, auth };
+};
+
+const parseWebPushSubscription = (value: unknown): WebPushSubscription => {
+  if (!isRecord(value)) {
+    throw new Error('Invalid web push subscription response');
+  }
+
+  const { endpoint } = value;
+  if (typeof endpoint !== 'string') {
+    throw new Error('Invalid web push subscription response');
+  }
+
+  const subscription: WebPushSubscription = {
+    endpoint,
+    keys: parseWebPushKeys(value.keys),
+  };
+
+  if ('expirationTime' in value) {
+    const expiration = value.expirationTime;
+    if (expiration === null) {
+      subscription.expirationTime = null;
+    } else if (typeof expiration === 'number') {
+      subscription.expirationTime = expiration;
+    } else {
+      throw new Error('Invalid web push subscription response');
+    }
+  }
+
+  return subscription;
+};
 
 export const getAppSettings = async (): Promise<AppSettings> => {
   const response = await fetch("/api/app-settings/", {
@@ -129,6 +190,70 @@ export const setUserAgent = async (
   }
 
   return { user_agent: data.user_agent };
+};
+
+export const registerSubscriptions = async (
+  body: RegisterSubscriptionsInput,
+): Promise<RegisterSubscriptionsResponse> => {
+  const response = await fetch('/api/register-subscriptions/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to register subscriptions (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as unknown;
+  if (!isRecord(data)) {
+    throw new Error('Invalid register subscriptions response');
+  }
+
+  const { subscriptions: rawSubscriptions } = data;
+  if (!Array.isArray(rawSubscriptions)) {
+    throw new Error('Invalid register subscriptions response');
+  }
+
+  const subscriptions = rawSubscriptions.map((item) =>
+    parseWebPushSubscription(item),
+  );
+
+  let clientId: string | null | undefined;
+  if ('client_id' in data) {
+    const rawClientId = data.client_id;
+    if (typeof rawClientId === 'string') {
+      clientId = rawClientId;
+    } else if (rawClientId === null) {
+      clientId = null;
+    } else {
+      throw new Error('Invalid register subscriptions response');
+    }
+  }
+
+  let platform: RegisterSubscriptionsResponse['platform'];
+  if ('platform' in data) {
+    const rawPlatform = data.platform;
+    if (rawPlatform === 'web' || rawPlatform === 'ios' || rawPlatform === 'android') {
+      platform = rawPlatform;
+    } else if (rawPlatform === null) {
+      platform = null;
+    } else {
+      throw new Error('Invalid register subscriptions response');
+    }
+  }
+
+  return {
+    subscriptions,
+    ...(clientId !== undefined ? { client_id: clientId } : {}),
+    ...(platform !== undefined ? { platform } : {}),
+  };
 };
 
 export const listUsers = async (): Promise<User[]> => {
@@ -366,6 +491,7 @@ export const chatAPI = {
   createReminder,
   deleteMessage,
   muteUser,
+  registerSubscriptions,
   endSession,
   getMessage,
   getAppSettings,
