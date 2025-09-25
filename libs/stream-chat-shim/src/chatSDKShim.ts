@@ -7,6 +7,7 @@ import {
   type CreateReminderInput,
   type Message as APIMessage,
   type MuteUserInput,
+  type UnmuteUserResponse,
   type RegisterSubscriptionsInput,
   type WebPushSubscription,
   type RoomDraft,
@@ -914,11 +915,17 @@ export async function muteUser(
   });
 }
 
-export async function unmuteUser(username: string): Promise<void> {
-  await fetch(`/api/unmute/${encodeURIComponent(username)}/`, {
-    method: 'POST',
-    credentials: 'same-origin',
-  });
+export async function unmuteUser(
+  userId: string | number,
+): Promise<UnmuteUserResponse> {
+  const numericId =
+    typeof userId === 'number' ? userId : Number.parseInt(String(userId), 10);
+
+  if (!Number.isInteger(numericId)) {
+    throw new Error('unmuteUser requires a numeric user id');
+  }
+
+  return chatAPI.unmuteUser({ target_user_id: numericId });
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>

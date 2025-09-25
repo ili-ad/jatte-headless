@@ -656,26 +656,35 @@ paths:
                 $ref: '#/components/schemas/Mute'
       tags:
       - api
-  /api/unmute/{target_username}/:
-    parameters:
-      - name: target_username
-        in: path
-        required: true
-        schema:
-          type: string
+  /api/user-mutes/unmute/:
     post:
+      description: Unmute a previously muted user (global).
       operationId: unmuteUser
-      description: Remove mute record for the given user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_user_id
+              properties:
+                target_user_id:
+                  type: integer
       responses:
         '200':
-          description: ok
+          description: Unmuted
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
+                  target_user_id:
+                    type: integer
+                  muted:
+                    type: boolean
+                    enum:
+                      - false
       tags:
       - api
 components:

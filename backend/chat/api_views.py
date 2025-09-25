@@ -16,9 +16,23 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .mixins import RoomFromCIDMixin
-from .models import (Channel, Draft, Flag, Message, Notification, Pin, Poll,
-                     PollOption, Reaction, ReadState, Reminder, Room, RoomMemberMute,
-                     RoomMute, UserMute)
+from .models import (
+    Channel,
+    Draft,
+    Flag,
+    Message,
+    Notification,
+    Pin,
+    Poll,
+    PollOption,
+    Reaction,
+    ReadState,
+    Reminder,
+    Room,
+    RoomMemberMute,
+    RoomMute,
+    UserMute,
+)
 from .serializers import (
     DraftSerializer,
     FlagSerializer,
@@ -35,6 +49,7 @@ from .serializers import (
     RoomMemberMuteCreateSerializer,
     RoomMemberMuteSerializer,
     RoomSerializer,
+    UserMuteUnmuteSerializer,
 )
 
 
@@ -976,15 +991,20 @@ class MuteUserView(APIView):
 
 
 class UnmuteUserView(APIView):
-    """Remove mute record for the given user."""
+    """Remove a global mute for the given target user."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserMuteUnmuteSerializer
 
-    def post(self, request, target_username):
-        target = get_object_or_404(get_user_model(), username=target_username)
-        UserMute.objects.filter(user=request.user, target=target).delete()
-        return Response({"status": "ok"})
+    def post(self, request):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.save()
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class AttachmentUploadView(APIView):
