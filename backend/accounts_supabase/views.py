@@ -52,8 +52,8 @@ class UserAgentView(APIView):
         return Response({"status": "ok"})
 
     def get(self, request):
-        ua = request.session.get('user_agent')
-        return Response({"user_agent": ua})
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        return Response({"user_agent": user_agent})
 
 
 class UserSerializer(serializers.ModelSerializer):
