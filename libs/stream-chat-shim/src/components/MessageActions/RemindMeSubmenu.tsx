@@ -1,5 +1,6 @@
 import React from 'react';
 import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
+import type { CreateReminderInput } from '../../api/chatAPI';
 import {
   remindersScheduledOffsetsMs,
   remindersUpsertReminder,
@@ -27,9 +28,10 @@ export const RemindMeActionButton = ({
 
 export const RemindMeSubmenu = () => {
   const { t } = useTranslationContext();
-  const { client } = useChatContext();
+  const { client, channel } = useChatContext();
   const { message } = useMessageContext();
   const scheduledOffsetsMs = remindersScheduledOffsetsMs(client);
+  const cid = channel?.cid ?? (message.cid as string | undefined);
   return (
     <div
       aria-label={t('aria/Remind Me Options')}
@@ -41,11 +43,22 @@ export const RemindMeSubmenu = () => {
           className='str-chat__message-actions-list-item-button'
           key={`reminder-offset-option--${offsetMs}`}
           onClick={() => {
-            remindersUpsertReminder(
-              client.reminders,
-              message.id,
-              new Date(Date.now() + offsetMs).toISOString(),
-            );
+            if (!cid) return;
+            const remindAt = new Date(Date.now() + offsetMs).toISOString();
+            const rawMessageId =
+              typeof message.id === 'number'
+                ? message.id
+                : typeof message.id === 'string'
+                ? Number.parseInt(message.id, 10)
+                : undefined;
+            const reminderInput: CreateReminderInput = {
+              cid,
+              remind_at: remindAt,
+            };
+            if (typeof rawMessageId === 'number' && !Number.isNaN(rawMessageId)) {
+              reminderInput.message_id = rawMessageId;
+            }
+            remindersUpsertReminder(client.reminders, reminderInput);
           }}
         >
           {t('duration/Remind Me', { milliseconds: offsetMs })}

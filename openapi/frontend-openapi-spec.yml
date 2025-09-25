@@ -114,6 +114,30 @@ paths:
         '204':
           description: ''
       tags: [api]
+  /api/rooms/{cid}/reminders/:
+    post:
+      description: Create a reminder in a room.
+      operationId: createReminder
+      parameters:
+        - in: path
+          name: cid
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+      tags: [api]
   /messages/{messageId}/:
     parameters:
       - name: messageId
@@ -728,3 +752,38 @@ paths:
                 properties:
                   status:
                     type: string
+components:
+  schemas:
+    ReminderCreate:
+      type: object
+      properties:
+        remind_at:
+          type: string
+          format: date-time
+        message_id:
+          type: integer
+        note:
+          type: string
+      required: [remind_at]
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        remind_at:
+          type: string
+          format: date-time
+        message_id:
+          type: integer
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        created_by:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true

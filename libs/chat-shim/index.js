@@ -824,6 +824,33 @@ var ReminderManager = /** @class */ (function () {
             r.timer = undefined;
         }
     };
+    ReminderManager.prototype.createReminder = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var cid, body, resp, reminder, list;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        cid = params.cid, body = __assign({}, params);
+                        delete body.cid;
+                        return [4 /*yield*/, fetch("/api/rooms/".concat(encodeURIComponent(cid), "/reminders/"), {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(body),
+                            })];
+                    case 1:
+                        resp = _a.sent();
+                        return [4 /*yield*/, resp.json()];
+                    case 2:
+                        reminder = _a.sent();
+                        list = this.store.getLatestValue().reminders.slice();
+                        list.push({ reminder: reminder });
+                        this.store.dispatch({ reminders: list });
+                        this.initTimers();
+                        return [2 /*return*/, reminder];
+                }
+            });
+        });
+    };
     return ReminderManager;
 }());
 exports.ReminderManager = ReminderManager;

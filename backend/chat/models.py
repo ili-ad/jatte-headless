@@ -146,7 +146,21 @@ class RoomMute(models.Model):
 
 
 class Reminder(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    text = models.CharField(max_length=255)
+    room = models.ForeignKey(
+        Room, related_name="reminders", on_delete=models.CASCADE, null=True, blank=True
+    )
+    message = models.ForeignKey(
+        Message,
+        related_name="reminders",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_reminders",
+    )
+    note = models.CharField(max_length=255, blank=True, null=True)
     remind_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
