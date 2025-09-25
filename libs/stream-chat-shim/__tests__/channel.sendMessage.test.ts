@@ -12,6 +12,6 @@ describe('channelSendMessage', () => {
       '/api/rooms/messaging:123/messages/',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(res).toEqual(json);
+    expect(res).toEqual({ message: json });
   });
 });
