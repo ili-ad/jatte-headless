@@ -8,6 +8,7 @@ import {
   type Message as APIMessage,
   type MuteUserInput,
   type RoomDraft,
+  type User,
   type UserAgentInfo,
 } from './api/chatAPI';
 import {
@@ -623,10 +624,9 @@ export async function clientQueryChannels(
 
 export async function clientQueryUsers(
   _client?: unknown,
-): Promise<{ users: any[] }> {
-  const resp = await fetch("/api/users/", { credentials: "same-origin" });
-  const data = await resp.json();
-  return { users: data };
+): Promise<{ users: User[] }> {
+  const users = await chatAPI.listUsers();
+  return { users };
 }
 
 export async function clientRemindersCreateReminder(

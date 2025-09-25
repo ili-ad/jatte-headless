@@ -99,13 +99,13 @@
     "status": "ok"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "get",
+    "path": "/api/users/",
     "operationId": "listUsers",
     "stubName": "client.queryUsers",
     "ticketType": "api",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "get",
