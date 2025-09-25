@@ -2,6 +2,7 @@ import { noopStore } from 'chat-shim/noopStore';
 import type { StateStore } from 'chat-shim';
 import { stopTyping as stopTypingImpl } from 'chat-shim/typing';
 
+import { chatAPI } from './api/chatAPI';
 import {
   createMessage,
   type CreateMessagePayload,
@@ -258,10 +259,7 @@ export async function connectUser(
 }
 
 export async function disconnectUser(): Promise<void> {
-  await fetch("/api/session/", {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
+  await chatAPI.endSession();
 }
 
 export async function channelQuery(
