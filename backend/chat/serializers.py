@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import (Flag, Message, Notification, Pin, Poll, PollOption,
+from .models import (Draft, Flag, Message, Notification, Pin, Poll, PollOption,
                      Reaction, Reminder, Room)
 
 
@@ -28,6 +28,18 @@ class MessageSerializer(serializers.ModelSerializer):
             "updated_at",
             "deleted_at",
         ]
+
+
+class DraftSerializer(serializers.ModelSerializer):
+    body = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Draft
+        fields = ["id", "text", "body", "updated_at"]
+        read_only_fields = ["id", "text", "body", "updated_at"]
+
+    def get_body(self, obj: Draft) -> str:
+        return obj.text
 
 
 class RoomSerializer(serializers.ModelSerializer):

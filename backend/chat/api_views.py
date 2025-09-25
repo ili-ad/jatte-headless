@@ -20,6 +20,7 @@ from .models import (Channel, Draft, Flag, Message, Notification, Pin, Poll,
                      PollOption, Reaction, ReadState, Reminder, Room, RoomMute,
                      UserMute)
 from .serializers import (
+    DraftSerializer,
     FlagSerializer,
     MessageSerializer,
     NotificationSerializer,
@@ -277,8 +278,20 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def _user_has_access(self, request, room: Room) -> bool:
+        username = request.user.username
+        return (
+            room.agent_id == request.user.id
+            or room.client == username
+            or room.messages.filter(sent_by=username).exists()
+            or getattr(request.user, "is_staff", False)
+            or getattr(request.user, "is_superuser", False)
+        )
+
     def post(self, request, room_uuid):
         room = self.get_room(room_uuid)
+        if not self._user_has_access(request, room):
+            return Response(status=403)
         text = request.data.get("text", "")
         Draft.objects.update_or_create(
             user=request.user,
@@ -298,23 +311,34 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
 
     def get(self, request, room_uuid):
         room = self.get_room(room_uuid)
-        text = None
+        if not self._user_has_access(request, room):
+            return Response(status=403)
+        cached_text = None
         try:
             r = redis.Redis(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
                 decode_responses=True,
             )
-            text = r.get(f"draft:{request.user.username}:{room.uuid}")
+            cached_text = r.get(f"draft:{request.user.username}:{room.uuid}")
         except Exception:
             pass
-        if text is None:
-            draft = Draft.objects.filter(user=request.user, room=room).first()
-            text = draft.text if draft else ""
-        return Response({"text": text})
+        draft = Draft.objects.filter(user=request.user, room=room).first()
+        drafts = []
+        if draft:
+            draft_data = DraftSerializer(draft).data
+            if cached_text is not None:
+                draft_data["text"] = cached_text
+                draft_data["body"] = cached_text
+            drafts.append(draft_data)
+        elif cached_text is not None:
+            drafts.append({"text": cached_text, "body": cached_text})
+        return Response(drafts)
 
     def delete(self, request, room_uuid):
         room = self.get_room(room_uuid)
+        if not self._user_has_access(request, room):
+            return Response(status=403)
         Draft.objects.filter(user=request.user, room=room).delete()
         try:
             r = redis.Redis(

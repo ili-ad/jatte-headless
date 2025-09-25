@@ -28,6 +28,15 @@ export type Message = {
   sent_by: string;
 };
 
+export interface RoomDraft {
+  id?: number;
+  text?: string;
+  body?: string;
+  created_at?: string;
+  updated_at?: string;
+  [k: string]: unknown;
+}
+
 interface ErrorWithStatus extends Error {
   status?: number;
 }
@@ -96,6 +105,32 @@ export const getMessage = async ({
   return (await response.json()) as Message;
 };
 
+export const listRoomDrafts = async ({
+  room_uuid,
+}: {
+  room_uuid: string;
+}): Promise<RoomDraft[]> => {
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(room_uuid)}/draft/`,
+    {
+      method: 'GET',
+      credentials: 'same-origin',
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to fetch room drafts (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = await response.json().catch(() => []);
+  return Array.isArray(data) ? (data as RoomDraft[]) : [];
+};
+
 async function createReminder({ cid, ...body }: CreateReminderInput): Promise<Reminder> {
   const response = await fetch(
     `/api/rooms/${encodeURIComponent(cid)}/reminders/`,
@@ -141,4 +176,5 @@ export const chatAPI = {
   endSession,
   getMessage,
   getAppSettings,
+  listRoomDrafts,
 };
