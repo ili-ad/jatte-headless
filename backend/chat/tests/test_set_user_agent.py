@@ -9,21 +9,25 @@ class UserAgentAPITests(APITestCase):
 
     def test_set_and_get_user_agent(self):
         token = self.make_token()
-        post_url = reverse("core-user-agent")
-        res = self.client.post(post_url, {"user_agent": "ua1"}, HTTP_AUTHORIZATION=f"Bearer {token}")
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data["status"], "ok")
+        url = reverse("user-agent")
+        res = self.client.post(
+            url,
+            {"user_agent": "ua1"},
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["user_agent"], "ua1")
 
-        get_url = reverse("user-agent")
-        res = self.client.get(
-            get_url,
+        res = self.client.post(
+            url,
+            {},
             HTTP_AUTHORIZATION=f"Bearer {token}",
             HTTP_USER_AGENT="ua2",
         )
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 201)
         self.assertEqual(res.data["user_agent"], "ua2")
 
     def test_user_agent_requires_auth(self):
-        url = reverse("core-user-agent")
+        url = reverse("user-agent")
         res = self.client.post(url, {"user_agent": "ua"})
         self.assertEqual(res.status_code, 403)

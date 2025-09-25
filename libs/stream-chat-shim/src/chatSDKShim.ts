@@ -8,6 +8,7 @@ import {
   type Message as APIMessage,
   type MuteUserInput,
   type RoomDraft,
+  type UserAgentInfo,
 } from './api/chatAPI';
 import {
   createMessage,
@@ -845,14 +846,10 @@ export async function getUserAgent(): Promise<string> {
   return user_agent;
 }
 
-export async function setUserAgent(userAgent: string): Promise<{ status: string }> {
-  const resp = await fetch('/api/core-user-agent/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_agent: userAgent }),
-  });
-  return resp.json();
+export async function setUserAgent(userAgent: string): Promise<UserAgentInfo> {
+  return chatAPI.setUserAgent(
+    typeof userAgent === 'string' ? { user_agent: userAgent } : {},
+  );
 }
 
 export async function getDraft(roomUuid: string): Promise<RoomDraft> {

@@ -1,8 +1,8 @@
 # backend/accounts_supabase/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics, serializers
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import generics, serializers, status
 from django.contrib.auth import get_user_model
 from accounts_supabase.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
@@ -43,13 +43,36 @@ class ClientIDView(APIView):
         return Response({"client_id": uuid.uuid4().hex})
 
 
+class UserAgentSerializer(serializers.Serializer):
+    user_agent = serializers.CharField(required=False, allow_blank=True)
+
+
 class UserAgentView(APIView):
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def get_authenticators(self):
+        if self.request.method == "GET":
+            return []
+        return super().get_authenticators()
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return super().get_permissions()
+
     def post(self, request):
-        request.session['user_agent'] = request.data.get('user_agent', '')
-        return Response({"status": "ok"})
+        serializer = UserAgentSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        user_agent = serializer.validated_data.get(
+            "user_agent",
+            request.META.get("HTTP_USER_AGENT", ""),
+        )
+        if user_agent is None:
+            user_agent = request.META.get("HTTP_USER_AGENT", "")
+
+        request.session['user_agent'] = user_agent
+        return Response({"user_agent": user_agent}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
         user_agent = request.META.get("HTTP_USER_AGENT", "")
