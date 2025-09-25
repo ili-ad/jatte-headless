@@ -15,7 +15,7 @@ afterEach(() => {
 test('getDraft fetches saved draft and updates text', async () => {
   (global.fetch as any).mockResolvedValue({
     ok: true,
-    json: async () => ({ text: 'hello' }),
+    json: async () => [{ text: 'hello' }],
   });
   const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
