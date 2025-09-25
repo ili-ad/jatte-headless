@@ -6,6 +6,7 @@ import {
   type AppSettings,
   type CreateReminderInput,
   type Message as APIMessage,
+  type RoomDraft,
 } from './api/chatAPI';
 import {
   createMessage,
@@ -856,12 +857,19 @@ export async function setUserAgent(userAgent: string): Promise<{ status: string 
   return resp.json();
 }
 
-export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
-  const resp = await fetch(
-    `/api/rooms/${encodeURIComponent(roomUuid)}/draft/`,
-    { credentials: 'same-origin' },
-  );
-  return resp.json();
+export async function getDraft(roomUuid: string): Promise<RoomDraft> {
+  const drafts = await chatAPI.listRoomDrafts({ room_uuid: roomUuid });
+  const firstDraft = drafts[0];
+  if (firstDraft) {
+    const text =
+      typeof firstDraft.text === 'string'
+        ? firstDraft.text
+        : typeof firstDraft.body === 'string'
+          ? (firstDraft.body as string) ?? ''
+          : '';
+    return { ...firstDraft, text, body: firstDraft.body ?? text };
+  }
+  return { text: '' };
 }
 
 
