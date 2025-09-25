@@ -7,7 +7,11 @@ import type { ChannelOrUserResponse } from "../utils";
 import { isChannel } from "../utils";
 
 import { useChatContext } from "../../../context/ChatContext";
-import { clientChannel, clientQueryChannels } from "../../../chatSDKShim";
+import {
+  clientChannel,
+  clientQueryChannels,
+  clientQueryUsers,
+} from "../../../chatSDKShim";
 
 import type {
   Channel,
@@ -220,7 +224,16 @@ export const useChannelSearch = ({
         }
 
         if (searchForUsers) {
-          promises.push(client.queryUsers());
+          promises.push(
+            clientQueryUsers(client).then(({ users }) => ({
+              users: users.map((user) => ({
+                ...user,
+                id: String(user.id),
+                name: user.username,
+                type: channelType,
+              })),
+            })),
+          );
         }
 
         if (promises.length) {
@@ -228,6 +241,10 @@ export const useChannelSearch = ({
 
           const resolved = await Promise.all(promises);
 
+          const currentUserId =
+            client.user?.id === undefined || client.user?.id === null
+              ? undefined
+              : String(client.user.id);
           if (searchForChannels && searchForUsers) {
             const [channels, { users }] = resolved as [
               Channel[],
@@ -235,14 +252,20 @@ export const useChannelSearch = ({
             ];
             results = [
               ...channels,
-              ...users.filter((u) => u.id !== client.user?.id),
+              ...users.filter((user) =>
+                currentUserId ? user.id !== currentUserId : true,
+              ),
             ];
           } else if (searchForChannels) {
             const [channels] = resolved as [Channel[]];
             results = [...channels];
           } else if (searchForUsers) {
             const [{ users }] = resolved as [UsersAPIResponse];
-            results = [...users.filter((u) => u.id !== client.user?.id)];
+            results = [
+              ...users.filter((user) =>
+                currentUserId ? user.id !== currentUserId : true,
+              ),
+            ];
           }
         }
       } catch (error) {

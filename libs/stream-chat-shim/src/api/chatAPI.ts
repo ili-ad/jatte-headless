@@ -36,6 +36,8 @@ export type Mute = {
 
 export type MuteUserInput = { cid: string; user_id: number; muted_until?: string };
 
+export type User = { id: number; username: string };
+
 export type Message = {
   id: number;
   body: string;
@@ -127,6 +129,42 @@ export const setUserAgent = async (
   }
 
   return { user_agent: data.user_agent };
+};
+
+export const listUsers = async (): Promise<User[]> => {
+  const response = await fetch("/api/users/", {
+    method: "GET",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Failed to fetch users (status ${response.status})`);
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as unknown;
+
+  if (!Array.isArray(data)) {
+    throw new Error("Invalid users response");
+  }
+
+  return data.map((item) => {
+    if (!item || typeof item !== "object") {
+      throw new Error("Invalid users response item");
+    }
+
+    const candidate = item as Record<string, unknown>;
+    if (
+      typeof candidate.id !== "number" ||
+      typeof candidate.username !== "string"
+    ) {
+      throw new Error("Invalid users response item");
+    }
+
+    return { id: candidate.id, username: candidate.username };
+  });
 };
 
 async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<void> {
@@ -333,6 +371,7 @@ export const chatAPI = {
   getAppSettings,
   muteStatus,
   listRoomDrafts,
+  listUsers,
   listUserAgents,
   setUserAgent,
 };
