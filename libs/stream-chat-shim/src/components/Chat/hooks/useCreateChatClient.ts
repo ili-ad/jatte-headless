@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-
 import { StreamChat } from 'chat-shim';
+
+import { chatAPI } from '../../../api/chatAPI';
 
 import type {
   OwnUserResponse,
@@ -46,9 +47,18 @@ export const useCreateChatClient = ({
       didUserConnectInterrupt = true;
       setChatClient(null);
       connectionPromise
-        .then(() => client.disconnectUser())
+        .then(async () => {
+          client.disconnectUser();
+          await chatAPI.endSession();
+        })
         .then(() => {
           console.log(`Connection for user "${cachedUserData.id}" has been closed`);
+        })
+        .catch((error) => {
+          console.error(
+            `Failed to disconnect session for user "${cachedUserData.id}"`,
+            error,
+          );
         });
     };
   }, [apiKey, cachedUserData, cachedOptions, tokenOrProvider]);
