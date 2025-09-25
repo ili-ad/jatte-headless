@@ -1,11 +1,16 @@
+from rest_framework import permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.conf import settings
 from jwt import PyJWKClient
 import jwt
+
+from accounts_supabase.authentication import DevTokenOrJWTAuthentication
+
+from .serializers import RegisterSubscriptionsSerializer
 
 @api_view(["GET"])
 def ws_auth(request):
@@ -110,34 +115,14 @@ def messages(_request, cid):
 
 
 @api_view(["POST"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def register_subscriptions(request):
     """Register web push subscriptions and echo them back."""
-    auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Bearer "):
-        return Response(status=403)
-    token = auth.split()[1]
-    try:
-        jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-            leeway=30,
-        )
-    except jwt.PyJWTError:
-        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
-        try:
-            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-            jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256"],
-                options={"verify_aud": False},
-            )
-        except jwt.PyJWTError:
-            return Response(status=403)
-
-    return Response({"subscriptions": request.data})
+    serializer = RegisterSubscriptionsSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.save(user=request.user)
+    return Response(data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])

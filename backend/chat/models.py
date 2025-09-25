@@ -183,3 +183,36 @@ class Reminder(models.Model):
     note = models.CharField(max_length=255, blank=True, null=True)
     remind_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class WebPushSubscription(models.Model):
+    """Stored Web Push subscription tied to a specific user."""
+
+    PLATFORM_WEB = "web"
+    PLATFORM_IOS = "ios"
+    PLATFORM_ANDROID = "android"
+
+    PLATFORM_CHOICES = (
+        (PLATFORM_WEB, "Web"),
+        (PLATFORM_IOS, "iOS"),
+        (PLATFORM_ANDROID, "Android"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="web_push_subscriptions",
+        on_delete=models.CASCADE,
+    )
+    endpoint = models.TextField()
+    expiration_time = models.FloatField(null=True, blank=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    client_id = models.CharField(max_length=255, null=True, blank=True)
+    platform = models.CharField(
+        max_length=20, choices=PLATFORM_CHOICES, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "endpoint")

@@ -15,6 +15,7 @@ from .models import (
     Reminder,
     Room,
     RoomMemberMute,
+    WebPushSubscription,
 )
 
 
@@ -198,6 +199,91 @@ class ReminderCreateSerializer(serializers.Serializer):
             remind_at=validated_data["remind_at"],
         )
         return reminder
+
+
+class WebPushKeysSerializer(serializers.Serializer):
+    p256dh = serializers.CharField()
+    auth = serializers.CharField()
+
+
+class WebPushSubscriptionInputSerializer(serializers.Serializer):
+    endpoint = serializers.CharField()
+    expirationTime = serializers.FloatField(required=False, allow_null=True)
+    keys = WebPushKeysSerializer()
+
+
+class RegisterSubscriptionsSerializer(serializers.Serializer):
+    subscriptions = WebPushSubscriptionInputSerializer(many=True)
+    client_id = serializers.CharField(required=False)
+    platform = serializers.ChoiceField(
+        choices=WebPushSubscription.PLATFORM_CHOICES,
+        required=False,
+        allow_null=True,
+    )
+
+    def save(self, *, user):
+        if not hasattr(self, "validated_data"):
+            raise AssertionError("You must call `.is_valid()` before calling `.save()`")
+
+        validated = self.validated_data
+        client_id_provided = "client_id" in validated
+        platform_provided = "platform" in validated
+        client_id = validated.get("client_id") if client_id_provided else None
+        platform = validated.get("platform") if platform_provided else None
+
+        saved_subscriptions: list[WebPushSubscription] = []
+
+        for subscription in validated["subscriptions"]:
+            keys = subscription["keys"]
+            defaults = {
+                "expiration_time": subscription.get("expirationTime"),
+                "p256dh": keys["p256dh"],
+                "auth": keys["auth"],
+            }
+            if client_id_provided:
+                defaults["client_id"] = client_id
+            if platform_provided:
+                defaults["platform"] = platform
+
+            stored_subscription, _ = WebPushSubscription.objects.update_or_create(
+                user=user,
+                endpoint=subscription["endpoint"],
+                defaults=defaults,
+            )
+            saved_subscriptions.append(stored_subscription)
+
+        response_payload: dict[str, object] = {"subscriptions": saved_subscriptions}
+        if client_id_provided:
+            response_payload["client_id"] = client_id
+        if platform_provided:
+            response_payload["platform"] = platform
+
+        response_serializer = RegisterSubscriptionsResponseSerializer(response_payload)
+        return response_serializer.data
+
+
+class StoredWebPushSubscriptionSerializer(serializers.ModelSerializer):
+    expirationTime = serializers.FloatField(
+        source="expiration_time", allow_null=True, required=False
+    )
+    keys = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WebPushSubscription
+        fields = ("endpoint", "expirationTime", "keys")
+
+    def get_keys(self, obj: WebPushSubscription) -> dict[str, str]:
+        return {"p256dh": obj.p256dh, "auth": obj.auth}
+
+
+class RegisterSubscriptionsResponseSerializer(serializers.Serializer):
+    subscriptions = StoredWebPushSubscriptionSerializer(many=True, read_only=True)
+    client_id = serializers.CharField(required=False, allow_null=True)
+    platform = serializers.ChoiceField(
+        choices=WebPushSubscription.PLATFORM_CHOICES,
+        required=False,
+        allow_null=True,
+    )
 
 
 class MuteStatusSerializer(serializers.Serializer):
