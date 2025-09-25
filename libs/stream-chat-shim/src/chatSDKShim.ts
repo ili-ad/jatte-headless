@@ -840,11 +840,8 @@ export async function getAppSettings(): Promise<AppSettings> {
 }
 
 export async function getUserAgent(): Promise<string> {
-  const resp = await fetch('/api/user-agent/', {
-    credentials: 'same-origin',
-  });
-  const data = await resp.json();
-  return data.user_agent;
+  const { user_agent } = await chatAPI.listUserAgents();
+  return user_agent;
 }
 
 export async function setUserAgent(userAgent: string): Promise<{ status: string }> {
