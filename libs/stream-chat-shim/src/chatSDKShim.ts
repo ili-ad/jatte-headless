@@ -1,8 +1,7 @@
-import { noopStore } from 'chat-shim/noopStore';
-import type { StateStore } from 'chat-shim';
-import { stopTyping as stopTypingImpl } from 'chat-shim/typing';
+import { StateStore } from '../../chat-shim';
+import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
-import { chatAPI } from './api/chatAPI';
+import { chatAPI, type CreateReminderInput } from './api/chatAPI';
 import {
   createMessage,
   type CreateMessagePayload,
@@ -544,39 +543,43 @@ export async function clientQueryUsers(
 export async function clientRemindersCreateReminder(
   client: {
     reminders?: {
-      createReminder?: (text: string, remind_at: string) => Promise<any>;
+      createReminder?: ((params: CreateReminderInput) => Promise<any>) & {
+        length?: number;
+      };
     };
   },
-  text: string,
-  remind_at: string,
+  params: CreateReminderInput,
 ): Promise<any> {
-  if (client.reminders?.createReminder) {
-    return client.reminders.createReminder(text, remind_at);
+  const createReminder = client.reminders?.createReminder as any;
+  if (createReminder) {
+    if (typeof createReminder.length === 'number' && createReminder.length >= 2) {
+      const note = params.note ?? '';
+      return createReminder(note, params.remind_at);
+    }
+    return createReminder(params);
   }
-  const resp = await fetch("/api/reminders/", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, remind_at }),
-  });
-  return resp.json();
+  return chatAPI.createReminder(params);
 }
 
 export async function remindersCreateReminder(
-  reminders: { createReminder?: (text: string, remind_at: string) => Promise<any> } | undefined,
-  text: string,
-  remind_at: string,
+  reminders:
+    | {
+        createReminder?: ((params: CreateReminderInput) => Promise<any>) & {
+          length?: number;
+        };
+      }
+    | undefined,
+  params: CreateReminderInput,
 ): Promise<any> {
   if (reminders?.createReminder) {
-    return reminders.createReminder(text, remind_at);
+    const createReminder = reminders.createReminder as any;
+    if (typeof createReminder.length === 'number' && createReminder.length >= 2) {
+      const note = params.note ?? '';
+      return createReminder(note, params.remind_at);
+    }
+    return createReminder(params);
   }
-  const resp = await fetch('/api/reminders/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, remind_at }),
-  });
-  return resp.json();
+  return chatAPI.createReminder(params);
 }
 
 export async function clientRemindersDeleteReminder(
@@ -642,11 +645,7 @@ export async function clientThreadsReload(client: {
   return resp.json();
 }
 
-export function clientThreadsState(client: {
-  threads?: { state?: StateStore<any> };
-}): StateStore<any> {
-  return client.threads?.state ?? noopStore;
-}
+const fallbackThreadStateStore = new StateStore<any>({} as any);
 
 export async function deleteReaction(
   messageId: string,
@@ -783,10 +782,20 @@ export async function getDraft(roomUuid: string): Promise<{ text?: string }> {
 }
 
 
+const fallbackNotificationsStore = new StateStore<{ notifications: any[] }>({
+  notifications: [],
+});
+
+export function clientThreadsState(client: {
+  threads?: { state?: StateStore<any> };
+}): StateStore<any> {
+  return client.threads?.state ?? fallbackThreadStateStore;
+}
+
 export function notificationsStore(client: {
   notifications?: { store?: StateStore<{ notifications: any[] }> };
 }): StateStore<{ notifications: any[] }> {
-  return client.notifications?.store ?? (noopStore as StateStore<any>);
+  return client.notifications?.store ?? fallbackNotificationsStore;
 }
 
 export async function muteUser(username: string): Promise<void> {
@@ -883,25 +892,23 @@ export function remindersScheduledOffsetsMs(client?: {
 }
 
 export async function remindersUpsertReminder(
-  reminders: {
-    upsertReminder?: (
-      messageId: string,
-      remind_at: string,
-    ) => Promise<any>;
-  } | undefined,
-  messageId: string,
-  remind_at: string,
+  reminders:
+    | {
+        upsertReminder?: (
+          messageId: string,
+          remind_at: string,
+        ) => Promise<any>;
+      }
+    | undefined,
+  params: CreateReminderInput,
 ): Promise<any> {
   if (reminders?.upsertReminder) {
-    return reminders.upsertReminder(messageId, remind_at);
+    return reminders.upsertReminder(
+      String(params.message_id ?? ''),
+      params.remind_at,
+    );
   }
-  const resp = await fetch('/api/reminders/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messageId, remind_at }),
-  });
-  return resp.json();
+  return chatAPI.createReminder(params);
 }
 
 export async function search(
