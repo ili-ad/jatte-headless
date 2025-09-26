@@ -96,3 +96,60 @@ class ReminderAPITests(APITestCase):
         self.assertEqual(group_name, f"channel_{self.room.uuid}")
         self.assertEqual(event["payload"]["type"], "reminder.created")
 
+    @patch("chat.api_views.get_channel_layer")
+    def test_create_reminder_via_global_endpoint(self, mock_get_channel_layer):
+        channel_layer = Mock()
+        channel_layer.group_send = AsyncMock()
+        mock_get_channel_layer.return_value = channel_layer
+        token = self.make_token()
+        url = reverse("reminders")
+        payload = {
+            "cid": f"messaging:{self.room.uuid}",
+            "remind_at": "2025-01-04T00:00:00Z",
+            "message_id": self.message.id,
+            "note": "global",
+        }
+        res = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["note"], "global")
+        channel_layer.group_send.assert_awaited_once()
+        group_name, event = channel_layer.group_send.await_args.args
+        self.assertEqual(group_name, f"channel_{self.room.uuid}")
+        self.assertEqual(event["payload"]["type"], "reminder.created")
+
+    def test_create_reminder_requires_cid(self):
+        token = self.make_token()
+        url = reverse("reminders")
+        payload = {
+            "remind_at": "2025-01-05T00:00:00Z",
+        }
+        res = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("cid", res.data)
+
+    def test_create_reminder_requires_membership(self):
+        Room.objects.create(uuid="r2", client="c2")
+        token = self.make_token()
+        url = reverse("reminders")
+        payload = {
+            "cid": "messaging:r2",
+            "remind_at": "2025-01-06T00:00:00Z",
+        }
+        res = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(res.status_code, 403)
+

@@ -597,16 +597,13 @@ export const listRoomDrafts = async ({
   return Array.isArray(data) ? (data as RoomDraft[]) : [];
 };
 
-async function createReminder({ cid, ...body }: CreateReminderInput): Promise<Reminder> {
-  const response = await fetch(
-    `/api/rooms/${encodeURIComponent(cid)}/reminders/`,
-    {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
+async function createReminder(body: CreateReminderInput): Promise<Reminder> {
+  const response = await fetch("/api/reminders/", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
   if (!response.ok) {
     const error = new Error(
