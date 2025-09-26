@@ -1,6 +1,25 @@
+import { chatSDKShim } from '../chatSDKShim';
+
 export type DeleteMessageParams = {
   cid: string;
   message_id: number;
+};
+
+export type AddAnswerInput = {
+  poll_id: string;
+  option_id?: string | number;
+  text?: string;
+  extras?: Record<string, unknown>;
+};
+
+export type AddAnswer = {
+  id: string | number;
+  poll_id: string;
+  option_id?: string | number | null;
+  text?: string | null;
+  created_by: string | number;
+  created_at: string;
+  [k: string]: unknown;
 };
 
 export type UpdateMessageInput = {
@@ -73,6 +92,11 @@ export type Message = {
   created_at: string;
   sent_by: string;
 };
+
+// shim-only: no network; delegate to SDK shim
+export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
+  return chatSDKShim.addAnswer(input);
+}
 
 export interface RoomDraft {
   id?: number;
