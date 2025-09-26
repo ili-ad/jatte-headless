@@ -54,6 +54,42 @@ from .serializers import (
 )
 
 
+def _user_can_access_room(user, room) -> bool:
+    """Return whether ``user`` has access to the given ``room``."""
+
+    username = getattr(user, "username", "")
+    return any(
+        (
+            room.agent_id == getattr(user, "id", None),
+            room.client == username,
+            room.messages.filter(sent_by=username).exists(),
+            getattr(user, "is_staff", False),
+            getattr(user, "is_superuser", False),
+        )
+    )
+
+
+def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
+    """Notify channel subscribers that a reminder was created."""
+
+    try:
+        channel_layer = get_channel_layer()
+        cid_value = cid if ":" in cid else f"messaging:{room.uuid}"
+        async_to_sync(channel_layer.group_send)(
+            f"channel_{room.uuid}",
+            {
+                "type": "chat.message",
+                "payload": {
+                    "type": "reminder.created",
+                    "cid": cid_value,
+                    "reminder": reminder_data,
+                },
+            },
+        )
+    except Exception:
+        pass
+
+
 class RoomListCreateView(generics.ListCreateAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
@@ -911,7 +947,7 @@ class NotificationListView(APIView):
         return Response(serializer.data)
 
 
-class ReminderListCreateView(APIView):
+class ReminderListCreateView(RoomFromCIDMixin, APIView):
     """List or create reminders for the current user."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
@@ -922,6 +958,37 @@ class ReminderListCreateView(APIView):
         serializer = ReminderSerializer(reminders, many=True)
         return Response(serializer.data)
 
+    def post(self, request):
+        cid = request.data.get("cid")
+        if not cid:
+            return Response({"cid": ["This field is required."]}, status=400)
+        if not isinstance(cid, str):
+            return Response({"cid": ["A valid string is required."]}, status=400)
+        cid_value = cid.strip()
+        if not cid_value:
+            return Response({"cid": ["This field may not be blank."]}, status=400)
+
+        room = self.get_room(cid_value)
+        if not _user_can_access_room(request.user, room):
+            return Response(status=403)
+
+        payload = request.data.copy()
+        if hasattr(payload, "pop"):
+            payload.pop("cid", None)
+        else:
+            payload = {k: v for k, v in payload.items() if k != "cid"}
+
+        serializer = ReminderCreateSerializer(
+            data=payload, context={"room": room, "user": request.user}
+        )
+        serializer.is_valid(raise_exception=True)
+        reminder = serializer.save()
+        reminder_data = ReminderSerializer(reminder).data
+
+        _broadcast_reminder_created(room, cid_value, reminder_data)
+
+        return Response(reminder_data, status=201)
+
 
 class RoomReminderCreateView(RoomFromCIDMixin, APIView):
     """Create a reminder scoped to a room."""
@@ -931,15 +998,7 @@ class RoomReminderCreateView(RoomFromCIDMixin, APIView):
 
     def post(self, request, cid: str):
         room = self.get_room(cid)
-        username = request.user.username
-        is_member = (
-            room.agent_id == request.user.id
-            or room.client == username
-            or room.messages.filter(sent_by=username).exists()
-            or getattr(request.user, "is_staff", False)
-            or getattr(request.user, "is_superuser", False)
-        )
-        if not is_member:
+        if not _user_can_access_room(request.user, room):
             return Response(status=403)
         serializer = ReminderCreateSerializer(
             data=request.data, context={"room": room, "user": request.user}
@@ -948,22 +1007,7 @@ class RoomReminderCreateView(RoomFromCIDMixin, APIView):
         reminder = serializer.save()
         reminder_data = ReminderSerializer(reminder).data
 
-        try:
-            channel_layer = get_channel_layer()
-            cid_value = f"messaging:{room.uuid}" if ":" not in cid else cid
-            async_to_sync(channel_layer.group_send)(
-                f"channel_{room.uuid}",
-                {
-                    "type": "chat.message",
-                    "payload": {
-                        "type": "reminder.created",
-                        "cid": cid_value,
-                        "reminder": reminder_data,
-                    },
-                },
-            )
-        except Exception:
-            pass
+        _broadcast_reminder_created(room, cid, reminder_data)
 
         return Response(reminder_data, status=201)
 
