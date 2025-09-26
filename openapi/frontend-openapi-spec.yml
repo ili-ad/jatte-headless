@@ -528,8 +528,9 @@ paths:
                 $ref: '#/components/schemas/Mute'
   /user-mutes/unmute/:
     post:
+      description: Unmute a previously muted user (global).
       operationId: unmuteUser
-      tags: [mutes]
+      tags: [api]
       requestBody:
         required: true
         content:
