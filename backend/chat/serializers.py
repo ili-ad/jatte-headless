@@ -46,6 +46,18 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
 
+class MessageUpdateSerializer(serializers.ModelSerializer):
+    """Serializer used for message updates via the room-scoped endpoint."""
+
+    text = serializers.CharField(source="body", allow_blank=True, write_only=True)
+
+    class Meta:
+        model = Message
+        fields = ["id", "text", "body", "sent_by", "created_at"]
+        read_only_fields = ["id", "body", "sent_by", "created_at"]
+
+
+
 class DraftSerializer(serializers.ModelSerializer):
     body = serializers.SerializerMethodField()
 
