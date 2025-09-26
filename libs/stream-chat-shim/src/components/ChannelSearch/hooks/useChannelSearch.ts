@@ -8,6 +8,7 @@ import { isChannel } from "../utils";
 
 import { useChatContext } from "../../../context/ChatContext";
 import {
+  channelWatch,
   clientChannel,
   clientQueryChannels,
   clientQueryUsers,
@@ -187,9 +188,11 @@ export const useChannelSearch = ({
         const newChannel = clientChannel(
           client,
           result.type,
-          result.id,
-        ) as Channel;
-        await /* TODO backend-wire-up: channel.watch */ Promise.resolve();
+          undefined,
+          { members: [client.userID, result.id] },
+        ) as Channel | undefined;
+        if (!newChannel) return;
+        await channelWatch(newChannel);
 
         setActiveChannel(newChannel);
         selectedChannel = newChannel;

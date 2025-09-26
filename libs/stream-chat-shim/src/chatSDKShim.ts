@@ -1211,27 +1211,38 @@ export async function channelStateLoadMessageIntoState(
   return loadMessageIntoChannelState(channel, apiMessage);
 }
 
+type ChannelWatchable = ChannelWithLocalState & {
+  watch?: (options?: ChannelWatchOptions) => Promise<ChannelWatchResult>;
+  initialized?: boolean;
+};
+
+export type ChannelWatchOptions = ShimChannelQueryOptions & {
+  watchers?: { limit?: number; offset?: number };
+  presence?: boolean;
+  state?: Record<string, unknown>;
+};
+
+export type ChannelWatchResult =
+  | ChannelQueryResult
+  | { [key: string]: unknown }
+  | void;
+
 export async function channelWatch(
-  channel: { cid: string },
-  options?: Record<string, any>,
-): Promise<{ messages: any[] }> {
-  const searchParams = new URLSearchParams();
-  if (options) {
-    for (const [key, value] of Object.entries(options)) {
-      if (value !== undefined && value !== null) {
-        searchParams.set(key, String(value));
-      }
-    }
+  channel: ChannelWatchable,
+  options?: ChannelWatchOptions,
+): Promise<ChannelWatchResult> {
+  if (typeof channel.watch === "function") {
+    return channel.watch(options);
   }
-  const query = searchParams.toString();
-  const resp = await fetch(
-    `/api/rooms/${encodeURIComponent(channel.cid)}/messages/${
-      query ? `?${query}` : ""
-    }`,
-    { credentials: "same-origin" },
-  );
-  const data = await resp.json();
-  return { messages: data };
+
+  if (!channel.cid) {
+    channel.initialized = true;
+    return { messages: [] };
+  }
+
+  const result = await channelQuery(channel, options);
+  channel.initialized = true;
+  return result;
 }
 
 export function clientChannel(
