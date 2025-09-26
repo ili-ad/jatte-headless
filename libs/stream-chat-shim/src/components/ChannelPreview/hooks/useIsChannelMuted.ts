@@ -98,15 +98,15 @@ export const useIsChannelMuted = (channel: Channel): MuteStatus => {
       void fetchStatus();
     };
 
-    const subscription = client.on?.('notification.mutes_updated', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'notification.mutes_updated',
+      handleEvent,
+    );
 
     return () => {
       isMounted = false;
-      if (subscription?.unsubscribe) {
-        subscription.unsubscribe();
-      } else if (typeof client?.off === 'function') {
-        client.off('notification.mutes_updated', handleEvent);
-      }
+      subscription.unsubscribe();
     };
   }, [channel, client]);
 

@@ -357,7 +357,7 @@
     "stubName": "client.on",
     "ticketType": "shim",
     "todoCount": 25,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

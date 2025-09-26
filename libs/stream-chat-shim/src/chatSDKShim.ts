@@ -402,6 +402,59 @@ export type ChannelUnknownEvent = ChannelEventBase<string>;
 export type ChannelEventHandler<T extends ChannelKnownEvent> = (
   event: KnownChannelEventMap[T],
 ) => void;
+
+type ClientSpecificEventMap = {
+  all: ChannelUnknownEvent;
+  'connection.recovered': ChannelEventBase<'connection.recovered'> & { online?: boolean };
+  'notification.added_to_channel': ChannelEventBase<'notification.added_to_channel'> &
+    NotificationEventFields;
+  'notification.message_new': ChannelEventBase<'notification.message_new'> &
+    NotificationEventFields;
+  'notification.removed_from_channel': ChannelEventBase<'notification.removed_from_channel'> &
+    NotificationEventFields;
+  'notification.mutes_updated': { type: 'notification.mutes_updated'; me?: Record<string, unknown> } &
+    Record<string, unknown>;
+  'notification.channel_mutes_updated': {
+    type: 'notification.channel_mutes_updated';
+    [key: string]: unknown;
+  };
+  'user.updated': ChannelEventBase<'user.updated'> & { user?: ChannelUserLike | null };
+  'user.presence.changed': ChannelEventBase<'user.presence.changed'> & {
+    user?: ChannelUserLike | null;
+  };
+  'poll.vote_casted': {
+    type: 'poll.vote_casted';
+    poll_vote?: Record<string, unknown> | null;
+    [key: string]: unknown;
+  };
+  'poll.vote_removed': {
+    type: 'poll.vote_removed';
+    poll_vote?: Record<string, unknown> | null;
+    [key: string]: unknown;
+  };
+  'poll.vote_changed': {
+    type: 'poll.vote_changed';
+    poll_vote?: Record<string, unknown> | null;
+    [key: string]: unknown;
+  };
+};
+
+export type ClientKnownEventMap = KnownChannelEventMap & ClientSpecificEventMap;
+export type ClientKnownEvent = keyof ClientKnownEventMap;
+export type ClientEventHandler<T extends ClientKnownEvent> = (
+  event: ClientKnownEventMap[T],
+) => void;
+
+const clientOnTyped = <TEvent extends ClientKnownEvent>(
+  client: EventTargetLike | undefined,
+  eventType: TEvent,
+  handler: ClientEventHandler<TEvent>,
+): ChannelEventSubscription =>
+  clientOn(client, eventType, handler as (...args: any[]) => void);
+
+export const client = {
+  on: clientOnTyped,
+};
 export type CastVoteParams = {
   poll: PollLike;
   optionId: string;
@@ -685,6 +738,7 @@ export const chatSDKShim = {
     return castVoteInternal(params);
   },
   channelCountUnread,
+  client,
 };
 
 export const chatSDK = {
@@ -991,7 +1045,11 @@ export function channelOn(
   eventType: string,
   handler: (event: ChannelUnknownEvent) => void,
 ): ChannelEventSubscription {
-  return createSubscription(channel, eventType, handler as (...args: any[]) => void);
+  return createSubscription(
+    channel as unknown as EventTargetLike | undefined,
+    eventType,
+    handler as (...args: any[]) => void,
+  );
 }
 
 type ChannelPinTarget = string | ChannelMessageLike;
@@ -1242,11 +1300,15 @@ export function on(
   handler: (...args: any[]) => void,
 ): ChannelEventSubscription;
 export function on(
-  target: EventTargetLike | undefined,
+  target: Channel | EventTargetLike | undefined,
   eventType: string,
   handler: (...args: any[]) => void,
 ): ChannelEventSubscription {
-  return createSubscription(target, eventType, handler);
+  return createSubscription(
+    target as unknown as EventTargetLike | undefined,
+    eventType,
+    handler,
+  );
 }
 
 export function onPollVoteCasted(

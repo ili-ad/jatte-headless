@@ -4,7 +4,7 @@ import uniqBy from 'lodash.uniqby';
 import { moveChannelUp } from '../utils';
 
 import { useChatContext } from '../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../client';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -47,10 +47,10 @@ export const useMessageNewListener = (
       }
     };
 
-    clientOn(client, 'message.new', handleEvent);
+    const subscription = chatAPI.client.on(client, 'message.new', handleEvent);
 
     return () => {
-      clientOff(client, 'message.new', handleEvent);
+      subscription.unsubscribe();
     };
   }, [
     allowNewMessagesFromUnfilteredChannels,

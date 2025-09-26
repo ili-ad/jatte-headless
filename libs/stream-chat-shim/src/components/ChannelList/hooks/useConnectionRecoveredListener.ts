@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../client';
+import { chatAPI } from '../../../api/chatAPI';
 
 export const useConnectionRecoveredListener = (forceUpdate?: () => void) => {
   const { client } = useChatContext('useConnectionRecoveredListener');
@@ -13,10 +13,14 @@ export const useConnectionRecoveredListener = (forceUpdate?: () => void) => {
       }
     };
 
-    clientOn(client, 'connection.recovered', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'connection.recovered',
+      handleEvent,
+    );
 
     return () => {
-      clientOff(client, 'connection.recovered', handleEvent);
+      subscription.unsubscribe();
     };
   }, [client, forceUpdate]);
 };
