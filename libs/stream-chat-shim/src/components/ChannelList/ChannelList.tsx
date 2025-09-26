@@ -30,7 +30,7 @@ import {
   useChatContext,
   useComponentContext,
 } from "../../context";
-import { clientOff, clientOn } from "../../client";
+import { chatAPI } from "../../api/chatAPI";
 import { NullComponent } from "../UtilityComponents";
 import { clientQueryChannels } from "../../chatSDKShim";
 import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from "./utils";
@@ -343,12 +343,13 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       }
     };
 
-    clientOn(client, 'channel.deleted', handleEvent);
-    clientOn(client, 'channel.hidden', handleEvent);
+    const subscriptions = [
+      chatAPI.client.on(client, 'channel.deleted', handleEvent),
+      chatAPI.client.on(client, 'channel.hidden', handleEvent),
+    ];
 
     return () => {
-      clientOff(client, 'channel.deleted', handleEvent);
-      clientOff(client, 'channel.hidden', handleEvent);
+      subscriptions.forEach((subscription) => subscription.unsubscribe());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.cid]);

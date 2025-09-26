@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useChatContext } from '../../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../../client';
+import { chatAPI } from '../../../../api/chatAPI';
 
 import type { EventHandler, LocalMessage } from 'chat-shim';
 
@@ -20,10 +20,10 @@ export const useGiphyPreview = (separateGiphyPreview: boolean) => {
       }
     };
 
-    clientOn(client, 'message.new', handleEvent);
+    const subscription = chatAPI.client.on(client, 'message.new', handleEvent);
 
     return () => {
-      clientOff(client, 'message.new', handleEvent);
+      subscription.unsubscribe();
     };
   }, [client, separateGiphyPreview]);
 

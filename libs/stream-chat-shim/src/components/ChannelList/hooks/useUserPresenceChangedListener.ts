@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../client';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -28,10 +28,14 @@ export const useUserPresenceChangedListener = (
       });
     };
 
-    clientOn(client, 'user.presence.changed', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'user.presence.changed',
+      handleEvent,
+    );
 
     return () => {
-      clientOff(client, 'user.presence.changed', handleEvent);
+      subscription.unsubscribe();
     };
   }, [client, setChannels]);
 };
