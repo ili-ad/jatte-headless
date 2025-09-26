@@ -22,12 +22,14 @@ import {
   type AddAnswerInput,
   type AppSettings,
   type CreateReminderInput,
+  type LoadNextPageArgs,
   type Message as APIMessage,
   type MuteUserInput,
   type UnmuteUserResponse,
   type RegisterSubscriptionsInput,
   type WebPushSubscription,
   type RoomDraft,
+  type ThreadPage,
   type User,
   type UserAgentInfo,
   type ChannelUnpinResult,
@@ -1940,14 +1942,131 @@ export function clientThreadsDeactivate(client: {
   client.threads?.deactivate?.();
 }
 
-export async function clientThreadsLoadNextPage(client: {
-  threads?: { loadNextPage?: () => Promise<any> };
-}): Promise<any> {
-  if (client.threads?.loadNextPage) {
-    return client.threads.loadNextPage();
+type ThreadPaginationClient = {
+  threads?: {
+    loadNextPage?: (options?: unknown) => Promise<unknown>;
+  };
+};
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const parseThreadMessages = (value: unknown): APIMessage[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is APIMessage => {
+    if (!item || typeof item !== 'object') return false;
+    const candidate = item as Partial<APIMessage>;
+    return (
+      typeof candidate.id === 'number' &&
+      typeof candidate.body === 'string' &&
+      typeof candidate.sent_by === 'string' &&
+      typeof candidate.created_at === 'string'
+    );
+  });
+};
+
+const toOptionalString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+const toBooleanLike = (value: unknown, fallback: boolean): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value > 0 : fallback;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return fallback;
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+    if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
   }
-  const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
-  return resp.json();
+  return fallback;
+};
+
+const parseThreadPage = (value: unknown): ThreadPage => {
+  if (Array.isArray(value)) {
+    return { messages: parseThreadMessages(value), hasMore: false };
+  }
+
+  if (!value || typeof value !== 'object') {
+    return { messages: [], hasMore: false };
+  }
+
+  const record = value as Record<string, unknown>;
+  const messagesSource =
+    record.messages ??
+    record.data ??
+    record.results ??
+    record.threads ??
+    record.items ??
+    record.replies;
+  const messages = parseThreadMessages(messagesSource);
+
+  const nextCursor =
+    toOptionalString(record.nextCursor) ??
+    toOptionalString(record.next_cursor) ??
+    toOptionalString(record.next) ??
+    toOptionalString(record.cursor);
+
+  const hasMoreRaw =
+    record.hasMore ??
+    record.has_more ??
+    record.more ??
+    record.hasNext ??
+    record.has_next;
+
+  const page: ThreadPage = {
+    messages,
+    hasMore: toBooleanLike(hasMoreRaw, Boolean(nextCursor)),
+  };
+
+  if (nextCursor) {
+    page.nextCursor = nextCursor;
+  }
+
+  return page;
+};
+
+const mapLoadNextPageArgs = (
+  args?: LoadNextPageArgs,
+): Record<string, unknown> | undefined => {
+  if (!args) return undefined;
+
+  const payload: Record<string, unknown> = {};
+
+  if (typeof args.cid === 'string' && args.cid) {
+    payload.cid = args.cid;
+  }
+
+  if (typeof args.parentId === 'string' && args.parentId) {
+    payload.parentId = args.parentId;
+    payload.parent_id = args.parentId;
+  }
+
+  if (isFiniteNumber(args.limit)) {
+    payload.limit = args.limit;
+  }
+
+  if (typeof args.cursor === 'string' && args.cursor) {
+    payload.cursor = args.cursor;
+  }
+
+  return Object.keys(payload).length ? payload : undefined;
+};
+
+export async function clientThreadsLoadNextPage(
+  client: ThreadPaginationClient,
+  args?: LoadNextPageArgs,
+): Promise<ThreadPage> {
+  const loadNextPage = client.threads?.loadNextPage;
+  if (typeof loadNextPage !== 'function') {
+    return { messages: [], hasMore: false };
+  }
+
+  const payload = mapLoadNextPageArgs(args);
+  const result = await loadNextPage(payload);
+  return parseThreadPage(result);
 }
 
 export async function clientThreadsReload(client: {
