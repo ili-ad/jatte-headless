@@ -1,4 +1,7 @@
-import { chatSDKShim } from '../chatSDKShim';
+import {
+  chatSDKShim,
+  clientThreadsActivate as clientThreadsActivateShim,
+} from '../chatSDKShim';
 
 export type {
   ClientEventHandler,
@@ -115,9 +118,19 @@ export type ChannelCountUnreadParams = {
   lastRead?: Date;
 };
 
+export type ClientThreadsActivateInput = {
+  client: { threads?: { activate?: () => void } };
+};
+
 // shim-only: no network; delegate to SDK shim
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
   return chatSDKShim.addAnswer(input);
+}
+
+export function clientThreadsActivate({
+  client,
+}: ClientThreadsActivateInput): void {
+  clientThreadsActivateShim(client);
 }
 
 function channelCountUnread({
@@ -845,6 +858,7 @@ export const chatAPI = {
     on: chatSDKShim.client.on,
   },
   addAnswer,
+  clientThreadsActivate,
   createReminder,
   deleteMessage,
   updateMessage,
