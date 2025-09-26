@@ -93,9 +93,21 @@ export type Message = {
   sent_by: string;
 };
 
+export type ChannelCountUnreadParams = {
+  channel: { countUnread?: (lastRead?: Date) => number };
+  lastRead?: Date;
+};
+
 // shim-only: no network; delegate to SDK shim
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
   return chatSDKShim.addAnswer(input);
+}
+
+function channelCountUnread({
+  channel,
+  lastRead,
+}: ChannelCountUnreadParams): number {
+  return chatSDKShim.channelCountUnread(channel, lastRead);
 }
 
 export interface RoomDraft {
@@ -634,6 +646,9 @@ async function endSession(): Promise<void> {
 }
 
 export const chatAPI = {
+  channel: {
+    countUnread: channelCountUnread,
+  },
   createReminder,
   deleteMessage,
   updateMessage,

@@ -7,6 +7,7 @@ import { ChannelPreviewMessenger } from './ChannelPreviewMessenger';
 import { useIsChannelMuted } from './hooks/useIsChannelMuted';
 import { useChannelPreviewInfo } from './hooks/useChannelPreviewInfo';
 import { getLatestMessagePreview as defaultGetLatestMessagePreview } from './utils';
+import { chatAPI } from '../../api/chatAPI';
 import { useChatContext } from '../../context/ChatContext';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { useMessageDeliveryStatus } from './hooks/useMessageDeliveryStatus';
@@ -113,7 +114,7 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
     const handleEvent = (event: Event) => {
       if (channel.cid !== event.cid) return;
       if (event.user?.id !== client.user?.id) return;
-      setUnread(channel.countUnread());
+      setUnread(chatAPI.channel.countUnread({ channel }));
     };
     return () => {
     };
@@ -125,7 +126,7 @@ export const ChannelPreview = (props: ChannelPreviewProps) => {
         if (muted) {
           setUnread(0);
         } else {
-          setUnread(channel.countUnread());
+          setUnread(chatAPI.channel.countUnread({ channel }));
         }
       }, 400),
     [channel, muted],
