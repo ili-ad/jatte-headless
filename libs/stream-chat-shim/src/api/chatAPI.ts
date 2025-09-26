@@ -182,6 +182,23 @@ export const channelQuery = async ({
   return { messages, next };
 };
 
+type ChannelMembershipRecord = Record<string, unknown>;
+
+type ChannelStateStoreLike = {
+  dispatch?: (patch: Record<string, unknown>) => void;
+};
+
+type ChannelUnpinChannel = {
+  state?: Record<string, unknown> | null;
+  stateStore?: ChannelStateStoreLike | null;
+  getClient?: () => { user?: { id?: string | number | null } | null } | null;
+  unpin?: () => Promise<unknown>;
+};
+
+export type ChannelUnpinParams = { channel: ChannelUnpinChannel | undefined };
+
+export type ChannelUnpinResult = { pinned: false; at: string };
+
 export interface RoomDraft {
   id?: number;
   text?: string;
@@ -197,6 +214,101 @@ interface ErrorWithStatus extends Error {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
+};
+
+const normalizeUserId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const toUnpinnedMembership = (
+  membership: ChannelMembershipRecord | undefined,
+): ChannelMembershipRecord => {
+  const next: ChannelMembershipRecord = { ...(membership ?? {}) };
+
+  next.pinned = false;
+  next.pinned_at = null;
+
+  if ("pin_expires" in next) {
+    next.pin_expires = null;
+  }
+  if ("pinned_by" in next) {
+    next.pinned_by = null;
+  }
+
+  return next;
+};
+
+const applyChannelUnpinLocally = (channel: ChannelUnpinChannel): void => {
+  const state = channel.state;
+  if (!isRecord(state)) {
+    return;
+  }
+
+  const rawMembership = state.membership;
+  const nextMembership = toUnpinnedMembership(
+    isRecord(rawMembership) ? (rawMembership as ChannelMembershipRecord) : undefined,
+  );
+
+  (state as Record<string, unknown>).membership = nextMembership;
+
+  const patch: Record<string, unknown> = { membership: nextMembership };
+
+  const rawMembers = state.members;
+  if (isRecord(rawMembers)) {
+    const client = typeof channel.getClient === "function" ? channel.getClient() : undefined;
+    const ownUserId = normalizeUserId(client?.user?.id);
+
+    if (ownUserId) {
+      const rawMember = rawMembers[ownUserId];
+      if (isRecord(rawMember)) {
+        const nextMember = toUnpinnedMembership(rawMember as ChannelMembershipRecord);
+        (rawMembers as Record<string, unknown>)[ownUserId] = nextMember;
+        patch.members = { ...(rawMembers as Record<string, unknown>) };
+      }
+    }
+  }
+
+  const store = channel.stateStore;
+  if (store && typeof store.dispatch === "function") {
+    store.dispatch(patch);
+  }
+};
+
+const extractUnpinAt = (result: unknown, fallback: string): string => {
+  if (isRecord(result)) {
+    const at = result.at;
+    if (typeof at === "string") {
+      return at;
+    }
+    const pinnedAt = result.pinned_at;
+    if (typeof pinnedAt === "string") {
+      return pinnedAt;
+    }
+  }
+  return fallback;
+};
+
+const channelUnpin = async ({ channel }: ChannelUnpinParams): Promise<ChannelUnpinResult> => {
+  const fallbackAt = new Date().toISOString();
+
+  if (!channel) {
+    return { pinned: false as const, at: fallbackAt };
+  }
+
+  const result =
+    typeof channel.unpin === "function" ? await channel.unpin() : undefined;
+
+  applyChannelUnpinLocally(channel);
+
+  const at = extractUnpinAt(result, fallbackAt);
+
+  return { pinned: false as const, at };
 };
 
 const parseWebPushKeys = (value: unknown): WebPushKeys => {
@@ -721,6 +833,7 @@ export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
     query: channelQuery,
+    unpin: channelUnpin,
   },
   addAnswer,
   createReminder,
