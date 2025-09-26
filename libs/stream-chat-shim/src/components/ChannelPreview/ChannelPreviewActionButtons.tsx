@@ -31,7 +31,7 @@ export function ChannelPreviewActionButtons({
           if (membership.pinned_at) {
             channelUnpin(channel);
           } else {
-            /* TODO backend-wire-up: channel.pin */
+            void chatSDK.channel.pin(channel);
           }
         }}
         title={membership.pinned_at ? t('Unpin') : t('Pin')}
