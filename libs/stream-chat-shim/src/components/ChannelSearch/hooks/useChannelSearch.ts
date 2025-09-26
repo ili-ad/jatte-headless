@@ -9,7 +9,6 @@ import { isChannel } from "../utils";
 import { useChatContext } from "../../../context/ChatContext";
 import {
   channelWatch,
-  clientChannel,
   clientQueryChannels,
   clientQueryUsers,
 } from "../../../chatSDKShim";
@@ -185,11 +184,11 @@ export const useChannelSearch = ({
         setActiveChannel(result);
         selectedChannel = result;
       } else {
-        const newChannel = clientChannel(
-          client,
+        const newChannel = client.channel(
           result.type,
-          undefined,
-          { members: [client.userID, result.id] },
+          {
+            members: [client.userID, result.id],
+          },
         ) as Channel | undefined;
         if (!newChannel) return;
         await channelWatch(newChannel);

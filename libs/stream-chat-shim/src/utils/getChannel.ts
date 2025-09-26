@@ -4,11 +4,7 @@ import type {
   QueryChannelAPIResponse,
   StreamChat,
 } from 'chat-shim';
-import {
-  channelWatch,
-  clientChannel,
-  type ChannelWatchOptions,
-} from '../chatSDKShim';
+import { channelWatch, type ChannelWatchOptions } from '../chatSDKShim';
 
 /**
  * prevent from duplicate invocation of channel.watch()
@@ -52,7 +48,7 @@ export const getChannel = async ({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const extra = members && members.length ? { members } : undefined;
   const theChannel =
-    channel || (clientChannel(client, type!, id, extra) as Channel);
+    channel || (client.channel(type!, id, extra) as Channel);
 
   // need to keep as with call to channel.watch the id can be changed from undefined to an actual ID generated server-side
   const originalCid = theChannel?.id
