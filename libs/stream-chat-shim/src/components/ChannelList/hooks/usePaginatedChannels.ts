@@ -97,6 +97,8 @@ export const usePaginatedChannels = (
 
         const channelQueryResponse = await clientQueryChannels(
           client,
+          filters,
+          sort,
           newOptions,
         );
 

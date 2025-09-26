@@ -249,7 +249,12 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-        [customActiveChannelObject] = await clientQueryChannels(client);
+        [customActiveChannelObject] = await clientQueryChannels(
+          client,
+          filters || DEFAULT_FILTERS,
+          sort || DEFAULT_SORT,
+          options || DEFAULT_OPTIONS,
+        );
       }
 
       if (customActiveChannelObject) {
