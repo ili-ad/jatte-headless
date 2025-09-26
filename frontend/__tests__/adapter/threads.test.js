@@ -68,3 +68,24 @@ var originalFetch = global.fetch;
         }
     });
 }); });
+(0, vitest_1.test)('client.threads.deactivate clears active thread state', function () {
+    var client = new ChatClient_1.ChatClient('u1', 'jwt-test');
+    var channel = client.channel('messaging', 'room1');
+    client.stateStore._set({ channels: [channel] });
+    client.activeChannels[channel.cid] = channel;
+    channel.messageComposer.setThreadId('thread-1');
+    client.threads.state._set({
+        activeThread: { id: 'thread-1' },
+        activeThreadCid: channel.cid,
+        activeThreadId: 'thread-1',
+    });
+    var cleanup = vitest_1.vi.fn();
+    client.threadCleanupHandlers.add(cleanup);
+    client.threads.deactivate();
+    var snapshot = client.threads.state.getSnapshot();
+    (0, vitest_1.expect)(snapshot.activeThread).toBeNull();
+    (0, vitest_1.expect)(snapshot.activeThreadId).toBeNull();
+    (0, vitest_1.expect)(snapshot.activeThreadCid).toBeNull();
+    (0, vitest_1.expect)(channel.messageComposer.threadId).toBeUndefined();
+    (0, vitest_1.expect)(cleanup).toHaveBeenCalled();
+});
