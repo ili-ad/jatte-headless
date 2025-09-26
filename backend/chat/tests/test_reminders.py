@@ -94,7 +94,7 @@ class ReminderAPITests(APITestCase):
         channel_layer.group_send.assert_awaited_once()
         group_name, event = channel_layer.group_send.await_args.args
         self.assertEqual(group_name, f"channel_{self.room.uuid}")
-        self.assertEqual(event["payload"]["type"], "reminder.created")
+        self.assertEqual(event["payload"]["type"], "reminder.new")
 
     @patch("chat.api_views.get_channel_layer")
     def test_create_reminder_via_global_endpoint(self, mock_get_channel_layer):
@@ -120,7 +120,7 @@ class ReminderAPITests(APITestCase):
         channel_layer.group_send.assert_awaited_once()
         group_name, event = channel_layer.group_send.await_args.args
         self.assertEqual(group_name, f"channel_{self.room.uuid}")
-        self.assertEqual(event["payload"]["type"], "reminder.created")
+        self.assertEqual(event["payload"]["type"], "reminder.new")
 
     def test_create_reminder_requires_cid(self):
         token = self.make_token()
