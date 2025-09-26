@@ -12,7 +12,8 @@ import {
   useTranslationContext,
 } from '../../context';
 import { MESSAGE_ACTIONS } from '../Message/utils';
-import { chatAPI, type CreateReminderInput } from '../../api/chatAPI';
+import { type CreateReminderInput } from '../../api/chatAPI';
+import { clientRemindersCreateReminder } from '../../chatSDKShim';
 import type { MessageContextValue } from '../../context';
 
 type PropsDrilledToMessageActionsBox =
@@ -192,16 +193,7 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
               if (typeof rawMessageId === 'number' && !Number.isNaN(rawMessageId)) {
                 params.message_id = rawMessageId;
               }
-              const createReminder = client.reminders?.createReminder;
-              if (createReminder) {
-                if (typeof createReminder.length === 'number' && createReminder.length >= 2) {
-                  await createReminder(params.note ?? '', params.remind_at);
-                } else {
-                  await createReminder(params);
-                }
-              } else {
-                await chatAPI.createReminder(params);
-              }
+              await clientRemindersCreateReminder(client, params);
             }}
             role='option'
           >
