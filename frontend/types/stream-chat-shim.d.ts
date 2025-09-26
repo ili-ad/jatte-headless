@@ -32,6 +32,7 @@ declare module 'stream-chat' {
   export type Channel = {
     /** Stream channel id, e.g. "messaging:general" */
     cid: string;                 //  🆕  ← matches the runtime change
+    archive(options?: { reason?: string }): Promise<{ archived: true; at: string }>;
     watch(): Promise<Channel>;
     sendMessage(msg: { text: string }): Promise<void>;
     /** Attaches a listener and returns an object with `unsubscribe()` */
@@ -113,6 +114,7 @@ declare module 'stream-chat' {
     read: Record<string, any>;
     watchers: Record<string, any>;
     members: Record<string, any>;
+    membership: Record<string, any>;
     pinnedMessages: any[];
     typing: Record<string, any>;
     threads: Record<string, any[]>;

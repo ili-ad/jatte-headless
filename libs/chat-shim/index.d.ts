@@ -45,6 +45,7 @@ declare module 'stream-chat' {
     read: Record<string, any>;
     watchers: Record<string, any>;
     members: Record<string, any>;
+    membership: Record<string, any>;
     pinnedMessages: any[];
     typing: Record<string, any>;
     threads: Record<string, any[]>;
@@ -69,6 +70,7 @@ declare module 'stream-chat' {
     countUnread(): number;
     muteStatus(): { muted: boolean; muted_until: string | null };
     setMuteStatus(status: { muted: boolean; muted_until: string | null }): void;
+    archive(options?: { reason?: string }): Promise<{ archived: true; at: string }>;
     getClient(): LocalChatClient;
     getConfig(): { typing_events: boolean; read_events: boolean };
   }
