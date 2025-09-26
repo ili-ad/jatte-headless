@@ -1,5 +1,11 @@
 import { chatSDKShim } from '../chatSDKShim';
 
+export type {
+  ClientEventHandler,
+  ClientKnownEvent,
+  ClientKnownEventMap,
+} from '../chatSDKShim';
+
 export type DeleteMessageParams = {
   cid: string;
   message_id: number;
@@ -834,6 +840,9 @@ export const chatAPI = {
     countUnread: channelCountUnread,
     query: channelQuery,
     unpin: channelUnpin,
+  },
+  client: {
+    on: chatSDKShim.client.on,
   },
   addAnswer,
   createReminder,

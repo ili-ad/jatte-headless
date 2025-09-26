@@ -87,14 +87,14 @@ export const useChat = ({
       setMutes(event.me?.mutes || []);
     };
 
-    const subscription = client.on?.('notification.mutes_updated', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'notification.mutes_updated',
+      handleEvent,
+    );
 
     return () => {
-      if (subscription?.unsubscribe) {
-        subscription.unsubscribe();
-      } else if (typeof client?.off === 'function') {
-        client.off('notification.mutes_updated', handleEvent);
-      }
+      subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientMutes?.length]);

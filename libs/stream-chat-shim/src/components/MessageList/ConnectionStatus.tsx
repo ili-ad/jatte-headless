@@ -4,7 +4,7 @@ import type { Event } from 'chat-shim';
 
 import { CustomNotification } from './CustomNotification';
 import { useChatContext, useTranslationContext } from '../../context';
-import { clientOff, clientOn } from '../../client';
+import { chatAPI } from '../../api/chatAPI';
 
 const UnMemoizedConnectionStatus = () => {
   const { client } = useChatContext('ConnectionStatus');
@@ -19,10 +19,14 @@ const UnMemoizedConnectionStatus = () => {
       }
     };
 
-    clientOn(client, 'connection.changed', connectionChanged);
+    const subscription = chatAPI.client.on(
+      client,
+      'connection.changed',
+      connectionChanged,
+    );
 
     return () => {
-      clientOff(client, 'connection.changed', connectionChanged);
+      subscription.unsubscribe();
     };
   }, [client, online]);
 
