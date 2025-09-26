@@ -1,6 +1,5 @@
 import { clientThreadsState } from '../src/chatSDKShim';
 import { StateStore } from 'chat-shim';
-import { noopStore } from 'chat-shim/noopStore';
 
 describe('clientThreadsState', () => {
   it('returns client.threads.state when available', () => {
@@ -9,8 +8,14 @@ describe('clientThreadsState', () => {
     expect(clientThreadsState(client)).toBe(store);
   });
 
-  it('falls back to noopStore when not implemented', () => {
+  it('returns a StateStore when threads.state is missing', () => {
     const client = {} as any;
-    expect(clientThreadsState(client)).toBe(noopStore);
+    const store = clientThreadsState(client);
+    expect(store).toBeInstanceOf(StateStore);
+    expect(store.getLatestValue()).toMatchObject({
+      threads: [],
+      unseenThreadIds: [],
+      unreadThreadCount: 0,
+    });
   });
 });

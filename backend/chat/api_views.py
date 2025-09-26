@@ -12,6 +12,7 @@ from django.http import QueryDict
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -127,6 +128,8 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 
     def get_queryset(self):
         room = self.get_room()
+        if not _user_can_access_room(self.request.user, room):
+            raise PermissionDenied()
         qs = room.messages.order_by("-id")
         before = self.request.query_params.get("before")
         if before:

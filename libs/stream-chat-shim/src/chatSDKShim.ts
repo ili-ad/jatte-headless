@@ -2079,8 +2079,6 @@ export async function clientThreadsReload(client: {
   await client.threads.reload();
 }
 
-const fallbackThreadStateStore = new StateStore<any>({} as any);
-
 export async function deleteReaction(
   messageId: string,
   reactionId: string,
@@ -2217,10 +2215,59 @@ const fallbackNotificationsStore = new StateStore<{ notifications: any[] }>({
   notifications: [],
 });
 
+type ThreadManagerStateShape = {
+  threads: any[];
+  unseenThreadIds: string[];
+  unreadThreadCount: number;
+  pagination: {
+    isLoadingNext: boolean;
+    isLoadingPrev: boolean;
+    nextCursor?: string | null;
+  };
+};
+
+const createInitialThreadManagerState = (): ThreadManagerStateShape => ({
+  threads: [],
+  unseenThreadIds: [],
+  unreadThreadCount: 0,
+  pagination: { isLoadingNext: false, isLoadingPrev: false, nextCursor: null },
+});
+
+const fallbackThreadStateStore = new StateStore<ThreadManagerStateShape>(
+  createInitialThreadManagerState(),
+);
+
+const threadStateByClient = new WeakMap<
+  object,
+  StateStore<ThreadManagerStateShape>
+>();
+
 export function clientThreadsState(client: {
   threads?: { state?: StateStore<any> };
-}): StateStore<any> {
-  return client.threads?.state ?? fallbackThreadStateStore;
+}): StateStore<ThreadManagerStateShape> {
+  if (!client) {
+    return fallbackThreadStateStore;
+  }
+
+  const existing = client.threads?.state;
+  if (existing?.getLatestValue) {
+    return existing as StateStore<ThreadManagerStateShape>;
+  }
+
+  let store = threadStateByClient.get(client as object);
+  if (!store) {
+    store = new StateStore<ThreadManagerStateShape>(
+      createInitialThreadManagerState(),
+    );
+    threadStateByClient.set(client as object, store);
+  }
+
+  if (client.threads) {
+    (client.threads as { state?: StateStore<ThreadManagerStateShape> }).state =
+      store;
+  }
+
+  return store;
 }
 
 export function notificationsStore(client: {
