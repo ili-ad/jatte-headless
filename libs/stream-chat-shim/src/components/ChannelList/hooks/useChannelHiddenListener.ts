@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { Channel, Event } from 'chat-shim';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 export const useChannelHiddenListener = (
   setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,
@@ -29,8 +30,10 @@ export const useChannelHiddenListener = (
       }
     };
 
+    clientOn(client, 'channel.hidden', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.hidden', handleEvent);
     };
   }, [client, customHandler, setChannels]);
 };

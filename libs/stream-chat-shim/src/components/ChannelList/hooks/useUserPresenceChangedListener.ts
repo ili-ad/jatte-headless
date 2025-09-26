@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -27,8 +28,10 @@ export const useUserPresenceChangedListener = (
       });
     };
 
+    clientOn(client, 'user.presence.changed', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'user.presence.changed', handleEvent);
     };
   }, [client, setChannels]);
 };
