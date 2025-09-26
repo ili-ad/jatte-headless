@@ -512,10 +512,10 @@ export async function truncate(channel: { cid: string }): Promise<void> {
 }
 
 export function channelCountUnread(
-  channel: { countUnread: () => number },
-  _lastRead?: Date,
+  channel: { countUnread?: (lastRead?: Date) => number },
+  lastRead?: Date,
 ): number {
-  return channel.countUnread();
+  return countUnread(channel, lastRead);
 }
 
 export function countUnread(

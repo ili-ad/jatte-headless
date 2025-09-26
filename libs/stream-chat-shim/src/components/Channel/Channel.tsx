@@ -471,7 +471,10 @@ const ChannelInner = (
           channelConfig?.read_events &&
           !channel.muteStatus().muted
         ) {
-          const unread = channel.countUnread(lastRead.current);
+          const unread = chatAPI.channel.countUnread({
+            channel,
+            lastRead: lastRead.current,
+          });
 
           if (activeUnreadHandler) {
             activeUnreadHandler(unread, originalTitle.current);
@@ -588,7 +591,7 @@ const ChannelInner = (
          *
          * const lastRead = channel.state.read[client.userID as string].last_read;
          */
-        if (channel.countUnread() > 0 && markReadOnMount)
+        if (chatAPI.channel.countUnread({ channel }) > 0 && markReadOnMount)
           markRead({ updateChannelUiUnreadState: false });
         // The more complex sync logic is done in Chat
       }
