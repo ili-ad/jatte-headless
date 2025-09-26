@@ -722,6 +722,7 @@ export const chatSDKShim = {
 export const chatSDK = {
   channel: {
     archive: channelArchive,
+    unarchive: channelUnarchive,
     pin: channelPin,
   },
 };
@@ -824,6 +825,44 @@ export function pollsFromState(
 
 type ChannelArchiveOptions = { reason?: string };
 type ChannelArchiveResult = { archived: true; at: string };
+type ChannelUnarchiveResult = { archived: false; at: string };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const toUnarchivedMembership = (
+  membership: Record<string, unknown> | undefined,
+): Record<string, unknown> => {
+  const next: Record<string, unknown> = { ...(membership ?? {}) };
+  next.archived = false;
+  next.archived_at = null;
+  if ("archived_reason" in next) {
+    delete next.archived_reason;
+  }
+  return next;
+};
+
+const applyLocalUnarchive = (
+  channel: ChannelWithLocalState,
+): Record<string, unknown> => {
+  const state = channel.state as (ChannelStateLike & {
+    membership?: Record<string, unknown>;
+  }) | null | undefined;
+
+  const currentMembership =
+    state && isRecord(state.membership)
+      ? (state.membership as Record<string, unknown>)
+      : undefined;
+  const nextMembership = toUnarchivedMembership(currentMembership);
+
+  if (state) {
+    (state as Record<string, unknown>).membership = nextMembership;
+  }
+
+  channel.stateStore?.dispatch({ membership: nextMembership });
+
+  return nextMembership;
+};
 
 export async function channelArchive(
   channel: {
@@ -851,12 +890,44 @@ export async function close(): Promise<void> {
   // Placeholder implementation until backend endpoint is available
 }
 
-export async function unarchive(channel: { cid: string }): Promise<void> {
-  await fetch(`/api/rooms/${encodeURIComponent(channel.cid)}/unarchive`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-  });
+const extractUnarchiveAt = (
+  result: unknown,
+  fallback: string,
+): string => {
+  if (!isRecord(result)) {
+    return fallback;
+  }
+  const at = result.at;
+  return typeof at === "string" ? at : fallback;
+};
+
+type ChannelWithUnarchive = ChannelWithLocalState & {
+  unarchive?: () => Promise<
+    ChannelUnarchiveResult | { archived?: boolean; at?: string } | void
+  >;
+};
+
+export async function channelUnarchive(
+  channel: ChannelWithUnarchive,
+): Promise<ChannelUnarchiveResult> {
+  const fallbackAt = new Date().toISOString();
+
+  const result =
+    typeof channel.unarchive === "function"
+      ? await channel.unarchive()
+      : undefined;
+
+  applyLocalUnarchive(channel);
+
+  const at = extractUnarchiveAt(result, fallbackAt);
+
+  return { archived: false as const, at };
+}
+
+export async function unarchive(
+  channel: ChannelWithUnarchive,
+): Promise<ChannelUnarchiveResult> {
+  return channelUnarchive(channel);
 }
 
 export async function truncate(channel: { cid: string }): Promise<void> {
