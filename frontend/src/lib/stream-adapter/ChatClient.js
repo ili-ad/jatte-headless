@@ -92,6 +92,7 @@ var ChatClient = /** @class */ (function () {
         this.mutedChannels = [];
         this.mutedUsers = [];
         this.listeners = {};
+        this.threadCleanupHandlers = new Set();
         /** Minimal client.state stub holding fetched users */
         this.state = { users: {} };
         /** global stores Stream-UI subscribes to */
@@ -197,17 +198,23 @@ var ChatClient = /** @class */ (function () {
         this.clientID = randomId();
         this.tokenManager = new tokenManager_1.TokenManager(jwt || undefined);
         /* Basic threads manager */
+        var threadState = new MiniStore_1.MiniStore({
+            threads: [],
+            unseenThreadIds: [],
+            unreadThreadCount: 0,
+            pagination: { isLoadingNext: false },
+            activeThread: null,
+            activeThreadId: null,
+            activeThreadCid: null,
+        });
         this.threads = {
-            state: new MiniStore_1.MiniStore({
-                threads: [],
-                unseenThreadIds: [],
-                unreadThreadCount: 0,
-                pagination: { isLoadingNext: false },
-            }),
+            state: threadState,
             registerSubscriptions: function () { },
-            unregisterSubscriptions: function () { },
+            unregisterSubscriptions: function () {
+                _this.cleanupThreadSubscriptions();
+            },
             reload: function () {
-                return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
+                return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0: return [4 /*yield*/, this.getThreads()];
                         case 1:
@@ -217,7 +224,7 @@ var ChatClient = /** @class */ (function () {
                 }); });
             },
             loadNextPage: function () {
-                return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
+                return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0: return [4 /*yield*/, this.getThreads()];
                         case 1:
@@ -227,7 +234,40 @@ var ChatClient = /** @class */ (function () {
                 }); });
             },
             activate: function () { },
-            deactivate: function () { },
+            deactivate: function () {
+                var composerSources = new Set();
+                _this.cleanupThreadSubscriptions();
+                var snapshotChannels = _this.stateStore.getSnapshot().channels || [];
+                Object.values(_this.activeChannels || {}).forEach(function (chan) {
+                    if (chan)
+                        composerSources.add(chan);
+                });
+                snapshotChannels.forEach(function (chan) {
+                    if (chan)
+                        composerSources.add(chan);
+                });
+                composerSources.forEach(function (chan) {
+                    var composer = chan && chan.messageComposer;
+                    if (composer && typeof composer.setThreadId === 'function') {
+                        try {
+                            composer.setThreadId(void 0);
+                        }
+                        catch (_a) {
+                            /* ignore composer cleanup errors */
+                        }
+                    }
+                });
+                var snapshot = threadState.getSnapshot();
+                if (snapshot.activeThread !== null ||
+                    snapshot.activeThreadId !== null ||
+                    snapshot.activeThreadCid !== null) {
+                    threadState._set({
+                        activeThread: null,
+                        activeThreadId: null,
+                        activeThreadCid: null,
+                    });
+                }
+            },
         };
         this.polls = {
             store: new MiniStore_1.MiniStore({ polls: [] }),
@@ -249,6 +289,17 @@ var ChatClient = /** @class */ (function () {
             }),
         };
     }
+    ChatClient.prototype.cleanupThreadSubscriptions = function () {
+        this.threadCleanupHandlers.forEach(function (cleanup) {
+            try {
+                cleanup();
+            }
+            catch (_a) {
+                /* ignore cleanup errors */
+            }
+        });
+        this.threadCleanupHandlers.clear();
+    };
     /**
      * Manually dispatch an event to this client and its channels.
      * Only a tiny subset of Stream events is supported.
