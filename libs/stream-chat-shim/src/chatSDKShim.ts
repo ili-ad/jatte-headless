@@ -3,6 +3,8 @@ import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
 import {
   chatAPI,
+  type AddAnswer,
+  type AddAnswerInput,
   type AppSettings,
   type CreateReminderInput,
   type Message as APIMessage,
@@ -24,8 +26,31 @@ import {
 
 type SendMessageResponse = { message: CreateMessageResult };
 
-export async function addAnswer(): Promise<void> {
-  // Placeholder implementation until backend endpoint is available
+let localAnswerIdCounter = 0;
+
+const createLocalAnswerId = () => {
+  localAnswerIdCounter += 1;
+  return `local-answer-${localAnswerIdCounter}`;
+};
+
+export const chatSDKShim = {
+  async addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
+    const now = new Date().toISOString();
+    const result: AddAnswer = {
+      id: createLocalAnswerId(),
+      poll_id: input.poll_id,
+      option_id: input.option_id ?? null,
+      text: input.text ?? null,
+      created_by: 'me',
+      created_at: now,
+    };
+
+    return input.extras ? { ...result, ...input.extras } : result;
+  },
+};
+
+export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
+  return chatSDKShim.addAnswer(input);
 }
 
 export async function castVote(
