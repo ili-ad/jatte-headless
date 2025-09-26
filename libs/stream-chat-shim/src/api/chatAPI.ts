@@ -102,6 +102,9 @@ export type Message = {
   body: string;
   created_at: string;
   sent_by: string;
+  text?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 };
 
 export type ChannelQueryRequest = {
@@ -116,6 +119,33 @@ export type ChannelQueryResponse = {
 };
 
 export type ThreadMessage = Message;
+
+export type ThreadPreviewMessage = {
+  id: string;
+  text: string;
+  created_at: string;
+  deleted_at: string | null;
+  sent_by: string;
+};
+
+export type ThreadPreview = {
+  id: string;
+  parent: ThreadPreviewMessage;
+  replies: ThreadPreviewMessage[];
+};
+
+export type ClientThreadsStateParams = {
+  cid: string;
+  limit?: number;
+  before?: number;
+};
+
+export type ClientThreadsStateResponse = {
+  threads: ThreadPreview[];
+  unreadThreadCount: number;
+  unseenThreadIds: string[];
+  next: number | null;
+};
 
 export type LoadNextPageArgs = {
   cid?: string;
@@ -226,6 +256,53 @@ export const channelQuery = async ({
   const next = typeof rawNext === "number" ? rawNext : null;
 
   return { messages, next };
+};
+
+const toThreadPreviewMessage = (message: Message): ThreadPreviewMessage => {
+  const text =
+    typeof message.text === "string" && message.text.trim()
+      ? message.text
+      : message.body;
+
+  const deletedAt = message.deleted_at;
+  let normalizedDeleted: string | null = null;
+  if (typeof deletedAt === "string") {
+    normalizedDeleted = deletedAt;
+  } else if (deletedAt instanceof Date) {
+    normalizedDeleted = deletedAt.toISOString();
+  }
+
+  return {
+    id: String(message.id),
+    text,
+    created_at: message.created_at,
+    deleted_at: normalizedDeleted,
+    sent_by: message.sent_by,
+  };
+};
+
+export const clientThreadsState = async ({
+  cid,
+  limit,
+  before,
+}: ClientThreadsStateParams): Promise<ClientThreadsStateResponse> => {
+  const { messages, next } = await channelQuery({ cid, limit, before });
+
+  const threads = messages.map((message) => {
+    const preview = toThreadPreviewMessage(message);
+    return {
+      id: preview.id,
+      parent: preview,
+      replies: [preview],
+    } satisfies ThreadPreview;
+  });
+
+  return {
+    threads,
+    unreadThreadCount: 0,
+    unseenThreadIds: [],
+    next,
+  };
 };
 
 type ChannelMembershipRecord = Record<string, unknown>;
@@ -899,10 +976,13 @@ export const chatAPI = {
       reload: ({
         client,
       }: ClientThreadsReloadInput) => clientThreadsReloadShim(client),
+      state: ({ cid, limit, before }: ClientThreadsStateParams) =>
+        clientThreadsState({ cid, limit, before }),
     },
   },
   addAnswer,
   clientThreadsActivate,
+  clientThreadsState,
   clientThreadsReload,
   createReminder,
   deleteMessage,
