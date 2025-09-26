@@ -37,6 +37,7 @@ from .serializers import (
     DraftSerializer,
     FlagSerializer,
     MessageSerializer,
+    MessageUpdateSerializer,
     MuteStatusSerializer,
     NotificationSerializer,
     PinSerializer,
@@ -165,7 +166,7 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
             room_uuid = cid
         return get_object_or_404(Room, uuid=room_uuid)
 
-    def _can_delete(self, user, room: Room, message: Message) -> bool:
+    def _can_manage(self, user, room: Room, message: Message) -> bool:
         if message.sent_by == user.username:
             return True
         if room.agent_id and room.agent_id == user.id:
@@ -174,10 +175,48 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
             return True
         return False
 
+    def _can_delete(self, user, room: Room, message: Message) -> bool:
+        return self._can_manage(user, room, message)
+
+    def _can_update(self, user, room: Room, message: Message) -> bool:
+        return self._can_manage(user, room, message)
+
     def get(self, request, cid: str, message_id: int):
         room = self._get_room(cid)
         message = get_object_or_404(room.messages, id=message_id)
         serializer = MessageSerializer(message)
+        return Response(serializer.data)
+
+    def patch(self, request, cid: str, message_id: int):
+        room = self._get_room(cid)
+        message = get_object_or_404(room.messages, id=message_id)
+
+        if not self._can_update(request.user, room, message):
+            return Response(status=403)
+
+        serializer = MessageUpdateSerializer(
+            message, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        try:
+            channel_layer = get_channel_layer()
+            message_payload = serializer.data
+            async_to_sync(channel_layer.group_send)(
+                f"channel_{room.uuid}",
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "message.updated",
+                        "cid": f"messaging:{room.uuid}",
+                        "message": message_payload,
+                    },
+                },
+            )
+        except Exception:
+            pass
+
         return Response(serializer.data)
 
     def delete(self, request, cid: str, message_id: int):

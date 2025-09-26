@@ -3,6 +3,12 @@ export type DeleteMessageParams = {
   message_id: number;
 };
 
+export type UpdateMessageInput = {
+  cid: string;
+  message_id: number;
+  text: string;
+};
+
 export type CreateReminderInput = {
   cid: string;
   remind_at: string;
@@ -372,6 +378,33 @@ async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<
   }
 }
 
+async function updateMessage({
+  cid,
+  message_id,
+  text,
+}: UpdateMessageInput): Promise<Message> {
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
+    {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to update message (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  return (await response.json()) as Message;
+}
+
 export const muteUser = async ({
   cid,
   user_id,
@@ -582,6 +615,7 @@ async function endSession(): Promise<void> {
 export const chatAPI = {
   createReminder,
   deleteMessage,
+  updateMessage,
   muteUser,
   unmuteUser,
   registerSubscriptions,
