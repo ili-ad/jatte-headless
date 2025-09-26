@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormDialog } from '../../Dialog/FormDialog';
 import { useStateStore } from '../../../store';
-import * as chatAPI from '../../../api/chatAPI';
+import { chatAPI } from '../../../api/chatAPI';
 import {
   useChatContext,
   usePollContext,

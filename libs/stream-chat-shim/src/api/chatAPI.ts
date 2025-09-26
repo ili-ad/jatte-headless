@@ -649,6 +649,7 @@ export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
   },
+  addAnswer,
   createReminder,
   deleteMessage,
   updateMessage,
