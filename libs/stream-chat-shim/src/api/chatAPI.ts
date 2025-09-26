@@ -93,6 +93,17 @@ export type Message = {
   sent_by: string;
 };
 
+export type ChannelQueryRequest = {
+  cid: string;
+  limit?: number;
+  before?: number;
+};
+
+export type ChannelQueryResponse = {
+  messages: Message[];
+  next: number | null;
+};
+
 export type ChannelCountUnreadParams = {
   channel: { countUnread?: (lastRead?: Date) => number };
   lastRead?: Date;
@@ -109,6 +120,67 @@ function channelCountUnread({
 }: ChannelCountUnreadParams): number {
   return chatSDKShim.channelCountUnread(channel, lastRead);
 }
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const parseChannelMessages = (value: unknown): Message[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is Message => {
+    if (!item || typeof item !== "object") return false;
+    const candidate = item as Partial<Message>;
+    return (
+      typeof candidate.id === "number" &&
+      typeof candidate.body === "string" &&
+      typeof candidate.sent_by === "string" &&
+      typeof candidate.created_at === "string"
+    );
+  });
+};
+
+export const channelQuery = async ({
+  cid,
+  limit,
+  before,
+}: ChannelQueryRequest): Promise<ChannelQueryResponse> => {
+  const params = new URLSearchParams();
+  if (isFiniteNumber(limit)) {
+    params.set("limit", String(limit));
+  }
+  if (isFiniteNumber(before)) {
+    params.set("before", String(before));
+  }
+
+  const query = params.toString();
+
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/messages/${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      credentials: "same-origin",
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to query channel messages (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as
+    | { messages?: unknown; next?: unknown }
+    | undefined;
+
+  const messages = parseChannelMessages(data?.messages);
+  const rawNext = data?.next;
+  const next = typeof rawNext === "number" ? rawNext : null;
+
+  return { messages, next };
+};
 
 export interface RoomDraft {
   id?: number;
@@ -648,6 +720,7 @@ async function endSession(): Promise<void> {
 export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
+    query: channelQuery,
   },
   addAnswer,
   createReminder,

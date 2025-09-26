@@ -294,7 +294,7 @@
     "stubName": "channel.query",
     "ticketType": "shim",
     "todoCount": 4,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
