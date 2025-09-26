@@ -81,7 +81,7 @@ def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
             {
                 "type": "chat.message",
                 "payload": {
-                    "type": "reminder.created",
+                    "type": "reminder.new",
                     "cid": cid_value,
                     "reminder": reminder_data,
                 },
