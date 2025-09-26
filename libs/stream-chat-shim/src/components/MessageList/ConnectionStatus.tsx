@@ -4,6 +4,7 @@ import type { Event } from 'chat-shim';
 
 import { CustomNotification } from './CustomNotification';
 import { useChatContext, useTranslationContext } from '../../context';
+import { clientOff, clientOn } from '../../client';
 
 const UnMemoizedConnectionStatus = () => {
   const { client } = useChatContext('ConnectionStatus');
@@ -18,8 +19,10 @@ const UnMemoizedConnectionStatus = () => {
       }
     };
 
+    clientOn(client, 'connection.changed', connectionChanged);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'connection.changed', connectionChanged);
     };
   }, [client, online]);
 

@@ -1,6 +1,15 @@
 import { StateStore } from '../../chat-shim';
 import type { Channel, PollOption as ChatShimPollOption, PollVote } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
+import {
+  clientOff,
+  clientOn,
+  createSubscription,
+  type ChannelEventSubscription,
+  type EventTargetLike,
+} from './client';
+
+export type { ChannelEventSubscription };
 
 import {
   chatAPI,
@@ -393,48 +402,6 @@ export type ChannelUnknownEvent = ChannelEventBase<string>;
 export type ChannelEventHandler<T extends ChannelKnownEvent> = (
   event: KnownChannelEventMap[T],
 ) => void;
-export type ChannelEventSubscription = { unsubscribe: () => void };
-
-type EventTargetLike = {
-  on?: (
-    eventType: string,
-    handler: (...args: any[]) => void,
-  ) => { unsubscribe?: () => void } | void;
-  off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
-};
-
-const noopSubscription: ChannelEventSubscription = { unsubscribe: () => {} };
-
-const createSubscription = (
-  target: EventTargetLike | undefined,
-  eventType: string,
-  handler: (...args: any[]) => void,
-): ChannelEventSubscription => {
-  if (!target || typeof target.on !== 'function') {
-    return noopSubscription;
-  }
-
-  const maybeSubscription = target.on(eventType, handler);
-  let unsubscribed = false;
-
-  return {
-    unsubscribe: () => {
-      if (unsubscribed) return;
-      unsubscribed = true;
-
-      if (
-        maybeSubscription &&
-        typeof maybeSubscription === 'object' &&
-        typeof (maybeSubscription as { unsubscribe?: () => void }).unsubscribe === 'function'
-      ) {
-        (maybeSubscription as { unsubscribe: () => void }).unsubscribe();
-      } else if (typeof target.off === 'function') {
-        target.off(eventType, handler);
-      }
-    },
-  };
-};
-
 export type CastVoteParams = {
   poll: PollLike;
   optionId: string;
@@ -1257,23 +1224,7 @@ export function clientChannel(
   return undefined;
 }
 
-export function clientOff(
-  client: EventTargetLike | undefined,
-  eventType?: string,
-  handler?: (...args: any[]) => void,
-): void {
-  if (client && typeof client.off === "function") {
-    client.off(eventType, handler);
-  }
-}
-
-export function clientOn(
-  client: EventTargetLike | undefined,
-  eventType: string,
-  handler: (...args: any[]) => void,
-): ChannelEventSubscription {
-  return createSubscription(client, eventType, handler);
-}
+export { clientOff, clientOn };
 
 export function on<TEvent extends ChannelKnownEvent>(
   channel: Channel,

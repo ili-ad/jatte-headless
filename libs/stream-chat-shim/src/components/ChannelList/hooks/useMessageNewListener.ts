@@ -4,6 +4,7 @@ import uniqBy from 'lodash.uniqby';
 import { moveChannelUp } from '../utils';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -46,8 +47,10 @@ export const useMessageNewListener = (
       }
     };
 
+    clientOn(client, 'message.new', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'message.new', handleEvent);
     };
   }, [
     allowNewMessagesFromUnfilteredChannels,

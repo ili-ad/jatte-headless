@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -44,8 +45,10 @@ export const useChannelUpdatedListener = (
       }
     };
 
+    clientOn(client, 'channel.updated', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.updated', handleEvent);
     };
   }, [client, customHandler, forceUpdate, setChannels]);
 };

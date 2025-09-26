@@ -30,6 +30,7 @@ import {
   useChatContext,
   useComponentContext,
 } from "../../context";
+import { clientOff, clientOn } from "../../client";
 import { NullComponent } from "../UtilityComponents";
 import { clientQueryChannels } from "../../chatSDKShim";
 import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from "./utils";
@@ -342,9 +343,12 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       }
     };
 
+    clientOn(client, 'channel.deleted', handleEvent);
+    clientOn(client, 'channel.hidden', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.deleted', handleEvent);
+      clientOff(client, 'channel.hidden', handleEvent);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channel?.cid]);

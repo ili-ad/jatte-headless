@@ -100,6 +100,7 @@ import {
   loadMessageIntoChannelState,
 } from "../../chatSDKShim";
 import { chatAPI } from "../../api/chatAPI";
+import { clientOff, clientOn } from "../../client";
 
 type ChannelPropsForwardedToComponentContext = Pick<
   ComponentContextValue,
@@ -594,6 +595,12 @@ const ChannelInner = (
          */
         if (chatAPI.channel.countUnread({ channel }) > 0 && markReadOnMount)
           markRead({ updateChannelUiUnreadState: false });
+
+        clientOn(client, 'connection.changed', handleEvent);
+        clientOn(client, 'connection.recovered', handleEvent);
+        clientOn(client, 'user.updated', handleEvent);
+        clientOn(client, 'user.deleted', handleEvent);
+        channel.on?.('all', handleEvent as (event: Event) => void);
         // The more complex sync logic is done in Chat
       }
     })();
@@ -601,9 +608,11 @@ const ChannelInner = (
 
     return () => {
       if (errored || !done) return;
-      /* TODO backend-wire-up: client.off */
-      /* TODO backend-wire-up: client.off */
-      /* TODO backend-wire-up: client.off */
+      channel.off?.('all', handleEvent as (event: Event) => void);
+      clientOff(client, 'connection.changed', handleEvent);
+      clientOff(client, 'connection.recovered', handleEvent);
+      clientOff(client, 'user.updated', handleEvent);
+      clientOff(client, 'user.deleted', handleEvent);
       notificationTimeoutsRef.forEach(clearTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

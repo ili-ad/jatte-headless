@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -24,8 +25,10 @@ export const useNotificationRemovedFromChannelListener = (
       }
     };
 
+    clientOn(client, 'notification.removed_from_channel', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'notification.removed_from_channel', handleEvent);
     };
   }, [client, customHandler, setChannels]);
 };
