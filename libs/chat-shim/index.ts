@@ -71,6 +71,7 @@ export class ChannelState {
   read: Record<string, any> = {};
   watchers: Record<string, any> = {};
   members: Record<string, any> = {};
+  membership: Record<string, any> = {};
   pinnedMessages: any[] = [];
   typing: Record<string, any> = {};
   threads: Record<string, any[]> = {} as any;
@@ -206,6 +207,90 @@ export class LocalChannel {
     } else if (index !== -1) {
       this.client.mutedChannels.splice(index, 1);
     }
+  }
+
+  async archive(options?: { reason?: string }) {
+    const at = new Date().toISOString();
+    const reason = options?.reason;
+
+    const nextMembership: Record<string, any> = {
+      ...(this.state.membership ?? {}),
+      archived: true,
+      archived_at: at,
+    };
+    if (reason !== undefined) {
+      if (reason) {
+        nextMembership.archived_reason = reason;
+      } else {
+        delete nextMembership.archived_reason;
+      }
+    }
+
+    this.state.membership = nextMembership;
+    this.stateStore.dispatch({ membership: nextMembership });
+
+    const userId = this.getUserId();
+    if (userId) {
+      const currentMember: Record<string, any> = {
+        ...(this.state.members?.[userId] ?? {}),
+        archived: true,
+        archived_at: at,
+      };
+      if (!currentMember.user) {
+        currentMember.user = { id: userId };
+      }
+      if (reason !== undefined) {
+        if (reason) {
+          currentMember.archived_reason = reason;
+        } else {
+          delete currentMember.archived_reason;
+        }
+      }
+      this.state.members[userId] = currentMember;
+    }
+
+    const archiveEvent: Record<string, any> = {
+      type: "channel.archived",
+      cid: this.cid,
+      archived: true as const,
+      at,
+    };
+    if (reason) archiveEvent.reason = reason;
+
+    this.emit("channel.archived", archiveEvent);
+
+    const memberEvent: Record<string, any> = {
+      type: "member.updated",
+      cid: this.cid,
+      channel_id: this.id,
+      channel_type: this.type,
+      member: {
+        archived: true,
+        archived_at: at,
+      },
+    };
+    if (userId) {
+      memberEvent.member.user_id = userId;
+      memberEvent.member.user = this.state.members[userId]?.user ?? { id: userId };
+    }
+    if (reason) memberEvent.member.archived_reason = reason;
+
+    this.emit("member.updated", memberEvent);
+
+    const client = this.client as unknown as {
+      emit?: (event: string, payload: any) => void;
+      dispatchEvent?: (event: Record<string, any>) => void;
+    };
+
+    if (typeof client?.emit === "function") {
+      client.emit("channel.archived", archiveEvent);
+      client.emit("member.updated", memberEvent);
+    } else if (typeof client?.dispatchEvent === "function") {
+      client.dispatchEvent(archiveEvent);
+      client.dispatchEvent(memberEvent);
+    }
+
+    return { archived: true as const, at };
   }
 
   /** Expose the parent client instance */
