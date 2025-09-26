@@ -92,6 +92,188 @@ type ChannelMessageLike = {
   user?: ChannelUserLike | null;
 } & Record<string, unknown>;
 
+type ChannelStateLike = {
+  messages?: ChannelMessageLike[];
+  messagePagination?: { hasPrev?: boolean; hasNext?: boolean };
+  loadMessageIntoState?: (
+    id: string,
+    around?: string,
+    limit?: number,
+  ) => Promise<any>;
+  addMessageSorted?: (
+    message: Record<string, unknown>,
+    timestampChanged?: boolean,
+  ) => void;
+  [key: string]: unknown;
+};
+
+type ChannelWithLocalState = {
+  cid: string;
+  state?: ChannelStateLike;
+  stateStore?: StateStore<any>;
+};
+
+type NormalizedChannelMessage = ChannelMessageLike & { id: string };
+
+type ChannelQueryResult = {
+  messages: NormalizedChannelMessage[];
+  next: number | null;
+};
+
+type ShimChannelQueryPaginationOptions = {
+  limit?: number | string;
+  id_lt?: number | string;
+  id_gt?: number | string;
+};
+
+type ShimChannelQueryOptions = ShimChannelQueryPaginationOptions & {
+  messages?: ShimChannelQueryPaginationOptions;
+  [key: string]: unknown;
+};
+
+const firstDefined = <T>(...values: Array<T | undefined>): T | undefined => {
+  for (const value of values) {
+    if (value !== undefined) return value;
+  }
+  return undefined;
+};
+
+const parseInteger = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+};
+
+const toDateSafe = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+  return undefined;
+};
+
+const getMessageTimestamp = (message: ChannelMessageLike): number => {
+  const createdAt = (message as { created_at?: Date | string | number }).created_at;
+  const date = toDateSafe(createdAt);
+  return date?.getTime() ?? 0;
+};
+
+const textFromApiMessage = (message: APIMessage): string => {
+  const body = (message as { body?: unknown }).body;
+  if (typeof body === "string") return body;
+  const text = (message as { text?: unknown }).text;
+  return typeof text === "string" ? text : "";
+};
+
+const normalizeChannelMessage = (
+  channel: ChannelWithLocalState,
+  message: APIMessage,
+): NormalizedChannelMessage => {
+  const id = String(message.id);
+  const createdAt = toDateSafe(message.created_at) ?? new Date();
+  const updatedAt = toDateSafe((message as { updated_at?: unknown }).updated_at) ?? createdAt;
+  const text = textFromApiMessage(message);
+  const userId = typeof message.sent_by === "string" ? message.sent_by : String(message.sent_by ?? "");
+
+  const base: NormalizedChannelMessage = {
+    id,
+    cid: channel.cid,
+    created_at: createdAt,
+    updated_at: updatedAt,
+    type: "regular",
+    status: "received",
+    text,
+    html: text,
+    body: text,
+    latest_reactions: [],
+    own_reactions: [],
+    reaction_groups: {},
+    user: { id: userId },
+    user_id: userId,
+  };
+
+  const deletedAt = (message as { deleted_at?: unknown }).deleted_at;
+  if (deletedAt !== undefined) {
+    const parsedDeleted = toDateSafe(deletedAt);
+    base.deleted_at = parsedDeleted ?? deletedAt;
+  }
+
+  const existing = channel.state?.messages?.find?.(
+    (msg) => String((msg as { id?: string | number }).id) === id,
+  ) as NormalizedChannelMessage | undefined;
+
+  return existing ? { ...existing, ...base } : base;
+};
+
+const updateChannelStateWithMessages = (
+  channel: ChannelWithLocalState,
+  incoming: NormalizedChannelMessage[],
+  paginationUpdate?: { hasPrev?: boolean; hasNext?: boolean },
+) => {
+  if (!channel.state) return;
+
+  const existingMessages = Array.isArray(channel.state.messages)
+    ? channel.state.messages
+    : [];
+
+  const merged = new Map<string, NormalizedChannelMessage>();
+  for (const existing of existingMessages) {
+    const msgId = String((existing as { id?: string | number }).id ?? "");
+    if (!msgId) continue;
+    merged.set(msgId, existing as NormalizedChannelMessage);
+  }
+
+  for (const message of incoming) {
+    merged.set(message.id, message);
+  }
+
+  const nextMessages = Array.from(merged.values()).sort(
+    (a, b) => getMessageTimestamp(a) - getMessageTimestamp(b),
+  );
+
+  channel.state.messages = nextMessages;
+  const pagination = (channel.state.messagePagination ??= {});
+
+  if (paginationUpdate?.hasPrev !== undefined) {
+    pagination.hasPrev = paginationUpdate.hasPrev;
+  }
+  if (paginationUpdate?.hasNext !== undefined) {
+    pagination.hasNext = paginationUpdate.hasNext;
+  }
+
+  if (channel.stateStore?.dispatch) {
+    channel.stateStore.dispatch({
+      messages: nextMessages,
+      messagePagination: { ...pagination },
+    });
+  }
+};
+
+const extractMessageOptions = (
+  options?: ShimChannelQueryOptions,
+): ShimChannelQueryPaginationOptions => {
+  if (!options) return {};
+
+  const nested =
+    typeof options.messages === "object" && options.messages !== null
+      ? (options.messages as ShimChannelQueryPaginationOptions)
+      : undefined;
+
+  return {
+    limit: firstDefined(options.limit, nested?.limit),
+    id_lt: firstDefined(options.id_lt, nested?.id_lt),
+    id_gt: firstDefined(options.id_gt, nested?.id_gt),
+  };
+};
+
 type ChannelEventBase<Type extends string> = {
   type: Type;
   cid?: string;
@@ -759,13 +941,62 @@ export async function disconnectUser(): Promise<void> {
 }
 
 export async function channelQuery(
-  channel: { query?: (options?: any) => Promise<any> },
-  options?: any,
-): Promise<any> {
+  channel: ChannelWithLocalState & {
+    query?: (options?: unknown) => Promise<ChannelQueryResult>;
+  },
+  options?: ShimChannelQueryOptions,
+): Promise<ChannelQueryResult> {
   if (typeof channel.query === "function") {
     return channel.query(options);
   }
-  return { messages: [] };
+
+  if (!channel.cid) {
+    return { messages: [], next: null };
+  }
+
+  const messageOptions = extractMessageOptions(options);
+  const limit = parseInteger(messageOptions.limit);
+  const before = parseInteger(messageOptions.id_lt);
+  const after = parseInteger(messageOptions.id_gt);
+
+  const { messages: apiMessages, next } = await chatAPI.channel.query({
+    cid: channel.cid,
+    limit: limit,
+    before,
+  });
+
+  const filteredApiMessages =
+    after !== undefined
+      ? apiMessages.filter((msg) => {
+          const msgId = parseInteger((msg as { id?: number | string }).id);
+          return msgId !== undefined && msgId > after;
+        })
+      : apiMessages;
+
+  const normalizedMessages = filteredApiMessages.map((msg) =>
+    normalizeChannelMessage(channel, msg),
+  );
+
+  const paginationUpdate: { hasPrev?: boolean; hasNext?: boolean } = {};
+
+  if (after !== undefined) {
+    paginationUpdate.hasNext =
+      limit !== undefined
+        ? normalizedMessages.length >= limit
+        : normalizedMessages.length > 0;
+  } else {
+    paginationUpdate.hasPrev = Boolean(next);
+    if (before === undefined) {
+      paginationUpdate.hasNext = false;
+    }
+  }
+
+  updateChannelStateWithMessages(channel, normalizedMessages, paginationUpdate);
+
+  return {
+    messages: normalizedMessages,
+    next,
+  };
 }
 
 export async function sendMessage(
@@ -816,22 +1047,7 @@ export async function channelSendMessage(
 }
 
 export async function channelStateLoadMessageIntoState(
-  channel: {
-    cid: string;
-    state?: {
-      loadMessageIntoState?: (
-        id: string,
-        around?: string,
-        limit?: number,
-      ) => Promise<any>;
-      addMessageSorted?: (
-        message: Record<string, unknown>,
-        timestampChanged?: boolean,
-      ) => void;
-      messages?: Array<Record<string, unknown>>;
-      messagePagination?: { hasNext?: boolean; hasPrev?: boolean };
-    };
-  },
+  channel: ChannelWithLocalState,
   messageId: string,
   around?: string,
   messageLimit?: number,
@@ -850,68 +1066,8 @@ export async function channelStateLoadMessageIntoState(
     message_id: numericMessageId,
   });
 
-  const normalizeMessage = (
-    message: APIMessage,
-  ): Record<string, unknown> & { id: string } => {
-    const createdAt = new Date(message.created_at);
-    const baseMessage = {
-      id: String(message.id),
-      cid: channel.cid,
-      created_at: createdAt,
-      updated_at: createdAt,
-      type: 'regular',
-      status: 'received',
-      text: message.body,
-      html: message.body,
-      body: message.body,
-      user: { id: message.sent_by },
-      user_id: message.sent_by,
-      latest_reactions: [] as unknown[],
-      own_reactions: [] as unknown[],
-      reaction_groups: {},
-    } as Record<string, unknown> & { id: string };
-
-    const existingMessage = channel.state?.messages?.find?.(
-      (msg) => String((msg as { id?: string | number }).id) === baseMessage.id,
-    );
-
-    return existingMessage ? { ...existingMessage, ...baseMessage } : baseMessage;
-  };
-
-  const normalizedMessage = normalizeMessage(apiMessage);
-
-  if (channel.state) {
-    channel.state.messagePagination ??= {};
-    channel.state.messagePagination.hasPrev ??= false;
-    channel.state.messagePagination.hasNext ??= false;
-
-    if (typeof channel.state.addMessageSorted === 'function') {
-      channel.state.addMessageSorted(normalizedMessage, true);
-    } else if (Array.isArray(channel.state.messages)) {
-      const existingIndex = channel.state.messages.findIndex(
-        (msg) => String((msg as { id?: string | number }).id) === normalizedMessage.id,
-      );
-
-      if (existingIndex >= 0) {
-        channel.state.messages.splice(existingIndex, 1, normalizedMessage);
-      } else {
-        channel.state.messages.push(normalizedMessage);
-        channel.state.messages.sort((a, b) => {
-          const aDate = new Date(
-            ((a as { created_at?: string | Date }).created_at ?? 0) as
-              | string
-              | Date,
-          ).getTime();
-          const bDate = new Date(
-            ((b as { created_at?: string | Date }).created_at ?? 0) as
-              | string
-              | Date,
-          ).getTime();
-          return aDate - bDate;
-        });
-      }
-    }
-  }
+  const normalizedMessage = normalizeChannelMessage(channel, apiMessage);
+  updateChannelStateWithMessages(channel, [normalizedMessage]);
 
   return normalizedMessage;
 }
