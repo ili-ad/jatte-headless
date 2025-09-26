@@ -5,6 +5,7 @@ import type { ThreadManagerState } from 'chat-shim';
 import { Icon } from '../icons';
 import { useChatContext } from '../../../context';
 import { useStateStore } from '../../../store';
+import { chatAPI } from '../../../api/chatAPI';
 import { clientThreadsState } from '../../../chatSDKShim';
 
 const selector = (nextValue: ThreadManagerState) => ({
@@ -27,7 +28,7 @@ export const ThreadListUnseenThreadsBanner = () => {
       <button
         className='str-chat__unseen-threads-banner__button'
         onClick={() => {
-          client.threads.reload();
+          void chatAPI.clientThreadsReload({ client });
         }}
       >
         <Icon.Reload />

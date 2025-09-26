@@ -2,6 +2,7 @@ import {
   chatSDKShim,
   clientThreadsActivate as clientThreadsActivateShim,
   clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
+  clientThreadsReload as clientThreadsReloadShim,
 } from '../chatSDKShim';
 
 export type {
@@ -138,6 +139,10 @@ export type ClientThreadsActivateInput = {
   client: { threads?: { activate?: () => void } };
 };
 
+export type ClientThreadsReloadInput = {
+  client: { threads?: { reload?: () => Promise<unknown> } };
+};
+
 // shim-only: no network; delegate to SDK shim
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
   return chatSDKShim.addAnswer(input);
@@ -147,6 +152,12 @@ export function clientThreadsActivate({
   client,
 }: ClientThreadsActivateInput): void {
   clientThreadsActivateShim(client);
+}
+
+export async function clientThreadsReload({
+  client,
+}: ClientThreadsReloadInput): Promise<void> {
+  await clientThreadsReloadShim(client);
 }
 
 function channelCountUnread({
@@ -885,10 +896,14 @@ export const chatAPI = {
           client,
           Object.keys(args).length ? (args as LoadNextPageArgs) : undefined,
         ),
+      reload: ({
+        client,
+      }: ClientThreadsReloadInput) => clientThreadsReloadShim(client),
     },
   },
   addAnswer,
   clientThreadsActivate,
+  clientThreadsReload,
   createReminder,
   deleteMessage,
   updateMessage,

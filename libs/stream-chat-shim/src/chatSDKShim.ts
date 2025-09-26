@@ -2070,13 +2070,13 @@ export async function clientThreadsLoadNextPage(
 }
 
 export async function clientThreadsReload(client: {
-  threads?: { reload?: () => Promise<any> };
-}): Promise<any> {
-  if (client.threads?.reload) {
-    return client.threads.reload();
+  threads?: { reload?: () => Promise<unknown> };
+}): Promise<void> {
+  if (typeof client.threads?.reload !== 'function') {
+    return;
   }
-  const resp = await fetch('/api/threads/', { credentials: 'same-origin' });
-  return resp.json();
+
+  await client.threads.reload();
 }
 
 const fallbackThreadStateStore = new StateStore<any>({} as any);
