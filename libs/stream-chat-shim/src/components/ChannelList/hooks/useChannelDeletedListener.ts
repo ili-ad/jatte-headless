@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { Channel, Event } from 'chat-shim';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 export const useChannelDeletedListener = (
   setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,
@@ -30,8 +31,10 @@ export const useChannelDeletedListener = (
       }
     };
 
+    clientOn(client, 'channel.deleted', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.deleted', handleEvent);
     };
   }, [client, customHandler, setChannels]);
 };

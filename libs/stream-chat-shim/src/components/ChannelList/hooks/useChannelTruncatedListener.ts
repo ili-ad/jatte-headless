@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -26,8 +27,10 @@ export const useChannelTruncatedListener = (
       }
     };
 
+    clientOn(client, 'channel.truncated', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.truncated', handleEvent);
     };
   }, [client, customHandler, forceUpdate, setChannels]);
 };

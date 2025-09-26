@@ -4,6 +4,7 @@ import uniqBy from 'lodash.uniqby';
 import { getChannel } from '../../../utils/getChannel';
 
 import { useChatContext } from '../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../client';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -30,8 +31,10 @@ export const useChannelVisibleListener = (
       }
     };
 
+    clientOn(client, 'channel.visible', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'channel.visible', handleEvent);
     };
   }, [client, customHandler, setChannels]);
 };

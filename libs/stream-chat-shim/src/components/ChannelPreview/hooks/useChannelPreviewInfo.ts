@@ -3,6 +3,7 @@ import type { Channel } from 'chat-shim';
 
 import { getDisplayImage, getDisplayTitle, getGroupChannelDisplayInfo } from '../utils';
 import { useChatContext } from '../../../context';
+import { clientOff, clientOn } from '../../../client';
 
 export type ChannelPreviewInfoParams = {
   channel: Channel;
@@ -40,8 +41,10 @@ export const useChannelPreviewInfo = (props: ChannelPreviewInfoParams) => {
 
     updateInfo();
 
+    clientOn(client, 'user.updated', updateInfo);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'user.updated', updateInfo);
     };
   }, [channel, channel.data, client, overrideImage, overrideTitle]);
 
