@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useChatContext } from '../../../../context/ChatContext';
+import { clientOff, clientOn } from '../../../../client';
 
 import type { EventHandler, LocalMessage } from 'chat-shim';
 
@@ -19,8 +20,10 @@ export const useGiphyPreview = (separateGiphyPreview: boolean) => {
       }
     };
 
+    clientOn(client, 'message.new', handleEvent);
+
     return () => {
-      /* TODO backend-wire-up: client.off */
+      clientOff(client, 'message.new', handleEvent);
     };
   }, [client, separateGiphyPreview]);
 
