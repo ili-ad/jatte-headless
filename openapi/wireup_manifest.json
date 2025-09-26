@@ -419,7 +419,7 @@
     "operationId": "shim::client.threads.state",
     "stubName": "client.threads.state",
     "ticketType": "shim",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {
