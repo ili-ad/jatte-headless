@@ -4,7 +4,11 @@ import type {
   QueryChannelAPIResponse,
   StreamChat,
 } from 'chat-shim';
-import { clientChannel } from '../chatSDKShim';
+import {
+  channelWatch,
+  clientChannel,
+  type ChannelWatchOptions,
+} from '../chatSDKShim';
 
 /**
  * prevent from duplicate invocation of channel.watch()
@@ -46,9 +50,9 @@ export const getChannel = async ({
 
   // unfortunately typescript is not able to infer that if (!channel && !type) === false, then channel or type has to be truthy
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const extra = members && members.length ? { members } : undefined;
   const theChannel =
-    channel ||
-    (clientChannel(client, type!, id) as Channel);
+    channel || (clientChannel(client, type!, id, extra) as Channel);
 
   // need to keep as with call to channel.watch the id can be changed from undefined to an actual ID generated server-side
   const originalCid = theChannel?.id
@@ -69,8 +73,11 @@ export const getChannel = async ({
     await queryPromise;
   } else {
     try {
-      WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid] =
-        /* TODO backend-wire-up: channel.watch */ Promise.resolve(undefined);
+      const watchOptions = options as ChannelWatchOptions | undefined;
+      WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid] = channelWatch(
+        theChannel,
+        watchOptions,
+      );
       await WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];
     } finally {
       delete WATCH_QUERY_IN_PROGRESS_FOR_CHANNEL[originalCid];
