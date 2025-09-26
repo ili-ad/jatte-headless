@@ -9,6 +9,7 @@ import { ThreadListEmptyPlaceholder as DefaultThreadListEmptyPlaceholder } from 
 import { ThreadListUnseenThreadsBanner as DefaultThreadListUnseenThreadsBanner } from "./ThreadListUnseenThreadsBanner";
 import { ThreadListLoadingIndicator as DefaultThreadListLoadingIndicator } from "./ThreadListLoadingIndicator";
 import { useChatContext, useComponentContext } from "../../../context";
+import { chatAPI } from "../../../api/chatAPI";
 import { useStateStore } from "../../../store";
 import { clientThreadsState } from "../../../chatSDKShim";
 import {
@@ -32,7 +33,7 @@ export const useThreadList = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        client.threads.activate();
+        chatAPI.clientThreadsActivate({ client });
       }
       if (document.visibilityState === "hidden") {
         clientThreadsDeactivate(client);
