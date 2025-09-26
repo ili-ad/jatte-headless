@@ -231,15 +231,19 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         if not self._can_update(request.user, room, message):
             return Response(status=403)
 
-        serializer = MessageUpdateSerializer(
-            message, data=request.data, partial=True
+        update_serializer = MessageUpdateSerializer(
+            message,
+            data=request.data,
+            partial=True,
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        update_serializer.is_valid(raise_exception=True)
+        update_serializer.save()
+
+        response_serializer = MessageSerializer(message)
+        message_payload = response_serializer.data
 
         try:
             channel_layer = get_channel_layer()
-            message_payload = serializer.data
             async_to_sync(channel_layer.group_send)(
                 f"channel_{room.uuid}",
                 {
@@ -254,7 +258,7 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         except Exception:
             pass
 
-        return Response(serializer.data)
+        return Response(message_payload)
 
     def delete(self, request, cid: str, message_id: int):
         room = self._get_room(cid)
