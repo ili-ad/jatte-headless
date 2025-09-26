@@ -477,6 +477,7 @@ export const chatSDKShim = {
 export const chatSDK = {
   channel: {
     archive: channelArchive,
+    pin: channelPin,
   },
 };
 
@@ -708,12 +709,21 @@ export function channelOn(
   return createSubscription(channel, eventType, handler as (...args: any[]) => void);
 }
 
+type ChannelPinTarget = string | ChannelMessageLike;
+
+type ChannelWithPin = { pin?: (message?: ChannelPinTarget) => Promise<any> };
+
+export async function channelPin(channel: ChannelWithPin): Promise<any>;
 export async function channelPin(
-  channel: { pin?: (messageId: string) => Promise<any> },
-  messageId: string,
+  channel: ChannelWithPin,
+  message: ChannelPinTarget,
+): Promise<any>;
+export async function channelPin(
+  channel: ChannelWithPin,
+  message?: ChannelPinTarget,
 ): Promise<any> {
   if (typeof channel.pin === "function") {
-    return channel.pin(messageId);
+    return channel.pin(message);
   }
   return undefined;
 }
