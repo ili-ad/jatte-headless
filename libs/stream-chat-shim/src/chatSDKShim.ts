@@ -1,5 +1,10 @@
 import { StateStore } from '../../chat-shim';
-import type { Channel, PollOption as ChatShimPollOption, PollVote } from '../../chat-shim';
+import type {
+  Channel,
+  PollOption as ChatShimPollOption,
+  PollVote,
+  StreamChat,
+} from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 import {
   clientOff,
@@ -454,6 +459,7 @@ const clientOnTyped = <TEvent extends ClientKnownEvent>(
 
 export const client = {
   on: clientOnTyped,
+  queryChannels: clientQueryChannels,
 };
 export type CastVoteParams = {
   poll: PollLike;
@@ -1377,23 +1383,469 @@ export async function findMessage(messageId: string): Promise<any> {
   return resp.json();
 }
 
-export async function clientQueryChannels(
-  _client: unknown,
-  options?: Record<string, any>,
-): Promise<any[]> {
-  const searchParams = new URLSearchParams();
-  if (options) {
-    for (const [key, value] of Object.entries(options)) {
-      if (value !== undefined && value !== null) {
-        searchParams.set(key, String(value));
-      }
+type ChannelFilters = Record<string, unknown>;
+type ChannelSortBase = Record<string, number | "asc" | "desc">;
+type ChannelSort = ChannelSortBase | ChannelSortBase[];
+type ChannelOptions = {
+  limit?: number | string;
+  offset?: number | string;
+  message_limit?: number | string;
+  watch?: boolean;
+  state?: boolean | Record<string, unknown>;
+  presence?: boolean;
+  [key: string]: unknown;
+};
+
+type RoomRecord = {
+  cid?: string | null;
+  uuid?: string | null;
+  id?: string | number | null;
+  type?: string | null;
+  name?: string | null;
+  data?: Record<string, unknown> | null;
+  status?: string | null;
+  visible?: boolean | null;
+  client?: unknown;
+  agent?: unknown;
+  url?: string | null;
+  messages?: APIMessage[] | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  [key: string]: unknown;
+};
+
+type SortDescriptor = { field: string; direction: 1 | -1 };
+
+type HydratedChannel = {
+  channel: Channel;
+  room: RoomRecord;
+  lastMessageAt?: number;
+  createdAt?: number;
+  updatedAt?: number;
+  index: number;
+};
+
+type ErrorWithStatus = Error & { status?: number };
+
+const DEFAULT_CHANNEL_TYPE = "messaging";
+const MAX_LATEST_MESSAGES = 50;
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
     }
   }
+  return undefined;
+};
+
+const toTimestamp = (value: unknown): number | undefined => {
+  if (value instanceof Date) {
+    const time = value.getTime();
+    return Number.isNaN(time) ? undefined : time;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value) {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+};
+
+const normalizeSortDescriptors = (sort?: ChannelSort): SortDescriptor[] => {
+  const descriptors: SortDescriptor[] = [];
+
+  const pushDescriptor = (field: string, rawDirection: unknown) => {
+    if (!field) return;
+    let direction: 1 | -1 = 1;
+    if (typeof rawDirection === "number") {
+      direction = rawDirection < 0 ? -1 : 1;
+    } else if (typeof rawDirection === "string") {
+      direction = rawDirection.toLowerCase() === "desc" ? -1 : 1;
+    }
+    descriptors.push({ field, direction });
+  };
+
+  if (Array.isArray(sort)) {
+    for (const entry of sort) {
+      if (!entry || typeof entry !== "object") continue;
+      for (const [field, raw] of Object.entries(entry)) {
+        pushDescriptor(field, raw);
+      }
+    }
+  } else if (sort && typeof sort === "object") {
+    for (const [field, raw] of Object.entries(sort)) {
+      pushDescriptor(field, raw);
+    }
+  }
+
+  if (!descriptors.length) {
+    descriptors.push({ field: "last_message_at", direction: -1 });
+  }
+
+  return descriptors;
+};
+
+const matchesFilterValue = (candidate: unknown, expected: unknown): boolean => {
+  if (expected === undefined || expected === null) return true;
+  if (Array.isArray(expected)) {
+    return expected.some((item) => matchesFilterValue(candidate, item));
+  }
+  if (typeof expected === "object") {
+    // complex filters (e.g. $or) are not supported in the shim yet – don't exclude the row
+    return true;
+  }
+  if (candidate === expected) return true;
+  if (typeof candidate === "number" || typeof candidate === "boolean") {
+    return candidate === expected;
+  }
+  if (typeof candidate === "string") {
+    return candidate === String(expected);
+  }
+  if (candidate === undefined || candidate === null) return false;
+  return String(candidate) === String(expected);
+};
+
+const matchesRoomFilters = (
+  room: RoomRecord,
+  filters?: ChannelFilters,
+): boolean => {
+  if (!filters || typeof filters !== "object") return true;
+
+  for (const [key, expected] of Object.entries(filters)) {
+    if (expected === undefined || expected === null) continue;
+
+    const fromRoom = (room as Record<string, unknown>)[key];
+    const fromData =
+      room.data && typeof room.data === "object"
+        ? (room.data as Record<string, unknown>)[key]
+        : undefined;
+
+    if (fromRoom === undefined && fromData === undefined) {
+      // unsupported filter – ignore rather than excluding the room entirely
+      continue;
+    }
+
+    const candidate = fromRoom !== undefined ? fromRoom : fromData;
+    if (!matchesFilterValue(candidate, expected)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const ensureCid = (room: RoomRecord): string | undefined => {
+  if (typeof room.cid === "string" && room.cid) {
+    return room.cid;
+  }
+  const type =
+    typeof room.type === "string" && room.type ? room.type : DEFAULT_CHANNEL_TYPE;
+  const identifier = room.uuid ?? room.id;
+  if (identifier === undefined || identifier === null) {
+    return undefined;
+  }
+  return `${type}:${String(identifier)}`;
+};
+
+const parseRoomMessages = (
+  room: RoomRecord,
+  messageLimit?: number,
+): APIMessage[] => {
+  const rawMessages = Array.isArray(room.messages)
+    ? room.messages.filter((msg): msg is APIMessage =>
+        Boolean(msg && typeof msg === "object" && "id" in (msg as object)),
+      )
+    : [];
+
+  if (!rawMessages.length || messageLimit === 0) {
+    return [];
+  }
+
+  rawMessages.sort((a, b) => {
+    const aTs = toTimestamp(a.created_at) ?? 0;
+    const bTs = toTimestamp(b.created_at) ?? 0;
+    return aTs - bTs;
+  });
+
+  if (messageLimit !== undefined && messageLimit >= 0 && rawMessages.length > messageLimit) {
+    return rawMessages.slice(-messageLimit);
+  }
+
+  return rawMessages;
+};
+
+const updateChannelPagination = (channel: Channel, hasPrev: boolean): void => {
+  const pagination = channel.state.messagePagination ?? { hasPrev: false, hasNext: false };
+  pagination.hasPrev = hasPrev;
+  pagination.hasNext = false;
+  channel.state.messagePagination = pagination;
+  channel.stateStore?.dispatch?.({
+    messagePagination: { ...pagination },
+  });
+};
+
+const updateLatestMessages = (channel: Channel): void => {
+  const latest = Array.isArray(channel.state.messages)
+    ? channel.state.messages.slice(-MAX_LATEST_MESSAGES)
+    : [];
+  const stateWithLatest = channel.state as typeof channel.state & {
+    latestMessages?: typeof latest;
+  };
+  stateWithLatest.latestMessages = latest;
+  channel.stateStore?.dispatch?.({ latestMessages: latest } as any);
+};
+
+const hydrateChannelFromRoom = async (
+  client: StreamChat,
+  room: RoomRecord,
+  messageLimit?: number,
+): Promise<Omit<HydratedChannel, "index"> | null> => {
+  const cid = ensureCid(room);
+  if (!cid) return null;
+
+  const [rawType, rawId] = cid.split(":");
+  const channelType =
+    typeof room.type === "string" && room.type ? room.type : rawType || DEFAULT_CHANNEL_TYPE;
+  const channelId = rawId || String(room.uuid ?? room.id ?? "");
+  if (!channelId) return null;
+
+  const baseData =
+    room.data && typeof room.data === "object"
+      ? { ...(room.data as Record<string, unknown>) }
+      : {};
+
+  if (typeof room.name === "string" && room.name) {
+    baseData.name = room.name;
+  }
+  if (room.status !== undefined) {
+    baseData.status = room.status;
+  }
+  if (room.visible !== undefined) {
+    baseData.visible = room.visible;
+  }
+  if (room.client !== undefined) {
+    baseData.client = room.client;
+  }
+  if (room.agent !== undefined) {
+    baseData.agent = room.agent;
+  }
+  if (room.url !== undefined) {
+    baseData.url = room.url;
+  }
+
+  const channel = client.channel(channelType, channelId, {
+    cid,
+    id: channelId,
+    data: baseData,
+  }) as Channel;
+
+  channel.data = { ...channel.data, ...baseData };
+
+  const messages = parseRoomMessages(room, messageLimit);
+  for (const message of messages) {
+    await loadMessageIntoChannelState(channel, message);
+  }
+
+  updateChannelPagination(
+    channel,
+    Array.isArray(room.messages) && room.messages.length > messages.length,
+  );
+  updateLatestMessages(channel);
+
+  const lastMessage = messages[messages.length - 1];
+  const lastMessageAt = lastMessage
+    ? toTimestamp(lastMessage.updated_at ?? lastMessage.created_at)
+    : undefined;
+
+  if (lastMessageAt !== undefined) {
+    channel.data.last_message_at = new Date(lastMessageAt).toISOString();
+  }
+
+  return {
+    channel,
+    room,
+    lastMessageAt,
+    createdAt: toTimestamp(room.created_at),
+    updatedAt: toTimestamp(room.updated_at),
+  };
+};
+
+const extractRooms = (payload: unknown): RoomRecord[] => {
+  if (Array.isArray(payload)) {
+    return payload.filter((item): item is RoomRecord => Boolean(item && typeof item === "object"));
+  }
+
+  if (payload && typeof payload === "object") {
+    const maybeResults = (payload as { results?: unknown }).results;
+    if (Array.isArray(maybeResults)) {
+      return maybeResults.filter((item): item is RoomRecord =>
+        Boolean(item && typeof item === "object"),
+      );
+    }
+  }
+
+  return [];
+};
+
+const getSortFieldValue = (item: HydratedChannel, field: string): unknown => {
+  switch (field) {
+    case "last_message_at":
+      return item.lastMessageAt;
+    case "created_at":
+      return item.createdAt;
+    case "updated_at":
+      return item.updatedAt;
+    case "cid":
+      return item.channel.cid;
+    case "id":
+      return item.channel.id;
+    case "name":
+      return item.channel.data?.name ?? item.room.name;
+    case "member_count":
+      return Object.keys(item.channel.state.members ?? {}).length;
+    case "unread_count":
+      return typeof item.channel.countUnread === "function"
+        ? item.channel.countUnread()
+        : 0;
+    default: {
+      const channelValue =
+        item.channel.data && typeof item.channel.data === "object"
+          ? (item.channel.data as Record<string, unknown>)[field]
+          : undefined;
+      if (channelValue !== undefined) return channelValue;
+      return (item.room as Record<string, unknown>)[field];
+    }
+  }
+};
+
+const compareValuesWithDirection = (
+  aValue: unknown,
+  bValue: unknown,
+  direction: 1 | -1,
+): number => {
+  if (aValue === bValue) return 0;
+
+  const aMissing = aValue === undefined || aValue === null;
+  const bMissing = bValue === undefined || bValue === null;
+  if (aMissing || bMissing) {
+    if (aMissing && bMissing) return 0;
+    return aMissing ? 1 : -1;
+  }
+
+  const aTimestamp = toTimestamp(aValue);
+  const bTimestamp = toTimestamp(bValue);
+  if (aTimestamp !== undefined && bTimestamp !== undefined) {
+    if (aTimestamp === bTimestamp) return 0;
+    return aTimestamp < bTimestamp ? -direction : direction;
+  }
+
+  if (typeof aValue === "number" && typeof bValue === "number") {
+    if (aValue === bValue) return 0;
+    return aValue < bValue ? -direction : direction;
+  }
+
+  const aString = String(aValue).toLowerCase();
+  const bString = String(bValue).toLowerCase();
+  if (aString === bString) return 0;
+  return aString < bString ? -direction : direction;
+};
+
+const compareHydratedChannels = (
+  a: HydratedChannel,
+  b: HydratedChannel,
+  descriptors: SortDescriptor[],
+): number => {
+  for (const { field, direction } of descriptors) {
+    const diff = compareValuesWithDirection(
+      getSortFieldValue(a, field),
+      getSortFieldValue(b, field),
+      direction,
+    );
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+
+  return a.index - b.index;
+};
+
+export async function clientQueryChannels(
+  client: StreamChat,
+  filters: ChannelFilters = {},
+  sort: ChannelSort = {},
+  options: ChannelOptions = {},
+): Promise<Channel[]> {
+  const searchParams = new URLSearchParams();
+  const limit = toFiniteNumber(options.limit);
+  const offset = toFiniteNumber(options.offset);
+
+  if (limit !== undefined) {
+    searchParams.set("limit", String(limit));
+  }
+  if (offset !== undefined) {
+    searchParams.set("offset", String(offset));
+  }
+
+  for (const [key, value] of Object.entries(options)) {
+    if (value === undefined || value === null) continue;
+    if (key === "limit" || key === "offset" || key === "message_limit") continue;
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      searchParams.set(key, String(value));
+    }
+  }
+
   const query = searchParams.toString();
-  const resp = await fetch(`/api/rooms/${query ? `?${query}` : ""}`, {
+  const response = await fetch(`/api/rooms/${query ? `?${query}` : ""}`, {
     credentials: "same-origin",
   });
-  return resp.json();
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to query channels (status ${response.status})`,
+    );
+    (error as ErrorWithStatus).status = response.status;
+    throw error;
+  }
+
+  const payload = (await response.json()) as unknown;
+  const rooms = extractRooms(payload);
+  const messageLimit = toFiniteNumber(options.message_limit);
+
+  const hydrated: HydratedChannel[] = [];
+  const seen = new Set<string>();
+
+  for (const room of rooms) {
+    if (!matchesRoomFilters(room, filters)) {
+      continue;
+    }
+
+    const metadata = await hydrateChannelFromRoom(client, room, messageLimit);
+    if (!metadata) continue;
+
+    const { channel } = metadata;
+    if (seen.has(channel.cid)) {
+      continue;
+    }
+    seen.add(channel.cid);
+
+    hydrated.push({ ...metadata, index: hydrated.length });
+  }
+
+  const descriptors = normalizeSortDescriptors(sort);
+  hydrated.sort((a, b) => compareHydratedChannels(a, b, descriptors));
+
+  return hydrated.map(({ channel }) => channel);
 }
 
 export async function clientQueryUsers(

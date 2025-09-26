@@ -222,7 +222,20 @@ export const useChannelSearch = ({
         [];
       try {
         if (searchForChannels) {
-          promises.push(clientQueryChannels(client));
+          const {
+            filters: channelFiltersConfig,
+            sort: channelSortConfig,
+            options: channelOptionsConfig,
+          } = searchQueryParams?.channelFilters ?? {};
+
+          promises.push(
+            clientQueryChannels(
+              client,
+              channelFiltersConfig ?? {},
+              channelSortConfig ?? {},
+              channelOptionsConfig ?? {},
+            ),
+          );
         }
 
         if (searchForUsers) {
