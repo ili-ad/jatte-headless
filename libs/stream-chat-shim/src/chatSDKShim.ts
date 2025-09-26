@@ -92,14 +92,16 @@ type ChannelMessageLike = {
   user?: ChannelUserLike | null;
 } & Record<string, unknown>;
 
+type NormalizedChannelMessage = ChannelMessageLike & { id: string };
+type LoadMessageIntoStateInput = APIMessage | NormalizedChannelMessage;
+type ChannelStateLoadMessageIntoStateFn = (
+  message: LoadMessageIntoStateInput,
+) => Promise<NormalizedChannelMessage>;
+
 type ChannelStateLike = {
   messages?: ChannelMessageLike[];
   messagePagination?: { hasPrev?: boolean; hasNext?: boolean };
-  loadMessageIntoState?: (
-    id: string,
-    around?: string,
-    limit?: number,
-  ) => Promise<any>;
+  loadMessageIntoState?: ChannelStateLoadMessageIntoStateFn;
   addMessageSorted?: (
     message: Record<string, unknown>,
     timestampChanged?: boolean,
@@ -112,8 +114,6 @@ type ChannelWithLocalState = {
   state?: ChannelStateLike;
   stateStore?: StateStore<any>;
 };
-
-type NormalizedChannelMessage = ChannelMessageLike & { id: string };
 
 type ChannelQueryResult = {
   messages: NormalizedChannelMessage[];
@@ -213,11 +213,39 @@ const normalizeChannelMessage = (
   return existing ? { ...existing, ...base } : base;
 };
 
+const isNormalizedChannelMessageInput = (
+  message: LoadMessageIntoStateInput,
+): message is NormalizedChannelMessage => {
+  if (!message || typeof message !== "object") return false;
+
+  const candidate = message as Partial<NormalizedChannelMessage>;
+  return (
+    typeof candidate.id === "string" && typeof candidate.cid === "string"
+  );
+};
+
+function toNormalizedChannelMessage(
+  channel: ChannelWithLocalState,
+  message: LoadMessageIntoStateInput,
+): NormalizedChannelMessage {
+  if (isNormalizedChannelMessageInput(message)) {
+    const existing = channel.state?.messages?.find?.(
+      (msg) =>
+        String((msg as { id?: string | number }).id ?? "") === message.id,
+    ) as NormalizedChannelMessage | undefined;
+
+    return existing ? { ...existing, ...message } : { ...message };
+  }
+
+  return normalizeChannelMessage(channel, message);
+}
+
 const updateChannelStateWithMessages = (
   channel: ChannelWithLocalState,
   incoming: NormalizedChannelMessage[],
   paginationUpdate?: { hasPrev?: boolean; hasNext?: boolean },
 ) => {
+  ensureChannelStateLoadMessageIntoState(channel);
   if (!channel.state) return;
 
   const existingMessages = Array.isArray(channel.state.messages)
@@ -256,6 +284,40 @@ const updateChannelStateWithMessages = (
     });
   }
 };
+
+function ensureChannelStateLoadMessageIntoState(
+  channel: ChannelWithLocalState,
+): ChannelStateLoadMessageIntoStateFn | undefined {
+  const state = channel.state;
+  if (!state) return undefined;
+
+  if (typeof state.loadMessageIntoState === "function") {
+    return state.loadMessageIntoState;
+  }
+
+  const load: ChannelStateLoadMessageIntoStateFn = async (message) => {
+    const normalized = toNormalizedChannelMessage(channel, message);
+    updateChannelStateWithMessages(channel, [normalized]);
+    return normalized;
+  };
+
+  state.loadMessageIntoState = load;
+  return load;
+}
+
+export function loadMessageIntoChannelState(
+  channel: ChannelWithLocalState,
+  message: LoadMessageIntoStateInput,
+): Promise<NormalizedChannelMessage> {
+  const loader = ensureChannelStateLoadMessageIntoState(channel);
+  if (loader) {
+    return loader(message);
+  }
+
+  const normalized = toNormalizedChannelMessage(channel, message);
+  updateChannelStateWithMessages(channel, [normalized]);
+  return Promise.resolve(normalized);
+}
 
 const extractMessageOptions = (
   options?: ShimChannelQueryOptions,
@@ -654,6 +716,7 @@ export const chatSDKShim = {
   async castVote(params: CastVoteParams): Promise<CastVoteResult> {
     return castVoteInternal(params);
   },
+  channelCountUnread,
 };
 
 export const chatSDK = {
@@ -1051,9 +1114,18 @@ export async function channelStateLoadMessageIntoState(
   messageId: string,
   around?: string,
   messageLimit?: number,
-): Promise<any> {
-  if (channel.state?.loadMessageIntoState) {
-    return channel.state.loadMessageIntoState(messageId, around, messageLimit);
+): Promise<NormalizedChannelMessage | undefined> {
+  if (messageId === "latest") {
+    const latestMessage = channel.state?.messages?.[
+      (channel.state?.messages?.length ?? 1) - 1
+    ];
+    if (latestMessage) {
+      return loadMessageIntoChannelState(
+        channel,
+        latestMessage as LoadMessageIntoStateInput,
+      );
+    }
+    return undefined;
   }
 
   const numericMessageId = Number(messageId);
@@ -1066,10 +1138,7 @@ export async function channelStateLoadMessageIntoState(
     message_id: numericMessageId,
   });
 
-  const normalizedMessage = normalizeChannelMessage(channel, apiMessage);
-  updateChannelStateWithMessages(channel, [normalizedMessage]);
-
-  return normalizedMessage;
+  return loadMessageIntoChannelState(channel, apiMessage);
 }
 
 export async function channelWatch(

@@ -97,6 +97,7 @@ import {
   channelMarkRead,
   channelQuery,
   channelStateLoadMessageIntoState,
+  loadMessageIntoChannelState,
 } from "../../chatSDKShim";
 import { chatAPI } from "../../api/chatAPI";
 
@@ -996,8 +997,7 @@ const ChannelInner = (
   );
 
   const updateMessage = (updatedMessage: MessageResponse | LocalMessage) => {
-    // add the message to the local channel state
-    channel.state.addMessageSorted(updatedMessage, true);
+    void loadMessageIntoChannelState(channel, updatedMessage);
 
     dispatch({
       channel,
