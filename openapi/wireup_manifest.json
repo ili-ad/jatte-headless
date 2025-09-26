@@ -392,7 +392,7 @@
     "operationId": "shim::client.threads.deactivate",
     "stubName": "client.threads.deactivate",
     "ticketType": "shim",
-    "todoCount": 2,
+    "todoCount": 0,
     "status": "ok"
   },
   {
