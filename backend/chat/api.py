@@ -11,6 +11,7 @@ import jwt
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 
 from .serializers import RegisterSubscriptionsSerializer
+from .webpush import broadcast_subscriptions_registered
 
 @api_view(["GET"])
 def ws_auth(request):
@@ -121,7 +122,9 @@ def register_subscriptions(request):
     """Register web push subscriptions and echo them back."""
     serializer = RegisterSubscriptionsSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    client_id = serializer.validated_data.get("client_id")
     data = serializer.save(user=request.user)
+    broadcast_subscriptions_registered(request.user, client_id, data)
     return Response(data, status=status.HTTP_201_CREATED)
 
 

@@ -131,7 +131,7 @@
     "operationId": "registerSubscriptions",
     "stubName": "threads.registerSubscriptions",
     "ticketType": "api",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {
@@ -140,7 +140,7 @@
     "operationId": "registerSubscriptions",
     "stubName": "polls.registerSubscriptions",
     "ticketType": "api",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {
@@ -149,7 +149,7 @@
     "operationId": "registerSubscriptions",
     "stubName": "reminders.registerSubscriptions",
     "ticketType": "api",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {

@@ -1,16 +1,26 @@
-from django.conf import settings
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+from django.conf import settings as django_settings
 from django.urls import reverse
 import jwt
 from rest_framework.test import APITestCase
 
-from chat.models import WebPushSubscription
+from chat.models import Room, WebPushSubscription
+
+
+@pytest.fixture
+def settings():  # type: ignore[override]
+    from django.conf import settings as django_settings
+
+    return django_settings
 
 
 class RegisterSubscriptionsAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
         return jwt.encode(
             {"sub": sub, "email": email},
-            settings.SUPABASE_JWT_SECRET,
+            django_settings.SUPABASE_JWT_SECRET,
             algorithm="HS256",
         )
 
@@ -92,6 +102,45 @@ class RegisterSubscriptionsAPITests(APITestCase):
         self.assertEqual(stored.auth, "changed")
         self.assertEqual(stored.expiration_time, 123.0)
         self.assertEqual(stored.platform, "ios")
+
+    @patch("chat.webpush.get_channel_layer")
+    def test_broadcasts_subscription_event(self, mock_get_channel_layer):
+        token = self.make_token()
+        room = Room.objects.create(uuid="room-1", client="c1")
+
+        channel_layer = Mock()
+        channel_layer.group_send = AsyncMock()
+        mock_get_channel_layer.return_value = channel_layer
+
+        url = reverse("register-subscriptions")
+        payload = {
+            "subscriptions": [
+                {
+                    "endpoint": "https://push.example/1",
+                    "keys": {"p256dh": "pkey", "auth": "akey"},
+                }
+            ],
+            "client_id": f"messaging:{room.uuid}",
+        }
+
+        response = self.client.post(
+            url,
+            payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        channel_layer.group_send.assert_awaited_once()
+        group_name, event = channel_layer.group_send.await_args.args
+        self.assertEqual(group_name, f"channel_{room.uuid}")
+        self.assertEqual(event["type"], "chat.message")
+        payload_sent = event["payload"]
+        self.assertEqual(payload_sent["type"], "push.subscription.registered")
+        self.assertEqual(payload_sent["cid"], f"messaging:{room.uuid}")
+        self.assertEqual(payload_sent.get("subscriptions"), response.data["subscriptions"])
+        self.assertEqual(payload_sent.get("client_id"), f"messaging:{room.uuid}")
+        self.assertEqual(payload_sent.get("user"), "u1")
 
     def test_requires_auth(self):
         url = reverse("register-subscriptions")
