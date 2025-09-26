@@ -303,7 +303,7 @@
     "stubName": "channel.state.loadMessageIntoState",
     "ticketType": "shim",
     "todoCount": 4,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
