@@ -10,6 +10,7 @@ import { useChannelListContext, useChatContext } from "../../../context";
 import { DEFAULT_JUMP_TO_PAGE_SIZE } from "../../../constants/limits";
 import {
   channelStateLoadMessageIntoState,
+  channelWatch,
   clientChannel,
 } from "../../../chatSDKShim";
 
@@ -102,16 +103,25 @@ export const UserSearchResultItem = ({ item }: UserSearchResultItemProps) => {
   const { setChannels } = useChannelListContext();
   const { directMessagingChannelType } = useSearchContext();
 
-  const onClick = useCallback(() => {
+  const onClick = useCallback(async () => {
+    if (!client.userID) return;
     const newChannel = clientChannel(
       client,
       directMessagingChannelType,
-      item.id,
-    ) as Channel;
-    /* TODO backend-wire-up: channel.watch */
+      undefined,
+      { members: [client.userID, item.id] },
+    ) as Channel | undefined;
+    if (!newChannel) return;
+    await channelWatch(newChannel);
     setActiveChannel(newChannel);
     setChannels?.((channels) => uniqBy([newChannel, ...channels], "cid"));
-  }, [item, setActiveChannel, setChannels, directMessagingChannelType]);
+  }, [
+    client,
+    directMessagingChannelType,
+    item.id,
+    setActiveChannel,
+    setChannels,
+  ]);
 
   return (
     <button
