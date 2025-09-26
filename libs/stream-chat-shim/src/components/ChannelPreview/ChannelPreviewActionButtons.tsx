@@ -48,7 +48,7 @@ export function ChannelPreviewActionButtons({
         onClick={(e) => {
           e.stopPropagation();
           if (membership.archived_at) {
-            /* TODO backend-wire-up: channel.unarchive */
+            void chatSDK.channel.unarchive(channel);
           } else {
             void chatSDK.channel.archive(channel);
           }
