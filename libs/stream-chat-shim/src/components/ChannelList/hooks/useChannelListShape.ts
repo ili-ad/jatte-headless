@@ -13,7 +13,6 @@ import {
 } from '../utils';
 import { useChatContext } from '../../../context';
 import { getChannel } from '../../../utils';
-import { clientChannel } from '../../../chatSDKShim';
 import type { ChannelListProps } from '../ChannelList';
 
 type SetChannels = Dispatch<SetStateAction<Channel[]>>;
@@ -111,8 +110,7 @@ export const useChannelListShapeDefaults = () => {
       if (!channelType || !channelId) return;
 
       setChannels((currentChannels) => {
-        const targetChannel = clientChannel(
-          client,
+        const targetChannel = client.channel(
           channelType,
           channelId,
         ) as any;
@@ -285,8 +283,7 @@ export const useChannelListShapeDefaults = () => {
       const pinnedAtSort = extractSortValue({ atIndex: 0, sort, targetKey: 'pinned_at' });
 
       setChannels((currentChannels) => {
-        const targetChannel = clientChannel(
-          client,
+        const targetChannel = client.channel(
           event.channel_type!,
           event.channel_id!,
         ) as any;
