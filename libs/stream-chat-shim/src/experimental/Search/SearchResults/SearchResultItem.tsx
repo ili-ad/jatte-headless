@@ -11,7 +11,6 @@ import { DEFAULT_JUMP_TO_PAGE_SIZE } from "../../../constants/limits";
 import {
   channelStateLoadMessageIntoState,
   channelWatch,
-  clientChannel,
 } from "../../../chatSDKShim";
 
 export type ChannelSearchResultItemProps = {
@@ -57,8 +56,8 @@ export const MessageSearchResultItem = ({
     const { channel: channelData } = item;
     const type = channelData?.type ?? "unknown";
     const id = channelData?.id ?? "unknown";
-    return clientChannel(client, type, id) as Channel;
-  }, [item]);
+    return client.channel(type, id) as Channel;
+  }, [client, item]);
 
   const onSelect = useCallback(async () => {
     if (!channel) return;
@@ -105,11 +104,11 @@ export const UserSearchResultItem = ({ item }: UserSearchResultItemProps) => {
 
   const onClick = useCallback(async () => {
     if (!client.userID) return;
-    const newChannel = clientChannel(
-      client,
+    const newChannel = client.channel(
       directMessagingChannelType,
-      undefined,
-      { members: [client.userID, item.id] },
+      {
+        members: [client.userID, item.id],
+      },
     ) as Channel | undefined;
     if (!newChannel) return;
     await channelWatch(newChannel);

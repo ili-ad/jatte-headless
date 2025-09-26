@@ -105,6 +105,9 @@ export class LocalChannel {
   /** Minimal state object mimicking Stream's ChannelState */
   readonly state: ChannelState;
 
+  /** Data bag mimicking Stream's Channel.data */
+  data: Record<string, any> = {};
+
   /** Minimal message composer so <MessageInput> works */
   readonly messageComposer: MessageComposer;
 
@@ -299,6 +302,131 @@ export class LocalChannel {
   }
 }
 
+type ChannelMemberLike =
+  | string
+  | number
+  | {
+      id?: string | number | null;
+      user_id?: string | number | null;
+      user?: { id?: string | number | null } | null;
+      [key: string]: unknown;
+    };
+
+type ChannelCreateConfig = {
+  cid?: string;
+  id?: string;
+  members?: ChannelMemberLike[];
+  data?: { members?: ChannelMemberLike[] } & Record<string, unknown>;
+} & Record<string, unknown>;
+
+type NormalizedMember = {
+  user_id: string;
+  user: { id: string } & Record<string, unknown>;
+} & Record<string, unknown>;
+
+const toMemberId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value) return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const normalizeMember = (
+  input: ChannelMemberLike | undefined,
+): { id: string; record: NormalizedMember } | undefined => {
+  if (input === null || input === undefined) return undefined;
+  if (typeof input === "string" || typeof input === "number") {
+    const id = String(input);
+    return { id, record: { user_id: id, user: { id } } };
+  }
+
+  if (typeof input !== "object") return undefined;
+
+  const candidate =
+    toMemberId((input as { user_id?: unknown }).user_id) ??
+    toMemberId((input as { id?: unknown }).id) ??
+    toMemberId((input as { user?: { id?: unknown } | null }).user?.id);
+
+  if (!candidate) return undefined;
+
+  const record: NormalizedMember = {
+    ...input,
+    user_id: candidate,
+    user: {},
+  } as NormalizedMember;
+
+  const rawUser = (input as { user?: unknown }).user;
+  const baseUser =
+    rawUser && typeof rawUser === "object" ? { ...(rawUser as Record<string, unknown>) } : {};
+  record.user = {
+    ...baseUser,
+    id: baseUser.id !== undefined ? String(baseUser.id) : candidate,
+  } as { id: string } & Record<string, unknown>;
+
+  return { id: candidate, record };
+};
+
+const collectMembers = (
+  config?: ChannelCreateConfig,
+): {
+  ids: string[];
+  records: NormalizedMember[];
+  map: Record<string, NormalizedMember>;
+} => {
+  const rawMembers: ChannelMemberLike[] = [];
+  if (config?.members && Array.isArray(config.members)) {
+    rawMembers.push(...config.members);
+  }
+  const dataMembers = config?.data?.members;
+  if (dataMembers && Array.isArray(dataMembers)) {
+    rawMembers.push(...dataMembers);
+  }
+
+  const memberMap = new Map<string, NormalizedMember>();
+
+  for (const raw of rawMembers) {
+    const normalized = normalizeMember(raw);
+    if (!normalized) continue;
+    const existing = memberMap.get(normalized.id);
+    memberMap.set(
+      normalized.id,
+      existing ? { ...existing, ...normalized.record } : normalized.record,
+    );
+  }
+
+  const ids = Array.from(memberMap.keys()).sort();
+  const records = ids.map((id) => memberMap.get(id)!) as NormalizedMember[];
+  const map: Record<string, NormalizedMember> = {};
+  for (const record of records) {
+    map[record.user_id] = record;
+  }
+
+  return { ids, records, map };
+};
+
+const buildChannelData = (
+  config: ChannelCreateConfig | undefined,
+  members: NormalizedMember[],
+): Record<string, unknown> | undefined => {
+  if (!config && members.length === 0) return undefined;
+
+  const { data, members: _members, cid: _cid, ...rest } = config ?? {};
+  const base: Record<string, unknown> = {};
+
+  if (data && typeof data === "object") {
+    Object.assign(base, data);
+  }
+
+  Object.assign(base, rest);
+
+  if (members.length) {
+    base.members = members.map((member) => ({ ...member }));
+  }
+
+  return Object.keys(base).length ? base : undefined;
+};
+
 /* ---------------------------- Chat-client shim --------------------------- */
 
 type Handler = (e: any) => void;
@@ -446,8 +574,43 @@ export class LocalChatClient {
     return { users: data };
   }
 
-  channel(type: string, id?: string) {
-    const cid = `${type}:${id ?? "local"}`;
+  channel(
+    type: string,
+    idOrConfig?: string | ChannelCreateConfig,
+    maybeConfig?: ChannelCreateConfig,
+  ) {
+    let channelId: string | undefined;
+    let config: ChannelCreateConfig | undefined;
+
+    if (typeof idOrConfig === "string" || idOrConfig === undefined) {
+      channelId = typeof idOrConfig === "string" ? idOrConfig : undefined;
+      config =
+        maybeConfig && typeof maybeConfig === "object"
+          ? { ...maybeConfig }
+          : maybeConfig;
+    } else {
+      config = { ...idOrConfig };
+      if (maybeConfig && typeof maybeConfig === "object") {
+        config = { ...config, ...maybeConfig };
+      }
+      if (typeof config?.id === "string" && config.id) {
+        channelId = config.id;
+      }
+    }
+
+    const members = collectMembers(config);
+
+    if (!channelId && config?.cid) {
+      const [, derivedId] = String(config.cid).split(":");
+      channelId = derivedId ?? String(config.cid);
+    }
+
+    if (!channelId) {
+      channelId = members.ids.length ? `!members-${members.ids.join(",")}` : "local";
+    }
+
+    const cid = config?.cid ?? `${type}:${channelId}`;
+
     if (!this.channels.has(cid)) {
       const url = `ws://${location.host}/ws/${cid}/?token=${this.jwt}`;
       const sock = new WebSocket(url);
@@ -461,7 +624,32 @@ export class LocalChatClient {
       this.activeChannels[cid] = chan;
       (this.state.channels as Map<string, any>).set(cid, chan);
     }
-    return this.channels.get(cid)!;
+
+    const channel = this.channels.get(cid)!;
+
+    const dataPatch = buildChannelData(config, members.records);
+    if (dataPatch) {
+      channel.data = { ...channel.data, ...dataPatch };
+    }
+
+    if (members.records.length) {
+      const nextMembers = { ...channel.state.members, ...members.map };
+      channel.state.members = nextMembers;
+      channel.stateStore.dispatch({ members: nextMembers });
+
+      const currentUserId = this.user?.id ?? this.userId;
+      if (currentUserId && nextMembers[currentUserId]) {
+        const nextMembership = {
+          ...(channel.state.membership ?? {}),
+          user_id: currentUserId,
+          user: nextMembers[currentUserId].user ?? { id: currentUserId },
+        };
+        channel.state.membership = nextMembership;
+        channel.stateStore.dispatch({ membership: nextMembership });
+      }
+    }
+
+    return channel;
   }
 
   disconnectUser() {

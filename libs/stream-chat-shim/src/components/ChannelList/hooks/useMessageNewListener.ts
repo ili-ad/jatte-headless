@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import uniqBy from 'lodash.uniqby';
 
 import { moveChannelUp } from '../utils';
-import { clientChannel } from '../../../chatSDKShim';
 
 import { useChatContext } from '../../../context/ChatContext';
 
@@ -33,8 +32,7 @@ export const useMessageNewListener = (
             allowNewMessagesFromUnfilteredChannels &&
             event.channel_type
           ) {
-            const channel = clientChannel(
-              client,
+            const channel = client.channel(
               event.channel_type,
               event.channel_id,
             ) as any;
