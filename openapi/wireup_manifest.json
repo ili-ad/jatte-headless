@@ -366,7 +366,7 @@
     "stubName": "client.queryChannels",
     "ticketType": "shim",
     "todoCount": 3,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
