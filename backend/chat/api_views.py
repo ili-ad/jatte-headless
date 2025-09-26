@@ -52,6 +52,7 @@ from .serializers import (
     RoomSerializer,
     UserMuteUnmuteSerializer,
 )
+from .webpush import broadcast_subscriptions_registered
 
 
 def _user_can_access_room(user, room) -> bool:
@@ -1464,5 +1465,7 @@ class RegisterSubscriptionsView(APIView):
     def post(self, request):
         serializer = RegisterSubscriptionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        client_id = serializer.validated_data.get("client_id")
         data = serializer.save(user=request.user)
+        broadcast_subscriptions_registered(request.user, client_id, data)
         return Response(data, status=status.HTTP_201_CREATED)
