@@ -6,7 +6,7 @@ import { useChannelMembershipState } from '../ChannelList';
 import { Icon } from './icons';
 import { useTranslationContext } from '../../context';
 
-import { channelUnpin } from '../../chatSDKShim';
+import { channelUnpin, chatSDK } from '../../chatSDKShim';
 export type ChannelPreviewActionButtonsProps = {
   channel: Channel;
 };
@@ -50,6 +50,7 @@ export function ChannelPreviewActionButtons({
           if (membership.archived_at) {
             /* TODO backend-wire-up: channel.unarchive */
           } else {
+            void chatSDK.channel.archive(channel);
           }
         }}
         title={membership.archived_at ? t('Unarchive') : t('Archive')}
