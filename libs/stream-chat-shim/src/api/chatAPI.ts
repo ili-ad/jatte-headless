@@ -1,6 +1,7 @@
 import {
   chatSDKShim,
   clientThreadsActivate as clientThreadsActivateShim,
+  clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
 } from '../chatSDKShim';
 
 export type {
@@ -111,6 +112,21 @@ export type ChannelQueryRequest = {
 export type ChannelQueryResponse = {
   messages: Message[];
   next: number | null;
+};
+
+export type ThreadMessage = Message;
+
+export type LoadNextPageArgs = {
+  cid?: string;
+  parentId?: string;
+  limit?: number;
+  cursor?: string;
+};
+
+export type ThreadPage = {
+  messages: ThreadMessage[];
+  nextCursor?: string;
+  hasMore: boolean;
 };
 
 export type ChannelCountUnreadParams = {
@@ -856,6 +872,20 @@ export const chatAPI = {
   },
   client: {
     on: chatSDKShim.client.on,
+    threads: {
+      loadNextPage: ({
+        client,
+        ...args
+      }: {
+        client: {
+          threads?: { loadNextPage?: (options?: unknown) => Promise<unknown> };
+        };
+      } & Partial<LoadNextPageArgs>) =>
+        clientThreadsLoadNextPageShim(
+          client,
+          Object.keys(args).length ? (args as LoadNextPageArgs) : undefined,
+        ),
+    },
   },
   addAnswer,
   clientThreadsActivate,
