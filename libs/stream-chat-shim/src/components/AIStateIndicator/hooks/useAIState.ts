@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AIState, Channel, Event } from 'chat-shim';
+import type { AIState, Channel } from 'chat-shim';
 import { on } from '../../../chatSDKShim';
 
 export const AIStates = {
@@ -23,20 +23,24 @@ export const useAIState = (channel?: Channel): { aiState: AIState } => {
       return;
     }
 
-    const indicatorChangedListener = on(channel, 'ai_indicator.update', (event: Event) => {
-      const { cid } = event;
-      const state = (event as any).ai_state;
-      if (channel.cid === cid) {
-        setAiState(state);
-      }
-    }) ?? { unsubscribe: () => {} };
+    const indicatorChangedListener = on(
+      channel,
+      'ai_indicator.update',
+      (event) => {
+        const { cid } = event;
+        const state = event.ai_state as AIState | undefined;
+        if (channel.cid === cid && state) {
+          setAiState(state);
+        }
+      },
+    );
 
-    const indicatorClearedListener = on(channel, 'ai_indicator.clear', (event: Event) => {
+    const indicatorClearedListener = on(channel, 'ai_indicator.clear', (event) => {
       const { cid } = event;
       if (channel.cid === cid) {
         setAiState(AIStates.Idle);
       }
-    }) ?? { unsubscribe: () => {} };
+    });
 
     return () => {
       indicatorChangedListener.unsubscribe();
