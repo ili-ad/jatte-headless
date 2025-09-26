@@ -40,6 +40,7 @@ export class ChatClient {
     mutedChannels: unknown[] = [];
     mutedUsers: unknown[] = [];
     listeners: Record<string, any[]> = {};
+    private threadCleanupHandlers = new Set<() => void>();
 
     /** Minimal client.state stub holding fetched users */
     state = { users: {} as Record<string, User> };
@@ -108,19 +109,68 @@ export class ChatClient {
         this.tokenManager = new TokenManager(jwt || undefined);
 
         /* Basic threads manager */
+        const threadState = new MiniStore({
+            threads: [] as Message[],
+            unseenThreadIds: [] as string[],
+            unreadThreadCount: 0,
+            pagination: { isLoadingNext: false },
+            activeThread: null as Message | null,
+            activeThreadId: null as string | null,
+            activeThreadCid: null as string | null,
+        });
+
         this.threads = {
-            state: new MiniStore({
-                threads: [] as Message[],
-                unseenThreadIds: [] as string[],
-                unreadThreadCount: 0,
-                pagination: { isLoadingNext: false },
-            }),
-            registerSubscriptions() {/* noop */ },
-            unregisterSubscriptions() {/* noop */ },
-            async reload() { await (this as any).getThreads(); },
-            async loadNextPage() { await (this as any).getThreads(); },
-            activate() {/* noop */ },
-            deactivate() {/* noop */ },
+            state: threadState,
+            registerSubscriptions: () => {
+                /* noop */
+            },
+            unregisterSubscriptions: () => {
+                this.cleanupThreadSubscriptions();
+            },
+            reload: async () => {
+                await this.getThreads();
+            },
+            loadNextPage: async () => {
+                await this.getThreads();
+            },
+            activate: () => {
+                /* noop */
+            },
+            deactivate: () => {
+                this.cleanupThreadSubscriptions();
+
+                const composerSources = [
+                    ...Object.values(this.activeChannels ?? {}),
+                    ...this.stateStore.getSnapshot().channels,
+                ];
+
+                for (const channel of composerSources) {
+                    const composer = channel?.messageComposer as
+                        | { setThreadId?: (id: string | undefined) => void }
+                        | undefined;
+
+                    if (composer && typeof composer.setThreadId === 'function') {
+                        try {
+                            composer.setThreadId(undefined);
+                        } catch {
+                            /* ignore composer cleanup errors */
+                        }
+                    }
+                }
+
+                const snapshot = threadState.getSnapshot();
+                if (
+                    snapshot.activeThread !== null ||
+                    snapshot.activeThreadId !== null ||
+                    snapshot.activeThreadCid !== null
+                ) {
+                    threadState._set({
+                        activeThread: null,
+                        activeThreadId: null,
+                        activeThreadCid: null,
+                    });
+                }
+            },
         } as any;
         this.polls = {
             store: new MiniStore({ polls: [] as any[] }),
@@ -160,6 +210,17 @@ export class ChatClient {
         }
     };
     emit = this.bus.emit.bind(this);
+
+    private cleanupThreadSubscriptions() {
+        this.threadCleanupHandlers.forEach((cleanup) => {
+            try {
+                cleanup();
+            } catch {
+                /* ignore cleanup errors */
+            }
+        });
+        this.threadCleanupHandlers.clear();
+    }
 
     /**
      * Manually dispatch an event to this client and its channels.
