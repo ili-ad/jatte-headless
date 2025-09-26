@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Channel, Event } from 'chat-shim';
 
 import { useChatContext } from '../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../client';
+import { chatAPI } from '../../../api/chatAPI';
 
 export const useChannelHiddenListener = (
   setChannels: React.Dispatch<React.SetStateAction<Array<Channel>>>,
@@ -30,10 +30,14 @@ export const useChannelHiddenListener = (
       }
     };
 
-    clientOn(client, 'channel.hidden', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'channel.hidden',
+      handleEvent,
+    );
 
     return () => {
-      clientOff(client, 'channel.hidden', handleEvent);
+      subscription.unsubscribe();
     };
   }, [client, customHandler, setChannels]);
 };

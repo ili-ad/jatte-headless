@@ -509,8 +509,12 @@ export class LocalChatClient {
       if (this.listeners[evt].length === 0) delete this.listeners[evt];
     }
   };
-  private emit = (evt: string, data: any) =>
+  private emit = (evt: string, data: any) => {
     this.bus.get(evt)?.forEach((cb) => cb(data));
+    if (evt !== "all") {
+      this.bus.get("all")?.forEach((cb) => cb(data));
+    }
+  };
 
   /* ------------------------------------------------------------------- */
   /*  ░░ 3.   ultra-thin “state” & “user” objects the hook assumes exist */
@@ -617,6 +621,7 @@ export class LocalChatClient {
       sock.onmessage = (ev) => {
         const data = JSON.parse(ev.data);
         this.channels.get(data.cid)?.emit(data.type, data);
+        this.emit(data.type, data);
       };
       this.sockets.set(cid, sock);
       const chan = new LocalChannel(cid, sock, () => this.userId, this);

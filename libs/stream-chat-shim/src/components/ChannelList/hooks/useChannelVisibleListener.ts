@@ -4,7 +4,7 @@ import uniqBy from 'lodash.uniqby';
 import { getChannel } from '../../../utils/getChannel';
 
 import { useChatContext } from '../../../context/ChatContext';
-import { clientOff, clientOn } from '../../../client';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { Channel, Event } from 'chat-shim';
 
@@ -31,10 +31,14 @@ export const useChannelVisibleListener = (
       }
     };
 
-    clientOn(client, 'channel.visible', handleEvent);
+    const subscription = chatAPI.client.on(
+      client,
+      'channel.visible',
+      handleEvent,
+    );
 
     return () => {
-      clientOff(client, 'channel.visible', handleEvent);
+      subscription.unsubscribe();
     };
   }, [client, customHandler, setChannels]);
 };

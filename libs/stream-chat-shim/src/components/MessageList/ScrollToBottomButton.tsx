@@ -4,7 +4,6 @@ import clsx from 'clsx';
 import { ArrowDown } from './icons';
 
 import { useChannelStateContext, useChatContext } from '../../context';
-import { clientOff, clientOn } from '../../client';
 import { chatAPI } from '../../api/chatAPI';
 
 import type { Event } from 'chat-shim';
@@ -63,10 +62,10 @@ const UnMemoizedScrollToBottomButton = (
       }
     };
 
-    clientOn(client, observedEvent, handleEvent);
+    const subscription = chatAPI.client.on(client, observedEvent, handleEvent);
 
     return () => {
-      clientOff(client, observedEvent, handleEvent);
+      subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChannel, isMessageListScrolledToBottom, observedEvent, replyCount, thread]);
