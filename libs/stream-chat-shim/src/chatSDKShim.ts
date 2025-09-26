@@ -1,5 +1,5 @@
 import { StateStore } from '../../chat-shim';
-import type { PollOption as ChatShimPollOption, PollVote } from '../../chat-shim';
+import type { Channel, PollOption as ChatShimPollOption, PollVote } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
 import {
@@ -78,6 +78,116 @@ type PollSnapshot = {
   maxVotedOptionIds: string[];
   options: PollOptionWithVotes[];
   vote_count?: number;
+};
+
+type ChannelUserLike = { id?: string | null } & Record<string, unknown>;
+
+type ChannelMessageLike = {
+  cid?: string;
+  id?: string;
+  parent_id?: string | null;
+  reply_count?: number;
+  show_in_channel?: boolean;
+  created_at?: string | Date | null;
+  user?: ChannelUserLike | null;
+} & Record<string, unknown>;
+
+type ChannelEventBase<Type extends string> = {
+  type: Type;
+  cid?: string;
+  channel_id?: string;
+  channel_type?: string;
+  member?: Record<string, unknown>;
+  message?: ChannelMessageLike | null;
+  user?: ChannelUserLike | null;
+  watcher_count?: number;
+  [key: string]: unknown;
+};
+
+type NotificationEventFields = {
+  first_unread_message_id?: string | null;
+  last_read_at?: string | Date | null;
+  last_read_message_id?: string | null;
+  unread_messages?: number;
+  user?: ChannelUserLike | null;
+};
+
+export type KnownChannelEventMap = {
+  'ai_indicator.clear': ChannelEventBase<'ai_indicator.clear'>;
+  'ai_indicator.update': ChannelEventBase<'ai_indicator.update'> & { ai_state?: string };
+  'channel.archived': ChannelEventBase<'channel.archived'> & {
+    archived?: boolean;
+    at?: string;
+    reason?: string;
+  };
+  'channel.deleted': ChannelEventBase<'channel.deleted'>;
+  'channel.hidden': ChannelEventBase<'channel.hidden'>;
+  'channel.truncated': ChannelEventBase<'channel.truncated'>;
+  'channel.updated': ChannelEventBase<'channel.updated'> & {
+    channel?: Record<string, unknown>;
+  };
+  'channel.visible': ChannelEventBase<'channel.visible'>;
+  'connection.changed': ChannelEventBase<'connection.changed'> & { online?: boolean };
+  'member.updated': ChannelEventBase<'member.updated'>;
+  'message.deleted': ChannelEventBase<'message.deleted'>;
+  'message.new': ChannelEventBase<'message.new'>;
+  'message.undeleted': ChannelEventBase<'message.undeleted'>;
+  'message.updated': ChannelEventBase<'message.updated'>;
+  'notification.mark_read': ChannelEventBase<'notification.mark_read'> &
+    Omit<NotificationEventFields, 'first_unread_message_id'>;
+  'notification.mark_unread': ChannelEventBase<'notification.mark_unread'> & NotificationEventFields;
+  'typing.start': ChannelEventBase<'typing.start'>;
+  'typing.stop': ChannelEventBase<'typing.stop'>;
+  'user.deleted': ChannelEventBase<'user.deleted'>;
+  'user.watching.start': ChannelEventBase<'user.watching.start'>;
+  'user.watching.stop': ChannelEventBase<'user.watching.stop'>;
+};
+
+export type ChannelKnownEvent = keyof KnownChannelEventMap;
+export type ChannelUnknownEvent = ChannelEventBase<string>;
+export type ChannelEventHandler<T extends ChannelKnownEvent> = (
+  event: KnownChannelEventMap[T],
+) => void;
+export type ChannelEventSubscription = { unsubscribe: () => void };
+
+type EventTargetLike = {
+  on?: (
+    eventType: string,
+    handler: (...args: any[]) => void,
+  ) => { unsubscribe?: () => void } | void;
+  off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
+};
+
+const noopSubscription: ChannelEventSubscription = { unsubscribe: () => {} };
+
+const createSubscription = (
+  target: EventTargetLike | undefined,
+  eventType: string,
+  handler: (...args: any[]) => void,
+): ChannelEventSubscription => {
+  if (!target || typeof target.on !== 'function') {
+    return noopSubscription;
+  }
+
+  const maybeSubscription = target.on(eventType, handler);
+  let unsubscribed = false;
+
+  return {
+    unsubscribe: () => {
+      if (unsubscribed) return;
+      unsubscribed = true;
+
+      if (
+        maybeSubscription &&
+        typeof maybeSubscription === 'object' &&
+        typeof (maybeSubscription as { unsubscribe?: () => void }).unsubscribe === 'function'
+      ) {
+        (maybeSubscription as { unsubscribe: () => void }).unsubscribe();
+      } else if (typeof target.off === 'function') {
+        target.off(eventType, handler);
+      }
+    },
+  };
 };
 
 export type CastVoteParams = {
@@ -568,42 +678,34 @@ export async function markUnread(
 }
 
 export function channelOff(
-  channel: {
-    off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
-  },
+  channel:
+    | (Pick<Channel, "off"> & EventTargetLike)
+    | { off?: (eventType?: string, handler?: (...args: any[]) => void) => void }
+    | undefined,
   eventType?: string,
   handler?: (...args: any[]) => void,
 ): void {
-  if (typeof channel.off === "function") {
-    // Forward the call to the underlying channel if available
-    (
-      channel.off as (
-        eventType?: string,
-        handler?: (...args: any[]) => void,
-      ) => void
-    )(eventType, handler);
+  if (channel && typeof channel.off === "function") {
+    channel.off(eventType, handler);
   }
 }
 
+export function channelOn<TEvent extends ChannelKnownEvent>(
+  channel: Channel | undefined,
+  eventType: TEvent,
+  handler: ChannelEventHandler<TEvent>,
+): ChannelEventSubscription;
 export function channelOn(
-  channel: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  channel: Channel | undefined,
   eventType: string,
-  handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
-  if (typeof channel.on === "function") {
-    return (
-      channel.on as (
-        eventType: string,
-        handler: (...args: any[]) => void,
-      ) => { unsubscribe?: () => void }
-    )(eventType, handler);
-  }
-  return undefined;
+  handler: (event: ChannelUnknownEvent) => void,
+): ChannelEventSubscription;
+export function channelOn(
+  channel: Channel | undefined,
+  eventType: string,
+  handler: (event: ChannelUnknownEvent) => void,
+): ChannelEventSubscription {
+  return createSubscription(channel, eventType, handler as (...args: any[]) => void);
 }
 
 export async function channelPin(
@@ -840,97 +942,64 @@ export function clientChannel(
 }
 
 export function clientOff(
-  client: {
-    off?: (eventType?: string, handler?: (...args: any[]) => void) => void;
-  },
+  client: EventTargetLike | undefined,
   eventType?: string,
   handler?: (...args: any[]) => void,
 ): void {
-  if (typeof client.off === "function") {
-    (
-      client.off as (
-        eventType?: string,
-        handler?: (...args: any[]) => void,
-      ) => void
-    )(eventType, handler);
+  if (client && typeof client.off === "function") {
+    client.off(eventType, handler);
   }
 }
 
 export function clientOn(
-  client: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  client: EventTargetLike | undefined,
   eventType: string,
   handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
-  if (typeof client.on === "function") {
-    return (
-      client.on as (
-        eventType: string,
-        handler: (...args: any[]) => void,
-      ) => { unsubscribe?: () => void }
-    )(eventType, handler);
-  }
-  return undefined;
+): ChannelEventSubscription {
+  return createSubscription(client, eventType, handler);
 }
 
+export function on<TEvent extends ChannelKnownEvent>(
+  channel: Channel,
+  eventType: TEvent,
+  handler: ChannelEventHandler<TEvent>,
+): ChannelEventSubscription;
 export function on(
-  target: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  channel: Channel,
+  eventType: string,
+  handler: (event: ChannelUnknownEvent) => void,
+): ChannelEventSubscription;
+export function on(
+  target: EventTargetLike | undefined,
   eventType: string,
   handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
-  if (typeof target.on === "function") {
-    return (
-      target.on as (
-        eventType: string,
-        handler: (...args: any[]) => void,
-      ) => { unsubscribe?: () => void }
-    )(eventType, handler);
-  }
-  return undefined;
+): ChannelEventSubscription;
+export function on(
+  target: EventTargetLike | undefined,
+  eventType: string,
+  handler: (...args: any[]) => void,
+): ChannelEventSubscription {
+  return createSubscription(target, eventType, handler);
 }
 
 export function onPollVoteCasted(
-  client: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  client: EventTargetLike | undefined,
   handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
+): ChannelEventSubscription {
   return on(client, "poll.vote_casted", handler);
 }
 
 export function onPollVoteRemoved(
-  client: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  client: EventTargetLike | undefined,
   handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
+): ChannelEventSubscription {
   return on(client, "poll.vote_removed", handler);
 }
 
 export function onPollVoteChanged(
-  client: {
-    on?: (
-      eventType: string,
-      handler: (...args: any[]) => void,
-    ) => { unsubscribe?: () => void };
-  },
+  client: EventTargetLike | undefined,
   handler: (...args: any[]) => void,
-): { unsubscribe?: () => void } | undefined {
+): ChannelEventSubscription {
   return on(client, "poll.vote_changed", handler);
 }
 
