@@ -1,4 +1,5 @@
 import { StateStore } from '../../chat-shim';
+import type { PollOption as ChatShimPollOption, PollVote } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
 
 import {
@@ -33,6 +34,317 @@ const createLocalAnswerId = () => {
   return `local-answer-${localAnswerIdCounter}`;
 };
 
+let localVoteIdCounter = 0;
+
+const createLocalVoteId = () => {
+  localVoteIdCounter += 1;
+  return `local-vote-${localVoteIdCounter}`;
+};
+
+type PollOptionWithVotes = ChatShimPollOption & { vote_count?: number };
+
+type PollStateData = {
+  poll?: Record<string, unknown>;
+  options?: PollOptionWithVotes[];
+  latest_votes_by_option?: Record<string, PollVote[]>;
+  vote_counts_by_option?: Record<string, number>;
+  ownVotesByOptionId?: Record<string, PollVote>;
+  maxVotedOptionIds?: string[];
+  vote_count?: number;
+  [key: string]: unknown;
+};
+
+type PollStateStoreLike = {
+  getLatestValue?: () => PollStateData;
+  dispatch?: (patch: Partial<PollStateData>) => void;
+};
+
+type PollLike = {
+  id: string;
+  state?: PollStateStoreLike;
+  options?: PollOptionWithVotes[];
+  latest_votes_by_option?: Record<string, PollVote[]>;
+  vote_counts_by_option?: Record<string, number>;
+  ownVotesByOptionId?: Record<string, PollVote>;
+  maxVotedOptionIds?: string[];
+  vote_count?: number;
+  [key: string]: unknown;
+};
+
+type PollSnapshot = {
+  latest_votes_by_option: Record<string, PollVote[]>;
+  vote_counts_by_option: Record<string, number>;
+  ownVotesByOptionId: Record<string, PollVote>;
+  maxVotedOptionIds: string[];
+  options: PollOptionWithVotes[];
+  vote_count?: number;
+};
+
+export type CastVoteParams = {
+  poll: PollLike;
+  optionId: string;
+  messageId: string | number;
+  userId?: string | number;
+  user?: PollVote['user'];
+  now?: Date;
+  request?: () => Promise<Partial<CastVoteResult> | void>;
+};
+
+export type CastVoteResult = {
+  vote: PollVote;
+  poll: PollSnapshot;
+};
+
+const cloneVote = (vote: PollVote): PollVote => ({
+  ...vote,
+  user: vote.user ? { ...vote.user } : vote.user,
+});
+
+const cloneVotesMap = (
+  input?: Record<string, PollVote[]>,
+): Record<string, PollVote[]> => {
+  const result: Record<string, PollVote[]> = {};
+  if (!input) return result;
+  for (const [id, votes] of Object.entries(input)) {
+    result[id] = votes.map((v) => cloneVote(v));
+  }
+  return result;
+};
+
+const cloneOwnVotes = (
+  input?: Record<string, PollVote>,
+): Record<string, PollVote> => {
+  const result: Record<string, PollVote> = {};
+  if (!input) return result;
+  for (const [id, vote] of Object.entries(input)) {
+    result[id] = cloneVote(vote);
+  }
+  return result;
+};
+
+const cloneVoteCounts = (
+  input?: Record<string, number>,
+): Record<string, number> => ({ ...(input ?? {}) });
+
+const cloneOptionList = (
+  options?: PollOptionWithVotes[],
+): PollOptionWithVotes[] => (options ?? []).map((option) => ({ ...option }));
+
+const cloneMaxIds = (ids?: string[]): string[] => (ids ? [...ids] : []);
+
+const cloneSnapshot = (snapshot: PollSnapshot): PollSnapshot => ({
+  latest_votes_by_option: cloneVotesMap(snapshot.latest_votes_by_option),
+  vote_counts_by_option: cloneVoteCounts(snapshot.vote_counts_by_option),
+  ownVotesByOptionId: cloneOwnVotes(snapshot.ownVotesByOptionId),
+  maxVotedOptionIds: cloneMaxIds(snapshot.maxVotedOptionIds),
+  options: cloneOptionList(snapshot.options),
+  vote_count: snapshot.vote_count,
+});
+
+const getSnapshot = (
+  poll: PollLike,
+  store?: PollStateStoreLike,
+): PollSnapshot => {
+  const fromState = store?.getLatestValue?.();
+  const statePoll = (fromState?.poll as PollLike | undefined) ?? undefined;
+
+  const latestVotesSource =
+    fromState?.latest_votes_by_option ??
+    statePoll?.latest_votes_by_option ??
+    poll.latest_votes_by_option;
+
+  const voteCountsSource =
+    fromState?.vote_counts_by_option ??
+    statePoll?.vote_counts_by_option ??
+    poll.vote_counts_by_option;
+
+  const ownVotesSource =
+    fromState?.ownVotesByOptionId ??
+    statePoll?.ownVotesByOptionId ??
+    poll.ownVotesByOptionId;
+
+  const maxIdsSource =
+    fromState?.maxVotedOptionIds ??
+    statePoll?.maxVotedOptionIds ??
+    poll.maxVotedOptionIds;
+
+  const optionsSource =
+    fromState?.options ??
+    statePoll?.options ??
+    poll.options ??
+    [];
+
+  const voteCountSource =
+    fromState?.vote_count ??
+    statePoll?.vote_count ??
+    poll.vote_count;
+
+  return {
+    latest_votes_by_option: cloneVotesMap(latestVotesSource),
+    vote_counts_by_option: cloneVoteCounts(voteCountsSource),
+    ownVotesByOptionId: cloneOwnVotes(ownVotesSource),
+    maxVotedOptionIds: cloneMaxIds(maxIdsSource),
+    options: cloneOptionList(optionsSource as PollOptionWithVotes[]),
+    vote_count: voteCountSource,
+  };
+};
+
+const applySnapshot = (
+  poll: PollLike,
+  store: PollStateStoreLike | undefined,
+  snapshot: PollSnapshot,
+) => {
+  const latestVotes = cloneVotesMap(snapshot.latest_votes_by_option);
+  const voteCounts = cloneVoteCounts(snapshot.vote_counts_by_option);
+  const ownVotes = cloneOwnVotes(snapshot.ownVotesByOptionId);
+  const maxIds = cloneMaxIds(snapshot.maxVotedOptionIds);
+  const options = cloneOptionList(snapshot.options);
+
+  poll.latest_votes_by_option = latestVotes;
+  poll.vote_counts_by_option = voteCounts;
+  poll.ownVotesByOptionId = ownVotes;
+  poll.maxVotedOptionIds = maxIds;
+  poll.options = options;
+  if (snapshot.vote_count !== undefined) {
+    poll.vote_count = snapshot.vote_count;
+  }
+
+  const patch: Partial<PollStateData> = {
+    latest_votes_by_option: latestVotes,
+    vote_counts_by_option: voteCounts,
+    ownVotesByOptionId: ownVotes,
+    maxVotedOptionIds: maxIds,
+    options,
+  };
+  if (snapshot.vote_count !== undefined) {
+    patch.vote_count = snapshot.vote_count;
+  }
+
+  store?.dispatch?.(patch);
+};
+
+async function castVoteInternal(
+  params: CastVoteParams,
+): Promise<CastVoteResult> {
+  const { poll, optionId, messageId, userId, user, now = new Date(), request } = params;
+
+  if (!poll || typeof poll !== 'object') {
+    throw new Error('castVote requires a poll instance');
+  }
+
+  const pollLike = poll as PollLike;
+  const store = pollLike.state;
+
+  const baseSnapshot = getSnapshot(pollLike, store);
+  const nextSnapshot = cloneSnapshot(baseSnapshot);
+
+  const normalizedOptionId = String(optionId);
+  const option = nextSnapshot.options.find(
+    (opt) => String(opt.id) === normalizedOptionId,
+  );
+  if (!option) {
+    throw new Error(`Poll option ${optionId} not found`);
+  }
+
+  const pollIdSource =
+    (pollLike as { id?: string | number }).id ??
+    (option as { poll_id?: string | number }).poll_id;
+  const pollId = pollIdSource !== undefined ? String(pollIdSource) : '';
+  if (!pollId) {
+    throw new Error('Poll id is required to cast a vote');
+  }
+
+  const normalizedUserId =
+    userId !== undefined ? String(userId) : 'me';
+
+  const existingOwnVote = nextSnapshot.ownVotesByOptionId[normalizedOptionId];
+  if (
+    existingOwnVote &&
+    (existingOwnVote.user_id === normalizedUserId ||
+      (existingOwnVote.user &&
+        String(existingOwnVote.user.id) === normalizedUserId))
+  ) {
+    throw new Error('User has already voted for this option');
+  }
+
+  const createdAt = now.toISOString();
+  const optimisticVote: PollVote = {
+    id: createLocalVoteId(),
+    poll_id: pollId,
+    option_id: normalizedOptionId,
+    user_id: normalizedUserId,
+    user: user ?? ({ id: normalizedUserId } as PollVote['user']),
+    created_at: createdAt,
+    updated_at: createdAt,
+  } as PollVote;
+
+  if (messageId !== undefined) {
+    (optimisticVote as Record<string, unknown>).message_id = messageId;
+  }
+
+  option.poll_id ??= pollId;
+
+  const existingVotes = nextSnapshot.latest_votes_by_option[normalizedOptionId] ?? [];
+  nextSnapshot.latest_votes_by_option[normalizedOptionId] = [
+    optimisticVote,
+    ...existingVotes,
+  ];
+
+  nextSnapshot.ownVotesByOptionId[normalizedOptionId] = optimisticVote;
+
+  const newCount =
+    (nextSnapshot.vote_counts_by_option[normalizedOptionId] ?? 0) + 1;
+  nextSnapshot.vote_counts_by_option[normalizedOptionId] = newCount;
+  option.vote_count = newCount;
+
+  const baseTotalVotes =
+    typeof baseSnapshot.vote_count === 'number'
+      ? baseSnapshot.vote_count
+      : typeof pollLike.vote_count === 'number'
+        ? pollLike.vote_count
+        : undefined;
+  if (typeof baseTotalVotes === 'number') {
+    nextSnapshot.vote_count = baseTotalVotes + 1;
+  } else {
+    nextSnapshot.vote_count = Object.values(
+      nextSnapshot.vote_counts_by_option,
+    ).reduce((total, count) => total + count, 0);
+  }
+
+  let maxCount = -Infinity;
+  const maxIds: string[] = [];
+  for (const [id, count] of Object.entries(
+    nextSnapshot.vote_counts_by_option,
+  )) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxIds.length = 0;
+      maxIds.push(id);
+    } else if (count === maxCount) {
+      maxIds.push(id);
+    }
+  }
+  nextSnapshot.maxVotedOptionIds = maxCount > 0 ? maxIds : [];
+
+  applySnapshot(pollLike, store, nextSnapshot);
+
+  try {
+    if (request) {
+      await request();
+    }
+    return {
+      vote: {
+        ...optimisticVote,
+        user: optimisticVote.user ? { ...optimisticVote.user } : optimisticVote.user,
+      },
+      poll: cloneSnapshot(nextSnapshot),
+    };
+  } catch (error) {
+    applySnapshot(pollLike, store, baseSnapshot);
+    throw error;
+  }
+}
+
 export const chatSDKShim = {
   async addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
     const now = new Date().toISOString();
@@ -47,6 +359,9 @@ export const chatSDKShim = {
 
     return input.extras ? { ...result, ...input.extras } : result;
   },
+  async castVote(params: CastVoteParams): Promise<CastVoteResult> {
+    return castVoteInternal(params);
+  },
 };
 
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
@@ -54,10 +369,9 @@ export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
 }
 
 export async function castVote(
-  _optionId: string,
-  _messageId: string,
-): Promise<void> {
-  // Placeholder implementation until backend endpoint is available
+  params: CastVoteParams,
+): Promise<CastVoteResult> {
+  return chatSDKShim.castVote(params);
 }
 
 export async function removeVote(

@@ -2,6 +2,7 @@ import React from 'react';
 import { FormDialog } from '../../Dialog/FormDialog';
 import { useChatContext, usePollContext, useTranslationContext } from '../../../context';
 import { useStateStore } from '../../../store';
+import { castVote } from '../../../chatSDKShim';
 import type { PollOption, PollState } from 'chat-shim';
 
 type PollStateSelectorReturnValue = { options: PollOption[] };
@@ -50,7 +51,20 @@ export const SuggestPollOptionForm = ({
         },
       }}
       onSubmit={async (value) => {
-        return Promise.resolve();
+        const createPollOption = (client as {
+          createPollOption?: (id: string, payload: { text: string }) => Promise<any>;
+        }).createPollOption;
+        if (typeof createPollOption !== 'function') return;
+        const created = await createPollOption(poll.id, { text: value.optionText });
+        const pollOption = created?.poll_option ?? created;
+        if (!pollOption?.id) return;
+        return castVote({
+          poll,
+          optionId: String(pollOption.id),
+          messageId,
+          userId: client.user?.id ?? 'me',
+          user: client.user,
+        });
       }}
       shouldDisableSubmitButton={(value) => !value.optionText}
       title={t('Suggest an option')}

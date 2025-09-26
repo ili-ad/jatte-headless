@@ -213,7 +213,7 @@
     "stubName": "castVote",
     "ticketType": "shim",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

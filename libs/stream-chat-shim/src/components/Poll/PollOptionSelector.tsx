@@ -5,11 +5,13 @@ import { isVoteAnswer } from 'chat-shim';
 import { Avatar } from '../Avatar';
 import {
   useChannelStateContext,
+  useChatContext,
   useMessageContext,
   usePollContext,
   useTranslationContext,
 } from '../../context';
 import { useStateStore } from '../../store';
+import { castVote } from '../../chatSDKShim';
 import type { PollOption, PollState, PollVote, VotingVisibility } from 'chat-shim';
 
 type AmountBarProps = {
@@ -69,6 +71,7 @@ export const PollOptionSelector = ({
   const { t } = useTranslationContext();
   const { channelCapabilities = {} } = useChannelStateContext('PollOptionsShortlist');
   const { message } = useMessageContext();
+  const { client } = useChatContext('PollOptionSelector');
 
   const { poll } = usePollContext();
   const {
@@ -91,9 +94,22 @@ export const PollOptionSelector = ({
         const haveVotedForTheOption = !!ownVotesByOptionId[option.id];
         return haveVotedForTheOption
           ? Promise.resolve()
-          : Promise.resolve();
+          : castVote({
+              poll,
+              optionId: option.id,
+              messageId: message.id,
+              userId: client.user?.id ?? 'me',
+              user: client.user,
+            });
       }, 100),
-    [canCastVote, message.id, option.id, ownVotesByOptionId, poll],
+    [
+      canCastVote,
+      client.user,
+      message.id,
+      option.id,
+      ownVotesByOptionId,
+      poll,
+    ],
   );
 
   return (
