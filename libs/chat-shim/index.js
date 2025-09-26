@@ -182,6 +182,7 @@ var LocalChannel = /** @class */ (function () {
         this.getUserId = getUid;
         this.state = new ChannelState(function (patch) { return _this.stateStore.dispatch(patch); });
         this.stateStore = new StateStore(this.state);
+        this.data = {};
         this.messageComposer = new MessageComposer();
         this.messageComposer.submit = function () {
             var text = _this.messageComposer.state.text.trim();
@@ -247,6 +248,70 @@ var LocalChannel = /** @class */ (function () {
     return LocalChannel;
 }());
 exports.LocalChannel = LocalChannel;
+var toMemberId = function (value) {
+    if (typeof value === 'string' && value)
+        return value;
+    if (typeof value === 'number' && Number.isFinite(value))
+        return String(value);
+    return undefined;
+};
+var normalizeMember = function (input) {
+    if (input === null || input === void 0)
+        return undefined;
+    if (typeof input === 'string' || typeof input === 'number') {
+        var id = String(input);
+        return { id: id, record: { user_id: id, user: { id: id } } };
+    }
+    if (typeof input !== 'object')
+        return undefined;
+    var candidate = toMemberId(input.user_id) || toMemberId(input.id) || toMemberId(input.user && input.user.id);
+    if (!candidate)
+        return undefined;
+    var record = __assign(__assign({}, input), { user_id: candidate });
+    var rawUser = input.user;
+    var baseUser = rawUser && typeof rawUser === 'object' ? __assign({}, rawUser) : {};
+    record.user = __assign(__assign({}, baseUser), { id: baseUser.id !== undefined ? String(baseUser.id) : candidate });
+    return { id: candidate, record: record };
+};
+var collectMembers = function (config) {
+    var rawMembers = [];
+    if (config && Array.isArray(config.members)) {
+        rawMembers = rawMembers.concat(config.members);
+    }
+    var dataMembers = config && config.data && Array.isArray(config.data.members) ? config.data.members : [];
+    rawMembers = rawMembers.concat(dataMembers);
+    var memberMap = new Map();
+    rawMembers.forEach(function (raw) {
+        var normalized = normalizeMember(raw);
+        if (!normalized)
+            return;
+        var existing = memberMap.get(normalized.id);
+        memberMap.set(normalized.id, existing ? __assign(__assign({}, existing), normalized.record) : normalized.record);
+    });
+    var ids = Array.from(memberMap.keys()).sort();
+    var records = ids.map(function (id) { return memberMap.get(id); });
+    var map = {};
+    records.forEach(function (record) {
+        map[record.user_id] = record;
+    });
+    return { ids: ids, records: records, map: map };
+};
+var buildChannelData = function (config, members) {
+    if (!config && members.length === 0)
+        return undefined;
+    var base = {};
+    if (config) {
+        var data = config.data, membersProp = config.members, cid = config.cid, rest = __rest(config, ["data", "members", "cid"]);
+        if (data && typeof data === 'object') {
+            base = __assign(__assign({}, base), data);
+        }
+        base = __assign(__assign({}, base), rest);
+    }
+    if (members.length) {
+        base.members = members.map(function (member) { return __assign({}, member); });
+    }
+    return Object.keys(base).length ? base : undefined;
+};
 var LocalChatClient = /** @class */ (function () {
     function LocalChatClient() {
         /* ------------------------------------------------------------------- */
@@ -347,9 +412,32 @@ var LocalChatClient = /** @class */ (function () {
             });
         });
     };
-    LocalChatClient.prototype.channel = function (type, id) {
+    LocalChatClient.prototype.channel = function (type, idOrConfig, maybeConfig) {
         var _this = this;
-        var cid = "".concat(type, ":").concat(id !== null && id !== void 0 ? id : 'local');
+        var channelId;
+        var config;
+        if (typeof idOrConfig === 'string' || typeof idOrConfig === 'undefined') {
+            channelId = typeof idOrConfig === 'string' ? idOrConfig : undefined;
+            config = maybeConfig && typeof maybeConfig === 'object' ? __assign({}, maybeConfig) : maybeConfig;
+        }
+        else {
+            config = __assign({}, idOrConfig);
+            if (maybeConfig && typeof maybeConfig === 'object') {
+                config = __assign(__assign({}, config), maybeConfig);
+            }
+            if ((config === null || config === void 0 ? void 0 : config.id) && typeof config.id === 'string') {
+                channelId = config.id;
+            }
+        }
+        var members = collectMembers(config);
+        if (!channelId && (config === null || config === void 0 ? void 0 : config.cid)) {
+            var parts = String(config.cid).split(':');
+            channelId = parts[1] || String(config.cid);
+        }
+        if (!channelId) {
+            channelId = members.ids.length ? "!members-".concat(members.ids.join(',')) : 'local';
+        }
+        var cid = (config === null || config === void 0 ? void 0 : config.cid) || "".concat(type, ":").concat(channelId);
         if (!this.channels.has(cid)) {
             var url = "ws://".concat(location.host, "/ws/").concat(cid, "/?token=").concat(this.jwt);
             var sock = new WebSocket(url);
@@ -359,12 +447,28 @@ var LocalChatClient = /** @class */ (function () {
                 (_a = _this.channels.get(data.cid)) === null || _a === void 0 ? void 0 : _a.emit(data.type, data);
             };
             this.sockets.set(cid, sock);
-            var chan = new LocalChannel(cid, sock, function () { return _this.userId; }, _this);
+            var chan = new LocalChannel(cid, sock, function () { return _this.userId; }, this);
             this.channels.set(cid, chan);
             this.activeChannels[cid] = chan;
             this.state.channels.set(cid, chan);
         }
-        return this.channels.get(cid);
+        var channel = this.channels.get(cid);
+        var dataPatch = buildChannelData(config, members.records);
+        if (dataPatch) {
+            channel.data = __assign(__assign({}, channel.data), dataPatch);
+        }
+        if (members.records.length) {
+            var nextMembers_1 = __assign(__assign({}, channel.state.members), members.map);
+            channel.state.members = nextMembers_1;
+            channel.stateStore.dispatch({ members: nextMembers_1 });
+            var currentUserId = (this.user && this.user.id) || this.userId;
+            if (currentUserId && nextMembers_1[currentUserId]) {
+                var nextMembership = __assign(__assign({}, channel.state.membership || {}), { user_id: currentUserId, user: nextMembers_1[currentUserId].user || { id: currentUserId } });
+                channel.state.membership = nextMembership;
+                channel.stateStore.dispatch({ membership: nextMembership });
+            }
+        }
+        return channel;
     };
     LocalChatClient.prototype.disconnectUser = function () {
         this.sockets.forEach(function (s) { return s.close(); });

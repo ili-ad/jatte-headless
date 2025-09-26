@@ -1,4 +1,21 @@
 declare module 'stream-chat' {
+  export type ChannelMemberLike =
+    | string
+    | number
+    | {
+        id?: string | number;
+        user_id?: string | number;
+        user?: { id?: string | number } & Record<string, unknown>;
+        [key: string]: unknown;
+      };
+
+  export type ChannelCreateConfig = {
+    cid?: string;
+    id?: string;
+    members?: ChannelMemberLike[];
+    data?: { members?: ChannelMemberLike[] } & Record<string, unknown>;
+  } & Record<string, unknown>;
+
   /** Local replacement for Stream’s client */
   export class LocalChatClient {
     user: ({ id: string } & Record<string, unknown>) | undefined;
@@ -6,7 +23,11 @@ declare module 'stream-chat' {
     wsConnection: { online: boolean };
     connectUser(user: { id: string } & Record<string, unknown>, jwt: string): Promise<void>;
     queryUsers(): Promise<{ users: { id: string }[] }>;
-    channel(type: string, id?: string): any;
+    channel(
+      type: string,
+      idOrConfig?: string | ChannelCreateConfig,
+      config?: ChannelCreateConfig,
+    ): LocalChannel;
     disconnectUser(): void;
     deleteMessage(id: string): Promise<any>;
     updateMessage(id: string, text: string): Promise<any>;
@@ -61,6 +82,7 @@ declare module 'stream-chat' {
     readonly cid: string;
     readonly state: ChannelState;
     readonly stateStore: StateStore<ChannelState>;
+    data: Record<string, any>;
     readonly messageComposer: MessageComposer;
     watch(): Promise<LocalChannel>;
     sendMessage(msg: { text: string }): Promise<void>;
