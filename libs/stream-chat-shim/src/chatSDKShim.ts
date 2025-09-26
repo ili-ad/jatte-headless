@@ -364,6 +364,12 @@ export const chatSDKShim = {
   },
 };
 
+export const chatSDK = {
+  channel: {
+    archive: channelArchive,
+  },
+};
+
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
   return chatSDKShim.addAnswer(input);
 }
@@ -460,8 +466,29 @@ export function pollsFromState(
   return undefined;
 }
 
-export async function archive(): Promise<void> {
-  // Placeholder implementation until backend endpoint is available
+type ChannelArchiveOptions = { reason?: string };
+type ChannelArchiveResult = { archived: true; at: string };
+
+export async function channelArchive(
+  channel: {
+    archive?: (options?: ChannelArchiveOptions) => Promise<ChannelArchiveResult>;
+  },
+  options?: ChannelArchiveOptions,
+): Promise<ChannelArchiveResult> {
+  if (typeof channel.archive === "function") {
+    return channel.archive(options);
+  }
+  const at = new Date().toISOString();
+  return { archived: true as const, at };
+}
+
+export async function archive(
+  channel: {
+    archive?: (options?: ChannelArchiveOptions) => Promise<ChannelArchiveResult>;
+  },
+  options?: ChannelArchiveOptions,
+): Promise<ChannelArchiveResult> {
+  return channelArchive(channel, options);
 }
 
 export async function close(): Promise<void> {
