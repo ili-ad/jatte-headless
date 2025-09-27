@@ -1184,6 +1184,47 @@ const remindersClearTimers = async (
   clearAllReminderTimers();
 };
 
+const DEFAULT_REMINDER_SCHEDULED_OFFSETS_MS: readonly number[] = Object.freeze([
+  5 * 60 * 1000,
+  30 * 60 * 1000,
+  60 * 60 * 1000,
+  24 * 60 * 60 * 1000,
+]);
+
+export type RemindersScheduledOffsetsMsParams = {
+  client?: ReminderAwareClient | StreamChat;
+};
+
+const normalizeScheduledOffsets = (value: unknown): number[] | null => {
+  if (!Array.isArray(value)) return null;
+
+  const normalized: number[] = [];
+
+  for (const entry of value) {
+    if (typeof entry === 'number' && Number.isFinite(entry)) {
+      normalized.push(entry);
+    }
+  }
+
+  return normalized.length ? normalized : null;
+};
+
+const remindersScheduledOffsetsMs = (
+  params: RemindersScheduledOffsetsMsParams = {},
+): number[] => {
+  const manager =
+    toReminderManager(params.client) ??
+    toReminderManager(getDefaultRemindersClient());
+
+  const normalized = normalizeScheduledOffsets(manager?.scheduledOffsetsMs);
+
+  if (normalized) {
+    return normalized.slice();
+  }
+
+  return [...DEFAULT_REMINDER_SCHEDULED_OFFSETS_MS];
+};
+
 const toPollVoteLike = (value: unknown): PollVoteLike | null => {
   if (!isRecord(value)) return null;
   const identifier = (value as { id?: unknown }).id;
@@ -3588,9 +3629,13 @@ type ReminderManagerLike = {
   deleteReminder?: (id: string) => Promise<unknown>;
   store?: StateStore<{ reminders?: ReminderEntryLike[] }>;
   state?: StateStore<{ reminders?: unknown }>;
+  scheduledOffsetsMs?: number[];
 };
 
-type ReminderAwareClient = { reminders?: ReminderManagerLike } | null | undefined;
+export type ReminderAwareClient =
+  | { reminders?: ReminderManagerLike }
+  | null
+  | undefined;
 
 const getDefaultRemindersClient = (): ReminderAwareClient => {
   try {
@@ -4008,6 +4053,7 @@ export const chatAPI = {
   reminders: {
     initTimers: remindersInitTimers,
     clearTimers: remindersClearTimers,
+    scheduledOffsetsMs: remindersScheduledOffsetsMs,
     deleteReminder,
   },
   notifications: {
