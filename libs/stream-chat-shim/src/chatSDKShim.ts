@@ -22,6 +22,8 @@ import {
   type AddAnswerInput,
   type AppSettings,
   type CreateReminderInput,
+  type DeleteReactionParams,
+  type DeleteReactionResult,
   type LoadNextPageArgs,
   type Message as APIMessage,
   type MuteUserInput,
@@ -2299,14 +2301,14 @@ export async function clientThreadsReload(client: {
 
 export async function deleteReaction(
   messageId: string,
-  reactionId: string,
-): Promise<void> {
-  await fetch(
-    `/api/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(
-      reactionId,
-    )}/`,
-    { method: 'DELETE', credentials: 'same-origin' },
-  );
+  reactionType: string,
+  options?: Partial<Pick<DeleteReactionParams, 'channel' | 'cid' | 'message' | 'userId'>>,
+): Promise<DeleteReactionResult> {
+  return chatAPI.deleteReaction({
+    messageId,
+    type: reactionType,
+    ...(options ?? {}),
+  });
 }
 
 export async function flagMessage(messageId: string): Promise<any> {
