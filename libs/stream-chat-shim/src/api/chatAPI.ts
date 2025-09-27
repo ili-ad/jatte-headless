@@ -1434,6 +1434,12 @@ function lastRead({ channel }: ChannelLastReadParams): Date | undefined {
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+export type ChannelWatcher = {
+  user_id?: string | number | null;
+  user?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
 const parseChannelMessages = (value: unknown): Message[] => {
   if (!Array.isArray(value)) return [];
 
@@ -1447,6 +1453,81 @@ const parseChannelMessages = (value: unknown): Message[] => {
       typeof candidate.created_at === "string"
     );
   });
+};
+
+const parseChannelWatchers = (value: unknown): ChannelWatcher[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((candidate): candidate is ChannelWatcher => {
+    if (!isRecord(candidate)) return false;
+
+    const { user_id, user } = candidate as ChannelWatcher;
+
+    const isValidUserId =
+      user_id === undefined ||
+      user_id === null ||
+      typeof user_id === "string" ||
+      (typeof user_id === "number" && Number.isFinite(user_id));
+
+    const isValidUserRecord =
+      user === undefined || user === null || isRecord(user);
+
+    return isValidUserId && isValidUserRecord;
+  });
+};
+
+export type QueryChannelWatchersRequest = {
+  cid: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type QueryChannelWatchersResponse = {
+  members: ChannelWatcher[];
+};
+
+export const queryChannelWatchers = async ({
+  cid,
+  limit,
+  offset,
+}: QueryChannelWatchersRequest): Promise<QueryChannelWatchersResponse> => {
+  const params = new URLSearchParams();
+
+  if (isFiniteNumber(limit)) {
+    params.set("limit", String(limit));
+  }
+
+  if (isFiniteNumber(offset)) {
+    params.set("offset", String(offset));
+  }
+
+  const query = params.toString();
+
+  const response = await fetch(
+    `/api/rooms/${encodeURIComponent(cid)}/members/${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      credentials: "same-origin",
+    },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to query channel members (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const data = (await response.json()) as unknown;
+  const membersSource = Array.isArray(data)
+    ? data
+    : isRecord(data) && Array.isArray(data.members)
+      ? data.members
+      : [];
+
+  return { members: parseChannelWatchers(membersSource) };
 };
 
 export const channelQuery = async ({
@@ -3147,6 +3228,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  query: queryChannelWatchers,
   on,
   onPollVoteCasted,
   onPollVoteRemoved,
