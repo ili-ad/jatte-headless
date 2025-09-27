@@ -211,6 +211,12 @@ export type ChannelCountUnreadParams = {
   lastRead?: Date;
 };
 
+export type ChannelLastReadParams = {
+  channel: {
+    lastRead?: () => Date | undefined;
+  };
+};
+
 export type ClientThreadsActivateInput = {
   client: { threads?: { activate?: () => void } };
 };
@@ -249,6 +255,10 @@ function channelCountUnread({
   lastRead,
 }: ChannelCountUnreadParams): number {
   return chatSDKShim.channelCountUnread(channel, lastRead);
+}
+
+function lastRead({ channel }: ChannelLastReadParams): Date | undefined {
+  return chatSDKShim.lastRead(channel);
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
@@ -1496,6 +1506,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  lastRead,
   clientQueryChannels,
   client: {
     on: chatSDKShim.client.on,
