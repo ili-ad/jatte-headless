@@ -5,7 +5,7 @@ import { getGroupStyles, insertIntro, processMessages } from '../../utils';
 
 import { useChatContext } from '../../../../context/ChatContext';
 import { useComponentContext } from '../../../../context/ComponentContext';
-import { lastRead as getLastRead } from '../../../../chatSDKShim';
+import { chatAPI } from '../../../../api/chatAPI';
 
 import type { Channel, LocalMessage } from 'chat-shim';
 
@@ -43,7 +43,7 @@ export const useEnrichedMessages = (args: {
   const { client } = useChatContext('useEnrichedMessages');
   const { HeaderComponent } = useComponentContext('useEnrichedMessages');
 
-  const lastRead = useMemo(() => getLastRead(channel), [channel]);
+  const lastRead = useMemo(() => chatAPI.lastRead({ channel }), [channel]);
 
   const enableDateSeparator = !disableDateSeparator;
 
