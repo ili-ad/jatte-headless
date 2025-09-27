@@ -11,6 +11,9 @@ import type {
   ChannelFilters,
   ChannelOptions,
   ChannelSort,
+  Notification,
+  NotificationManagerState,
+  StateStore,
   StreamChat,
 } from '../../chat-shim';
 
@@ -1526,6 +1529,158 @@ async function endSession(): Promise<void> {
   }
 }
 
+type NotificationStoreLike = {
+  getLatestValue?: () => NotificationManagerState | undefined;
+  getSnapshot?: () => NotificationManagerState | undefined;
+  subscribe?: (listener: () => void) => () => void;
+  subscribeWithSelector?: (
+    selector: (value: NotificationManagerState) => unknown,
+    listener: () => void,
+  ) => () => void;
+  dispatch?: (patch: Partial<NotificationManagerState>) => void;
+  next?: (patch: Partial<NotificationManagerState>) => void;
+  _set?: (patch: Partial<NotificationManagerState>) => void;
+};
+
+type NotificationsStoreClient = {
+  notifications?: {
+    store?: NotificationStoreLike | null;
+  } | null;
+};
+
+type NotificationsUpdater =
+  | Notification[]
+  | ((current: Notification[]) => Notification[]);
+
+const emptyNotificationsState: NotificationManagerState = { notifications: [] };
+
+const readNotificationState = (
+  store: NotificationStoreLike,
+): NotificationManagerState => {
+  if (typeof store.getLatestValue === "function") {
+    const latest = store.getLatestValue();
+    if (latest && typeof latest === "object") {
+      return latest;
+    }
+  }
+
+  if (typeof store.getSnapshot === "function") {
+    const snapshot = store.getSnapshot();
+    if (snapshot && typeof snapshot === "object") {
+      return snapshot;
+    }
+  }
+
+  return emptyNotificationsState;
+};
+
+const notificationArrayFromState = (
+  notifications: NotificationManagerState["notifications"],
+): Notification[] => {
+  if (Array.isArray(notifications)) {
+    return notifications as Notification[];
+  }
+  return emptyNotificationsState.notifications;
+};
+
+const areNotificationArraysEqual = (
+  previous: Notification[],
+  next: Notification[],
+): boolean => {
+  if (previous === next) return true;
+  if (previous.length !== next.length) return false;
+  for (let index = 0; index < previous.length; index += 1) {
+    if (previous[index] !== next[index]) return false;
+  }
+  return true;
+};
+
+const applyNotificationPatch = (
+  store: NotificationStoreLike,
+  patch: Partial<NotificationManagerState>,
+) => {
+  if (typeof store.dispatch === "function") {
+    store.dispatch(patch);
+    return;
+  }
+
+  if (typeof store.next === "function") {
+    store.next(patch);
+    return;
+  }
+
+  if (typeof store._set === "function") {
+    store._set(patch);
+  }
+};
+
+const ensureNotificationsStore = (
+  client?: NotificationsStoreClient | null,
+): NotificationStoreLike => {
+  const normalizedClient =
+    (client ?? ({} as NotificationsStoreClient)) as Parameters<
+      typeof chatSDKShim.notificationsStore
+    >[0];
+  return chatSDKShim.notificationsStore(normalizedClient) as NotificationStoreLike;
+};
+
+export type NotificationsStoreParams = {
+  client?: NotificationsStoreClient | null;
+  notifications?: NotificationsUpdater;
+};
+
+export type NotificationsStoreResult = {
+  store: StateStore<NotificationManagerState>;
+  state: NotificationManagerState;
+  notifications: Notification[];
+};
+
+const resolveNotificationsStore = ({
+  client,
+  notifications: updater,
+}: NotificationsStoreParams = {}): NotificationsStoreResult => {
+  const storeLike = ensureNotificationsStore(client);
+  const store = storeLike as StateStore<NotificationManagerState>;
+
+  if (updater !== undefined) {
+    const currentState = readNotificationState(storeLike);
+    const currentNotifications = notificationArrayFromState(
+      currentState.notifications,
+    );
+    const nextNotifications =
+      typeof updater === "function" ? updater(currentNotifications) : updater;
+    const normalizedNext = notificationArrayFromState(nextNotifications);
+
+    if (!areNotificationArraysEqual(currentNotifications, normalizedNext)) {
+      applyNotificationPatch(storeLike, { notifications: normalizedNext });
+    }
+  }
+
+  const finalState = readNotificationState(storeLike);
+  const finalNotifications = notificationArrayFromState(
+    finalState.notifications,
+  );
+
+  const originalNotifications = Array.isArray(finalState.notifications)
+    ? (finalState.notifications as Notification[])
+    : emptyNotificationsState.notifications;
+
+  if (!areNotificationArraysEqual(originalNotifications, finalNotifications)) {
+    applyNotificationPatch(storeLike, { notifications: finalNotifications });
+  }
+
+  const normalizedState: NotificationManagerState = {
+    ...finalState,
+    notifications: finalNotifications,
+  };
+
+  return {
+    store,
+    state: normalizedState,
+    notifications: normalizedState.notifications,
+  };
+};
+
 export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
@@ -1562,6 +1717,9 @@ export const chatAPI = {
   clientThreadsReload,
   markUnread,
   createReminder,
+  notifications: {
+    store: resolveNotificationsStore,
+  },
   flagMessage,
   deleteReaction,
   deleteMessage,
