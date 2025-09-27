@@ -203,13 +203,19 @@ export type PollVoteChangedEvent = Event & {
   poll_vote: PollVoteLike | null;
 };
 
+export type PollVoteRemovedEvent = Event & {
+  type: 'poll.vote_removed';
+  poll_vote: PollVoteLike | null;
+};
+
 const emptySubscription: ChannelEventSubscription = {
   unsubscribe: () => undefined,
 };
 
 type VoteEventWithChannelMetadata =
   | ClientKnownEventMap['poll.vote_casted']
-  | ClientKnownEventMap['poll.vote_changed'];
+  | ClientKnownEventMap['poll.vote_changed']
+  | ClientKnownEventMap['poll.vote_removed'];
 
 const withChannelMetadata = (
   event: VoteEventWithChannelMetadata,
@@ -259,6 +265,59 @@ export const onPollVoteCasted = ({
         type: 'poll.vote_casted',
         poll_vote: pollVote,
       };
+      handler(normalizedEvent);
+    },
+  );
+
+  return subscription ?? emptySubscription;
+};
+
+export type OnPollVoteRemovedParams = {
+  channel?: Channel | null;
+  cid?: string | null;
+  client?: StreamChat | null;
+  handler: (event: PollVoteRemovedEvent) => void;
+};
+
+export const onPollVoteRemoved = ({
+  channel,
+  cid,
+  client,
+  handler,
+}: OnPollVoteRemovedParams): ChannelEventSubscription => {
+  if (!client || typeof (client as { on?: unknown }).on !== 'function') {
+    return emptySubscription;
+  }
+
+  const targetCid = cid ?? channel?.cid ?? null;
+
+  const subscription = chatSDKShim.client.on(
+    client,
+    'poll.vote_removed',
+    (event) => {
+      const eventCid =
+        typeof event.cid === 'string' && event.cid ? event.cid : null;
+      if (targetCid && eventCid && eventCid !== targetCid) {
+        return;
+      }
+
+      const metadata = withChannelMetadata(event, channel);
+      const normalizedCid =
+        metadata.cid ?? eventCid ?? (targetCid ?? undefined);
+
+      if (targetCid && normalizedCid && normalizedCid !== targetCid) {
+        return;
+      }
+
+      const pollVote = toPollVoteLike(event.poll_vote);
+      const normalizedEvent: PollVoteRemovedEvent = {
+        ...(event as Event),
+        ...metadata,
+        cid: normalizedCid ?? undefined,
+        type: 'poll.vote_removed',
+        poll_vote: pollVote,
+      };
+
       handler(normalizedEvent);
     },
   );
@@ -1835,6 +1894,7 @@ export const chatAPI = {
     unpin: channelUnpin,
   },
   onPollVoteCasted,
+  onPollVoteRemoved,
   onPollVoteChanged,
   lastRead,
   clientQueryChannels,
