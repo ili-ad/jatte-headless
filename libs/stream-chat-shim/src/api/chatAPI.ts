@@ -1,9 +1,17 @@
 import {
   chatSDKShim,
+  clientQueryChannels as clientQueryChannelsShim,
   clientThreadsActivate as clientThreadsActivateShim,
   clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
   clientThreadsReload as clientThreadsReloadShim,
 } from '../chatSDKShim';
+import type {
+  Channel,
+  ChannelFilters,
+  ChannelOptions,
+  ChannelSort,
+  StreamChat,
+} from '../../chat-shim';
 
 export type {
   ClientEventHandler,
@@ -118,6 +126,13 @@ export type ChannelQueryResponse = {
   next: number | null;
 };
 
+export type ClientQueryChannelsParams = {
+  client: StreamChat;
+  filters?: ChannelFilters;
+  sort?: ChannelSort;
+  options?: ChannelOptions;
+};
+
 export type ThreadMessage = Message;
 
 export type ThreadPreviewMessage = {
@@ -189,6 +204,14 @@ export async function clientThreadsReload({
 }: ClientThreadsReloadInput): Promise<void> {
   await clientThreadsReloadShim(client);
 }
+
+const clientQueryChannels = async ({
+  client,
+  filters = {},
+  sort = {},
+  options = {},
+}: ClientQueryChannelsParams): Promise<Channel[]> =>
+  clientQueryChannelsShim(client, filters, sort, options);
 
 function channelCountUnread({
   channel,
@@ -958,6 +981,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  clientQueryChannels,
   client: {
     on: chatSDKShim.client.on,
     threads: {
