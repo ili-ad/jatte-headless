@@ -6,6 +6,7 @@ import {
   clientThreadsReload as clientThreadsReloadShim,
   loadMessageIntoChannelState,
 } from '../chatSDKShim';
+import { getLocalClient } from '../../chat-shim';
 import type {
   Channel,
   ChannelFilters,
@@ -23,6 +24,7 @@ import type {
   ChannelEventSubscription,
   ClientKnownEventMap,
 } from '../chatSDKShim';
+import type { EventTargetLike } from '../client';
 
 export type {
   ClientEventHandler,
@@ -211,6 +213,326 @@ export type PollVoteRemovedEvent = Event & {
 const emptySubscription: ChannelEventSubscription = {
   unsubscribe: () => undefined,
 };
+
+export type StreamEventBase = {
+  type: string;
+  cid?: string | null;
+  channel_id?: string | number | null;
+  channel_type?: string | null;
+  message?: Record<string, unknown> | null;
+  channel?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
+type NormalizedFilter = {
+  cid?: string;
+  channelId?: string;
+};
+
+type ListenerRecord = {
+  callback: (event: StreamEventBase) => void;
+  filter: NormalizedFilter;
+};
+
+type EventEntry = {
+  listeners: Set<ListenerRecord>;
+  handler: ((event: StreamEventBase) => void) | null;
+  subscription: ChannelEventSubscription | null;
+};
+
+type SubscriptionTarget = EventTargetLike & object;
+
+const subscriptionRegistry = new WeakMap<SubscriptionTarget, Map<string, EventEntry>>();
+
+const toStringIfPossible = (value: unknown): string | undefined => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const channelIdFromCid = (cid?: string): string | undefined => {
+  if (!cid) return undefined;
+  const parts = cid.split(':');
+  return parts.length > 1 ? parts.slice(1).join(':') : cid;
+};
+
+const extractCid = (event: StreamEventBase): string | undefined => {
+  const direct = toStringIfPossible(event.cid);
+  if (direct) return direct;
+
+  const channelCid = toStringIfPossible(
+    (event.channel as { cid?: unknown } | undefined | null)?.cid,
+  );
+  if (channelCid) return channelCid;
+
+  const message = event.message as Record<string, unknown> | null | undefined;
+  if (message && typeof message === 'object') {
+    const messageCid = toStringIfPossible((message as { cid?: unknown }).cid);
+    if (messageCid) return messageCid;
+
+    const messageChannel = (message as { channel?: Record<string, unknown> | null }).channel;
+    if (messageChannel && typeof messageChannel === 'object') {
+      const nestedCid = toStringIfPossible(
+        (messageChannel as { cid?: unknown }).cid,
+      );
+      if (nestedCid) return nestedCid;
+    }
+  }
+
+  return undefined;
+};
+
+const extractChannelId = (
+  event: StreamEventBase,
+  fallbackCid?: string,
+): string | undefined => {
+  const direct = toStringIfPossible(event.channel_id);
+  if (direct) return direct;
+
+  const channel = event.channel as Record<string, unknown> | null | undefined;
+  if (channel && typeof channel === 'object') {
+    const id = toStringIfPossible((channel as { id?: unknown }).id);
+    if (id) return id;
+  }
+
+  const message = event.message as Record<string, unknown> | null | undefined;
+  if (message && typeof message === 'object') {
+    const messageChannel = (message as { channel?: Record<string, unknown> | null }).channel;
+    if (messageChannel && typeof messageChannel === 'object') {
+      const nestedId = toStringIfPossible(
+        (messageChannel as { id?: unknown }).id,
+      );
+      if (nestedId) return nestedId;
+    }
+  }
+
+  return channelIdFromCid(fallbackCid);
+};
+
+const matchesCid = (actual: string | undefined, expected: string | undefined): boolean => {
+  if (!expected) return true;
+  if (!actual) return false;
+  if (actual === expected) return true;
+
+  const actualTail = channelIdFromCid(actual);
+  if (actualTail && actualTail === expected) return true;
+
+  const expectedTail = channelIdFromCid(expected);
+  if (expectedTail && (expectedTail === actual || expectedTail === actualTail)) {
+    return true;
+  }
+
+  if (actual.endsWith(`:${expected}`) || expected.endsWith(`:${actual}`)) {
+    return true;
+  }
+
+  return false;
+};
+
+const matchesChannelId = (
+  actual: string | undefined,
+  expected: string | undefined,
+  eventCid?: string,
+): boolean => {
+  if (!expected) return true;
+  if (actual && actual === expected) return true;
+
+  const actualTail = channelIdFromCid(actual);
+  if (actualTail && actualTail === expected) return true;
+
+  const cidTail = channelIdFromCid(eventCid);
+  if (cidTail && cidTail === expected) return true;
+
+  return false;
+};
+
+const matchesFilter = (event: StreamEventBase, filter: NormalizedFilter): boolean => {
+  if (!filter.cid && !filter.channelId) {
+    return true;
+  }
+
+  const eventCid = extractCid(event);
+  if (filter.cid && !matchesCid(eventCid, filter.cid)) {
+    return false;
+  }
+
+  if (filter.channelId) {
+    const eventChannelId = extractChannelId(event, eventCid);
+    if (!matchesChannelId(eventChannelId, filter.channelId, eventCid)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const ensureEventShape = (
+  event: StreamEventBase | undefined,
+  eventType: string,
+): StreamEventBase => {
+  if (event && typeof event === 'object') {
+    if (typeof event.type === 'string' && event.type) {
+      return event;
+    }
+    return { ...event, type: eventType };
+  }
+  return { type: eventType };
+};
+
+const getSubscriptionTarget = (
+  candidate?: StreamChat | EventTargetLike | null,
+): SubscriptionTarget | undefined => {
+  if (candidate && typeof candidate === 'object') {
+    const maybeTarget = candidate as EventTargetLike;
+    if (typeof maybeTarget.on === 'function') {
+      return candidate as SubscriptionTarget;
+    }
+  }
+
+  try {
+    const localClient = getLocalClient();
+    if (
+      localClient &&
+      typeof localClient === 'object' &&
+      typeof (localClient as EventTargetLike).on === 'function'
+    ) {
+      return localClient as SubscriptionTarget;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+};
+
+const getRegistryForTarget = (
+  target: SubscriptionTarget,
+): Map<string, EventEntry> => {
+  let map = subscriptionRegistry.get(target);
+  if (!map) {
+    map = new Map();
+    subscriptionRegistry.set(target, map);
+  }
+  return map;
+};
+
+const registerListener = (
+  target: SubscriptionTarget,
+  eventType: string,
+  listener: (event: StreamEventBase) => void,
+  filter: NormalizedFilter,
+): (() => void) => {
+  const map = getRegistryForTarget(target);
+  let entry = map.get(eventType);
+  if (!entry) {
+    entry = { listeners: new Set(), handler: null, subscription: null };
+    map.set(eventType, entry);
+  }
+
+  if (!entry.handler) {
+    entry.handler = (rawEvent: StreamEventBase) => {
+      const event = ensureEventShape(rawEvent, eventType);
+      for (const record of entry!.listeners) {
+        if (matchesFilter(event, record.filter)) {
+          record.callback(event);
+        }
+      }
+    };
+  }
+
+  if (!entry.subscription) {
+    const handler = entry.handler as (...args: any[]) => void;
+    entry.subscription =
+      chatSDKShim.client.on(target, eventType, handler) ?? emptySubscription;
+  }
+
+  const record: ListenerRecord = { callback: listener, filter };
+  entry.listeners.add(record);
+
+  let unsubscribed = false;
+  return () => {
+    if (unsubscribed) return;
+    unsubscribed = true;
+
+    entry!.listeners.delete(record);
+    if (entry!.listeners.size === 0) {
+      entry!.subscription?.unsubscribe();
+      entry!.subscription = null;
+      entry!.handler = null;
+      map.delete(eventType);
+      if (map.size === 0) {
+        subscriptionRegistry.delete(target);
+      }
+    }
+  };
+};
+
+const normalizeString = (value: unknown): string | undefined => toStringIfPossible(value);
+
+export type OnOptions = {
+  client?: StreamChat | EventTargetLike | null;
+  cid?: string | null;
+  channelId?: string | number | null;
+};
+
+export function on<TEvent extends keyof ClientKnownEventMap>(
+  eventOrEvents: TEvent | TEvent[],
+  listener: (event: ClientKnownEventMap[TEvent]) => void,
+  opts?: OnOptions,
+): () => void;
+export function on(
+  eventOrEvents: string | string[],
+  listener: (event: StreamEventBase) => void,
+  opts?: OnOptions,
+): () => void;
+export function on(
+  eventOrEvents: string | string[],
+  listener: (event: StreamEventBase) => void,
+  opts?: OnOptions,
+): () => void {
+  if (typeof window === 'undefined') {
+    return () => undefined;
+  }
+
+  const target = getSubscriptionTarget(opts?.client);
+  if (!target) {
+    return () => undefined;
+  }
+
+  const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
+  const uniqueEvents = Array.from(
+    new Set(
+      events
+        .map((event) => (typeof event === 'string' ? event.trim() : ''))
+        .filter((event): event is string => event.length > 0),
+    ),
+  );
+
+  if (uniqueEvents.length === 0) {
+    return () => undefined;
+  }
+
+  const filter: NormalizedFilter = {
+    cid: normalizeString(opts?.cid),
+    channelId: normalizeString(opts?.channelId),
+  };
+
+  const unsubscribeHandlers = uniqueEvents.map((eventType) =>
+    registerListener(target, eventType, listener as (event: StreamEventBase) => void, filter),
+  );
+
+  let unsubscribed = false;
+  return () => {
+    if (unsubscribed) return;
+    unsubscribed = true;
+    unsubscribeHandlers.forEach((unsubscribe) => unsubscribe());
+  };
+}
 
 type VoteEventWithChannelMetadata =
   | ClientKnownEventMap['poll.vote_casted']
@@ -1893,6 +2215,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  on,
   onPollVoteCasted,
   onPollVoteRemoved,
   onPollVoteChanged,
