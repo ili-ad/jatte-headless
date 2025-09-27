@@ -14,7 +14,7 @@ import type {
 } from "chat-shim";
 
 import { useChatContext } from "../../../context/ChatContext";
-import { clientQueryChannels } from "../../../chatSDKShim";
+import { chatAPI } from "../../../api/chatAPI";
 
 import type { ChannelsQueryState } from "../../Chat/hooks/useChannelsQueryState";
 import { DEFAULT_INITIAL_CHANNEL_PAGE_SIZE } from "../../../constants/limits";
@@ -95,12 +95,12 @@ export const usePaginatedChannels = (
           ...options,
         };
 
-        const channelQueryResponse = await clientQueryChannels(
+        const channelQueryResponse = await chatAPI.clientQueryChannels({
           client,
           filters,
           sort,
-          newOptions,
-        );
+          options: newOptions,
+        });
 
         const newChannels =
           queryType === "reload"
