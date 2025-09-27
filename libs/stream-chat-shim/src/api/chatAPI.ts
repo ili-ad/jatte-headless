@@ -6,6 +6,7 @@ import {
   clientThreadsReload as clientThreadsReloadShim,
   loadMessageIntoChannelState,
   pollsFromState as pollsFromStateShim,
+  pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
 } from '../chatSDKShim';
 import { getLocalClient } from '../../chat-shim';
 import type {
@@ -789,6 +790,30 @@ export const polls_fromState = ({
   targetPoll.state = store;
 
   return targetPoll as PollsFromStateResult;
+};
+
+type PollsSubscriptionsClient = {
+  polls?: { unregisterSubscriptions?: () => void };
+};
+
+export type PollsUnregisterSubscriptionsParams = {
+  client?: PollsSubscriptionsClient | StreamChat | null;
+};
+
+const toPollsSubscriptionsClient = (
+  client: PollsUnregisterSubscriptionsParams['client'],
+): PollsSubscriptionsClient | undefined => {
+  if (!client) return undefined;
+  if (typeof client === 'object') {
+    return client as PollsSubscriptionsClient;
+  }
+  return undefined;
+};
+
+const pollsUnregisterSubscriptions = async ({
+  client,
+}: PollsUnregisterSubscriptionsParams = {}): Promise<void> => {
+  pollsUnregisterSubscriptionsShim(toPollsSubscriptionsClient(client));
 };
 
 const toPollVoteLike = (value: unknown): PollVoteLike | null => {
@@ -3149,6 +3174,9 @@ export const chatAPI = {
       state: ({ cid, limit, before }: ClientThreadsStateParams) =>
         clientThreadsState({ cid, limit, before }),
     },
+  },
+  polls: {
+    unregisterSubscriptions: pollsUnregisterSubscriptions,
   },
   addAnswer,
   polls_fromState,
