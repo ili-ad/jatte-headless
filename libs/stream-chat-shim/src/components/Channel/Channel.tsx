@@ -602,8 +602,14 @@ const ChannelInner = (
           chatAPI.client.on(client, 'connection.recovered', handleEvent),
           chatAPI.client.on(client, 'user.updated', handleEvent),
           chatAPI.client.on(client, 'user.deleted', handleEvent),
+          {
+            unsubscribe: chatAPI.on('all', handleEvent as (event: Event) => void, {
+              client,
+              cid: channel.cid,
+              channelId: channel.id,
+            }),
+          },
         );
-        channel.on?.('all', handleEvent as (event: Event) => void);
         // The more complex sync logic is done in Chat
       }
     })();
@@ -611,7 +617,6 @@ const ChannelInner = (
 
     return () => {
       if (errored || !done) return;
-      channel.off?.('all', handleEvent as (event: Event) => void);
       subscriptions.forEach((subscription) => subscription.unsubscribe());
       notificationTimeoutsRef.forEach(clearTimeout);
     };
