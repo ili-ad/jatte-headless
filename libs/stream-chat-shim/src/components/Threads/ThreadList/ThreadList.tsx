@@ -10,7 +10,10 @@ import { ThreadListEmptyPlaceholder as DefaultThreadListEmptyPlaceholder } from 
 import { ThreadListUnseenThreadsBanner as DefaultThreadListUnseenThreadsBanner } from "./ThreadListUnseenThreadsBanner";
 import { ThreadListLoadingIndicator as DefaultThreadListLoadingIndicator } from "./ThreadListLoadingIndicator";
 import { useChatContext, useComponentContext } from "../../../context";
-import { chatAPI } from "../../../api/chatAPI";
+import {
+  chatAPI,
+  clientThreadsState as fetchClientThreadsState,
+} from "../../../api/chatAPI";
 import type { ThreadPreview, ThreadPreviewMessage } from "../../../api/chatAPI";
 import { useStateStore } from "../../../store";
 import { clientThreadsState } from "../../../chatSDKShim";
@@ -178,7 +181,7 @@ export const ThreadList = ({ virtuosoProps }: ThreadListProps) => {
     const load = async () => {
       setThreadManagerLoading(threadManagerStore, true);
       try {
-        const response = await chatAPI.client.threads.state({ cid });
+        const response = await fetchClientThreadsState({ cid });
         if (cancelled) return;
 
         const rawUserId = client.user?.id;
