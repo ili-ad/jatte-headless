@@ -482,7 +482,7 @@
     "operationId": "shim::markUnread",
     "stubName": "markUnread",
     "ticketType": "shim",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {

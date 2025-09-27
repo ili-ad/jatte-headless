@@ -1,6 +1,6 @@
 import { validateAndGetMessage } from '../utils';
 import { useChannelStateContext, useTranslationContext } from '../../../context';
-import { markUnread } from '../../../chatSDKShim';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { LocalMessage } from 'chat-shim';
 import type { ReactEventHandler } from '../types';
@@ -28,7 +28,7 @@ export const useMarkUnreadHandler = (
     }
 
     try {
-      await markUnread(channel, message.id);
+      await chatAPI.markUnread({ channel, messageId: message.id });
       if (!notify) return;
       const successMessage =
         getSuccessNotification &&
