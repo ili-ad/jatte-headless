@@ -3598,6 +3598,34 @@ export const listRoomDrafts = async ({
   return Array.isArray(data) ? (data as RoomDraft[]) : [];
 };
 
+type ReminderEntryLike = {
+  reminder?: Partial<Reminder> & {
+    id?: number | string | null;
+    message_id?: number | string | null;
+  };
+  timer?: ReturnType<typeof setTimeout> | null;
+};
+
+type ReminderManagerLike = {
+  upsertReminder?: (messageId: string, remind_at: string) => Promise<unknown>;
+  deleteReminder?: (id: string) => Promise<unknown>;
+  store?: StateStore<{ reminders?: ReminderEntryLike[] }>;
+  state?: StateStore<{ reminders?: unknown }>;
+  scheduledOffsetsMs?: number[];
+  initTimers?: () => void;
+};
+
+export type ReminderAwareClient =
+  | { reminders?: ReminderManagerLike }
+  | null
+  | undefined;
+
+export type RemindersUpsertReminderParams = {
+  reminder: CreateReminderInput;
+  reminders?: ReminderManagerLike | null;
+  client?: ReminderAwareClient | StreamChat | null;
+};
+
 async function createReminder(body: CreateReminderInput): Promise<Reminder> {
   const response = await fetch("/api/reminders/", {
     method: "POST",
@@ -3618,6 +3646,124 @@ async function createReminder(body: CreateReminderInput): Promise<Reminder> {
   return (await response.json()) as Reminder;
 }
 
+const normalizeReminderId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value) return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const upsertReminderStoreEntry = (
+  manager: ReminderManagerLike | undefined,
+  reminder: Reminder,
+): ReminderEntryLike | undefined => {
+  const store = manager?.store;
+  const getLatest = store?.getLatestValue ?? store?.getSnapshot;
+
+  if (!store || typeof getLatest !== "function") {
+    return undefined;
+  }
+
+  const snapshot = getLatest.call(store);
+  const currentEntries = Array.isArray(snapshot?.reminders)
+    ? (snapshot?.reminders as ReminderEntryLike[])
+    : [];
+
+  const reminderId = normalizeReminderId(reminder.id);
+  const nextEntries: ReminderEntryLike[] = [];
+  let updatedEntry: ReminderEntryLike | undefined;
+  let replaced = false;
+
+  for (const entry of currentEntries) {
+    const entryId = normalizeReminderId(entry?.reminder?.id);
+    if (reminderId && entryId === reminderId) {
+      const merged: ReminderEntryLike = {
+        ...entry,
+        reminder: {
+          ...(entry.reminder ?? {}),
+          ...reminder,
+        },
+      };
+      nextEntries.push(merged);
+      updatedEntry = merged;
+      replaced = true;
+    } else {
+      nextEntries.push(entry);
+    }
+  }
+
+  if (!replaced) {
+    updatedEntry = { reminder: { ...reminder } };
+    nextEntries.push(updatedEntry);
+  }
+
+  dispatchStateStorePatch(store, { reminders: nextEntries });
+  return updatedEntry;
+};
+
+const upsertReminderStateEntry = (
+  manager: ReminderManagerLike | undefined,
+  entry: ReminderEntryLike | undefined,
+) => {
+  if (!entry?.reminder) return;
+  const stateStore = manager?.state;
+  const getLatest = stateStore?.getLatestValue ?? stateStore?.getSnapshot;
+
+  if (!stateStore || typeof getLatest !== "function") {
+    return;
+  }
+
+  const snapshot = getLatest.call(stateStore);
+  if (!snapshot || typeof snapshot !== "object") {
+    return;
+  }
+
+  const container = (snapshot as { reminders?: unknown }).reminders;
+  const messageId = normalizeReminderId(entry.reminder.message_id);
+
+  if (!container || !messageId) {
+    return;
+  }
+
+  if (container instanceof Map) {
+    const next = new Map(container);
+    next.set(messageId, entry);
+    dispatchStateStorePatch(stateStore, { reminders: next });
+    return;
+  }
+
+  if (Array.isArray(container)) {
+    const next = container.slice();
+    let replaced = false;
+
+    for (let index = 0; index < next.length; index += 1) {
+      const existing = next[index] as ReminderEntryLike | undefined;
+      const existingId = normalizeReminderId(existing?.reminder?.message_id);
+      if (existingId === messageId) {
+        next[index] = { ...existing, ...entry };
+        replaced = true;
+        break;
+      }
+    }
+
+    if (!replaced) {
+      next.push(entry);
+    }
+
+    dispatchStateStorePatch(stateStore, { reminders: next });
+    return;
+  }
+
+  if (typeof container === "object") {
+    const clone: Record<string, unknown> = {
+      ...(container as Record<string, unknown>),
+    };
+    clone[messageId] = entry;
+    dispatchStateStorePatch(stateStore, { reminders: clone });
+  }
+};
+
 const remindersUpsertReminder = async ({
   reminder,
   reminders,
@@ -3633,34 +3779,19 @@ const remindersUpsertReminder = async ({
     return reminderManager.upsertReminder(String(messageId), reminder.remind_at);
   }
 
-  return createReminder(reminder);
-};
+  const createdReminder = await createReminder(reminder);
 
-type ReminderEntryLike = {
-  reminder?: Partial<Reminder> & {
-    id?: number | string | null;
-    message_id?: number | string | null;
-  };
-  timer?: ReturnType<typeof setTimeout> | null;
-};
+  if (reminderManager) {
+    const entry = upsertReminderStoreEntry(reminderManager, createdReminder);
+    upsertReminderStateEntry(reminderManager, entry);
+    try {
+      reminderManager.initTimers?.();
+    } catch {
+      // ignore reminder manager timer errors
+    }
+  }
 
-type ReminderManagerLike = {
-  upsertReminder?: (messageId: string, remind_at: string) => Promise<unknown>;
-  deleteReminder?: (id: string) => Promise<unknown>;
-  store?: StateStore<{ reminders?: ReminderEntryLike[] }>;
-  state?: StateStore<{ reminders?: unknown }>;
-  scheduledOffsetsMs?: number[];
-};
-
-export type ReminderAwareClient =
-  | { reminders?: ReminderManagerLike }
-  | null
-  | undefined;
-
-export type RemindersUpsertReminderParams = {
-  reminder: CreateReminderInput;
-  reminders?: ReminderManagerLike | null;
-  client?: ReminderAwareClient | StreamChat | null;
+  return createdReminder;
 };
 
 export type RemindersUnregisterSubscriptionsParams = {
@@ -3720,14 +3851,6 @@ const toReminderManager = (
     typeof (client as ReminderAwareClient)?.reminders === "object"
   ) {
     return (client as ReminderAwareClient).reminders as ReminderManagerLike;
-  }
-  return undefined;
-};
-
-const normalizeReminderId = (value: unknown): string | undefined => {
-  if (typeof value === "string" && value) return value;
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
   }
   return undefined;
 };
