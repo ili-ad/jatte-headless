@@ -3,6 +3,7 @@ import type {
   Channel,
   PollOption as ChatShimPollOption,
   PollVote,
+  NotificationManagerState,
   StreamChat,
 } from '../../chat-shim';
 import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
@@ -2427,7 +2428,7 @@ export async function getDraft(roomUuid: string): Promise<RoomDraft> {
 }
 
 
-const fallbackNotificationsStore = new StateStore<{ notifications: any[] }>({
+const fallbackNotificationsStore = new StateStore<NotificationManagerState>({
   notifications: [],
 });
 
@@ -2487,8 +2488,8 @@ export function clientThreadsState(client: {
 }
 
 export function notificationsStore(client: {
-  notifications?: { store?: StateStore<{ notifications: any[] }> };
-}): StateStore<{ notifications: any[] }> {
+  notifications?: { store?: StateStore<NotificationManagerState> };
+}): StateStore<NotificationManagerState> {
   return client.notifications?.store ?? fallbackNotificationsStore;
 }
 
