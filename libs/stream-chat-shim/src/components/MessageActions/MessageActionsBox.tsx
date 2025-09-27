@@ -12,7 +12,7 @@ import {
   useTranslationContext,
 } from '../../context';
 import { MESSAGE_ACTIONS } from '../Message/utils';
-import { type CreateReminderInput } from '../../api/chatAPI';
+import { chatAPI, type CreateReminderInput } from '../../api/chatAPI';
 import { clientRemindersCreateReminder } from '../../chatSDKShim';
 import type { MessageContextValue } from '../../context';
 
@@ -172,12 +172,16 @@ const UnMemoizedMessageActionsBox = (props: MessageActionsBoxProps) => {
             aria-selected='false'
             className={buttonClassName}
             onClick={async () => {
-              if (reminder) {
-                await client.reminders.deleteReminder(reminder.id);
-                return;
-              }
               const cid = channel?.cid ?? (message.cid as string | undefined);
               if (!cid) return;
+              if (reminder) {
+                await chatAPI.reminders.deleteReminder({
+                  cid,
+                  reminderId: reminder.id,
+                  client,
+                });
+                return;
+              }
               const remindAt = new Date().toISOString();
               const rawMessageId =
                 typeof message.id === 'number'

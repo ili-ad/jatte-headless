@@ -267,7 +267,7 @@
     "stubName": "channel.off",
     "ticketType": "shim",
     "todoCount": 10,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -330,7 +330,7 @@
     "stubName": "channel.watch",
     "ticketType": "shim",
     "todoCount": 3,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -375,7 +375,7 @@
     "stubName": "client.reminders.deleteReminder",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -609,7 +609,7 @@
     "stubName": "reminders.deleteReminder",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
