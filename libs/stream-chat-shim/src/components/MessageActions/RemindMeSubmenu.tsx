@@ -1,7 +1,6 @@
 import React from 'react';
 import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
 import { chatAPI, type CreateReminderInput } from '../../api/chatAPI';
-import { remindersUpsertReminder } from '../../chatSDKShim';
 import { ButtonWithSubmenu } from '../Dialog';
 import type { ComponentProps } from 'react';
 
@@ -55,7 +54,10 @@ export const RemindMeSubmenu = () => {
             if (typeof rawMessageId === 'number' && !Number.isNaN(rawMessageId)) {
               reminderInput.message_id = rawMessageId;
             }
-            remindersUpsertReminder(client.reminders, reminderInput);
+            void chatAPI.reminders.upsertReminder({
+              client,
+              reminder: reminderInput,
+            });
           }}
         >
           {t('duration/Remind Me', { milliseconds: offsetMs })}
