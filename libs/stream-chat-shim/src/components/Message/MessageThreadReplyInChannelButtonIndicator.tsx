@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import type { LocalMessage } from 'chat-shim';
-import { formatMessage } from 'chat-shim';
 import {
   useChannelActionContext,
   useChannelStateContext,
@@ -8,6 +7,7 @@ import {
   useMessageContext,
   useTranslationContext,
 } from '../../context';
+import { chatAPI } from '../../api/chatAPI';
 
 export const MessageThreadReplyInChannelButtonIndicator = () => {
   const { client } = useChatContext();
@@ -17,20 +17,73 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
   const { message } = useMessageContext();
   const parentMessageRef = useRef<LocalMessage | null | undefined>(undefined);
 
-  const querySearchParent = () =>
-    Promise.resolve({
-      /* TODO backend-wire-up: search */
-      results: [],
-    })
-      .then(({ results }) => {
-        if (!results.length) {
-          throw new Error('Thread has not been found');
+  const normalizeParentMessage = async (
+    raw: unknown,
+  ): Promise<LocalMessage | undefined> => {
+    const state = channel?.state;
+    if (!state || !raw) return undefined;
+
+    const candidate =
+      raw && typeof raw === 'object' && 'message' in (raw as { message?: unknown })
+        ? (raw as { message?: unknown }).message
+        : raw;
+
+    if (!candidate) return undefined;
+
+    const loader = (state as { loadMessageIntoState?: (value: unknown) => Promise<unknown> })
+      .loadMessageIntoState;
+    if (typeof loader === 'function') {
+      try {
+        return (await loader(candidate)) as LocalMessage;
+      } catch (error) {
+        console.error(error);
+        return undefined;
+      }
+    }
+
+    if (candidate && typeof candidate === 'object') {
+      if (channel?.cid) {
+        const existingCid = (candidate as { cid?: unknown }).cid;
+        if (typeof existingCid !== 'string' || !existingCid) {
+          return {
+            ...(candidate as Record<string, unknown>),
+            cid: channel.cid,
+          } as LocalMessage;
         }
-        parentMessageRef.current = formatMessage(results[0].message);
-      })
-      .catch((error: Error) => {
-        /* TODO backend-wire-up: addError */
+      }
+      return candidate as LocalMessage;
+    }
+
+    return undefined;
+  };
+
+  const querySearchParent = async () => {
+    try {
+      const cid = channel?.cid;
+      if (!cid || !message.parent_id) {
+        throw new Error('Thread has not been found');
+      }
+
+      const { messages } = await chatAPI.search({
+        q: String(message.parent_id),
+        cid,
+        limit: 1,
       });
+
+      if (!messages.length) {
+        throw new Error('Thread has not been found');
+      }
+
+      const normalized = await normalizeParentMessage(messages[0]);
+      if (!normalized) {
+        throw new Error('Thread has not been found');
+      }
+
+      parentMessageRef.current = normalized;
+    } catch {
+      /* TODO backend-wire-up: addError */
+    }
+  };
 
   useEffect(() => {
     if (
@@ -49,7 +102,8 @@ export const MessageThreadReplyInChannelButtonIndicator = () => {
     (async () => {
       try {
         const fetched = await client.getMessage(message.parent_id);
-        parentMessageRef.current = formatMessage(fetched);
+        const normalized = await normalizeParentMessage(fetched);
+        parentMessageRef.current = normalized ?? null;
       } catch (e) {
         console.error(e);
       }
