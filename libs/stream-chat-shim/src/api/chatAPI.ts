@@ -169,6 +169,15 @@ export type ThreadPreview = {
   replies: ThreadPreviewMessage[];
 };
 
+type ChannelMarkUnreadLike = {
+  markUnread?: (messageId: string) => Promise<unknown>;
+};
+
+export type MarkUnreadInput = {
+  channel?: ChannelMarkUnreadLike | null;
+  messageId: string | number;
+};
+
 export type ClientThreadsStateParams = {
   cid: string;
   limit?: number;
@@ -556,6 +565,23 @@ const getMessageLikeId = (
   }
 
   return normalizeMessageId(message.id);
+};
+
+const markUnread = async ({
+  channel,
+  messageId,
+}: MarkUnreadInput): Promise<unknown> => {
+  const normalizedId = normalizeMessageId(messageId);
+
+  if (!normalizedId) {
+    throw new Error("Invalid message id provided to markUnread");
+  }
+
+  if (!channel) {
+    return undefined;
+  }
+
+  return chatSDKShim.markUnread(channel, normalizedId);
 };
 
 const getMessageLikeUserId = (
@@ -1534,6 +1560,7 @@ export const chatAPI = {
   clientThreadsActivate,
   clientThreadsState,
   clientThreadsReload,
+  markUnread,
   createReminder,
   flagMessage,
   deleteReaction,
