@@ -5,7 +5,7 @@ import type {
   ReactionSort,
   StreamChat,
 } from 'chat-shim';
-import { queryReactions } from '../../../chatSDKShim';
+import { chatAPI } from '../../../api/chatAPI';
 import type { ReactionType } from '../../Reactions/types';
 
 export const MAX_MESSAGE_REACTIONS_TO_FETCH = 1000;
@@ -25,7 +25,7 @@ export function useReactionsFetcher(
 
   return async (reactionType?: ReactionType, sort?: ReactionSort) => {
     try {
-      return await fetchMessageReactions(client, message.id, reactionType, sort);
+      return await fetchMessageReactions(client, message, message.id, reactionType, sort);
     } catch (e) {
       const errorMessage = getErrorNotification?.(message);
       notify?.(errorMessage || t('Error fetching reactions'), 'error');
@@ -36,6 +36,7 @@ export function useReactionsFetcher(
 
 async function fetchMessageReactions(
   client: StreamChat,
+  message: LocalMessage,
   messageId: string,
   reactionType?: ReactionType,
   sort?: ReactionSort,
@@ -46,15 +47,15 @@ async function fetchMessageReactions(
   let hasNext = true;
 
   while (hasNext && reactions.length < MAX_MESSAGE_REACTIONS_TO_FETCH) {
-    const response = await queryReactions(
-      { id: messageId } as any,
-      {
-        limit,
-        next,
-        reaction_type: reactionType,
-        sort,
-      },
-    );
+    const response = await chatAPI.queryReactions({
+      client,
+      limit,
+      message,
+      messageId,
+      next,
+      reactionType,
+      sort,
+    });
 
     reactions.push(...response.reactions);
     next = response.next;
