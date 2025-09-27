@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { isVoteAnswer } from 'chat-shim';
 import { useChatContext } from '../../../context';
 import type { Event, PollAnswer, PollVote } from 'chat-shim';
-import { on } from '../../../chatSDKShim';
 import { chatAPI } from '../../../api/chatAPI';
 
 import type { CursorPaginatorStateStore } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
@@ -63,9 +62,11 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
       channel,
       handler: handleVoteEvent,
     });
-    const voteRemovedSubscription =
-      on(client, 'poll.vote_removed', handleVoteEvent) ??
-      ({ unsubscribe: () => undefined } as any);
+    const voteRemovedSubscription = chatAPI.onPollVoteRemoved({
+      channel,
+      client,
+      handler: handleVoteEvent,
+    });
     const voteChangedSubscription = chatAPI.onPollVoteChanged({
       channel,
       client,
