@@ -36,7 +36,7 @@ import type { MessageContextValue } from '../../context/MessageContext';
 import { useMessageContext } from '../../context/MessageContext';
 
 import { useChatContext, useTranslationContext } from '../../context';
-import { pollsFromState } from '../../chatSDKShim';
+import { chatAPI } from '../../api/chatAPI';
 import { MessageEditedTimestamp } from './MessageEditedTimestamp';
 
 import type { MessageUIComponentProps } from './types';
@@ -146,7 +146,9 @@ const MessageSimpleWithContext = (props: MessageSimpleWithContextProps) => {
     },
   );
 
-  const poll = message.poll_id && pollsFromState(client, message.poll_id);
+  const poll = message.poll_id
+    ? chatAPI.polls_fromState({ client, pollId: message.poll_id, sources: [message] })
+    : undefined;
 
   return (
     <>
