@@ -3,6 +3,7 @@ import type { ComponentPropsWithoutRef } from 'react';
 import React from 'react';
 
 import { isUserMuted, useMessageComposer, useMessageReminder } from '../../components';
+import { chatAPI } from '../../api/chatAPI';
 import {
   ReactionIcon as DefaultReactionIcon,
   ThreadIcon,
@@ -131,14 +132,21 @@ const DefaultMessageActionComponents = {
 
       return (
         <DefaultDropdownActionButton
-          onClick={() =>
-            reminder
-              ? client.reminders.deleteReminder(reminder.id)
-              : client.reminders.createReminder(
-                  message.text || '',
-                  new Date().toISOString(),
-                )
-          }
+          onClick={() => {
+            const cid = message.cid as string | undefined;
+            if (!cid) return;
+            if (reminder) {
+              return chatAPI.reminders.deleteReminder({
+                cid,
+                reminderId: reminder.id,
+                client,
+              });
+            }
+            return client.reminders.createReminder(
+              message.text || '',
+              new Date().toISOString(),
+            );
+          }}
         >
           {reminder ? t('Remove reminder') : t('Save for later')}
         </DefaultDropdownActionButton>

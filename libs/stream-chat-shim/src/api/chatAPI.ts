@@ -87,6 +87,13 @@ export type Reminder = {
   created_at: string;
 };
 
+export type DeleteReminderParams = {
+  cid: string;
+  reminderId: string;
+};
+
+export type DeleteReminderResult = { ok: true; reminderId: string };
+
 export type AppSettings = Record<string, unknown>;
 
 export type UserAgentInfo = { user_agent: string };
@@ -3555,6 +3562,220 @@ async function createReminder(body: CreateReminderInput): Promise<Reminder> {
   return (await response.json()) as Reminder;
 }
 
+type ReminderEntryLike = {
+  reminder?: Partial<Reminder> & {
+    id?: number | string | null;
+    message_id?: number | string | null;
+  };
+  timer?: ReturnType<typeof setTimeout> | null;
+};
+
+type ReminderManagerLike = {
+  deleteReminder?: (id: string) => Promise<unknown>;
+  store?: StateStore<{ reminders?: ReminderEntryLike[] }>;
+  state?: StateStore<{ reminders?: unknown }>;
+};
+
+type ReminderAwareClient = { reminders?: ReminderManagerLike } | null | undefined;
+
+const getDefaultRemindersClient = (): ReminderAwareClient => {
+  try {
+    return getLocalClient() as ReminderAwareClient;
+  } catch {
+    return undefined;
+  }
+};
+
+const toReminderManager = (
+  client?: ReminderAwareClient | StreamChat | null,
+): ReminderManagerLike | undefined => {
+  if (!client || typeof client !== "object") return undefined;
+  if (
+    "reminders" in (client as Record<string, unknown>) &&
+    (client as ReminderAwareClient)?.reminders &&
+    typeof (client as ReminderAwareClient)?.reminders === "object"
+  ) {
+    return (client as ReminderAwareClient).reminders as ReminderManagerLike;
+  }
+  return undefined;
+};
+
+const normalizeReminderId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value) return value;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const dispatchStateStorePatch = (
+  store: StateStore<any> | undefined,
+  patch: Record<string, unknown>,
+) => {
+  if (!store) return;
+  if (typeof store.dispatch === "function") {
+    store.dispatch(patch);
+    return;
+  }
+  if (typeof store.next === "function") {
+    store.next(patch);
+    return;
+  }
+  const maybeSet = (store as { _set?: (patch: Record<string, unknown>) => void })._set;
+  if (typeof maybeSet === "function") {
+    maybeSet(patch);
+  }
+};
+
+const removeReminderFromStore = (
+  manager: ReminderManagerLike | undefined,
+  reminderId: string,
+): ReminderEntryLike[] => {
+  const store = manager?.store;
+  const getLatest = store?.getLatestValue ?? store?.getSnapshot;
+  if (!store || typeof getLatest !== "function") {
+    return [];
+  }
+  const current = getLatest.call(store);
+  const list = Array.isArray(current?.reminders)
+    ? (current?.reminders as ReminderEntryLike[])
+    : [];
+  if (!list.length) return [];
+
+  const next: ReminderEntryLike[] = [];
+  const removed: ReminderEntryLike[] = [];
+
+  for (const entry of list) {
+    const entryId = normalizeReminderId(entry?.reminder?.id);
+    if (entryId === reminderId) {
+      removed.push(entry);
+    } else {
+      next.push(entry);
+    }
+  }
+
+  if (removed.length) {
+    for (const entry of removed) {
+      const timerHandle = entry?.timer;
+      if (timerHandle) {
+        try {
+          clearTimeout(timerHandle as ReturnType<typeof setTimeout>);
+        } catch {
+          clearTimeout(timerHandle as any);
+        }
+      }
+    }
+    dispatchStateStorePatch(store, { reminders: next });
+  }
+
+  return removed;
+};
+
+const updateReminderState = (
+  manager: ReminderManagerLike | undefined,
+  removed: ReminderEntryLike[],
+) => {
+  if (!removed.length) return;
+  const stateStore = manager?.state;
+  const getLatest = stateStore?.getLatestValue ?? stateStore?.getSnapshot;
+  if (!stateStore || typeof getLatest !== "function") return;
+  const current = getLatest.call(stateStore);
+  if (!current || typeof current !== "object") return;
+
+  const container = (current as { reminders?: unknown }).reminders;
+  if (!container) return;
+
+  const messageIds = removed
+    .map((entry) => entry?.reminder?.message_id)
+    .filter((value): value is string | number =>
+      value !== undefined && value !== null && `${value}` !== "",
+    )
+    .map((value) => String(value));
+
+  if (!messageIds.length) return;
+
+  if (container instanceof Map) {
+    const next = new Map(container);
+    let changed = false;
+    for (const key of messageIds) {
+      if (next.delete(key)) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      dispatchStateStorePatch(stateStore, { reminders: next });
+    }
+    return;
+  }
+
+  if (Array.isArray(container)) {
+    const ids = new Set(messageIds);
+    const next = container.filter((entry) => {
+      const messageId = (entry as ReminderEntryLike)?.reminder?.message_id;
+      return !ids.has(String(messageId ?? ""));
+    });
+    if (next.length !== container.length) {
+      dispatchStateStorePatch(stateStore, { reminders: next });
+    }
+    return;
+  }
+
+  if (typeof container === "object") {
+    const clone: Record<string, unknown> = {
+      ...(container as Record<string, unknown>),
+    };
+    let changed = false;
+    for (const key of messageIds) {
+      if (Object.prototype.hasOwnProperty.call(clone, key)) {
+        delete clone[key];
+        changed = true;
+      }
+    }
+    if (changed) {
+      dispatchStateStorePatch(stateStore, { reminders: clone });
+    }
+  }
+};
+
+const deleteReminder = async ({
+  cid: _cid,
+  reminderId,
+  client,
+}: DeleteReminderParams & { client?: ReminderAwareClient | StreamChat | null }): Promise<DeleteReminderResult> => {
+  const normalizedId = reminderId;
+  const reminderManager =
+    toReminderManager(client) ?? toReminderManager(getDefaultRemindersClient());
+
+  if (reminderManager?.deleteReminder) {
+    await reminderManager.deleteReminder(normalizedId);
+    return { ok: true, reminderId: normalizedId };
+  }
+
+  const response = await fetch(`/api/reminders/${encodeURIComponent(reminderId)}/`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Failed to delete reminder (status ${response.status})`);
+    (error as ErrorWithStatus).status = response.status;
+    throw error;
+  }
+
+  try {
+    await response.json();
+  } catch {
+    // ignore body parsing errors (204, empty responses, etc.)
+  }
+
+  if (reminderManager) {
+    const removed = removeReminderFromStore(reminderManager, normalizedId);
+    updateReminderState(reminderManager, removed);
+  }
+
+  return { ok: true, reminderId: normalizedId };
+};
+
 async function endSession(): Promise<void> {
   const response = await fetch("/api/session/", {
     method: "DELETE",
@@ -3772,6 +3993,7 @@ export const chatAPI = {
   createReminder,
   reminders: {
     clearTimers: remindersClearTimers,
+    deleteReminder,
   },
   notifications: {
     store: resolveNotificationsStore,

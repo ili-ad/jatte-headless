@@ -2134,32 +2134,31 @@ export async function remindersCreateReminder(
 export async function clientRemindersDeleteReminder(
   client: { reminders?: { deleteReminder?: (id: string) => Promise<any> } },
   reminderId: string,
+  options?: { cid?: string },
 ): Promise<any> {
   if (client.reminders?.deleteReminder) {
     return client.reminders.deleteReminder(reminderId);
   }
-  const resp = await fetch(
-    `/api/reminders/${encodeURIComponent(reminderId)}/`,
-    {
-      method: "DELETE",
-      credentials: "same-origin",
-    },
-  );
-  return resp.json();
+  return chatAPI.reminders.deleteReminder({
+    cid: options?.cid ?? "",
+    reminderId,
+    client,
+  });
 }
 
 export async function remindersDeleteReminder(
   reminders: { deleteReminder?: (id: string) => Promise<any> } | undefined,
   reminderId: string,
+  options?: { cid?: string },
 ): Promise<any> {
   if (reminders?.deleteReminder) {
     return reminders.deleteReminder(reminderId);
   }
-  const resp = await fetch(`/api/reminders/${encodeURIComponent(reminderId)}/`, {
-    method: "DELETE",
-    credentials: "same-origin",
+  return chatAPI.reminders.deleteReminder({
+    cid: options?.cid ?? "",
+    reminderId,
+    client: { reminders },
   });
-  return resp.json();
 }
 
 export function clientThreadsActivate(client: {
