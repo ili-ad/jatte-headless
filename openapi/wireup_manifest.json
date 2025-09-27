@@ -519,7 +519,7 @@
     "stubName": "on(poll.vote_changed)",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
