@@ -7,6 +7,7 @@ import {
   loadMessageIntoChannelState,
   pollsFromState as pollsFromStateShim,
   pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
+  queryReactions as queryReactionsShim,
 } from '../chatSDKShim';
 import { getLocalClient } from '../../chat-shim';
 import type {
@@ -15,12 +16,15 @@ import type {
   ChannelOptions,
   ChannelSort,
   Event,
+  LocalMessage,
   Notification,
   NotificationManagerState,
   Poll,
   PollAnswer,
   PollOption,
   PollVote,
+  ReactionResponse,
+  ReactionSort,
   StateStore,
   StreamChat,
   VotingVisibility,
@@ -2178,6 +2182,42 @@ type ReactionResponseLike = {
   [key: string]: unknown;
 };
 
+type QueryReactionsShimParams = {
+  limit?: number;
+  next?: string;
+  reaction_type?: string;
+  sort?: Record<string, number>;
+};
+
+type QueryReactionsShimMessage = {
+  id?: string | number | null;
+  queryReactions?: (params?: QueryReactionsShimParams) => Promise<unknown>;
+} & Record<string, unknown>;
+
+type ClientWithQueryReactions = {
+  queryReactions?: (
+    messageId: string,
+    filter?: Record<string, unknown>,
+    sort?: ReactionSort,
+    options?: { limit?: number; next?: string },
+  ) => Promise<unknown>;
+};
+
+export type QueryReactionsParams = {
+  client?: (StreamChat & ClientWithQueryReactions) | ClientWithQueryReactions | null;
+  message?: (LocalMessage & QueryReactionsShimMessage) | QueryReactionsShimMessage | null;
+  messageId?: string | number | null;
+  limit?: number;
+  next?: string;
+  reactionType?: string;
+  sort?: ReactionSort;
+};
+
+export type QueryReactionsResult = {
+  reactions: ReactionResponse[];
+  next?: string;
+};
+
 type ReactionCountsRecord = Record<string, number>;
 
 type ReactionScoresRecord = Record<string, number>;
@@ -2335,6 +2375,55 @@ const toReactionList = (value: unknown): ReactionResponseLike[] => {
   return value
     .filter((item): item is ReactionResponseLike => Boolean(item) && typeof item === "object")
     .map((item) => ({ ...(item as ReactionResponseLike) }));
+};
+
+const hasQueryReactions = (
+  client?: ClientWithQueryReactions | null,
+): client is ClientWithQueryReactions & { queryReactions: Required<ClientWithQueryReactions>['queryReactions'] } =>
+  Boolean(client && typeof client.queryReactions === "function");
+
+const toReactionSortRecord = (
+  sort?: ReactionSort,
+): Record<string, number> | undefined => {
+  if (!sort || typeof sort !== "object") {
+    return undefined;
+  }
+
+  const result: Record<string, number> = {};
+
+  for (const [field, direction] of Object.entries(sort as Record<string, unknown>)) {
+    if (typeof direction === "number" && Number.isFinite(direction)) {
+      if (direction > 0) {
+        result[field] = 1;
+      } else if (direction < 0) {
+        result[field] = -1;
+      }
+      continue;
+    }
+
+    if (typeof direction === "string") {
+      const normalized = direction.trim().toLowerCase();
+      if (normalized === "asc" || normalized === "ascending") {
+        result[field] = 1;
+      } else if (normalized === "desc" || normalized === "descending") {
+        result[field] = -1;
+      }
+    }
+  }
+
+  return Object.keys(result).length ? result : undefined;
+};
+
+const toQueryReactionsResult = (value: unknown): QueryReactionsResult | undefined => {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const record = value as { reactions?: unknown; next?: unknown };
+  const reactions = toReactionList(record.reactions) as ReactionResponse[];
+  const nextValue = typeof record.next === "string" && record.next ? record.next : undefined;
+
+  return { reactions, next: nextValue };
 };
 
 const cloneReactionUser = (
@@ -2517,6 +2606,75 @@ const findMessageById = (
 
   return undefined;
 };
+
+export async function queryReactions({
+  client,
+  limit,
+  message,
+  messageId,
+  next,
+  reactionType,
+  sort,
+}: QueryReactionsParams): Promise<QueryReactionsResult> {
+  const normalizedId =
+    normalizeMessageId(messageId) ??
+    normalizeMessageId((message as { id?: unknown } | null | undefined)?.id);
+
+  if (!normalizedId) {
+    return { reactions: [] };
+  }
+
+  const filter = reactionType ? { type: reactionType } : {};
+  const queryOptions: { limit?: number; next?: string } = {};
+  if (limit !== undefined) {
+    queryOptions.limit = limit;
+  }
+  if (next !== undefined) {
+    queryOptions.next = next;
+  }
+
+  if (hasQueryReactions(client)) {
+    const response = await client.queryReactions(
+      normalizedId,
+      filter,
+      sort,
+      queryOptions,
+    );
+    const normalizedResponse = toQueryReactionsResult(response);
+    if (normalizedResponse) {
+      return normalizedResponse;
+    }
+  }
+
+  const fallbackMessage: QueryReactionsShimMessage = {
+    ...(message && typeof message === "object"
+      ? (message as Record<string, unknown>)
+      : {}),
+    id: normalizedId,
+  };
+
+  const fallbackParams: QueryReactionsShimParams = {};
+  if (limit !== undefined) {
+    fallbackParams.limit = limit;
+  }
+  if (next !== undefined) {
+    fallbackParams.next = next;
+  }
+  if (reactionType !== undefined) {
+    fallbackParams.reaction_type = reactionType;
+  }
+  const normalizedSort = toReactionSortRecord(sort);
+  if (normalizedSort) {
+    fallbackParams.sort = normalizedSort;
+  }
+
+  const fallbackResponse = await queryReactionsShim(
+    fallbackMessage,
+    fallbackParams,
+  );
+
+  return toQueryReactionsResult(fallbackResponse) ?? { reactions: [] };
+}
 
 export const deleteReaction = async ({
   channel,
@@ -3580,6 +3738,7 @@ export const chatAPI = {
   pinMessage,
   flagMessage,
   deleteReaction,
+  queryReactions,
   deleteMessage,
   updateMessage,
   muteUser,
