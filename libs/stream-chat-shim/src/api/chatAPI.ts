@@ -176,7 +176,18 @@ export type ThreadPage = {
 };
 
 export type ChannelCountUnreadParams = {
-  channel: { countUnread?: (lastRead?: Date) => number };
+  channel: {
+    cid: string;
+    state?: {
+      messages?: Array<Record<string, unknown>>;
+      read?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+    stateStore?: { dispatch?: (patch: unknown) => void } | undefined;
+    countUnread?: (lastRead?: Date) => number;
+    getClient?: () => unknown;
+    [key: string]: unknown;
+  };
   lastRead?: Date;
 };
 
