@@ -116,6 +116,25 @@ export type Message = {
   deleted_at?: string | null;
 };
 
+type MessageLikeWithId = {
+  id?: string | number | null;
+  user_id?: string | number | null;
+  user?: { id?: string | number | null } | null;
+} & Record<string, unknown>;
+
+export type FlagMessageParams = {
+  message?: MessageLikeWithId | null;
+  messageId?: string | number | null;
+  userId?: string | number | null;
+};
+
+export type FlagMessageResult = {
+  flagged: true;
+  message_id: string;
+  flagged_at: string;
+  flagged_by?: string;
+};
+
 export type ChannelQueryRequest = {
   cid: string;
   limit?: number;
@@ -518,6 +537,63 @@ const normalizeMessageId = (value: unknown): string | undefined => {
   }
   return undefined;
 };
+
+const getMessageLikeId = (
+  message: MessageLikeWithId | null | undefined,
+): string | undefined => {
+  if (!message || typeof message !== "object") {
+    return undefined;
+  }
+
+  return normalizeMessageId(message.id);
+};
+
+const getMessageLikeUserId = (
+  message: MessageLikeWithId | null | undefined,
+): string | undefined => {
+  if (!message || typeof message !== "object") {
+    return undefined;
+  }
+
+  const record = message as MessageLikeWithId;
+
+  return (
+    normalizeUserId(record.user_id) ??
+    (record.user && typeof record.user === "object"
+      ? normalizeUserId(record.user.id)
+      : undefined)
+  );
+};
+
+async function flagMessage({
+  message,
+  messageId,
+  userId,
+}: FlagMessageParams): Promise<FlagMessageResult> {
+  const resolvedId =
+    normalizeMessageId(messageId) ?? getMessageLikeId(message);
+
+  if (!resolvedId) {
+    throw new Error("Invalid message id provided to flagMessage");
+  }
+
+  const flaggedAt = new Date().toISOString();
+
+  const result: FlagMessageResult = {
+    flagged: true,
+    message_id: resolvedId,
+    flagged_at: flaggedAt,
+  };
+
+  const resolvedUserId =
+    normalizeUserId(userId) ?? getMessageLikeUserId(message);
+
+  if (resolvedUserId) {
+    result.flagged_by = resolvedUserId;
+  }
+
+  return result;
+}
 
 const toFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -1448,6 +1524,7 @@ export const chatAPI = {
   clientThreadsState,
   clientThreadsReload,
   createReminder,
+  flagMessage,
   deleteReaction,
   deleteMessage,
   updateMessage,

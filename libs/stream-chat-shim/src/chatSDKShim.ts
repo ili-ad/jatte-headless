@@ -2312,11 +2312,7 @@ export async function deleteReaction(
 }
 
 export async function flagMessage(messageId: string): Promise<any> {
-  const resp = await fetch(
-    `/api/messages/${encodeURIComponent(messageId)}/flag/`,
-    { method: 'POST', credentials: 'same-origin' },
-  );
-  return resp.json();
+  return chatAPI.flagMessage({ messageId });
 }
 
 export async function pinMessage(messageId: string): Promise<any> {
