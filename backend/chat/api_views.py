@@ -9,6 +9,7 @@ from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import QueryDict
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -26,6 +27,7 @@ from .models import (
     Pin,
     Poll,
     PollOption,
+    PollVote,
     Reaction,
     ReadState,
     Reminder,
@@ -44,6 +46,7 @@ from .serializers import (
     PinSerializer,
     PollOptionSerializer,
     PollSerializer,
+    PollVoteSerializer,
     ReactionSerializer,
     RegisterSubscriptionsSerializer,
     ReminderCreateSerializer,
@@ -697,6 +700,67 @@ class PollDetailView(APIView):
         poll = get_object_or_404(Poll, id=poll_id)
         poll.delete()
         return Response(status=204)
+
+
+class PollOptionVotesListView(APIView):
+    """Return paginated votes for a poll option."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, poll_id, option_id):
+        poll = get_object_or_404(Poll, id=poll_id)
+        option = get_object_or_404(PollOption, id=option_id, poll=poll)
+
+        try:
+            limit_param = request.query_params.get("limit")
+            limit = int(limit_param) if limit_param is not None else 25
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit"}, status=400)
+
+        limit = max(1, min(limit, 100))
+        cursor = request.query_params.get("cursor")
+
+        votes_qs = PollVote.objects.filter(poll=poll, option=option).order_by(
+            "-created_at", "-id"
+        )
+
+        if cursor:
+            try:
+                cursor_vote = PollVote.objects.get(
+                    id=cursor, poll=poll, option=option
+                )
+            except PollVote.DoesNotExist:
+                return Response({"detail": "Invalid cursor"}, status=400)
+
+            votes_qs = votes_qs.filter(
+                Q(created_at__lt=cursor_vote.created_at)
+                | (
+                    Q(created_at=cursor_vote.created_at)
+                    & Q(id__lt=cursor_vote.id)
+                )
+            )
+
+        total = PollVote.objects.filter(poll=poll, option=option).count()
+        paginated = list(votes_qs[: limit + 1])
+        has_next = len(paginated) > limit
+        votes = paginated[:limit]
+
+        next_cursor = None
+        if has_next and votes:
+            next_cursor = str(votes[-1].id)
+
+        serializer = PollVoteSerializer(votes, many=True)
+        response_data = {
+            "results": serializer.data,
+            "count": total,
+        }
+        if next_cursor:
+            response_data["next"] = next_cursor
+        if cursor:
+            response_data["prev"] = cursor
+
+        return Response(response_data)
 
 
 class RoomConfigView(RoomFromCIDMixin, APIView):
