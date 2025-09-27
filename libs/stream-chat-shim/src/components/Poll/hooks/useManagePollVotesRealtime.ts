@@ -66,9 +66,11 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
     const voteRemovedSubscription =
       on(client, 'poll.vote_removed', handleVoteEvent) ??
       ({ unsubscribe: () => undefined } as any);
-    const voteChangedSubscription =
-      on(client, 'poll.vote_changed', handleVoteEvent) ??
-      ({ unsubscribe: () => undefined } as any);
+    const voteChangedSubscription = chatAPI.onPollVoteChanged({
+      channel,
+      client,
+      handler: handleVoteEvent,
+    });
 
     return () => {
       voteCastedSubscription.unsubscribe();
