@@ -37,6 +37,9 @@ import {
   type UserAgentInfo,
   type ChannelUnpinResult,
   type PinMessageResult,
+  type QueryAnswersParams as QueryAnswersAPIParams,
+  type QueryAnswersPoll as QueryAnswersAPIPoll,
+  type QueryAnswersResult as QueryAnswersAPIResult,
   type SyncUserRequest,
   type SyncUserResponse,
 } from './api/chatAPI';
@@ -795,24 +798,21 @@ export async function createPollOption(
   return resp.json();
 }
 
+type PollWithQueryAnswers = QueryAnswersAPIPoll & {
+  id: string;
+  queryAnswers?: (
+    params?: QueryAnswersAPIParams,
+  ) => Promise<QueryAnswersAPIResult>;
+};
+
 export async function queryAnswers(
-  poll: { id: string; queryAnswers?: (params?: any) => Promise<any> },
-  params: { limit?: number; next?: string } = {},
-): Promise<{ next?: string; votes: any[] }> {
+  poll: PollWithQueryAnswers,
+  params: QueryAnswersAPIParams = {},
+): Promise<QueryAnswersAPIResult> {
   if (typeof poll.queryAnswers === 'function') {
     return poll.queryAnswers(params);
   }
-  const searchParams = new URLSearchParams();
-  if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
-  if (params.next !== undefined) searchParams.set('next', params.next);
-  const query = searchParams.toString();
-  const resp = await fetch(
-    `/api/polls/${encodeURIComponent(poll.id)}/answers/${
-      query ? `?${query}` : ''
-    }`,
-    { credentials: 'same-origin' },
-  );
-  return resp.json();
+  return chatAPI.queryAnswers(poll, params);
 }
 
 export async function queryOptionVotes(

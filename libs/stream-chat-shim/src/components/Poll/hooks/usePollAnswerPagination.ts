@@ -6,7 +6,7 @@ import type {
 } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
 import { useCursorPaginator } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
 import { usePollContext } from '../../../context';
-import { queryAnswers } from '../../../chatSDKShim';
+import { chatAPI } from '../../../api/chatAPI';
 
 import { useStateStore } from '../../../store';
 import type { PollAnswer, PollAnswersQueryParams, PollVote } from 'chat-shim';
@@ -30,7 +30,7 @@ export const usePollAnswerPagination = ({
 
   const paginationFn = useCallback<PaginationFn<PollAnswer>>(
     async (next) => {
-      const { next: newNext, votes } = await queryAnswers(poll, {
+      const { next: newNext, votes } = await chatAPI.queryAnswers(poll, {
         ...(paginationParams ?? {}),
         next,
       });
