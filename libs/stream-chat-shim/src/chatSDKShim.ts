@@ -1414,17 +1414,15 @@ export async function query(
   if (typeof channel.query === "function") {
     return channel.query({ watch: true, watchers });
   }
-  const params = new URLSearchParams();
-  if (watchers.limit !== undefined) params.set('limit', String(watchers.limit));
-  if (watchers.offset !== undefined)
-    params.set('offset', String(watchers.offset));
-  const q = params.toString();
-  const resp = await fetch(
-    `/api/rooms/${encodeURIComponent(channel.cid)}/members/${q ? `?${q}` : ''}`,
-    { credentials: 'same-origin' },
-  );
-  const data = await resp.json();
-  return { members: data };
+
+  const { limit, offset } = watchers;
+  const result = await chatAPI.query({
+    cid: channel.cid,
+    limit,
+    offset,
+  });
+
+  return result;
 }
 
 export async function channelSendMessage(

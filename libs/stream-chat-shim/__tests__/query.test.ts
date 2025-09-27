@@ -1,3 +1,4 @@
+import { chatAPI } from '../src/api/chatAPI';
 import { query } from '../src/chatSDKShim';
 
 describe('query', () => {
@@ -9,16 +10,19 @@ describe('query', () => {
   });
 
   it('fetches members when not implemented', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue({ json: () => Promise.resolve(['m1']) });
-    // @ts-ignore
-    global.fetch = fetchMock;
+    const spy = jest
+      .spyOn(chatAPI, 'query')
+      .mockResolvedValue({ members: ['m1'] as any });
+
     const res = await query({ cid: 'room2' } as any, { offset: 1 });
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/rooms/room2/members/?offset=1',
-      { credentials: 'same-origin' },
-    );
+
+    expect(spy).toHaveBeenCalledWith({
+      cid: 'room2',
+      limit: undefined,
+      offset: 1,
+    });
     expect(res).toEqual({ members: ['m1'] });
+
+    spy.mockRestore();
   });
 });
