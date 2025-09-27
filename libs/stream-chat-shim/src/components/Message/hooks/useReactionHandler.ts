@@ -7,8 +7,9 @@ import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useChannelStateContext } from '../../../context/ChannelStateContext';
 import { useChatContext } from '../../../context/ChatContext';
 
-import type { LocalMessage, Reaction, ReactionResponse } from 'chat-shim';
-import { sendReaction, deleteReaction } from '../../../chatSDKShim';
+import type { LocalMessage, ReactionResponse } from 'chat-shim';
+import { sendReaction } from '../../../chatSDKShim';
+import { chatAPI } from '../../../api/chatAPI';
 
 export const reactionHandlerWarning = `Reaction handler was called, but it is missing one of its required arguments.
 Make sure the ChannelAction and ChannelState contexts are properly set and the hook is initialized with a valid message.`;
@@ -79,7 +80,7 @@ export const useReactionHandler = (message?: LocalMessage) => {
   });
 
   const toggleReaction = throttle(async (id: string, type: string, add: boolean) => {
-    if (!message || !channelCapabilities['send-reaction']) return;
+    if (!message || !channelCapabilities['send-reaction'] || !channel) return;
 
     const newReaction = createReactionPreview(type) as ReactionResponse;
     const tempMessage = createMessagePreview(add, newReaction, message);
@@ -90,7 +91,14 @@ export const useReactionHandler = (message?: LocalMessage) => {
 
       const messageResponse = add
         ? await sendReaction(id, type)
-        : await deleteReaction(id, type);
+        : await chatAPI.deleteReaction({
+            channel,
+            cid: channel.cid,
+            messageId: id,
+            message,
+            type,
+            userId: client.userID ?? client.user?.id,
+          });
 
       // seems useless as we're expecting WS event to come in and replace this anyway
       updateMessage(messageResponse.message);

@@ -4,6 +4,7 @@ import {
   clientThreadsActivate as clientThreadsActivateShim,
   clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
   clientThreadsReload as clientThreadsReloadShim,
+  loadMessageIntoChannelState,
 } from '../chatSDKShim';
 import type {
   Channel,
@@ -466,6 +467,433 @@ const channelUnpin = async ({ channel }: ChannelUnpinParams): Promise<ChannelUnp
   const at = extractUnpinAt(result, fallbackAt);
 
   return { pinned: false as const, at };
+};
+
+type ReactionUserLike = { id?: string | number | null } & Record<string, unknown>;
+
+type ReactionResponseLike = {
+  type?: string;
+  user?: ReactionUserLike | null;
+  user_id?: string | number | null;
+  score?: number | string | null;
+  message_id?: string | number | null;
+  [key: string]: unknown;
+};
+
+type ReactionCountsRecord = Record<string, number>;
+
+type ReactionScoresRecord = Record<string, number>;
+
+type ReactionGroupRecord = {
+  count?: number | string | null;
+  sum_scores?: number | string | null;
+  [key: string]: unknown;
+};
+
+type ChannelReactionLike = {
+  cid?: string;
+  state?: { messages?: Array<Record<string, unknown>> | undefined } | null;
+  stateStore?: ChannelStateStoreLike | null;
+  getClient?: () => { user?: { id?: string | number | null } | null } | null;
+  emit?: (event: string, payload: Record<string, unknown>) => void;
+};
+
+export type DeleteReactionParams = {
+  channel?: ChannelReactionLike | null;
+  cid?: string;
+  messageId: string | number;
+  type: string;
+  message?: Record<string, unknown> | null;
+  userId?: string | number | null;
+};
+
+export type DeleteReactionResult = { message: Record<string, unknown> };
+
+const normalizeMessageId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const toReactionList = (value: unknown): ReactionResponseLike[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is ReactionResponseLike => Boolean(item) && typeof item === "object")
+    .map((item) => ({ ...(item as ReactionResponseLike) }));
+};
+
+const cloneReactionUser = (
+  user: ReactionUserLike | null | undefined,
+): ReactionUserLike | undefined => {
+  if (!user || typeof user !== "object") {
+    return undefined;
+  }
+  return { ...user };
+};
+
+const removeFirstReaction = (
+  list: ReactionResponseLike[],
+  type: string,
+  userId?: string,
+): { list: ReactionResponseLike[]; removed?: ReactionResponseLike } => {
+  const next: ReactionResponseLike[] = [];
+  let removed: ReactionResponseLike | undefined;
+  let consumed = false;
+
+  for (const reaction of list) {
+    if (!consumed) {
+      const reactionType = typeof reaction.type === "string" ? reaction.type : undefined;
+      if (reactionType === type) {
+        const candidateUserId =
+          normalizeUserId(reaction.user_id) ??
+          normalizeUserId((reaction.user as ReactionUserLike | undefined)?.id);
+        if (!userId || !candidateUserId || candidateUserId === userId) {
+          removed = reaction;
+          consumed = true;
+          continue;
+        }
+      }
+    }
+    next.push(reaction);
+  }
+
+  return { list: consumed ? next : list, removed };
+};
+
+const updateReactionCounts = (
+  countsSource: unknown,
+  type: string,
+): { next?: ReactionCountsRecord; changed: boolean } => {
+  if (!isRecord(countsSource)) {
+    return { next: undefined, changed: false };
+  }
+
+  const record = countsSource as Record<string, unknown>;
+  if (!(type in record)) {
+    return { next: countsSource as ReactionCountsRecord, changed: false };
+  }
+
+  const current = toFiniteNumber(record[type]);
+  if (current === undefined) {
+    return { next: countsSource as ReactionCountsRecord, changed: false };
+  }
+
+  const next: ReactionCountsRecord = {
+    ...(record as ReactionCountsRecord),
+  };
+
+  const nextValue = current - 1;
+  if (nextValue > 0) {
+    next[type] = nextValue;
+  } else {
+    delete next[type];
+  }
+
+  return { next: Object.keys(next).length ? next : undefined, changed: true };
+};
+
+const updateReactionScores = (
+  scoresSource: unknown,
+  type: string,
+  score: number,
+): { next?: ReactionScoresRecord; changed: boolean } => {
+  if (!isRecord(scoresSource)) {
+    return { next: undefined, changed: false };
+  }
+
+  const record = scoresSource as Record<string, unknown>;
+  if (!(type in record)) {
+    return { next: scoresSource as ReactionScoresRecord, changed: false };
+  }
+
+  const current = toFiniteNumber(record[type]);
+  if (current === undefined) {
+    return { next: scoresSource as ReactionScoresRecord, changed: false };
+  }
+
+  const next: ReactionScoresRecord = {
+    ...(record as ReactionScoresRecord),
+  };
+
+  const nextValue = current - score;
+  if (nextValue > 0) {
+    next[type] = nextValue;
+  } else {
+    delete next[type];
+  }
+
+  return { next: Object.keys(next).length ? next : undefined, changed: true };
+};
+
+const updateReactionGroups = (
+  groupsSource: unknown,
+  type: string,
+  score: number,
+): { next?: Record<string, ReactionGroupRecord>; changed: boolean } => {
+  if (!isRecord(groupsSource)) {
+    return { next: undefined, changed: false };
+  }
+
+  const record = groupsSource as Record<string, unknown>;
+  const rawGroup = record[type];
+  if (!isRecord(rawGroup)) {
+    return { next: groupsSource as Record<string, ReactionGroupRecord>, changed: false };
+  }
+
+  const currentCount = toFiniteNumber((rawGroup as ReactionGroupRecord).count) ?? 0;
+  const nextGroups: Record<string, ReactionGroupRecord> = {
+    ...(record as Record<string, ReactionGroupRecord>),
+  };
+
+  const nextCount = currentCount - 1;
+  if (nextCount > 0) {
+    const nextGroup: ReactionGroupRecord = { ...(rawGroup as ReactionGroupRecord) };
+    nextGroup.count = nextCount;
+
+    const currentSum = toFiniteNumber((rawGroup as ReactionGroupRecord).sum_scores) ?? currentCount;
+    const nextSum = currentSum - score;
+    if (typeof nextSum === "number" && Number.isFinite(nextSum)) {
+      nextGroup.sum_scores = nextSum;
+    } else if ("sum_scores" in nextGroup) {
+      delete nextGroup.sum_scores;
+    }
+
+    nextGroups[type] = nextGroup;
+  } else {
+    delete nextGroups[type];
+  }
+
+  return { next: Object.keys(nextGroups).length ? nextGroups : undefined, changed: true };
+};
+
+const getReactionScore = (reaction: ReactionResponseLike | undefined): number => {
+  if (!reaction) {
+    return 1;
+  }
+  const score = toFiniteNumber(reaction.score);
+  return score ?? 1;
+};
+
+const findMessageById = (
+  channel: ChannelReactionLike | null | undefined,
+  messageId: string,
+): Record<string, unknown> | undefined => {
+  const state = channel?.state;
+  if (!isRecord(state)) {
+    return undefined;
+  }
+  const messages = (state as { messages?: unknown }).messages;
+  if (!Array.isArray(messages)) {
+    return undefined;
+  }
+
+  for (const candidate of messages) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+    const record = candidate as Record<string, unknown>;
+    const candidateId =
+      normalizeMessageId(record.id) ??
+      normalizeMessageId((record as { message_id?: unknown }).message_id);
+    if (candidateId === messageId) {
+      return record;
+    }
+  }
+
+  return undefined;
+};
+
+export const deleteReaction = async ({
+  channel,
+  cid,
+  message,
+  messageId,
+  type,
+  userId,
+}: DeleteReactionParams): Promise<DeleteReactionResult> => {
+  const normalizedId = normalizeMessageId(messageId) ?? String(messageId);
+
+  const baseMessage =
+    (message && typeof message === "object" ? message : undefined) ??
+    findMessageById(channel, normalizedId);
+
+  const workingMessage: Record<string, unknown> = baseMessage
+    ? { ...baseMessage }
+    : { id: normalizedId };
+
+  const messageCid =
+    typeof workingMessage.cid === "string"
+      ? workingMessage.cid
+      : typeof channel?.cid === "string"
+        ? channel.cid
+        : typeof cid === "string"
+          ? cid
+          : undefined;
+  if (messageCid) {
+    workingMessage.cid = messageCid;
+  }
+  workingMessage.id = normalizedId;
+
+  let resolvedUserId = normalizeUserId(userId);
+
+  const ownList = toReactionList((baseMessage as { own_reactions?: unknown })?.own_reactions);
+  const ownRemoval = removeFirstReaction(ownList, type, resolvedUserId);
+  if (!resolvedUserId && ownRemoval.removed) {
+    resolvedUserId =
+      normalizeUserId(ownRemoval.removed.user_id) ??
+      normalizeUserId((ownRemoval.removed.user as ReactionUserLike | undefined)?.id);
+  }
+
+  const latestList = toReactionList(
+    (baseMessage as { latest_reactions?: unknown })?.latest_reactions,
+  );
+  const latestRemoval = removeFirstReaction(latestList, type, resolvedUserId);
+  if (!resolvedUserId && latestRemoval.removed) {
+    resolvedUserId =
+      normalizeUserId(latestRemoval.removed.user_id) ??
+      normalizeUserId((latestRemoval.removed.user as ReactionUserLike | undefined)?.id);
+  }
+
+  if (!resolvedUserId) {
+    resolvedUserId =
+      normalizeUserId(userId) ??
+      normalizeUserId(channel?.getClient?.()?.user?.id) ??
+      normalizeUserId((baseMessage as { user_id?: unknown })?.user_id);
+  }
+
+  if (ownRemoval.removed) {
+    workingMessage.own_reactions = ownRemoval.list;
+  }
+  if (latestRemoval.removed) {
+    workingMessage.latest_reactions = latestRemoval.list;
+  }
+
+  const reactionDetails = ownRemoval.removed ?? latestRemoval.removed;
+  const reactionRemoved = Boolean(reactionDetails);
+
+  if (reactionRemoved) {
+    const countUpdate = updateReactionCounts(
+      (baseMessage as { reaction_counts?: unknown })?.reaction_counts,
+      type,
+    );
+    if (countUpdate.changed) {
+      if (countUpdate.next) {
+        workingMessage.reaction_counts = countUpdate.next;
+      } else {
+        delete (workingMessage as Record<string, unknown>).reaction_counts;
+      }
+    }
+
+    const scoreValue = getReactionScore(reactionDetails);
+    const scoreUpdate = updateReactionScores(
+      (baseMessage as { reaction_scores?: unknown })?.reaction_scores,
+      type,
+      scoreValue,
+    );
+    if (scoreUpdate.changed) {
+      if (scoreUpdate.next) {
+        workingMessage.reaction_scores = scoreUpdate.next;
+      } else {
+        delete (workingMessage as Record<string, unknown>).reaction_scores;
+      }
+    }
+
+    const groupUpdate = updateReactionGroups(
+      (baseMessage as { reaction_groups?: unknown })?.reaction_groups,
+      type,
+      scoreValue,
+    );
+    if (groupUpdate.changed) {
+      if (groupUpdate.next) {
+        workingMessage.reaction_groups = groupUpdate.next;
+      } else {
+        delete (workingMessage as Record<string, unknown>).reaction_groups;
+      }
+    }
+  }
+
+  let normalizedMessage: Record<string, unknown>;
+  if (channel) {
+    try {
+      normalizedMessage = await loadMessageIntoChannelState(channel as any, workingMessage);
+    } catch {
+      normalizedMessage = { ...workingMessage };
+    }
+  } else {
+    normalizedMessage = { ...workingMessage };
+  }
+
+  const eventPayload: Record<string, unknown> = {
+    type: "reaction.deleted",
+    message: normalizedMessage,
+  };
+
+  const eventCid =
+    typeof channel?.cid === "string"
+      ? channel.cid
+      : typeof cid === "string"
+        ? cid
+        : normalizeMessageId((normalizedMessage as { cid?: unknown })?.cid);
+  if (eventCid) {
+    eventPayload.cid = eventCid;
+  }
+
+  const reactionEvent: Record<string, unknown> = {
+    type,
+    message_id: normalizedMessage.id ?? normalizedId,
+  };
+  if (resolvedUserId) {
+    reactionEvent.user_id = resolvedUserId;
+  }
+  const reactionScore = getReactionScore(reactionDetails);
+  if (reactionScore) {
+    reactionEvent.score = reactionScore;
+  }
+  const reactionUser =
+    cloneReactionUser(reactionDetails?.user as ReactionUserLike | undefined) ??
+    cloneReactionUser(channel?.getClient?.()?.user as ReactionUserLike | undefined);
+  if (reactionUser) {
+    reactionEvent.user = reactionUser;
+  }
+
+  eventPayload.reaction = reactionEvent;
+
+  if (channel && typeof channel.emit === "function") {
+    channel.emit("reaction.deleted", eventPayload);
+  }
+
+  const client = channel?.getClient?.();
+  if (
+    client &&
+    typeof (client as { emit?: (event: string, payload: Record<string, unknown>) => void }).emit ===
+      "function"
+  ) {
+    (client as { emit: (event: string, payload: Record<string, unknown>) => void }).emit(
+      "reaction.deleted",
+      eventPayload,
+    );
+  }
+
+  return { message: normalizedMessage };
 };
 
 const parseWebPushKeys = (value: unknown): WebPushKeys => {
@@ -1020,6 +1448,7 @@ export const chatAPI = {
   clientThreadsState,
   clientThreadsReload,
   createReminder,
+  deleteReaction,
   deleteMessage,
   updateMessage,
   muteUser,
