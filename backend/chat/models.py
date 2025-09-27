@@ -117,6 +117,21 @@ class PollOption(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class PollVote(models.Model):
+    poll = models.ForeignKey(
+        Poll, related_name="votes", on_delete=models.CASCADE
+    )
+    option = models.ForeignKey(
+        PollOption, related_name="votes", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
 class Flag(models.Model):
     message = models.ForeignKey(Message, related_name="flags", on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

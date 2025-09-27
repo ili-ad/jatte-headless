@@ -11,6 +11,7 @@ from .models import (
     Pin,
     Poll,
     PollOption,
+    PollVote,
     Reaction,
     Reminder,
     Room,
@@ -159,6 +160,42 @@ class PollSerializer(serializers.ModelSerializer):
         model = Poll
         fields = ["id", "question", "user_id", "created_at"]
         read_only_fields = ["id", "user_id", "created_at"]
+
+
+class PollVoteSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.username")
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PollVote
+        fields = [
+            "id",
+            "poll_id",
+            "option_id",
+            "user_id",
+            "user",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_user(self, obj):
+        user = getattr(obj, "user", None)
+        if not user:
+            return None
+
+        profile = getattr(user, "profile", None)
+        display_name = getattr(profile, "display_name", None) or getattr(
+            user, "username", None
+        )
+        image = getattr(profile, "image_url", None)
+        uid = getattr(user, "supabase_uid", None) or str(getattr(user, "id", ""))
+
+        return {
+            "id": str(uid),
+            "name": display_name or "",
+            "image": image,
+        }
 
 
 class ReminderSerializer(serializers.ModelSerializer):

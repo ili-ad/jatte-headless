@@ -36,6 +36,7 @@ from .api_views import (
     PollListCreateView,
     PollDetailView,
     PollOptionCreateView,
+    PollOptionVotesListView,
     RoomHideView,
     RoomShowView,
     ReactionDetailView,
@@ -249,6 +250,11 @@ urlpatterns = [
         "api/polls/<str:poll_id>/options/",
         PollOptionCreateView.as_view(),
         name="poll-option-create",
+    ),
+    path(
+        "api/polls/<str:poll_id>/options/<str:option_id>/votes/",
+        PollOptionVotesListView.as_view(),
+        name="poll-option-votes",
     ),
     path(
         "api/muted-users/",
