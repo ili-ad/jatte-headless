@@ -3,6 +3,8 @@ import { validateAndGetMessage } from '../utils';
 import { useChatContext } from '../../../context/ChatContext';
 import { useTranslationContext } from '../../../context/TranslationContext';
 
+import { chatAPI } from '../../../api/chatAPI';
+
 import type { LocalMessage } from 'chat-shim';
 import type { ReactEventHandler } from '../types';
 
@@ -37,9 +39,11 @@ export const useFlagHandler = (
     }
 
     try {
-      await Promise.resolve(
-        /* TODO backend-wire-up: flagMessage */ undefined,
-      );
+      await chatAPI.flagMessage({
+        message,
+        messageId: message.id,
+        userId: client.userID ?? client.user?.id ?? undefined,
+      });
 
       const successMessage =
         getSuccessNotification &&
