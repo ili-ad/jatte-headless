@@ -554,7 +554,7 @@
     "operationId": "shim::polls.unregisterSubscriptions",
     "stubName": "polls.unregisterSubscriptions",
     "ticketType": "shim",
-    "todoCount": 1,
+    "todoCount": 0,
     "status": "ok"
   },
   {
