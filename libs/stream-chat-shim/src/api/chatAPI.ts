@@ -11,11 +11,18 @@ import type {
   ChannelFilters,
   ChannelOptions,
   ChannelSort,
+  Event,
   Notification,
   NotificationManagerState,
   StateStore,
   StreamChat,
+  PollAnswer,
+  PollVote,
 } from '../../chat-shim';
+import type {
+  ChannelEventSubscription,
+  ClientKnownEventMap,
+} from '../chatSDKShim';
 
 export type {
   ClientEventHandler,
@@ -170,6 +177,84 @@ export type ThreadPreview = {
   id: string;
   parent: ThreadPreviewMessage;
   replies: ThreadPreviewMessage[];
+};
+
+type PollVoteLike = PollVote | PollAnswer;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toPollVoteLike = (value: unknown): PollVoteLike | null => {
+  if (!isRecord(value)) return null;
+  const identifier = (value as { id?: unknown }).id;
+  if (typeof identifier !== 'string' && typeof identifier !== 'number') {
+    return null;
+  }
+  return value as PollVoteLike;
+};
+
+export type PollVoteCastedEvent = Event & {
+  type: 'poll.vote_casted';
+  poll_vote: PollVoteLike | null;
+};
+
+const emptySubscription: ChannelEventSubscription = {
+  unsubscribe: () => undefined,
+};
+
+const withChannelMetadata = (
+  event: ClientKnownEventMap['poll.vote_casted'],
+  channel?: Channel | null,
+): Pick<PollVoteCastedEvent, 'cid' | 'channel_id' | 'channel_type'> => {
+  const cid = typeof event.cid === 'string' && event.cid ? event.cid : channel?.cid;
+  const channelId =
+    typeof event.channel_id === 'string' && event.channel_id
+      ? event.channel_id
+      : typeof event.channel_id === 'number'
+        ? String(event.channel_id)
+        : channel?.id;
+  const channelType =
+    typeof event.channel_type === 'string' && event.channel_type
+      ? event.channel_type
+      : channel?.type;
+
+  return {
+    cid,
+    channel_id: channelId,
+    channel_type: channelType,
+  };
+};
+
+export type OnPollVoteCastedParams = {
+  channel?: Channel | null;
+  handler: (event: PollVoteCastedEvent) => void;
+};
+
+export const onPollVoteCasted = ({
+  channel,
+  handler,
+}: OnPollVoteCastedParams): ChannelEventSubscription => {
+  if (!channel || typeof (channel as { on?: unknown }).on !== 'function') {
+    return emptySubscription;
+  }
+
+  const subscription = chatSDKShim.on(
+    channel,
+    'poll.vote_casted',
+    (event) => {
+      const pollVote = toPollVoteLike(event.poll_vote);
+      const metadata = withChannelMetadata(event, channel);
+      const normalizedEvent: PollVoteCastedEvent = {
+        ...(event as Event),
+        ...metadata,
+        type: 'poll.vote_casted',
+        poll_vote: pollVote,
+      };
+      handler(normalizedEvent);
+    },
+  );
+
+  return subscription ?? emptySubscription;
 };
 
 type ChannelMarkUnreadLike = {
@@ -1687,6 +1772,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  onPollVoteCasted,
   lastRead,
   clientQueryChannels,
   client: {
