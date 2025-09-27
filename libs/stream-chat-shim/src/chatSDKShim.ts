@@ -969,21 +969,241 @@ export async function truncate(channel: { cid: string }): Promise<void> {
   });
 }
 
+const toStringId = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const getClientUserId = (
+  channel: ChannelWithLocalState & { getClient?: () => unknown },
+): string | undefined => {
+  if (typeof channel.getClient !== "function") return undefined;
+  const client = channel.getClient();
+  if (!isRecord(client)) return undefined;
+
+  const directId =
+    toStringId((client as { userID?: unknown }).userID) ??
+    toStringId((client as { userId?: unknown }).userId);
+  if (directId) return directId;
+
+  const user = (client as { user?: unknown }).user;
+  if (isRecord(user)) {
+    return toStringId((user as { id?: unknown }).id);
+  }
+
+  return undefined;
+};
+
+const getOwnReadState = (
+  state: ChannelStateLike | undefined,
+  userId?: string,
+): Record<string, unknown> | undefined => {
+  const rawRead = state && (state as { read?: unknown }).read;
+  if (!isRecord(rawRead)) return undefined;
+  const readMap = rawRead as Record<string, unknown>;
+
+  if (userId) {
+    const direct = readMap[userId];
+    if (isRecord(direct)) return direct;
+
+    for (const value of Object.values(readMap)) {
+      if (!isRecord(value)) continue;
+      const candidateId =
+        toStringId((value as { user_id?: unknown }).user_id) ??
+        (isRecord((value as { user?: unknown }).user)
+          ? toStringId(
+              ((value as { user?: Record<string, unknown> }).user as {
+                id?: unknown;
+              }).id,
+            )
+          : undefined);
+      if (candidateId && candidateId === userId) {
+        return value;
+      }
+    }
+  }
+
+  for (const value of Object.values(readMap)) {
+    if (isRecord(value)) return value;
+  }
+
+  return undefined;
+};
+
+const getMessageCreatedAt = (
+  message: ChannelMessageLike,
+): Date | undefined => {
+  const createdAt = toDateSafe((message as { created_at?: unknown }).created_at);
+  if (createdAt) return createdAt;
+  return toDateSafe((message as { updated_at?: unknown }).updated_at);
+};
+
+const findMessageById = (
+  messages: ChannelMessageLike[],
+  id: string,
+): ChannelMessageLike | undefined => {
+  for (const message of messages) {
+    if (toStringId((message as { id?: unknown }).id) === id) {
+      return message;
+    }
+  }
+  return undefined;
+};
+
+const findMessageIndexById = (
+  messages: ChannelMessageLike[],
+  id: string,
+): number | undefined => {
+  for (let index = 0; index < messages.length; index += 1) {
+    if (toStringId((messages[index] as { id?: unknown }).id) === id) {
+      return index;
+    }
+  }
+  return undefined;
+};
+
+const shouldCountMessageAsUnread = (
+  message: ChannelMessageLike,
+  ownUserId?: string,
+): boolean => {
+  if (!isRecord(message)) return false;
+
+  const type = (message as { type?: unknown }).type;
+  if (type === "system" || type === "error" || type === "ephemeral") {
+    return false;
+  }
+
+  const silent = (message as { silent?: unknown }).silent;
+  if (silent === true) return false;
+
+  const shadowed = (message as { shadowed?: unknown }).shadowed;
+  if (shadowed === true) return false;
+
+  const status = (message as { status?: unknown }).status;
+  if (typeof status === "string") {
+    const normalized = status.toLowerCase();
+    if (normalized === "failed" || normalized === "sending" || normalized === "draft") {
+      return false;
+    }
+  }
+
+  const deletedAt = (message as { deleted_at?: unknown }).deleted_at;
+  if (deletedAt !== undefined && deletedAt !== null) {
+    const deletedDate = toDateSafe(deletedAt);
+    if (deletedDate || deletedAt) {
+      return false;
+    }
+  }
+
+  const messageUser = (message as { user?: unknown }).user;
+  const messageUserId =
+    toStringId((message as { user_id?: unknown }).user_id) ||
+    (isRecord(messageUser) ? toStringId((messageUser as { id?: unknown }).id) : undefined);
+
+  if (ownUserId && messageUserId && messageUserId === ownUserId) {
+    return false;
+  }
+
+  return true;
+};
+
 export function channelCountUnread(
-  channel: { countUnread?: (lastRead?: Date) => number },
+  channel: ChannelWithLocalState & {
+    countUnread?: (lastRead?: Date) => number;
+    getClient?: () => unknown;
+  },
   lastRead?: Date,
 ): number {
   return countUnread(channel, lastRead);
 }
 
 export function countUnread(
-  channel: { countUnread?: (lastRead?: Date) => number },
+  channel: ChannelWithLocalState & {
+    countUnread?: (lastRead?: Date) => number;
+    getClient?: () => unknown;
+  },
   lastRead?: Date,
 ): number {
-  if (typeof channel.countUnread === 'function') {
-    return channel.countUnread(lastRead);
+  if (typeof channel.countUnread === "function") {
+    const direct = channel.countUnread(lastRead);
+    if (typeof direct === "number" && Number.isFinite(direct)) {
+      return direct;
+    }
   }
-  return 0;
+
+  const state = channel.state as ChannelStateLike | undefined;
+  const ownUserId = getClientUserId(channel);
+  const ownReadState = getOwnReadState(state, ownUserId);
+
+  if (ownReadState) {
+    const stored = (ownReadState as { unread_messages?: unknown }).unread_messages;
+    if (typeof stored === "number" && Number.isFinite(stored)) {
+      return stored;
+    }
+  }
+
+  const messages = Array.isArray(state?.messages)
+    ? (state?.messages as ChannelMessageLike[])
+    : [];
+
+  if (!messages.length) {
+    return 0;
+  }
+
+  const referenceDate =
+    lastRead ?? (ownReadState ? toDateSafe((ownReadState as { last_read?: unknown }).last_read) : undefined);
+  let referenceTimestamp = referenceDate?.getTime();
+
+  if (
+    referenceTimestamp === undefined &&
+    ownReadState &&
+    typeof (ownReadState as { last_read_message_id?: unknown }).last_read_message_id === "string"
+  ) {
+    const knownMessage = findMessageById(
+      messages,
+      (ownReadState as { last_read_message_id: string }).last_read_message_id,
+    );
+    const createdAt = knownMessage ? getMessageCreatedAt(knownMessage) : undefined;
+    if (createdAt) {
+      referenceTimestamp = createdAt.getTime();
+    }
+  }
+
+  const firstUnreadId =
+    ownReadState &&
+    typeof (ownReadState as { first_unread_message_id?: unknown }).first_unread_message_id === "string"
+      ? (ownReadState as { first_unread_message_id: string }).first_unread_message_id
+      : undefined;
+  const firstUnreadIndex =
+    firstUnreadId !== undefined ? findMessageIndexById(messages, firstUnreadId) : undefined;
+
+  let unread = 0;
+  for (let index = 0; index < messages.length; index += 1) {
+    if (firstUnreadIndex !== undefined && index < firstUnreadIndex) {
+      continue;
+    }
+
+    const message = messages[index];
+    if (!shouldCountMessageAsUnread(message, ownUserId)) {
+      continue;
+    }
+
+    if (referenceTimestamp !== undefined) {
+      const createdAt = getMessageCreatedAt(message);
+      if (!createdAt || createdAt.getTime() <= referenceTimestamp) {
+        continue;
+      }
+    }
+
+    unread += 1;
+  }
+
+  return unread;
 }
 
 export function lastRead(
@@ -1713,9 +1933,7 @@ const getSortFieldValue = (item: HydratedChannel, field: string): unknown => {
     case "member_count":
       return Object.keys(item.channel.state.members ?? {}).length;
     case "unread_count":
-      return typeof item.channel.countUnread === "function"
-        ? item.channel.countUnread()
-        : 0;
+      return countUnread(item.channel);
     default: {
       const channelValue =
         item.channel.data && typeof item.channel.data === "object"
