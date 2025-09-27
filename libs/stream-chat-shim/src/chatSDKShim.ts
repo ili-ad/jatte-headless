@@ -2744,13 +2744,10 @@ export async function remindersUpsertReminder(
     | undefined,
   params: CreateReminderInput,
 ): Promise<any> {
-  if (reminders?.upsertReminder) {
-    return reminders.upsertReminder(
-      String(params.message_id ?? ''),
-      params.remind_at,
-    );
-  }
-  return chatAPI.createReminder(params);
+  return chatAPI.reminders.upsertReminder({
+    reminders,
+    reminder: params,
+  });
 }
 
 export async function search(
