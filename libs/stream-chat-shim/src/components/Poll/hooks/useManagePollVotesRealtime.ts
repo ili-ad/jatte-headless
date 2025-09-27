@@ -3,6 +3,7 @@ import { isVoteAnswer } from 'chat-shim';
 import { useChatContext } from '../../../context';
 import type { Event, PollAnswer, PollVote } from 'chat-shim';
 import { on } from '../../../chatSDKShim';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { CursorPaginatorStateStore } from '../../InfiniteScrollPaginator/hooks/useCursorPaginator';
 
@@ -11,7 +12,7 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
   cursorPaginatorState?: CursorPaginatorStateStore<T>,
   optionId?: string,
 ) {
-  const { client } = useChatContext();
+  const { client, channel } = useChatContext();
   const [votesInRealtime, setVotesInRealtime] = useState<T[]>(
     cursorPaginatorState?.getLatestValue().items ?? [],
   );
@@ -58,9 +59,10 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
       }
     };
 
-    const voteCastedSubscription =
-      on(client, 'poll.vote_casted', handleVoteEvent) ??
-      ({ unsubscribe: () => undefined } as any);
+    const voteCastedSubscription = chatAPI.onPollVoteCasted({
+      channel,
+      handler: handleVoteEvent,
+    });
     const voteRemovedSubscription =
       on(client, 'poll.vote_removed', handleVoteEvent) ??
       ({ unsubscribe: () => undefined } as any);
@@ -73,7 +75,7 @@ export function useManagePollVotesRealtime<T extends PollVote | PollAnswer = Pol
       voteRemovedSubscription.unsubscribe();
       voteChangedSubscription.unsubscribe();
     };
-  }, [client, optionId, managedVoteType]);
+  }, [channel?.cid, client, optionId, managedVoteType]);
 
   return votesInRealtime;
 }
