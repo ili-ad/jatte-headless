@@ -1,10 +1,7 @@
 import React from 'react';
 import { useChatContext, useMessageContext, useTranslationContext } from '../../context';
-import type { CreateReminderInput } from '../../api/chatAPI';
-import {
-  remindersScheduledOffsetsMs,
-  remindersUpsertReminder,
-} from '../../chatSDKShim';
+import { chatAPI, type CreateReminderInput } from '../../api/chatAPI';
+import { remindersUpsertReminder } from '../../chatSDKShim';
 import { ButtonWithSubmenu } from '../Dialog';
 import type { ComponentProps } from 'react';
 
@@ -30,7 +27,7 @@ export const RemindMeSubmenu = () => {
   const { t } = useTranslationContext();
   const { client, channel } = useChatContext();
   const { message } = useMessageContext();
-  const scheduledOffsetsMs = remindersScheduledOffsetsMs(client);
+  const scheduledOffsetsMs = chatAPI.reminders.scheduledOffsetsMs({ client });
   const cid = channel?.cid ?? (message.cid as string | undefined);
   return (
     <div

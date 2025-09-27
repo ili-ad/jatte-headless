@@ -42,6 +42,7 @@ import {
   type QueryAnswersResult as QueryAnswersAPIResult,
   type SyncUserRequest,
   type SyncUserResponse,
+  type RemindersScheduledOffsetsMsParams,
 } from './api/chatAPI';
 import {
   createMessage,
@@ -2726,17 +2727,10 @@ export function remindersClearTimers(client?: {
   client?.reminders?.clearTimers?.();
 }
 
-export function remindersScheduledOffsetsMs(client?: {
-  reminders?: { scheduledOffsetsMs?: number[] };
-}): number[] {
-  return (
-    client?.reminders?.scheduledOffsetsMs ?? [
-      5 * 60 * 1000,
-      30 * 60 * 1000,
-      60 * 60 * 1000,
-      24 * 60 * 60 * 1000,
-    ]
-  );
+export function remindersScheduledOffsetsMs(
+  client?: RemindersScheduledOffsetsMsParams['client'],
+): number[] {
+  return chatAPI.reminders.scheduledOffsetsMs({ client });
 }
 
 export async function remindersUpsertReminder(
