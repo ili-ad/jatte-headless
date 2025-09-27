@@ -178,6 +178,18 @@ export type ChannelQueryResponse = {
   next: number | null;
 };
 
+export type SearchRequest = {
+  q: string;
+  cid?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type SearchResponse = {
+  messages: LocalMessage[];
+  next?: string;
+};
+
 export type ClientQueryChannelsParams = {
   client: StreamChat;
   filters?: ChannelFilters;
@@ -1844,6 +1856,205 @@ function lastRead({ channel }: ChannelLastReadParams): Date | undefined {
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+const toNonNegativeInteger = (value: unknown): number | undefined => {
+  if (!isFiniteNumber(value)) return undefined;
+  const normalized = Math.trunc(value);
+  return normalized >= 0 ? normalized : undefined;
+};
+
+const toTimestamp = (value: unknown): number | undefined => {
+  if (value instanceof Date) {
+    const time = value.getTime();
+    return Number.isNaN(time) ? undefined : time;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+};
+
+const getMessageTimestampSafe = (message: LocalMessage): number => {
+  const createdAt = toTimestamp((message as { created_at?: unknown }).created_at);
+  if (createdAt !== undefined) return createdAt;
+
+  const updatedAt = toTimestamp((message as { updated_at?: unknown }).updated_at);
+  if (updatedAt !== undefined) return updatedAt;
+
+  return 0;
+};
+
+const getMessageId = (message: LocalMessage): string | undefined => {
+  const rawId = (message as { id?: unknown }).id;
+  if (typeof rawId === "string" && rawId) {
+    return rawId;
+  }
+  if (typeof rawId === "number" && Number.isFinite(rawId)) {
+    return String(rawId);
+  }
+  return undefined;
+};
+
+const stripHtml = (value: string): string => value.replace(/<[^>]+>/g, " ");
+
+const messageMatchesQuery = (message: LocalMessage, query: string): boolean => {
+  if (!query) return false;
+
+  const normalizedQuery = query.toLowerCase();
+  const candidates: string[] = [];
+
+  const pushCandidate = (candidate: unknown) => {
+    if (typeof candidate !== "string") return;
+    const trimmed = candidate.trim();
+    if (!trimmed) return;
+    candidates.push(trimmed.toLowerCase());
+  };
+
+  pushCandidate((message as { text?: unknown }).text);
+  pushCandidate((message as { body?: unknown }).body);
+
+  const htmlCandidate = (message as { html?: unknown }).html;
+  if (typeof htmlCandidate === "string" && htmlCandidate.trim()) {
+    pushCandidate(stripHtml(htmlCandidate));
+  }
+
+  const id = getMessageId(message);
+  if (id) {
+    candidates.push(id.toLowerCase());
+  }
+
+  if (candidates.length === 0) {
+    return false;
+  }
+
+  return candidates.some((candidate) => candidate.includes(normalizedQuery));
+};
+
+type ChannelForSearch = {
+  cid?: string;
+  state?: {
+    messages?: LocalMessage[];
+  };
+};
+
+type SearchableChannel = {
+  cid: string;
+  channel: ChannelForSearch;
+};
+
+const ensureChannelCid = (cid: string | undefined, fallback: string): string =>
+  typeof cid === "string" && cid ? cid : fallback;
+
+const normalizeMessageForChannel = (
+  message: LocalMessage,
+  cid: string,
+): LocalMessage => {
+  if (
+    message &&
+    typeof message === "object" &&
+    typeof (message as { cid?: unknown }).cid === "string" &&
+    (message as { cid?: string }).cid
+  ) {
+    return message;
+  }
+
+  if (message && typeof message === "object") {
+    return { ...(message as Record<string, unknown>), cid } as LocalMessage;
+  }
+
+  return message;
+};
+
+const collectSearchableChannels = (): SearchableChannel[] => {
+  const client = getLocalClient();
+  const aggregated = new Map<string, ChannelForSearch>();
+
+  const mergeChannel = (key: string, value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    const candidate = value as ChannelForSearch;
+    const resolvedCid = ensureChannelCid(candidate.cid, key);
+    if (!aggregated.has(resolvedCid)) {
+      aggregated.set(resolvedCid, candidate);
+    }
+  };
+
+  const active = (client as { activeChannels?: Record<string, unknown> })?.activeChannels;
+  if (active && typeof active === "object") {
+    for (const [cid, channel] of Object.entries(active)) {
+      mergeChannel(cid, channel);
+    }
+  }
+
+  const stateChannels = (client as { state?: { channels?: Map<string, unknown> } })?.state?.channels;
+  if (stateChannels instanceof Map) {
+    for (const [cid, channel] of stateChannels.entries()) {
+      mergeChannel(cid, channel);
+    }
+  }
+
+  return Array.from(aggregated.entries()).map(([cid, channel]) => ({
+    cid,
+    channel,
+  }));
+};
+
+const isDeletedMessage = (message: LocalMessage): boolean => {
+  const type = (message as { type?: unknown }).type;
+  if (type === "deleted") return true;
+
+  const deletedAt = (message as { deleted_at?: unknown }).deleted_at;
+  if (deletedAt === null || deletedAt === undefined) return false;
+  if (deletedAt instanceof Date) {
+    return !Number.isNaN(deletedAt.getTime());
+  }
+  if (typeof deletedAt === "string") {
+    return deletedAt.trim().length > 0;
+  }
+  return Boolean(deletedAt);
+};
+
+const collectMatchingMessages = (
+  channels: SearchableChannel[],
+  query: string,
+): LocalMessage[] => {
+  const seen = new Set<string>();
+  const results: Array<{ message: LocalMessage; timestamp: number }> = [];
+  let anonymousIndex = 0;
+
+  for (const { cid, channel } of channels) {
+    const messages = Array.isArray(channel.state?.messages)
+      ? (channel.state?.messages as LocalMessage[])
+      : [];
+
+    for (const rawMessage of messages) {
+      if (!rawMessage) continue;
+      const candidate = normalizeMessageForChannel(rawMessage, cid);
+      if (isDeletedMessage(candidate)) continue;
+      if (!messageMatchesQuery(candidate, query)) continue;
+
+      const key = getMessageId(candidate) ?? `__${cid}_${anonymousIndex}`;
+      anonymousIndex += 1;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({
+        message: candidate,
+        timestamp: getMessageTimestampSafe(candidate),
+      });
+    }
+  }
+
+  results.sort((a, b) => b.timestamp - a.timestamp);
+  return results.map((entry) => entry.message);
+};
+
 export type ChannelWatcher = {
   user_id?: string | number | null;
   user?: Record<string, unknown> | null;
@@ -1981,6 +2192,52 @@ export const channelQuery = async ({
   const next = typeof rawNext === "number" ? rawNext : null;
 
   return { messages, next };
+};
+
+export const search = async ({
+  q,
+  cid,
+  limit,
+  offset,
+}: SearchRequest): Promise<SearchResponse> => {
+  const normalizedQuery = typeof q === "string" ? q.trim().toLowerCase() : "";
+  if (!normalizedQuery) {
+    return { messages: [] };
+  }
+
+  const normalizedCid = typeof cid === "string" ? cid.trim() : undefined;
+  const availableChannels = collectSearchableChannels();
+  const targets = normalizedCid
+    ? availableChannels.filter((context) => context.cid === normalizedCid)
+    : availableChannels;
+
+  if (!targets.length) {
+    return { messages: [] };
+  }
+
+  const matches = collectMatchingMessages(targets, normalizedQuery);
+  if (!matches.length) {
+    return { messages: [] };
+  }
+
+  const safeOffset = toNonNegativeInteger(offset) ?? 0;
+  const safeLimit = toNonNegativeInteger(limit);
+
+  if (safeLimit === 0) {
+    const next = safeOffset < matches.length ? String(safeOffset) : undefined;
+    return { messages: [], next };
+  }
+
+  const start = Math.min(safeOffset, matches.length);
+  const end =
+    safeLimit !== undefined
+      ? Math.min(start + safeLimit, matches.length)
+      : matches.length;
+
+  const page = matches.slice(start, end);
+  const next = end < matches.length ? String(end) : undefined;
+
+  return { messages: page, next };
 };
 
 const toThreadPreviewMessage = (message: Message): ThreadPreviewMessage => {
@@ -4297,6 +4554,7 @@ export const chatAPI = {
     query: channelQuery,
     unpin: channelUnpin,
   },
+  search,
   query: queryChannelWatchers,
   on,
   onPollVoteCasted,

@@ -663,7 +663,7 @@
     "stubName": "search",
     "ticketType": "shim",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
