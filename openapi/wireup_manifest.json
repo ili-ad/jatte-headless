@@ -546,7 +546,7 @@
     "stubName": "polls.fromState",
     "ticketType": "shim",
     "todoCount": 3,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

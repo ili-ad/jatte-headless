@@ -4,7 +4,7 @@ import { CloseIcon } from './icons';
 import { Attachment as DefaultAttachment } from '../Attachment';
 import { Avatar as DefaultAvatar } from '../Avatar';
 import { Poll } from '../Poll';
-import { pollsFromState } from '../../chatSDKShim';
+import { chatAPI } from '../../api/chatAPI';
 
 import { useChatContext } from '../../context/ChatContext';
 import { useComponentContext } from '../../context/ComponentContext';
@@ -136,7 +136,11 @@ export const QuotedMessagePreview = ({
   );
 
   const poll = quotedMessage?.poll_id
-    ? pollsFromState(client, quotedMessage.poll_id)
+    ? chatAPI.polls_fromState({
+        client,
+        pollId: quotedMessage.poll_id,
+        sources: [quotedMessage],
+      })
     : undefined;
 
   if (!quotedMessageText && !quotedMessageAttachments.length && !poll) return null;

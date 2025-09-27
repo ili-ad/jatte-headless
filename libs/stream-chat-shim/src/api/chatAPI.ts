@@ -5,6 +5,7 @@ import {
   clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
   clientThreadsReload as clientThreadsReloadShim,
   loadMessageIntoChannelState,
+  pollsFromState as pollsFromStateShim,
 } from '../chatSDKShim';
 import { getLocalClient } from '../../chat-shim';
 import type {
@@ -15,10 +16,13 @@ import type {
   Event,
   Notification,
   NotificationManagerState,
+  Poll,
+  PollAnswer,
+  PollOption,
+  PollVote,
   StateStore,
   StreamChat,
-  PollAnswer,
-  PollVote,
+  VotingVisibility,
 } from '../../chat-shim';
 import type {
   ChannelEventSubscription,
@@ -183,8 +187,609 @@ export type ThreadPreview = {
 
 type PollVoteLike = PollVote | PollAnswer;
 
+type PollOptionWithVotes = (PollOption & { vote_count?: number }) & Record<string, unknown>;
+
+type PollStateValue = {
+  answers_count?: number;
+  description?: string;
+  enforce_unique_vote?: boolean;
+  is_closed?: boolean;
+  max_votes_allowed?: number;
+  maxVotedOptionIds: string[];
+  latest_votes_by_option: Record<string, PollVote[]>;
+  name?: string;
+  options: PollOptionWithVotes[];
+  ownAnswer?: PollAnswer;
+  ownVotesByOptionId: Record<string, PollVote>;
+  question?: string;
+  text?: string;
+  vote_count?: number;
+  vote_counts_by_option: Record<string, number>;
+  voting_visibility?: VotingVisibility;
+};
+
+type PollStateStore = StateStore<PollStateValue>;
+
+type PollWithState = (Poll & PollStateValue & { state: PollStateStore }) & Record<string, unknown>;
+
+type PollCandidate = {
+  poll: Record<string, unknown>;
+  store?: PollStateStore;
+  sources: Record<string, unknown>[];
+};
+
+export type PollsFromStateParams = {
+  client?: { polls?: { store?: StateStore<{ polls: unknown[] }> } } | StreamChat;
+  pollId: string | number;
+  sources?: Array<unknown>;
+};
+
+export type PollsFromStateResult = PollWithState;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const toStringMaybe = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+};
+
+const toNumberMaybe = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+};
+
+const toBooleanMaybe = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return undefined;
+};
+
+const toDateISOString = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return undefined;
+};
+
+const toVotingVisibilityValue = (
+  value: unknown,
+): VotingVisibility | undefined => {
+  if (value === 'anonymous' || value === 'public') {
+    return value;
+  }
+  return undefined;
+};
+
+const isStateStore = (value: unknown): value is PollStateStore =>
+  !!value &&
+  typeof value === 'object' &&
+  (typeof (value as PollStateStore).getLatestValue === 'function' ||
+    typeof (value as PollStateStore).getState === 'function');
+
+const unwrapPollCandidate = (value: unknown): PollCandidate | undefined => {
+  if (!isRecord(value)) return undefined;
+
+  const nestedPoll = (value as { poll?: unknown }).poll;
+  const pollRecord = isRecord(nestedPoll)
+    ? (nestedPoll as Record<string, unknown>)
+    : (value as Record<string, unknown>);
+
+  const storeFromPoll = isStateStore(
+    (pollRecord as { state?: unknown }).state,
+  )
+    ? ((pollRecord as { state?: PollStateStore }).state as PollStateStore)
+    : undefined;
+
+  const storeFromValue = !storeFromPoll &&
+    isStateStore((value as { state?: unknown }).state)
+      ? ((value as { state?: PollStateStore }).state as PollStateStore)
+      : undefined;
+
+  const store = storeFromPoll ?? storeFromValue;
+
+  const sources: Record<string, unknown>[] = [];
+  if (pollRecord !== value) {
+    sources.push(value as Record<string, unknown>);
+  }
+
+  const pollState = (pollRecord as { state?: unknown }).state;
+  if (isRecord(pollState) && !isStateStore(pollState)) {
+    sources.push(pollState as Record<string, unknown>);
+  }
+
+  const valueState = (value as { state?: unknown }).state;
+  if (isRecord(valueState) && !isStateStore(valueState)) {
+    sources.push(valueState as Record<string, unknown>);
+  }
+
+  return { poll: pollRecord, store: store ?? undefined, sources };
+};
+
+const pickFirstFromSources = (
+  sources: Record<string, unknown>[],
+  ...keys: string[]
+): unknown => {
+  for (const source of sources) {
+    for (const key of keys) {
+      if (key in source) {
+        const value = source[key];
+        if (value !== undefined) return value;
+      }
+    }
+  }
+  return undefined;
+};
+
+const toPollOption = (
+  candidate: unknown,
+  pollId: string,
+): PollOptionWithVotes | undefined => {
+  if (!isRecord(candidate)) return undefined;
+  const id = toStringMaybe(candidate.id);
+  if (!id) return undefined;
+  const poll_id = toStringMaybe(candidate.poll_id) ?? pollId;
+  const text =
+    toStringMaybe(candidate.text) ??
+    toStringMaybe(candidate.value) ??
+    toStringMaybe(candidate.name) ??
+    '';
+
+  const normalized: PollOptionWithVotes = {
+    ...(candidate as Record<string, unknown>),
+    id,
+    poll_id,
+    text,
+  };
+
+  const voteCount = toNumberMaybe(candidate.vote_count);
+  if (voteCount !== undefined) {
+    normalized.vote_count = voteCount;
+  }
+
+  return normalized;
+};
+
+const collectOptionsMap = (
+  sources: Record<string, unknown>[],
+  pollId: string,
+): Map<string, PollOptionWithVotes> => {
+  const map = new Map<string, PollOptionWithVotes>();
+  for (const source of sources) {
+    const rawOptions = (source as { options?: unknown }).options;
+    if (!Array.isArray(rawOptions)) continue;
+    for (const optionCandidate of rawOptions) {
+      const normalized = toPollOption(optionCandidate, pollId);
+      if (!normalized) continue;
+      const existing = map.get(normalized.id);
+      if (existing) {
+        map.set(normalized.id, {
+          ...existing,
+          ...(isRecord(optionCandidate)
+            ? (optionCandidate as Record<string, unknown>)
+            : {}),
+          ...normalized,
+        });
+      } else {
+        map.set(
+          normalized.id,
+          {
+            ...(isRecord(optionCandidate)
+              ? (optionCandidate as Record<string, unknown>)
+              : {}),
+            ...normalized,
+          },
+        );
+      }
+    }
+  }
+  return map;
+};
+
+const ensureOption = (
+  options: Map<string, PollOptionWithVotes>,
+  optionId: string,
+  pollId: string,
+): PollOptionWithVotes => {
+  let option = options.get(optionId);
+  if (!option) {
+    option = { id: optionId, poll_id: pollId, text: '' } as PollOptionWithVotes;
+    options.set(optionId, option);
+  } else {
+    option.poll_id = toStringMaybe(option.poll_id) ?? pollId;
+  }
+  return option;
+};
+
+const collectVoteCounts = (
+  sources: Record<string, unknown>[],
+): Record<string, number> => {
+  const result: Record<string, number> = {};
+  for (const source of sources) {
+    const rawCounts = (source as { vote_counts_by_option?: unknown }).vote_counts_by_option;
+    if (!isRecord(rawCounts)) continue;
+    for (const [optionId, value] of Object.entries(rawCounts)) {
+      if (result[optionId] !== undefined) continue;
+      const count = toNumberMaybe(value);
+      if (count !== undefined) {
+        result[optionId] = count;
+      }
+    }
+  }
+  return result;
+};
+
+const toPollVote = (
+  candidate: Record<string, unknown>,
+  pollId: string,
+  optionId: string,
+): PollVote | undefined => {
+  const id = toStringMaybe(candidate.id);
+  if (!id) return undefined;
+  const createdAt = toDateISOString(candidate.created_at);
+  const updatedAt = toDateISOString(candidate.updated_at) ?? createdAt;
+  if (!createdAt || !updatedAt) return undefined;
+
+  const normalized: PollVote = {
+    ...(candidate as Record<string, unknown>),
+    id,
+    poll_id: toStringMaybe(candidate.poll_id) ?? pollId,
+    option_id: toStringMaybe(candidate.option_id) ?? optionId,
+    created_at: createdAt,
+    updated_at: updatedAt,
+  } as PollVote;
+
+  const userId = toStringMaybe(candidate.user_id);
+  if (userId !== undefined) {
+    normalized.user_id = userId;
+  }
+  if (candidate.user && isRecord(candidate.user)) {
+    normalized.user = candidate.user as PollVote['user'];
+  }
+
+  return normalized;
+};
+
+const collectLatestVotes = (
+  sources: Record<string, unknown>[],
+  pollId: string,
+): Record<string, PollVote[]> => {
+  const map = new Map<string, Map<string, PollVote>>();
+  for (const source of sources) {
+    const rawVotes = (source as { latest_votes_by_option?: unknown }).latest_votes_by_option;
+    if (!isRecord(rawVotes)) continue;
+    for (const [optionKey, votesValue] of Object.entries(rawVotes)) {
+      const optionId = toStringMaybe(optionKey) ?? optionKey;
+      const votesList = Array.isArray(votesValue) ? votesValue : [];
+      if (!votesList.length) continue;
+      let voteMap = map.get(optionId);
+      if (!voteMap) {
+        voteMap = new Map<string, PollVote>();
+        map.set(optionId, voteMap);
+      }
+      for (const voteCandidate of votesList) {
+        if (!isRecord(voteCandidate)) continue;
+        const normalized = toPollVote(voteCandidate, pollId, optionId);
+        if (!normalized) continue;
+        if (!voteMap.has(normalized.id)) {
+          voteMap.set(normalized.id, normalized);
+        } else {
+          const existing = voteMap.get(normalized.id)!;
+          voteMap.set(normalized.id, { ...existing, ...normalized });
+        }
+      }
+    }
+  }
+
+  const result: Record<string, PollVote[]> = {};
+  for (const [optionId, votes] of map) {
+    result[optionId] = Array.from(votes.values());
+  }
+  return result;
+};
+
+const collectOwnVotes = (
+  sources: Record<string, unknown>[],
+  pollId: string,
+): Record<string, PollVote> => {
+  const result: Record<string, PollVote> = {};
+  for (const source of sources) {
+    const rawOwnVotes =
+      (source as { ownVotesByOptionId?: unknown }).ownVotesByOptionId ??
+      (source as { own_votes_by_option?: unknown }).own_votes_by_option ??
+      (source as { own_votes?: unknown }).own_votes;
+    if (!isRecord(rawOwnVotes)) continue;
+    for (const [optionKey, voteValue] of Object.entries(rawOwnVotes)) {
+      if (result[optionKey]) continue;
+      if (!isRecord(voteValue)) continue;
+      const normalized = toPollVote(voteValue, pollId, optionKey);
+      if (normalized) {
+        result[optionKey] = normalized;
+      }
+    }
+  }
+  return result;
+};
+
+const toStringArray = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const result: string[] = [];
+  for (const entry of value) {
+    const str = toStringMaybe(entry);
+    if (str !== undefined) result.push(str);
+  }
+  return result;
+};
+
+const collectMaxIds = (sources: Record<string, unknown>[]): string[] => {
+  for (const source of sources) {
+    const raw = (source as { maxVotedOptionIds?: unknown }).maxVotedOptionIds;
+    const normalized = toStringArray(raw);
+    if (normalized && normalized.length) return normalized;
+  }
+  return [];
+};
+
+const toPollAnswer = (
+  candidate: unknown,
+  pollId: string,
+): PollAnswer | undefined => {
+  if (!isRecord(candidate)) return undefined;
+  const id = toStringMaybe(candidate.id);
+  if (!id) return undefined;
+  const createdAt = toDateISOString(candidate.created_at);
+  const updatedAt = toDateISOString(candidate.updated_at) ?? createdAt;
+  if (!createdAt || !updatedAt) return undefined;
+  const answerText = toStringMaybe(candidate.answer_text) ?? '';
+  const isAnswer = toBooleanMaybe(candidate.is_answer);
+
+  const normalized: PollAnswer = {
+    ...(candidate as Record<string, unknown>),
+    id,
+    poll_id: toStringMaybe(candidate.poll_id) ?? pollId,
+    created_at: createdAt,
+    updated_at: updatedAt,
+    answer_text: answerText,
+    is_answer: isAnswer ?? true,
+  } as PollAnswer;
+
+  const userId = toStringMaybe(candidate.user_id);
+  if (userId !== undefined) {
+    normalized.user_id = userId;
+  }
+  if (candidate.user && isRecord(candidate.user)) {
+    normalized.user = candidate.user as PollAnswer['user'];
+  }
+
+  return normalized;
+};
+
+const toUserRecord = (
+  value: unknown,
+): Record<string, unknown> | null | undefined => {
+  if (value === null) return null;
+  if (isRecord(value)) {
+    const result: Record<string, unknown> = { ...value };
+    const id = toStringMaybe(value.id ?? (value as { user_id?: unknown }).user_id);
+    if (id !== undefined) {
+      result.id = id;
+    }
+    if ('user_id' in result && typeof result.user_id === 'number') {
+      result.user_id = String(result.user_id);
+    }
+    return result;
+  }
+  const id = toStringMaybe(value);
+  if (id !== undefined) return { id };
+  return undefined;
+};
+
+const collectCandidateSources = (
+  candidates: PollCandidate[],
+): Record<string, unknown>[] => {
+  const sources: Record<string, unknown>[] = [];
+  for (const candidate of candidates) {
+    const snapshot =
+      candidate.store?.getLatestValue?.() ?? candidate.store?.getState?.();
+    if (snapshot && isRecord(snapshot)) {
+      sources.push(snapshot);
+    }
+  }
+  for (const candidate of candidates) {
+    sources.push(candidate.poll);
+    for (const extra of candidate.sources) {
+      if (isRecord(extra)) sources.push(extra);
+    }
+  }
+  return sources;
+};
+
+const pickVoteCount = (
+  sources: Record<string, unknown>[],
+  voteCounts: Record<string, number>,
+  latestVotes: Record<string, PollVote[]>,
+): number | undefined => {
+  const direct = toNumberMaybe(
+    pickFirstFromSources(sources, 'vote_count', 'total_votes'),
+  );
+  if (direct !== undefined) return direct;
+
+  const counts = Object.values(voteCounts);
+  if (counts.length) {
+    return counts.reduce((sum, count) => sum + count, 0);
+  }
+
+  const voteTotals = Object.values(latestVotes).reduce(
+    (total, votes) => total + votes.length,
+    0,
+  );
+  return voteTotals || undefined;
+};
+
+export const polls_fromState = ({
+  client,
+  pollId,
+  sources = [],
+}: PollsFromStateParams): PollsFromStateResult | undefined => {
+  const normalizedId = toStringMaybe(pollId);
+  if (!normalizedId) return undefined;
+
+  const candidates: PollCandidate[] = [];
+
+  const clientPoll = client
+    ? pollsFromStateShim(
+        client as { polls?: { store?: StateStore<{ polls: unknown[] }> } },
+        normalizedId,
+      )
+    : undefined;
+  if (clientPoll) {
+    const candidate = unwrapPollCandidate(clientPoll);
+    if (candidate) candidates.push(candidate);
+  }
+
+  for (const source of sources) {
+    if (!source) continue;
+    const candidate = unwrapPollCandidate(source);
+    if (candidate) {
+      candidates.push(candidate);
+    }
+  }
+
+  if (!candidates.length) {
+    return undefined;
+  }
+
+  const primaryWithStore = candidates.find((candidate) => candidate.store);
+  const primary = primaryWithStore ?? candidates[0];
+
+  const sourceRecords = collectCandidateSources(candidates);
+
+  const optionsMap = collectOptionsMap(sourceRecords, normalizedId);
+  const voteCounts = collectVoteCounts(sourceRecords);
+  const latestVotes = collectLatestVotes(sourceRecords, normalizedId);
+  const ownVotes = collectOwnVotes(sourceRecords, normalizedId);
+  const maxIds = collectMaxIds(sourceRecords);
+
+  for (const optionId of Object.keys(voteCounts)) {
+    const option = ensureOption(optionsMap, optionId, normalizedId);
+    option.vote_count = voteCounts[optionId];
+  }
+  for (const optionId of Object.keys(latestVotes)) {
+    ensureOption(optionsMap, optionId, normalizedId);
+  }
+  for (const optionId of Object.keys(ownVotes)) {
+    ensureOption(optionsMap, optionId, normalizedId);
+  }
+
+  const options = Array.from(optionsMap.values());
+
+  const name = toStringMaybe(
+    pickFirstFromSources(sourceRecords, 'name', 'poll_name'),
+  );
+  const question = toStringMaybe(
+    pickFirstFromSources(sourceRecords, 'question', 'title'),
+  );
+  const text = toStringMaybe(pickFirstFromSources(sourceRecords, 'text'));
+  const description = toStringMaybe(
+    pickFirstFromSources(sourceRecords, 'description'),
+  );
+  const answersCount = toNumberMaybe(
+    pickFirstFromSources(sourceRecords, 'answers_count'),
+  );
+  const voteCount = pickVoteCount(sourceRecords, voteCounts, latestVotes);
+  const enforceUniqueVote = toBooleanMaybe(
+    pickFirstFromSources(sourceRecords, 'enforce_unique_vote'),
+  );
+  const isClosed = toBooleanMaybe(
+    pickFirstFromSources(sourceRecords, 'is_closed', 'closed'),
+  );
+  const maxVotesAllowed = toNumberMaybe(
+    pickFirstFromSources(sourceRecords, 'max_votes_allowed'),
+  );
+  const votingVisibility = toVotingVisibilityValue(
+    pickFirstFromSources(sourceRecords, 'voting_visibility', 'visibility'),
+  );
+  const ownAnswer = toPollAnswer(
+    pickFirstFromSources(sourceRecords, 'ownAnswer', 'own_answer'),
+    normalizedId,
+  );
+  const createdBy = toUserRecord(
+    pickFirstFromSources(sourceRecords, 'created_by'),
+  );
+  const createdAt = toDateISOString(
+    pickFirstFromSources(sourceRecords, 'created_at'),
+  );
+  const updatedAt = toDateISOString(
+    pickFirstFromSources(sourceRecords, 'updated_at'),
+  );
+
+  const stateSnapshot: PollStateValue = {
+    options,
+    latest_votes_by_option: latestVotes,
+    vote_counts_by_option: voteCounts,
+    ownVotesByOptionId: ownVotes,
+    maxVotedOptionIds: maxIds,
+    vote_count: voteCount,
+    answers_count: answersCount,
+    ownAnswer,
+    enforce_unique_vote: enforceUniqueVote,
+    is_closed: isClosed,
+    max_votes_allowed: maxVotesAllowed,
+    voting_visibility: votingVisibility,
+    name,
+    question,
+    text,
+    description,
+  };
+
+  const store: PollStateStore =
+    (primaryWithStore?.store as PollStateStore | undefined) ??
+    new StateStore<PollStateValue>(stateSnapshot);
+
+  const targetPoll: PollWithState = primaryWithStore?.poll
+    ? (primaryWithStore.poll as PollWithState)
+    : ({ ...(primary.poll as Record<string, unknown>), id: normalizedId } as PollWithState);
+
+  targetPoll.id = normalizedId;
+  if (name !== undefined) targetPoll.name = name;
+  if (question !== undefined) targetPoll.question = question;
+  if (text !== undefined) targetPoll.text = text;
+  if (description !== undefined) targetPoll.description = description;
+  if (createdAt !== undefined) targetPoll.created_at = createdAt;
+  if (updatedAt !== undefined) targetPoll.updated_at = updatedAt;
+  if (createdBy !== undefined) targetPoll.created_by = createdBy;
+  targetPoll.options = options;
+  targetPoll.latest_votes_by_option = latestVotes;
+  targetPoll.vote_counts_by_option = voteCounts;
+  targetPoll.ownVotesByOptionId = ownVotes;
+  targetPoll.maxVotedOptionIds = maxIds;
+  targetPoll.vote_count = voteCount;
+  targetPoll.answers_count = answersCount;
+  targetPoll.ownAnswer = ownAnswer;
+  targetPoll.enforce_unique_vote = enforceUniqueVote;
+  targetPoll.is_closed = isClosed;
+  targetPoll.max_votes_allowed = maxVotesAllowed;
+  targetPoll.voting_visibility = votingVisibility;
+  targetPoll.state = store;
+
+  return targetPoll as PollsFromStateResult;
+};
 
 const toPollVoteLike = (value: unknown): PollVoteLike | null => {
   if (!isRecord(value)) return null;
@@ -938,10 +1543,6 @@ export interface RoomDraft {
 interface ErrorWithStatus extends Error {
   status?: number;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
 
 const normalizeUserId = (value: unknown): string | undefined => {
   if (typeof value === "string" && value) {
@@ -2550,6 +3151,7 @@ export const chatAPI = {
     },
   },
   addAnswer,
+  polls_fromState,
   clientThreadsActivate,
   clientThreadsState,
   clientThreadsReload,
