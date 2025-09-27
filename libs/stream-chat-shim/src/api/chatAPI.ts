@@ -247,6 +247,20 @@ export type QueryAnswersResult = {
   votes: PollAnswer[];
 };
 
+export type QueryOptionVotesParams = {
+  pollId: string;
+  optionId: string;
+  limit?: number;
+  cursor?: string;
+};
+
+export type QueryOptionVotesResponse = {
+  results: PollVote[];
+  next?: string | null;
+  prev?: string | null;
+  count?: number;
+};
+
 export type PollsFromStateParams = {
   client?: { polls?: { store?: StateStore<{ polls: unknown[] }> } } | StreamChat;
   pollId: string | number;
@@ -983,6 +997,105 @@ export async function queryAnswers(
 
   return { votes: page, next };
 }
+
+export const queryOptionVotes = async ({
+  pollId,
+  optionId,
+  limit,
+  cursor,
+}: QueryOptionVotesParams): Promise<QueryOptionVotesResponse> => {
+  const normalizedPollId = toStringMaybe(pollId);
+  const normalizedOptionId = toStringMaybe(optionId);
+  if (!normalizedPollId || !normalizedOptionId) {
+    return { results: [] };
+  }
+
+  const searchParams = new URLSearchParams();
+  const safeLimit = toSafeInteger(limit);
+  if (safeLimit !== undefined) {
+    searchParams.set('limit', String(safeLimit));
+  }
+  if (cursor) {
+    searchParams.set('cursor', cursor);
+  }
+
+  const query = searchParams.toString();
+  const response = await fetch(
+    `/api/polls/${encodeURIComponent(normalizedPollId)}/options/${encodeURIComponent(
+      normalizedOptionId,
+    )}/votes/${query ? `?${query}` : ''}`,
+    { method: 'GET', credentials: 'same-origin' },
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to query poll option votes (status ${response.status})`,
+    );
+    const errorWithStatus = error as ErrorWithStatus;
+    errorWithStatus.status = response.status;
+    throw errorWithStatus;
+  }
+
+  const payload = (await response.json()) as unknown;
+  if (!isRecord(payload)) {
+    throw new Error('Invalid query option votes response');
+  }
+
+  const rawResults = payload.results;
+  if (!Array.isArray(rawResults)) {
+    throw new Error('Invalid query option votes response');
+  }
+
+  const results: PollVote[] = [];
+  for (const candidate of rawResults) {
+    if (!isRecord(candidate)) {
+      continue;
+    }
+    const normalized = toPollVote(
+      candidate,
+      normalizedPollId,
+      normalizedOptionId,
+    );
+    if (normalized) {
+      results.push(normalized);
+    }
+  }
+
+  const responseData: QueryOptionVotesResponse = { results };
+
+  if ('next' in payload) {
+    const rawNext = payload.next;
+    if (typeof rawNext === 'string' && rawNext) {
+      responseData.next = rawNext;
+    } else if (rawNext === null) {
+      responseData.next = null;
+    } else if (rawNext !== undefined) {
+      throw new Error('Invalid query option votes response');
+    }
+  }
+
+  if ('prev' in payload) {
+    const rawPrev = payload.prev;
+    if (typeof rawPrev === 'string' && rawPrev) {
+      responseData.prev = rawPrev;
+    } else if (rawPrev === null) {
+      responseData.prev = null;
+    } else if (rawPrev !== undefined) {
+      throw new Error('Invalid query option votes response');
+    }
+  }
+
+  if ('count' in payload) {
+    const rawCount = payload.count;
+    if (typeof rawCount === 'number' && Number.isFinite(rawCount)) {
+      responseData.count = rawCount;
+    } else if (rawCount !== undefined) {
+      throw new Error('Invalid query option votes response');
+    }
+  }
+
+  return responseData;
+};
 
 type PollsSubscriptionsClient = {
   polls?: { unregisterSubscriptions?: () => void };
@@ -3454,6 +3567,7 @@ export const chatAPI = {
   },
   addAnswer,
   queryAnswers,
+  queryOptionVotes,
   polls_fromState,
   clientThreadsActivate,
   clientThreadsState,

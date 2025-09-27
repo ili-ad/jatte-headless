@@ -822,26 +822,38 @@ export async function queryOptionVotes(
     options?: { limit?: number; next?: string };
     sort?: Record<string, number>;
   },
-): Promise<{ next?: string; votes: any[] }> {
+): Promise<{ next?: string; prev?: string; votes: PollVote[]; count?: number }> {
   if (typeof poll.queryOptionVotes === 'function') {
     return poll.queryOptionVotes(params);
   }
-  const searchParams = new URLSearchParams();
-  if (params.filter?.option_id)
-    searchParams.set('option_id', params.filter.option_id);
-  if (params.options?.limit !== undefined)
-    searchParams.set('limit', String(params.options.limit));
-  if (params.options?.next !== undefined)
-    searchParams.set('next', params.options.next);
-  // ignoring sort except created_at
-  const query = searchParams.toString();
-  const resp = await fetch(
-    `/api/polls/${encodeURIComponent(poll.id)}/votes/${
-      query ? `?${query}` : ''
-    }`,
-    { credentials: 'same-origin' },
-  );
-  return resp.json();
+
+  const { results, next, prev, count } = await chatAPI.queryOptionVotes({
+    pollId: poll.id,
+    optionId: params.filter.option_id,
+    limit: params.options?.limit,
+    cursor: params.options?.next,
+  });
+
+  const normalized: {
+    next?: string;
+    prev?: string;
+    votes: PollVote[];
+    count?: number;
+  } = {
+    votes: results,
+  };
+
+  if (typeof next === 'string' && next) {
+    normalized.next = next;
+  }
+  if (typeof prev === 'string' && prev) {
+    normalized.prev = prev;
+  }
+  if (typeof count === 'number') {
+    normalized.count = count;
+  }
+
+  return normalized;
 }
 
 export function pollsFromState(
