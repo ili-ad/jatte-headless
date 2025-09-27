@@ -41,6 +41,8 @@ import {
   type QueryAnswersPoll as QueryAnswersAPIPoll,
   type QueryAnswersResult as QueryAnswersAPIResult,
   type SendActionResult,
+  type SendReactionParams,
+  type SendReactionResult,
   type SyncUserRequest,
   type SyncUserResponse,
   type RemindersScheduledOffsetsMsParams,
@@ -2390,18 +2392,16 @@ export async function unpinMessage(messageId: string): Promise<void> {
 
 export async function sendReaction(
   messageId: string,
-  type: string,
-): Promise<any> {
-  const resp = await fetch(
-    `/api/messages/${encodeURIComponent(messageId)}/reactions/`,
-    {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type }),
-    },
-  );
-  return resp.json();
+  reactionType: string,
+  options?: Partial<
+    Pick<SendReactionParams, 'channel' | 'cid' | 'message' | 'user' | 'userId' | 'score' | 'now'>
+  >,
+): Promise<SendReactionResult> {
+  return chatAPI.sendReaction({
+    messageId,
+    type: reactionType,
+    ...(options ?? {}),
+  });
 }
 
 export async function sendAction(
