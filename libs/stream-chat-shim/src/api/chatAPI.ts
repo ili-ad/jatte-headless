@@ -219,6 +219,34 @@ type PollCandidate = {
   sources: Record<string, unknown>[];
 };
 
+type PollStateSnapshotLike = Partial<
+  PollStateValue & {
+    answers?: unknown;
+    latest_answers?: unknown;
+    own_answer?: unknown;
+  }
+>;
+
+export type QueryAnswersPoll = {
+  id?: string | number;
+  latest_votes_by_option?: unknown;
+  ownAnswer?: unknown;
+  own_answer?: unknown;
+  answers?: unknown;
+  latest_answers?: unknown;
+  state?: PollStateStore | PollStateSnapshotLike | null;
+} & Record<string, unknown>;
+
+export type QueryAnswersParams = {
+  limit?: number;
+  next?: string;
+};
+
+export type QueryAnswersResult = {
+  next?: string;
+  votes: PollAnswer[];
+};
+
 export type PollsFromStateParams = {
   client?: { polls?: { store?: StateStore<{ polls: unknown[] }> } } | StreamChat;
   pollId: string | number;
@@ -791,6 +819,170 @@ export const polls_fromState = ({
 
   return targetPoll as PollsFromStateResult;
 };
+
+const readPollStateSnapshot = (
+  poll: QueryAnswersPoll,
+): PollStateSnapshotLike | undefined => {
+  const state = poll.state;
+  if (!state) return undefined;
+  if (isStateStore(state)) {
+    const latest = state.getLatestValue?.();
+    if (latest && isRecord(latest)) {
+      return latest as PollStateSnapshotLike;
+    }
+    const snapshot = state.getState?.();
+    if (snapshot && isRecord(snapshot)) {
+      return snapshot as PollStateSnapshotLike;
+    }
+    return undefined;
+  }
+  if (isRecord(state)) {
+    return state as PollStateSnapshotLike;
+  }
+  return undefined;
+};
+
+const appendAnswerCandidate = (
+  target: unknown[],
+  value: unknown,
+): void => {
+  if (value === undefined || value === null) {
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      appendAnswerCandidate(target, entry);
+    }
+    return;
+  }
+  if (isRecord(value) && Array.isArray(value.results)) {
+    for (const entry of value.results) {
+      appendAnswerCandidate(target, entry);
+    }
+    return;
+  }
+  target.push(value);
+};
+
+const appendAnswerCandidatesFromVotes = (
+  target: unknown[],
+  value: unknown,
+): void => {
+  if (!isRecord(value)) return;
+  for (const entry of Object.values(value)) {
+    if (Array.isArray(entry)) {
+      for (const candidate of entry) {
+        appendAnswerCandidate(target, candidate);
+      }
+    }
+  }
+};
+
+const mergeAnswer = (
+  registry: Map<string, PollAnswer>,
+  candidate: PollAnswer,
+): void => {
+  const existing = registry.get(candidate.id);
+  if (existing) {
+    registry.set(candidate.id, { ...existing, ...candidate });
+  } else {
+    registry.set(candidate.id, candidate);
+  }
+};
+
+const toSafeInteger = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 0 ? undefined : Math.floor(value);
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const normalizeAnswers = (
+  candidates: unknown[],
+  pollId: string,
+): PollAnswer[] => {
+  const answers = new Map<string, PollAnswer>();
+  for (const candidate of candidates) {
+    if (!isRecord(candidate)) continue;
+    const hasAnswerField =
+      'answer_text' in candidate || 'is_answer' in candidate;
+    if (!hasAnswerField) continue;
+    const normalized = toPollAnswer(candidate, pollId);
+    if (!normalized) continue;
+    if (!normalized.answer_text && !('answer_text' in candidate)) continue;
+    mergeAnswer(answers, normalized);
+  }
+
+  const result = Array.from(answers.values());
+  result.sort((a, b) => {
+    const timeA = Date.parse(a.created_at);
+    const timeB = Date.parse(b.created_at);
+    if (Number.isFinite(timeA) && Number.isFinite(timeB) && timeA !== timeB) {
+      return timeB - timeA;
+    }
+    return b.id.localeCompare(a.id);
+  });
+  return result;
+};
+
+export async function queryAnswers(
+  poll: QueryAnswersPoll,
+  params: QueryAnswersParams = {},
+): Promise<QueryAnswersResult> {
+  const pollId = toStringMaybe(poll.id);
+  if (!pollId) {
+    return { votes: [] };
+  }
+
+  const candidates: unknown[] = [];
+  const stateSnapshot = readPollStateSnapshot(poll);
+
+  appendAnswerCandidate(candidates, poll.answers);
+  appendAnswerCandidate(candidates, poll.latest_answers);
+  appendAnswerCandidate(candidates, poll.ownAnswer);
+  appendAnswerCandidate(candidates, poll.own_answer);
+
+  if (stateSnapshot) {
+    appendAnswerCandidate(candidates, stateSnapshot.answers);
+    appendAnswerCandidate(candidates, stateSnapshot.latest_answers);
+    appendAnswerCandidate(candidates, stateSnapshot.ownAnswer);
+    appendAnswerCandidate(candidates, stateSnapshot.own_answer);
+  }
+
+  appendAnswerCandidatesFromVotes(candidates, poll.latest_votes_by_option);
+  if (stateSnapshot?.latest_votes_by_option) {
+    appendAnswerCandidatesFromVotes(
+      candidates,
+      stateSnapshot.latest_votes_by_option,
+    );
+  }
+
+  const answers = normalizeAnswers(candidates, pollId);
+
+  if (!answers.length) {
+    return { votes: [] };
+  }
+
+  const offset = toSafeInteger(params.next) ?? 0;
+  const limit = toSafeInteger(params.limit);
+
+  const start = offset < answers.length ? offset : answers.length;
+  const end =
+    limit !== undefined && limit > 0
+      ? Math.min(start + limit, answers.length)
+      : answers.length;
+
+  const page = answers.slice(start, end);
+  const next = end < answers.length ? String(end) : undefined;
+
+  return { votes: page, next };
+}
 
 type PollsSubscriptionsClient = {
   polls?: { unregisterSubscriptions?: () => void };
@@ -3261,6 +3453,7 @@ export const chatAPI = {
     unregisterSubscriptions: pollsUnregisterSubscriptions,
   },
   addAnswer,
+  queryAnswers,
   polls_fromState,
   clientThreadsActivate,
   clientThreadsState,
