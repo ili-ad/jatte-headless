@@ -9,6 +9,7 @@ import {
   pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
   remindersInitTimers as remindersInitTimersShim,
   remindersClearTimers as remindersClearTimersShim,
+  remindersUnregisterSubscriptions as remindersUnregisterSubscriptionsShim,
   queryReactions as queryReactionsShim,
 } from '../chatSDKShim';
 import { getLocalClient } from '../../chat-shim';
@@ -3637,12 +3638,51 @@ export type ReminderAwareClient =
   | null
   | undefined;
 
+export type RemindersUnregisterSubscriptionsParams = {
+  client?: ReminderAwareClient | StreamChat | null;
+};
+
+type RemindersSubscriptionsClient = {
+  reminders?: {
+    unregisterSubscriptions?: () => void;
+    clearTimers?: () => void;
+    store?: StateStore<{ reminders?: unknown }>;
+    state?: StateStore<{ reminders?: unknown }>;
+  };
+};
+
 const getDefaultRemindersClient = (): ReminderAwareClient => {
   try {
     return getLocalClient() as ReminderAwareClient;
   } catch {
     return undefined;
   }
+};
+
+const getDefaultRemindersSubscriptionsClient =
+  (): RemindersSubscriptionsClient | undefined => {
+    const client = getDefaultRemindersClient();
+    if (!client) return undefined;
+    if (
+      typeof client === 'object' &&
+      'reminders' in (client as Record<string, unknown>)
+    ) {
+      return client as RemindersSubscriptionsClient;
+    }
+    return undefined;
+  };
+
+const toRemindersSubscriptionsClient = (
+  client: RemindersUnregisterSubscriptionsParams['client'],
+): RemindersSubscriptionsClient | undefined => {
+  if (!client || typeof client !== 'object') return undefined;
+  if (
+    'reminders' in (client as Record<string, unknown>) &&
+    typeof (client as Record<string, unknown>).reminders === 'object'
+  ) {
+    return client as RemindersSubscriptionsClient;
+  }
+  return undefined;
 };
 
 const toReminderManager = (
@@ -3684,6 +3724,76 @@ const dispatchStateStorePatch = (
   if (typeof maybeSet === "function") {
     maybeSet(patch);
   }
+};
+
+const clearReminderStoreEntries = (
+  manager: ReminderManagerLike | undefined,
+) => {
+  const store = manager?.store;
+  const getLatest = store?.getLatestValue ?? store?.getSnapshot;
+  if (!store || typeof getLatest !== 'function') return;
+
+  const snapshot = getLatest.call(store);
+  const reminders = Array.isArray(snapshot?.reminders)
+    ? (snapshot?.reminders as ReminderEntryLike[])
+    : [];
+
+  if (!reminders.length) return;
+
+  for (const entry of reminders) {
+    const handle = entry?.timer;
+    if (!handle) continue;
+    try {
+      clearTimeout(handle as ReturnType<typeof setTimeout>);
+    } catch {
+      try {
+        clearInterval(handle as ReturnType<typeof setInterval>);
+      } catch {
+        // ignore timers that cannot be cleared
+      }
+    }
+  }
+
+  dispatchStateStorePatch(store, { reminders: [] });
+};
+
+const clearReminderStateStore = (
+  manager: ReminderManagerLike | undefined,
+) => {
+  const stateStore = manager?.state;
+  const getLatest = stateStore?.getLatestValue ?? stateStore?.getSnapshot;
+  if (!stateStore || typeof getLatest !== 'function') return;
+
+  const snapshot = getLatest.call(stateStore);
+  if (!snapshot || typeof snapshot !== 'object') return;
+
+  const container = (snapshot as { reminders?: unknown }).reminders;
+  if (!container) return;
+
+  if (container instanceof Map) {
+    if (!container.size) return;
+    dispatchStateStorePatch(stateStore, { reminders: new Map() });
+    return;
+  }
+
+  if (Array.isArray(container)) {
+    if (!container.length) return;
+    dispatchStateStorePatch(stateStore, { reminders: [] });
+    return;
+  }
+
+  if (typeof container === 'object') {
+    if (!Object.keys(container as Record<string, unknown>).length) return;
+    dispatchStateStorePatch(stateStore, { reminders: {} });
+  }
+};
+
+const resetReminderManagerState = (
+  manager: ReminderManagerLike | undefined,
+) => {
+  if (!manager) return;
+  clearReminderStoreEntries(manager);
+  clearReminderStateStore(manager);
 };
 
 const removeReminderFromStore = (
@@ -3794,6 +3904,36 @@ const updateReminderState = (
       dispatchStateStorePatch(stateStore, { reminders: clone });
     }
   }
+};
+
+const remindersUnregisterSubscriptions = async (
+  params: RemindersUnregisterSubscriptionsParams = {},
+): Promise<void> => {
+  const defaultClient = getDefaultRemindersClient();
+  const normalizedClient =
+    toRemindersSubscriptionsClient(params.client) ??
+    getDefaultRemindersSubscriptionsClient();
+
+  remindersUnregisterSubscriptionsShim(normalizedClient);
+
+  const reminderManager =
+    toReminderManager(params.client) ??
+    toReminderManager(normalizedClient as ReminderAwareClient | StreamChat | null) ??
+    toReminderManager(defaultClient);
+
+  const clearTimersTarget =
+    reminderManager ?? normalizedClient?.reminders ?? defaultClient?.reminders;
+
+  try {
+    clearTimersTarget?.clearTimers?.();
+  } catch {
+    // ignore custom client errors
+  }
+
+  clearAllReminderTimers();
+  resetReminderManagerState(
+    reminderManager ?? (clearTimersTarget as ReminderManagerLike | undefined),
+  );
 };
 
 const deleteReminder = async ({
@@ -4051,6 +4191,7 @@ export const chatAPI = {
   markUnread,
   createReminder,
   reminders: {
+    unregisterSubscriptions: remindersUnregisterSubscriptions,
     initTimers: remindersInitTimers,
     clearTimers: remindersClearTimers,
     scheduledOffsetsMs: remindersScheduledOffsetsMs,
