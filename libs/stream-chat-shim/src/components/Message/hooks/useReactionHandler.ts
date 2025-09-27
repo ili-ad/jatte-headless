@@ -8,7 +8,6 @@ import { useChannelStateContext } from '../../../context/ChannelStateContext';
 import { useChatContext } from '../../../context/ChatContext';
 
 import type { LocalMessage, ReactionResponse } from 'chat-shim';
-import { sendReaction } from '../../../chatSDKShim';
 import { chatAPI } from '../../../api/chatAPI';
 
 export const reactionHandlerWarning = `Reaction handler was called, but it is missing one of its required arguments.
@@ -90,7 +89,15 @@ export const useReactionHandler = (message?: LocalMessage) => {
       thread?.upsertReplyLocally({ message: tempMessage });
 
       const messageResponse = add
-        ? await sendReaction(id, type)
+        ? await chatAPI.sendReaction({
+            channel,
+            cid: channel.cid,
+            messageId: id,
+            message,
+            type,
+            user: client.user ?? undefined,
+            userId: client.userID ?? client.user?.id,
+          })
         : await chatAPI.deleteReaction({
             channel,
             cid: channel.cid,
