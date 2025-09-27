@@ -32,7 +32,6 @@ import {
 } from "../../context";
 import { chatAPI } from "../../api/chatAPI";
 import { NullComponent } from "../UtilityComponents";
-import { clientQueryChannels } from "../../chatSDKShim";
 import { MAX_QUERY_CHANNELS_LIMIT, moveChannelUpwards } from "./utils";
 import type { CustomQueryChannelsFn } from "./hooks/usePaginatedChannels";
 import type { ChannelListMessengerProps } from "./ChannelListMessenger";
@@ -249,12 +248,12 @@ const UnMemoizedChannelList = (props: ChannelListProps) => {
       );
 
       if (!customActiveChannelObject) {
-        [customActiveChannelObject] = await clientQueryChannels(
+        [customActiveChannelObject] = await chatAPI.clientQueryChannels({
           client,
-          filters || DEFAULT_FILTERS,
-          sort || DEFAULT_SORT,
-          options || DEFAULT_OPTIONS,
-        );
+          filters: filters || DEFAULT_FILTERS,
+          sort: sort || DEFAULT_SORT,
+          options: options || DEFAULT_OPTIONS,
+        });
       }
 
       if (customActiveChannelObject) {
