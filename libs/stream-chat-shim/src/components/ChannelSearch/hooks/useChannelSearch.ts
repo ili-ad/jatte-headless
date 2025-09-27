@@ -7,11 +7,8 @@ import type { ChannelOrUserResponse } from "../utils";
 import { isChannel } from "../utils";
 
 import { useChatContext } from "../../../context/ChatContext";
-import {
-  channelWatch,
-  clientQueryChannels,
-  clientQueryUsers,
-} from "../../../chatSDKShim";
+import { channelWatch, clientQueryUsers } from "../../../chatSDKShim";
+import { chatAPI } from "../../../api/chatAPI";
 
 import type {
   Channel,
@@ -229,12 +226,12 @@ export const useChannelSearch = ({
           } = searchQueryParams?.channelFilters ?? {};
 
           promises.push(
-            clientQueryChannels(
+            chatAPI.clientQueryChannels({
               client,
-              channelFiltersConfig ?? {},
-              channelSortConfig ?? {},
-              channelOptionsConfig ?? {},
-            ),
+              filters: channelFiltersConfig ?? {},
+              sort: channelSortConfig ?? {},
+              options: channelOptionsConfig ?? {},
+            }),
           );
         }
 
