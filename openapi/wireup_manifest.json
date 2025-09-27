@@ -204,7 +204,7 @@
     "stubName": "addError",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -240,7 +240,7 @@
     "stubName": "channel.getClient",
     "ticketType": "shim",
     "todoCount": 2,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -249,7 +249,7 @@
     "stubName": "channel.getReplies",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",
@@ -537,7 +537,7 @@
     "stubName": "pinMessage",
     "ticketType": "shim",
     "todoCount": 1,
-    "status": "missing"
+    "status": "ok"
   },
   {
     "method": "",

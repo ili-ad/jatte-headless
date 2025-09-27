@@ -1038,6 +1038,123 @@ const channelUnpin = async ({ channel }: ChannelUnpinParams): Promise<ChannelUnp
   return { pinned: false as const, at };
 };
 
+const cloneRecord = (value: unknown): Record<string, unknown> | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return { ...value };
+};
+
+const normalizePinExpiresForMembership = (
+  value: unknown,
+): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    const time = value.getTime();
+    return Number.isNaN(time) ? null : value.toISOString();
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toISOString();
+  }
+
+  return undefined;
+};
+
+const toPinnedMembership = (
+  membership: ChannelMembershipRecord | undefined,
+  pinnedAt: Date,
+  pinnedBy: Record<string, unknown> | undefined,
+  pinExpires: string | null | undefined,
+): ChannelMembershipRecord => {
+  const next: ChannelMembershipRecord = { ...(membership ?? {}) };
+
+  next.pinned = true;
+  next.pinned_at = pinnedAt.toISOString();
+
+  if (pinExpires !== undefined) {
+    next.pin_expires = pinExpires;
+  }
+
+  if (pinnedBy) {
+    next.pinned_by = { ...pinnedBy };
+  }
+
+  return next;
+};
+
+const applyChannelPinLocally = (
+  channel: ChannelUnpinChannel,
+  pinnedAt: Date,
+  pinnedBy: Record<string, unknown> | undefined,
+  pinExpires: string | null | undefined,
+): void => {
+  const state = channel.state;
+  if (!isRecord(state)) {
+    return;
+  }
+
+  const rawMembership = state.membership;
+  const nextMembership = toPinnedMembership(
+    isRecord(rawMembership) ? (rawMembership as ChannelMembershipRecord) : undefined,
+    pinnedAt,
+    pinnedBy,
+    pinExpires,
+  );
+
+  (state as Record<string, unknown>).membership = nextMembership;
+
+  const patch: Record<string, unknown> = { membership: nextMembership };
+
+  const rawMembers = state.members;
+  if (isRecord(rawMembers)) {
+    const client = typeof channel.getClient === "function" ? channel.getClient() : undefined;
+    const ownUserId = normalizeUserId(client?.user?.id);
+
+    if (ownUserId) {
+      const rawMember = rawMembers[ownUserId];
+      if (isRecord(rawMember)) {
+        const nextMember = toPinnedMembership(
+          rawMember as ChannelMembershipRecord,
+          pinnedAt,
+          pinnedBy,
+          pinExpires,
+        );
+        (rawMembers as Record<string, unknown>)[ownUserId] = nextMember;
+        patch.members = { ...(rawMembers as Record<string, unknown>) };
+      }
+    }
+  }
+
+  const store = channel.stateStore;
+  if (store && typeof store.dispatch === "function") {
+    store.dispatch(patch);
+  }
+};
+
 type ReactionUserLike = { id?: string | number | null } & Record<string, unknown>;
 
 type ReactionResponseLike = {
@@ -1067,6 +1184,14 @@ type ChannelReactionLike = {
   emit?: (event: string, payload: Record<string, unknown>) => void;
 };
 
+type ChannelPinLike = ChannelReactionLike & {
+  state?: (
+    | ({ pinnedMessages?: Array<Record<string, unknown>> | undefined } & Record<string, unknown>)
+    | null
+  );
+  pin?: (message?: Record<string, unknown> | string) => Promise<unknown>;
+};
+
 export type DeleteReactionParams = {
   channel?: ChannelReactionLike | null;
   cid?: string;
@@ -1077,6 +1202,22 @@ export type DeleteReactionParams = {
 };
 
 export type DeleteReactionResult = { message: Record<string, unknown> };
+
+export type PinMessageParams = {
+  channel?: ChannelPinLike | null;
+  cid?: string | null;
+  messageId: string | number;
+  message?: Record<string, unknown> | null;
+  pinExpires?: string | Date | number | null;
+  user?: Record<string, unknown> | null;
+  now?: Date;
+};
+
+export type PinMessageResult = {
+  pinned: true;
+  at: string;
+  message: Record<string, unknown>;
+};
 
 const normalizeMessageId = (value: unknown): string | undefined => {
   if (typeof value === "string" && value) {
@@ -1537,6 +1678,171 @@ export const deleteReaction = async ({
   }
 
   return { message: normalizedMessage };
+};
+
+const resolveDate = (value: Date | undefined): Date => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value;
+  }
+  return new Date();
+};
+
+export const pinMessage = async ({
+  channel,
+  cid,
+  message,
+  messageId,
+  pinExpires,
+  user,
+  now,
+}: PinMessageParams): Promise<PinMessageResult> => {
+  const normalizedId =
+    normalizeMessageId(messageId) ??
+    normalizeMessageId((message as { id?: unknown } | null | undefined)?.id);
+
+  if (!normalizedId) {
+    throw new Error("Invalid message id provided to pinMessage");
+  }
+
+  const baseMessage =
+    (message && typeof message === "object" ? (message as Record<string, unknown>) : undefined) ??
+    findMessageById(channel, normalizedId);
+
+  const workingMessage: Record<string, unknown> = baseMessage
+    ? { ...baseMessage }
+    : { id: normalizedId };
+
+  workingMessage.id = normalizedId;
+
+  const resolvedChannel = channel ?? undefined;
+
+  const resolvedCid =
+    (typeof workingMessage.cid === "string" && workingMessage.cid) ??
+    (typeof resolvedChannel?.cid === "string" ? resolvedChannel.cid : undefined) ??
+    (typeof cid === "string" ? cid : undefined);
+
+  if (resolvedCid) {
+    workingMessage.cid = resolvedCid;
+  }
+
+  const timestamp = resolveDate(now);
+  workingMessage.pinned = true;
+  workingMessage.pinned_at = timestamp;
+
+  const pinnedByRecord =
+    cloneRecord(user) ??
+    cloneRecord(resolvedChannel?.getClient?.()?.user) ??
+    cloneRecord((workingMessage as { user?: unknown }).user);
+
+  if (pinnedByRecord) {
+    workingMessage.pinned_by = pinnedByRecord;
+  }
+
+  const expiresCandidate =
+    pinExpires === undefined
+      ? (baseMessage as { pin_expires?: unknown } | undefined)?.pin_expires
+      : pinExpires;
+
+  if (expiresCandidate !== undefined) {
+    if (expiresCandidate === null) {
+      workingMessage.pin_expires = null;
+    } else if (expiresCandidate instanceof Date) {
+      workingMessage.pin_expires = expiresCandidate;
+    } else {
+      workingMessage.pin_expires = expiresCandidate;
+    }
+  }
+
+  if (!workingMessage.cid && resolvedCid) {
+    workingMessage.cid = resolvedCid;
+  }
+
+  let normalizedMessage: Record<string, unknown>;
+  if (resolvedChannel) {
+    try {
+      normalizedMessage = await loadMessageIntoChannelState(
+        resolvedChannel as any,
+        workingMessage,
+      );
+    } catch {
+      normalizedMessage = { ...workingMessage };
+    }
+  } else {
+    normalizedMessage = { ...workingMessage };
+  }
+
+  normalizedMessage.pinned = true;
+  normalizedMessage.pinned_at = timestamp;
+  if (pinnedByRecord) {
+    normalizedMessage.pinned_by = { ...pinnedByRecord };
+  }
+  if (expiresCandidate !== undefined) {
+    normalizedMessage.pin_expires = workingMessage.pin_expires;
+  }
+
+  const membershipPinExpires = normalizePinExpiresForMembership(
+    expiresCandidate ?? (normalizedMessage as { pin_expires?: unknown })?.pin_expires,
+  );
+
+  if (resolvedChannel) {
+    applyChannelPinLocally(resolvedChannel, timestamp, pinnedByRecord, membershipPinExpires);
+
+    const state = resolvedChannel.state;
+    if (isRecord(state)) {
+      const rawPinned = state.pinnedMessages;
+      const nextPinned = Array.isArray(rawPinned)
+        ? [...(rawPinned as Array<Record<string, unknown>>)]
+        : [];
+      const pinnedEntry: Record<string, unknown> = { ...normalizedMessage };
+
+      const existingIndex = nextPinned.findIndex(
+        (item) => normalizeMessageId((item as { id?: unknown }).id) === normalizedId,
+      );
+
+      if (existingIndex >= 0) {
+        nextPinned[existingIndex] = pinnedEntry;
+      } else {
+        nextPinned.unshift(pinnedEntry);
+      }
+
+      (state as Record<string, unknown>).pinnedMessages = nextPinned;
+
+      resolvedChannel.stateStore?.dispatch?.({ pinnedMessages: nextPinned });
+    }
+  }
+
+  const eventPayload: Record<string, unknown> = {
+    type: "message.updated",
+    message: normalizedMessage,
+  };
+
+  if (resolvedCid) {
+    eventPayload.cid = resolvedCid;
+  }
+
+  if (resolvedChannel && typeof resolvedChannel.emit === "function") {
+    resolvedChannel.emit("message.updated", eventPayload);
+  }
+
+  const client = resolvedChannel?.getClient?.();
+  if (client) {
+    if (typeof (client as { emit?: unknown }).emit === "function") {
+      (client as { emit: (event: string, payload: Record<string, unknown>) => void }).emit(
+        "message.updated",
+        eventPayload,
+      );
+    } else if (typeof (client as { dispatchEvent?: unknown }).dispatchEvent === "function") {
+      (client as { dispatchEvent: (event: Record<string, unknown>) => void }).dispatchEvent(
+        eventPayload,
+      );
+    }
+  }
+
+  return {
+    pinned: true as const,
+    at: timestamp.toISOString(),
+    message: normalizedMessage,
+  };
 };
 
 const parseWebPushKeys = (value: unknown): WebPushKeys => {
@@ -2252,6 +2558,7 @@ export const chatAPI = {
   notifications: {
     store: resolveNotificationsStore,
   },
+  pinMessage,
   flagMessage,
   deleteReaction,
   deleteMessage,
