@@ -7,6 +7,7 @@ import {
   loadMessageIntoChannelState,
   pollsFromState as pollsFromStateShim,
   pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
+  remindersInitTimers as remindersInitTimersShim,
   remindersClearTimers as remindersClearTimersShim,
   queryReactions as queryReactionsShim,
 } from '../chatSDKShim';
@@ -1135,10 +1136,14 @@ const pollsUnregisterSubscriptions = async ({
 };
 
 type RemindersTimerClient = {
-  reminders?: { clearTimers?: () => void };
+  reminders?: { clearTimers?: () => void; initTimers?: () => void };
 };
 
 export type RemindersClearTimersParams = {
+  client?: RemindersTimerClient | StreamChat | null;
+};
+
+export type RemindersInitTimersParams = {
   client?: RemindersTimerClient | StreamChat | null;
 };
 
@@ -1158,6 +1163,15 @@ const getDefaultRemindersTimerClient = (): RemindersTimerClient | undefined => {
   } catch {
     return undefined;
   }
+};
+
+const remindersInitTimers = async (
+  params: RemindersInitTimersParams = {},
+): Promise<void> => {
+  const client =
+    toRemindersTimerClient(params.client) ?? getDefaultRemindersTimerClient();
+
+  remindersInitTimersShim(client);
 };
 
 const remindersClearTimers = async (
@@ -3992,6 +4006,7 @@ export const chatAPI = {
   markUnread,
   createReminder,
   reminders: {
+    initTimers: remindersInitTimers,
     clearTimers: remindersClearTimers,
     deleteReminder,
   },
