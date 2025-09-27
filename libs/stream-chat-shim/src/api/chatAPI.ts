@@ -7,9 +7,11 @@ import {
   loadMessageIntoChannelState,
   pollsFromState as pollsFromStateShim,
   pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
+  remindersClearTimers as remindersClearTimersShim,
   queryReactions as queryReactionsShim,
 } from '../chatSDKShim';
 import { getLocalClient } from '../../chat-shim';
+import { clearAllReminderTimers } from '../reminders/timerRegistry';
 import type {
   Channel,
   ChannelFilters,
@@ -1123,6 +1125,42 @@ const pollsUnregisterSubscriptions = async ({
   client,
 }: PollsUnregisterSubscriptionsParams = {}): Promise<void> => {
   pollsUnregisterSubscriptionsShim(toPollsSubscriptionsClient(client));
+};
+
+type RemindersTimerClient = {
+  reminders?: { clearTimers?: () => void };
+};
+
+export type RemindersClearTimersParams = {
+  client?: RemindersTimerClient | StreamChat | null;
+};
+
+const toRemindersTimerClient = (
+  client: RemindersClearTimersParams['client'],
+): RemindersTimerClient | undefined => {
+  if (!client) return undefined;
+  if (typeof client === 'object') {
+    return client as RemindersTimerClient;
+  }
+  return undefined;
+};
+
+const getDefaultRemindersTimerClient = (): RemindersTimerClient | undefined => {
+  try {
+    return getLocalClient() as RemindersTimerClient;
+  } catch {
+    return undefined;
+  }
+};
+
+const remindersClearTimers = async (
+  params: RemindersClearTimersParams = {},
+): Promise<void> => {
+  const client =
+    toRemindersTimerClient(params.client) ?? getDefaultRemindersTimerClient();
+
+  remindersClearTimersShim(client);
+  clearAllReminderTimers();
 };
 
 const toPollVoteLike = (value: unknown): PollVoteLike | null => {
@@ -3732,6 +3770,9 @@ export const chatAPI = {
   clientThreadsReload,
   markUnread,
   createReminder,
+  reminders: {
+    clearTimers: remindersClearTimers,
+  },
   notifications: {
     store: resolveNotificationsStore,
   },
