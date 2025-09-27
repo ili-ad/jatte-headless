@@ -11,7 +11,7 @@ import { Virtuoso } from 'react-virtuoso';
 
 import { GiphyPreviewMessage as DefaultGiphyPreviewMessage } from './GiphyPreviewMessage';
 import { useLastReadData } from './hooks';
-import { lastRead as getLastRead } from '../../chatSDKShim';
+import { chatAPI } from '../../api/chatAPI';
 import {
   useGiphyPreview,
   useMessageSetKey,
@@ -248,7 +248,7 @@ const VirtualizedMessageListWithContext = (
 
   const virtuoso = useRef<VirtuosoHandle>(null);
 
-  const lastRead = useMemo(() => getLastRead(channel), [channel]);
+  const lastRead = useMemo(() => chatAPI.lastRead({ channel }), [channel]);
 
   const { show: showUnreadMessagesNotification, toggleShowUnreadMessagesNotification } =
     useUnreadMessagesNotificationVirtualized({

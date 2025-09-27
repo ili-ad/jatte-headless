@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { isDate, isDayOrMoment } from '../../../i18n';
+import { chatAPI } from '../../../api/chatAPI';
 
 import type { ChannelStateContextValue } from '../../../context/ChannelStateContext';
 
@@ -43,7 +44,8 @@ export const useCreateChannelStateContext = (
   } = value;
 
   const channelId = channel.cid;
-  const lastRead = channel.initialized && channel.lastRead()?.getTime();
+  const lastReadDate = channel.initialized ? chatAPI.lastRead({ channel }) : undefined;
+  const lastRead = lastReadDate?.getTime();
   const membersLength = Object.keys(members || []).length;
   const notificationsLength = notifications.length;
   const readUsers = Object.values(read);
