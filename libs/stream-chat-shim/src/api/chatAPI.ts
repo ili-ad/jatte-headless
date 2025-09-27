@@ -198,12 +198,21 @@ export type PollVoteCastedEvent = Event & {
   poll_vote: PollVoteLike | null;
 };
 
+export type PollVoteChangedEvent = Event & {
+  type: 'poll.vote_changed';
+  poll_vote: PollVoteLike | null;
+};
+
 const emptySubscription: ChannelEventSubscription = {
   unsubscribe: () => undefined,
 };
 
+type VoteEventWithChannelMetadata =
+  | ClientKnownEventMap['poll.vote_casted']
+  | ClientKnownEventMap['poll.vote_changed'];
+
 const withChannelMetadata = (
-  event: ClientKnownEventMap['poll.vote_casted'],
+  event: VoteEventWithChannelMetadata,
   channel?: Channel | null,
 ): Pick<PollVoteCastedEvent, 'cid' | 'channel_id' | 'channel_type'> => {
   const cid = typeof event.cid === 'string' && event.cid ? event.cid : channel?.cid;
@@ -250,6 +259,59 @@ export const onPollVoteCasted = ({
         type: 'poll.vote_casted',
         poll_vote: pollVote,
       };
+      handler(normalizedEvent);
+    },
+  );
+
+  return subscription ?? emptySubscription;
+};
+
+export type OnPollVoteChangedParams = {
+  channel?: Channel | null;
+  cid?: string | null;
+  client?: StreamChat | null;
+  handler: (event: PollVoteChangedEvent) => void;
+};
+
+export const onPollVoteChanged = ({
+  channel,
+  cid,
+  client,
+  handler,
+}: OnPollVoteChangedParams): ChannelEventSubscription => {
+  if (!client || typeof (client as { on?: unknown }).on !== 'function') {
+    return emptySubscription;
+  }
+
+  const targetCid = cid ?? channel?.cid ?? null;
+
+  const subscription = chatSDKShim.client.on(
+    client,
+    'poll.vote_changed',
+    (event) => {
+      const eventCid =
+        typeof event.cid === 'string' && event.cid ? event.cid : null;
+      if (targetCid && eventCid && eventCid !== targetCid) {
+        return;
+      }
+
+      const metadata = withChannelMetadata(event, channel);
+      const normalizedCid =
+        metadata.cid ?? eventCid ?? (targetCid ?? undefined);
+
+      if (targetCid && normalizedCid && normalizedCid !== targetCid) {
+        return;
+      }
+
+      const pollVote = toPollVoteLike(event.poll_vote);
+      const normalizedEvent: PollVoteChangedEvent = {
+        ...(event as Event),
+        ...metadata,
+        cid: normalizedCid ?? undefined,
+        type: 'poll.vote_changed',
+        poll_vote: pollVote,
+      };
+
       handler(normalizedEvent);
     },
   );
@@ -1773,6 +1835,7 @@ export const chatAPI = {
     unpin: channelUnpin,
   },
   onPollVoteCasted,
+  onPollVoteChanged,
   lastRead,
   clientQueryChannels,
   client: {
