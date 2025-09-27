@@ -3618,6 +3618,24 @@ async function createReminder(body: CreateReminderInput): Promise<Reminder> {
   return (await response.json()) as Reminder;
 }
 
+const remindersUpsertReminder = async ({
+  reminder,
+  reminders,
+  client,
+}: RemindersUpsertReminderParams): Promise<any> => {
+  const reminderManager =
+    reminders ??
+    toReminderManager(client) ??
+    toReminderManager(getDefaultRemindersClient());
+
+  if (reminderManager?.upsertReminder) {
+    const messageId = reminder.message_id ?? "";
+    return reminderManager.upsertReminder(String(messageId), reminder.remind_at);
+  }
+
+  return createReminder(reminder);
+};
+
 type ReminderEntryLike = {
   reminder?: Partial<Reminder> & {
     id?: number | string | null;
@@ -3627,6 +3645,7 @@ type ReminderEntryLike = {
 };
 
 type ReminderManagerLike = {
+  upsertReminder?: (messageId: string, remind_at: string) => Promise<unknown>;
   deleteReminder?: (id: string) => Promise<unknown>;
   store?: StateStore<{ reminders?: ReminderEntryLike[] }>;
   state?: StateStore<{ reminders?: unknown }>;
@@ -3637,6 +3656,12 @@ export type ReminderAwareClient =
   | { reminders?: ReminderManagerLike }
   | null
   | undefined;
+
+export type RemindersUpsertReminderParams = {
+  reminder: CreateReminderInput;
+  reminders?: ReminderManagerLike | null;
+  client?: ReminderAwareClient | StreamChat | null;
+};
 
 export type RemindersUnregisterSubscriptionsParams = {
   client?: ReminderAwareClient | StreamChat | null;
@@ -4191,6 +4216,7 @@ export const chatAPI = {
   markUnread,
   createReminder,
   reminders: {
+    upsertReminder: remindersUpsertReminder,
     unregisterSubscriptions: remindersUnregisterSubscriptions,
     initTimers: remindersInitTimers,
     clearTimers: remindersClearTimers,
