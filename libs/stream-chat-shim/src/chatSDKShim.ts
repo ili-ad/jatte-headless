@@ -36,6 +36,7 @@ import {
   type User,
   type UserAgentInfo,
   type ChannelUnpinResult,
+  type PinMessageResult,
   type SyncUserRequest,
   type SyncUserResponse,
 } from './api/chatAPI';
@@ -2316,12 +2317,57 @@ export async function flagMessage(messageId: string): Promise<any> {
   return chatAPI.flagMessage({ messageId });
 }
 
-export async function pinMessage(messageId: string): Promise<any> {
-  const resp = await fetch(
-    `/api/messages/${encodeURIComponent(messageId)}/pin/`,
-    { method: 'POST', credentials: 'same-origin' },
-  );
-  return resp.json();
+type PinMessageOptions = {
+  channel?: Channel | null;
+  message?: Record<string, unknown> | null;
+  pinExpires?: string | Date | number | null;
+  user?: Record<string, unknown> | null;
+  now?: Date;
+  cid?: string | null;
+};
+
+export async function pinMessage(
+  messageId: string,
+  options?: PinMessageOptions,
+): Promise<PinMessageResult> {
+  const { channel, message, pinExpires, user, now, cid } = options ?? {};
+
+  const resolvedChannel = channel as
+    | (Channel & { [key: string]: unknown })
+    | undefined;
+
+  const resolvedMessage =
+    message && typeof message === 'object'
+      ? (message as Record<string, unknown>)
+      : undefined;
+
+  const resolvedUser =
+    (user && typeof user === 'object'
+      ? (user as Record<string, unknown>)
+      : undefined) ??
+    (resolvedChannel?.getClient?.()?.user as Record<string, unknown> | undefined);
+
+  const resolvedCid =
+    (typeof cid === 'string' && cid) ??
+    (typeof resolvedChannel?.cid === 'string' ? resolvedChannel.cid : undefined) ??
+    (typeof resolvedMessage?.['cid'] === 'string'
+      ? (resolvedMessage['cid'] as string)
+      : undefined);
+
+  const resolvedPinExpires =
+    pinExpires !== undefined
+      ? pinExpires
+      : resolvedMessage?.['pin_expires'] ?? undefined;
+
+  return chatAPI.pinMessage({
+    messageId,
+    channel: resolvedChannel as any,
+    message: resolvedMessage,
+    pinExpires: resolvedPinExpires,
+    user: resolvedUser,
+    now,
+    cid: resolvedCid ?? null,
+  });
 }
 
 export async function unpinMessage(messageId: string): Promise<void> {

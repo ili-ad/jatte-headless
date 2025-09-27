@@ -1,5 +1,5 @@
 import { defaultPinPermissions, validateAndGetMessage } from '../utils';
-import { unpinMessage } from '../../../chatSDKShim';
+import { pinMessage, unpinMessage } from '../../../chatSDKShim';
 
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useChannelStateContext } from '../../../context/ChannelStateContext';
@@ -50,7 +50,7 @@ export const usePinHandler = (
   const { getErrorNotification, notify } = notifications;
 
   const { updateMessage } = useChannelActionContext('usePinHandler');
-  const { channelCapabilities = {} } = useChannelStateContext('usePinHandler');
+  const { channel, channelCapabilities = {} } = useChannelStateContext('usePinHandler');
   const { client } = useChatContext('usePinHandler');
   const { t } = useTranslationContext('usePinHandler');
 
@@ -72,9 +72,11 @@ export const usePinHandler = (
 
         updateMessage(optimisticMessage);
 
-        await Promise.resolve(
-          undefined,
-        );
+        await pinMessage(message.id, {
+          channel,
+          message,
+          user: client.user ?? undefined,
+        });
       } catch (e) {
         const errorMessage =
           getErrorNotification && validateAndGetMessage(getErrorNotification, [message]);
