@@ -3208,6 +3208,110 @@ export const deleteReaction = async ({
   return { message: normalizedMessage };
 };
 
+type ChannelWithSendAction = Channel & {
+  sendAction?: (
+    messageId: string,
+    formData: Record<string, string>,
+  ) => Promise<unknown>;
+};
+
+const channelCanSendAction = (
+  channel?: Channel | null,
+): channel is ChannelWithSendAction & {
+  sendAction: (messageId: string, formData: Record<string, string>) => Promise<unknown>;
+} =>
+  Boolean(
+    channel && typeof (channel as ChannelWithSendAction).sendAction === "function",
+  );
+
+const normalizeActionFormData = (
+  formData: Record<string, string>,
+): Record<string, string> => {
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(formData)) {
+    if (typeof value === "string") {
+      normalized[key] = value;
+    }
+  }
+  return normalized;
+};
+
+const normalizeSendActionResponse = async (
+  response: unknown,
+  channel?: Channel | null,
+): Promise<SendActionResult | undefined> => {
+  if (!isRecord(response)) {
+    return undefined;
+  }
+
+  const messageCandidate = (response as { message?: unknown }).message;
+  if (messageCandidate && typeof messageCandidate === "object") {
+    const workingMessage = messageCandidate as Record<string, unknown>;
+
+    let normalizedMessage: Record<string, unknown>;
+    if (channel) {
+      try {
+        normalizedMessage = await loadMessageIntoChannelState(
+          channel as any,
+          workingMessage,
+        );
+      } catch {
+        normalizedMessage = { ...workingMessage };
+      }
+    } else {
+      normalizedMessage = { ...workingMessage };
+    }
+
+    return {
+      status: "ok",
+      message: normalizedMessage as unknown as LocalMessage,
+    };
+  }
+
+  const status = (response as { status?: unknown }).status;
+  if (typeof status === "string") {
+    return { status: "ok" };
+  }
+
+  return undefined;
+};
+
+export type SendActionFormData = Record<string, string>;
+
+export type SendActionOptions = {
+  channel?: Channel | null;
+};
+
+export type SendActionResult = { status: "ok"; message?: LocalMessage };
+
+export const sendAction = async (
+  messageId: string,
+  formData: SendActionFormData,
+  options: SendActionOptions = {},
+): Promise<SendActionResult> => {
+  const normalizedId = String(messageId ?? "").trim();
+  if (!normalizedId) {
+    return { status: "ok" };
+  }
+
+  const normalizedFormData = normalizeActionFormData(formData);
+  const { channel } = options;
+
+  if (channelCanSendAction(channel)) {
+    try {
+      const response = await channel.sendAction(normalizedId, normalizedFormData);
+      const normalizedResponse = await normalizeSendActionResponse(response, channel);
+      if (normalizedResponse) {
+        return normalizedResponse;
+      }
+    } catch {
+      // fall back to shim behaviour
+    }
+  }
+
+  return { status: "ok" };
+};
+
 const resolveDate = (value: Date | undefined): Date => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value;
@@ -4610,6 +4714,7 @@ export const chatAPI = {
   pinMessage,
   flagMessage,
   deleteReaction,
+  sendAction,
   queryReactions,
   deleteMessage,
   updateMessage,

@@ -40,6 +40,7 @@ import {
   type QueryAnswersParams as QueryAnswersAPIParams,
   type QueryAnswersPoll as QueryAnswersAPIPoll,
   type QueryAnswersResult as QueryAnswersAPIResult,
+  type SendActionResult,
   type SyncUserRequest,
   type SyncUserResponse,
   type RemindersScheduledOffsetsMsParams,
@@ -2406,17 +2407,18 @@ export async function sendReaction(
 export async function sendAction(
   messageId: string,
   action: Record<string, unknown>,
-): Promise<any> {
-  const resp = await fetch(
-    `/api/messages/${encodeURIComponent(messageId)}/actions/`,
-    {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(action),
-    },
-  );
-  return resp.json();
+): Promise<SendActionResult> {
+  const normalizedAction: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(action ?? {})) {
+    if (typeof value === 'string') {
+      normalizedAction[key] = value;
+    } else if (value !== undefined && value !== null) {
+      normalizedAction[key] = String(value);
+    }
+  }
+
+  return chatAPI.sendAction(String(messageId), normalizedAction);
 }
 
 export async function queryReactions(
