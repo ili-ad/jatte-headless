@@ -96,7 +96,7 @@ export const usePinHandler = (
 
         updateMessage(optimisticMessage);
 
-        await unpinMessage(message.id);
+        await unpinMessage(message.id, { channel, message });
       } catch (e) {
         const errorMessage =
           getErrorNotification && validateAndGetMessage(getErrorNotification, [message]);
