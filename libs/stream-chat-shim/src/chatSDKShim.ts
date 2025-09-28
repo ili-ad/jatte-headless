@@ -2777,8 +2777,15 @@ export async function search(
 }
 
 export async function stopAIResponse(channel?: {
+  cid?: string;
   stopAIResponse?: () => Promise<void>;
 }): Promise<void> {
+  const cid = channel?.cid;
+  if (typeof cid === 'string' && cid) {
+    await chatAPI.stopAIResponse(cid);
+    return;
+  }
+
   await channel?.stopAIResponse?.();
 }
 
