@@ -689,8 +689,8 @@
     "operationId": "shim::stopAIResponse",
     "stubName": "stopAIResponse",
     "ticketType": "shim",
-    "todoCount": 1,
-    "status": "missing"
+    "todoCount": 0,
+    "status": "ok"
   },
   {
     "method": "",
