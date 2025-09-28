@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { MessageComposer } from 'chat-shim';
 import { useMessageComposer } from './useMessageComposer';
+import { chatAPI } from '../../../api/chatAPI';
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useTranslationContext } from '../../../context/TranslationContext';
-import { stopTyping } from 'chat-shim/typing'
 
 import type { MessageInputProps } from '../MessageInput';
 
@@ -79,7 +79,7 @@ export const useSubmitHandler = (props: MessageInputProps) => {
           // if (messageComposer.config.text.publishTypingEvents)
           if (messageComposer.config.text.publishTypingEvents) {
             // safe no-op today; real SDK call tomorrow
-            await stopTyping();
+            await chatAPI.stopTyping();
           }          
         } catch (err) {
           restoreComposerStateSnapshot();
