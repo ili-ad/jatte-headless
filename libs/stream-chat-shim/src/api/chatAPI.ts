@@ -5027,6 +5027,10 @@ async function stopAIResponse(cid: string): Promise<void> {
   emitAIIndicatorClear(cid, channel);
 }
 
+async function stopTyping(): Promise<void> {
+  await chatSDKShim.stopTyping();
+}
+
 export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
@@ -5084,6 +5088,7 @@ export const chatAPI = {
     deleteReminder,
   },
   stopAIResponse,
+  stopTyping,
   notifications: {
     store: resolveNotificationsStore,
   },
