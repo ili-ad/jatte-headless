@@ -73,7 +73,7 @@ export const useChat = ({
     void chatAPI.reminders.initTimers({ client });
 
     return () => {
-      client.threads.unregisterSubscriptions();
+      void chatAPI.threads.unregisterSubscriptions({ client });
       void chatAPI.polls.unregisterSubscriptions({ client });
       void chatAPI.reminders.unregisterSubscriptions({ client });
       void chatAPI.reminders.clearTimers({ client });
