@@ -37,6 +37,7 @@ import {
   type UserAgentInfo,
   type ChannelUnpinResult,
   type PinMessageResult,
+  type UnpinMessageResult,
   type QueryAnswersParams as QueryAnswersAPIParams,
   type QueryAnswersPoll as QueryAnswersAPIPoll,
   type QueryAnswersResult as QueryAnswersAPIResult,
@@ -2383,10 +2384,41 @@ export async function pinMessage(
   });
 }
 
-export async function unpinMessage(messageId: string): Promise<void> {
-  await fetch(`/api/messages/${encodeURIComponent(messageId)}/unpin/`, {
-    method: 'DELETE',
-    credentials: 'same-origin',
+type UnpinMessageOptions = {
+  channel?: Channel | null;
+  message?: Record<string, unknown> | null;
+  cid?: string | null;
+  now?: Date;
+};
+
+export async function unpinMessage(
+  messageId: string,
+  options?: UnpinMessageOptions,
+): Promise<UnpinMessageResult> {
+  const { channel, message, cid, now } = options ?? {};
+
+  const resolvedChannel = channel as
+    | (Channel & { [key: string]: unknown })
+    | undefined;
+
+  const resolvedMessage =
+    message && typeof message === 'object'
+      ? (message as Record<string, unknown>)
+      : undefined;
+
+  const resolvedCid =
+    (typeof cid === 'string' && cid) ??
+    (typeof resolvedChannel?.cid === 'string' ? resolvedChannel.cid : undefined) ??
+    (typeof resolvedMessage?.['cid'] === 'string'
+      ? (resolvedMessage['cid'] as string)
+      : undefined);
+
+  return chatAPI.unpinMessage({
+    messageId,
+    channel: resolvedChannel as any,
+    message: resolvedMessage,
+    cid: resolvedCid ?? null,
+    now,
   });
 }
 
