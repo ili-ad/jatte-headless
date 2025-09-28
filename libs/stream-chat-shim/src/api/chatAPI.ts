@@ -2726,6 +2726,20 @@ export type PinMessageResult = {
   message: Record<string, unknown>;
 };
 
+export type UnpinMessageParams = {
+  channel?: ChannelPinLike | null;
+  cid?: string | null;
+  messageId: string | number;
+  message?: Record<string, unknown> | null;
+  now?: Date;
+};
+
+export type UnpinMessageResult = {
+  pinned: false;
+  at: string;
+  message: Record<string, unknown>;
+};
+
 const normalizeMessageId = (value: unknown): string | undefined => {
   if (typeof value === "string" && value) {
     return value;
@@ -3841,6 +3855,126 @@ export const pinMessage = async ({
 
   return {
     pinned: true as const,
+    at: timestamp.toISOString(),
+    message: normalizedMessage,
+  };
+};
+
+export const unpinMessage = async ({
+  channel,
+  cid,
+  message,
+  messageId,
+  now,
+}: UnpinMessageParams): Promise<UnpinMessageResult> => {
+  const normalizedId =
+    normalizeMessageId(messageId) ??
+    normalizeMessageId((message as { id?: unknown } | null | undefined)?.id);
+
+  if (!normalizedId) {
+    throw new Error("Invalid message id provided to unpinMessage");
+  }
+
+  const baseMessage =
+    (message && typeof message === "object" ? (message as Record<string, unknown>) : undefined) ??
+    findMessageById(channel, normalizedId);
+
+  const workingMessage: Record<string, unknown> = baseMessage
+    ? { ...baseMessage }
+    : { id: normalizedId };
+
+  workingMessage.id = normalizedId;
+
+  const resolvedChannel = channel ?? undefined;
+
+  const resolvedCid =
+    (typeof workingMessage.cid === "string" && workingMessage.cid) ??
+    (typeof resolvedChannel?.cid === "string" ? resolvedChannel.cid : undefined) ??
+    (typeof cid === "string" ? cid : undefined);
+
+  if (resolvedCid) {
+    workingMessage.cid = resolvedCid;
+  }
+
+  const timestamp = resolveDate(now);
+
+  workingMessage.pinned = false;
+  workingMessage.pinned_at = null;
+  workingMessage.pinned_by = null;
+  workingMessage.pin_expires = null;
+
+  let normalizedMessage: Record<string, unknown>;
+  if (resolvedChannel) {
+    try {
+      normalizedMessage = await loadMessageIntoChannelState(
+        resolvedChannel as any,
+        workingMessage,
+      );
+    } catch {
+      normalizedMessage = { ...workingMessage };
+    }
+  } else {
+    normalizedMessage = { ...workingMessage };
+  }
+
+  normalizedMessage.pinned = false;
+  normalizedMessage.pinned_at = null;
+  normalizedMessage.pin_expires = null;
+  normalizedMessage.pinned_by = null;
+
+  if (resolvedChannel) {
+    applyChannelUnpinLocally(resolvedChannel);
+
+    const state = resolvedChannel.state;
+    if (isRecord(state)) {
+      const rawPinned = state.pinnedMessages;
+      if (Array.isArray(rawPinned)) {
+        const nextPinned = rawPinned.filter((item) => {
+          if (!item || typeof item !== "object") {
+            return true;
+          }
+          const record = item as Record<string, unknown>;
+          const candidateId = normalizeMessageId((record as { id?: unknown }).id);
+          return candidateId !== normalizedId;
+        });
+
+        if (nextPinned.length !== rawPinned.length) {
+          (state as Record<string, unknown>).pinnedMessages = nextPinned;
+          resolvedChannel.stateStore?.dispatch?.({ pinnedMessages: nextPinned });
+        }
+      }
+    }
+  }
+
+  const eventPayload: Record<string, unknown> = {
+    type: "message.updated",
+    message: normalizedMessage,
+  };
+
+  if (resolvedCid) {
+    eventPayload.cid = resolvedCid;
+  }
+
+  if (resolvedChannel && typeof resolvedChannel.emit === "function") {
+    resolvedChannel.emit("message.updated", eventPayload);
+  }
+
+  const client = resolvedChannel?.getClient?.();
+  if (client) {
+    if (typeof (client as { emit?: unknown }).emit === "function") {
+      (client as { emit: (event: string, payload: Record<string, unknown>) => void }).emit(
+        "message.updated",
+        eventPayload,
+      );
+    } else if (typeof (client as { dispatchEvent?: unknown }).dispatchEvent === "function") {
+      (client as { dispatchEvent: (event: Record<string, unknown>) => void }).dispatchEvent(
+        eventPayload,
+      );
+    }
+  }
+
+  return {
+    pinned: false as const,
     at: timestamp.toISOString(),
     message: normalizedMessage,
   };
@@ -5121,6 +5255,7 @@ export const chatAPI = {
     store: resolveNotificationsStore,
   },
   pinMessage,
+  unpinMessage,
   flagMessage,
   sendReaction,
   deleteReaction,
