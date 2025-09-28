@@ -39,6 +39,62 @@ import type {
 } from '../chatSDKShim';
 import type { EventTargetLike } from '../client';
 
+type ChannelWithEmitter = Channel & {
+  emit?: (eventType: string, payload: Record<string, unknown>) => void;
+  aiResponseAbortController?: AbortController;
+};
+
+const activeAIResponseControllers = new Map<string, AbortController>();
+
+export const trackAIResponseAbortController = (
+  cid: string,
+  controller: AbortController,
+): void => {
+  activeAIResponseControllers.set(cid, controller);
+};
+
+const takeActiveAIResponseController = (
+  cid: string,
+  channel?: ChannelWithEmitter,
+): AbortController | undefined => {
+  const registered = activeAIResponseControllers.get(cid);
+  if (registered) {
+    activeAIResponseControllers.delete(cid);
+    return registered;
+  }
+
+  const candidate = channel?.aiResponseAbortController;
+  if (candidate instanceof AbortController) {
+    delete channel.aiResponseAbortController;
+    return candidate;
+  }
+
+  return undefined;
+};
+
+const getChannelByCid = (cid: string): ChannelWithEmitter | undefined => {
+  if (!cid) return undefined;
+
+  const client = getLocalClient() as
+    | (StreamChat & {
+        state?: { channels?: Map<string, ChannelWithEmitter> };
+        activeChannels?: Record<string, ChannelWithEmitter>;
+      })
+    | undefined;
+
+  const fromState = client?.state?.channels?.get?.(cid);
+  if (fromState) {
+    return fromState as ChannelWithEmitter;
+  }
+
+  const fromActive = client?.activeChannels?.[cid];
+  if (fromActive) {
+    return fromActive;
+  }
+
+  return undefined;
+};
+
 export type {
   ClientEventHandler,
   ClientKnownEvent,
@@ -4940,6 +4996,37 @@ const resolveNotificationsStore = ({
   };
 };
 
+const emitAIIndicatorClear = (
+  cid: string,
+  channel?: ChannelWithEmitter,
+): void => {
+  const payload: Record<string, unknown> = { type: 'ai_indicator.clear', cid };
+
+  if (channel?.id) {
+    payload.channel_id = channel.id;
+  }
+  if (channel?.type) {
+    payload.channel_type = channel.type;
+  }
+
+  channel?.emit?.('ai_indicator.clear', payload);
+};
+
+async function stopAIResponse(cid: string): Promise<void> {
+  if (typeof cid !== 'string' || !cid) {
+    return;
+  }
+
+  const channel = getChannelByCid(cid);
+  const controller = takeActiveAIResponseController(cid, channel);
+
+  if (controller && !controller.signal.aborted) {
+    controller.abort();
+  }
+
+  emitAIIndicatorClear(cid, channel);
+}
+
 export const chatAPI = {
   channel: {
     countUnread: channelCountUnread,
@@ -4996,6 +5083,7 @@ export const chatAPI = {
     scheduledOffsetsMs: remindersScheduledOffsetsMs,
     deleteReminder,
   },
+  stopAIResponse,
   notifications: {
     store: resolveNotificationsStore,
   },

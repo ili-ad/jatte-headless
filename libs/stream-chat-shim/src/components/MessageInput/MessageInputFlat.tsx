@@ -30,7 +30,7 @@ import { useComponentContext } from '../../context/ComponentContext';
 import { useAttachmentManagerState } from './hooks/useAttachmentManagerState';
 import { useMessageContext } from '../../context';
 import { WithDragAndDropUpload } from './WithDragAndDropUpload';
-import { stopAIResponse } from '../../chatSDKShim';
+import { chatAPI } from '../../api/chatAPI';
 
 export const MessageInputFlat = () => {
   const { message } = useMessageContext();
@@ -62,8 +62,9 @@ export const MessageInputFlat = () => {
   const { aiState } = useAIState(channel);
 
   const stopGenerating = useCallback(() => {
-    stopAIResponse(channel);
-  }, [channel]);
+    if (!channel?.cid) return;
+    void chatAPI.stopAIResponse(channel.cid);
+  }, [channel?.cid]);
 
   const [
     showRecordingPermissionDeniedNotification,
