@@ -7,6 +7,7 @@ import {
   loadMessageIntoChannelState,
   pollsFromState as pollsFromStateShim,
   pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
+  threadsUnregisterSubscriptions as threadsUnregisterSubscriptionsShim,
   remindersInitTimers as remindersInitTimersShim,
   remindersClearTimers as remindersClearTimersShim,
   remindersUnregisterSubscriptions as remindersUnregisterSubscriptionsShim,
@@ -1178,6 +1179,30 @@ export const queryOptionVotes = async ({
   }
 
   return responseData;
+};
+
+type ThreadsSubscriptionsClient = {
+  threads?: { unregisterSubscriptions?: () => void };
+};
+
+export type ThreadsUnregisterSubscriptionsParams = {
+  client?: ThreadsSubscriptionsClient | StreamChat | null;
+};
+
+const toThreadsSubscriptionsClient = (
+  client: ThreadsUnregisterSubscriptionsParams['client'],
+): ThreadsSubscriptionsClient | undefined => {
+  if (!client) return undefined;
+  if (typeof client === 'object') {
+    return client as ThreadsSubscriptionsClient;
+  }
+  return undefined;
+};
+
+const threadsUnregisterSubscriptions = async ({
+  client,
+}: ThreadsUnregisterSubscriptionsParams = {}): Promise<void> => {
+  threadsUnregisterSubscriptionsShim(toThreadsSubscriptionsClient(client));
 };
 
 type PollsSubscriptionsClient = {
@@ -5066,6 +5091,9 @@ export const chatAPI = {
       state: ({ cid, limit, before }: ClientThreadsStateParams) =>
         clientThreadsState({ cid, limit, before }),
     },
+  },
+  threads: {
+    unregisterSubscriptions: threadsUnregisterSubscriptions,
   },
   polls: {
     unregisterSubscriptions: pollsUnregisterSubscriptions,
