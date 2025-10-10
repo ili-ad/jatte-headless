@@ -109,6 +109,51 @@
   },
   {
     "method": "GET",
+    "path": "/mute-status/{username}/",
+    "operationId": "muteStatus",
+    "stubName": "channel.muteStatus",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/muted-users/",
+    "operationId": "listMutedUsers",
+    "stubName": "listMutedUsers",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/muted-channels/",
+    "operationId": "listMutedChannels",
+    "stubName": "listMutedChannels",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/mute/{username}/",
+    "operationId": "muteUser",
+    "stubName": "muteUser",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/unmute/{username}/",
+    "operationId": "unmuteUser",
+    "stubName": "unmuteUser",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/polls/",
     "operationId": "listPolls",
     "stubName": "listPolls",
