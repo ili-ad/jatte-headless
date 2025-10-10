@@ -111,6 +111,17 @@ class RoomSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+class RoomMemberUserOut(serializers.Serializer):
+    id = serializers.CharField()
+
+
+class RoomMemberOut(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    role = serializers.CharField()
+    banned = serializers.BooleanField()
+    user = RoomMemberUserOut(required=False)
+
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification

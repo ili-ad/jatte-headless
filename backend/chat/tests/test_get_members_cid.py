@@ -20,7 +20,8 @@ class GetMembersCIDAPITests(APITestCase):
         url = reverse("room-members-cid", kwargs={"cid": f"messaging:{room.uuid}"})
         res = self.client.get(f"{url}?limit=20&offset=20", HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.data), 20)
+        self.assertIn("members", res.data)
+        self.assertEqual(len(res.data["members"]), 20)
 
     def test_requires_auth(self):
         room = Room.objects.create(uuid="r1", client="c1")
