@@ -426,6 +426,11 @@ export interface TooltipUsernameMapper {
  */
 export const mapToUserNameOrId: TooltipUsernameMapper = (user) => user.name || user.id;
 
+const getClientUserId = (client: StreamChat): string | undefined => {
+  void client;
+  return undefined;
+};
+
 export const getReadByTooltipText = (
   users: UserResponse[],
   t: TFunction,
@@ -446,8 +451,9 @@ export const getReadByTooltipText = (
     );
   }
   // first filter out client user, so restLength won't count it
+  const clientUserId = getClientUserId(client);
   const otherUsers = users
-    .filter((item) => item && client?.user && item.id !== client.user.id)
+    .filter((item) => item && (!clientUserId || item.id !== clientUserId))
     .map(tooltipUserNameMapper);
 
   const slicedArr = otherUsers.slice(0, 5);
