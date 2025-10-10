@@ -695,21 +695,18 @@ paths:
           application/json:
             schema:
               type: object
+              required: [url]
               properties:
                 url:
                   type: string
+                  format: uri
       responses:
         '200':
           description: preview
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-                  title:
-                    type: string
+                $ref: '#/components/schemas/MessagePreview'
   /mute-status/{username}/:
     parameters:
       - name: username
@@ -922,6 +919,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [name]
               properties:
                 name:
                   type: string
@@ -934,7 +932,7 @@ paths:
                 type: object
                 properties:
                   attachment:
-                    type: object
+                    $ref: '#/components/schemas/MessageAttachment'
   /disconnected/:
     get:
       operationId: isDisconnected
@@ -1080,6 +1078,14 @@ components:
         custom_data:
           type: object
           additionalProperties: true
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+        preview:
+          allOf:
+            - $ref: '#/components/schemas/MessagePreview'
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -1088,6 +1094,31 @@ components:
           type: string
           format: date-time
           nullable: true
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+      required:
+      - id
+      - name
+      - url
+    MessagePreview:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+      required:
+      - url
+      - title
     Reminder:
       type: object
       properties:

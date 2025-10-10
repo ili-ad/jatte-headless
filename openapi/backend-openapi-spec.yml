@@ -540,6 +540,56 @@ paths:
           description: ''
       tags:
       - api
+  /api/attachments/:
+    post:
+      operationId: uploadAttachment
+      description: Upload a new attachment placeholder.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: attachment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachment:
+                    $ref: '#/components/schemas/MessageAttachment'
+      tags:
+      - api
+  /api/link-preview/:
+    post:
+      operationId: createLinkPreview
+      description: Generate a preview for a URL.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: preview generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePreview'
+      tags:
+      - api
     put:
       operationId: updateMessage
       description: Retrieve, update or delete a single message.
@@ -924,6 +974,39 @@ components:
           type: integer
           nullable: true
           readOnly: true
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+        preview:
+          allOf:
+            - $ref: '#/components/schemas/MessagePreview'
+          nullable: true
+    MessageAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+      required:
+      - id
+      - name
+      - url
+    MessagePreview:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+      required:
+      - url
+      - title
     Reminder:
       type: object
       properties:
