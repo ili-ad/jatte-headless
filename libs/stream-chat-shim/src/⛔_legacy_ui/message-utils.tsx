@@ -257,14 +257,20 @@ export interface TooltipUsernameMapper {
 
 export const mapToUserNameOrId: TooltipUsernameMapper = (user) => user.name || user.id;
 
+const getClientUserId = (client: StreamChat): string | undefined => {
+  void client;
+  return undefined;
+};
+
 export const getReadByTooltipText = (
   users: UserResponse[],
   t: TFunction,
   client: StreamChat,
   tooltipUserNameMapper: TooltipUsernameMapper,
 ) => {
+  const clientUserId = getClientUserId(client);
   const others = users
-    .filter((u) => u && client?.user && u.id !== client.user.id)
+    .filter((u) => u && (!clientUserId || u.id !== clientUserId))
     .map(tooltipUserNameMapper);
   return others.join(', ');
 };

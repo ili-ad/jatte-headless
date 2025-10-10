@@ -44,11 +44,17 @@ export const getChannel = async ({
     throw new Error('Channel or channel type have to be provided to query a channel.');
   }
 
-  // unfortunately typescript is not able to infer that if (!channel && !type) === false, then channel or type has to be truthy
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const extra = members && members.length ? { members } : undefined;
-  const theChannel =
-    channel || (client.channel(type!, id, extra) as Channel);
+  if (!channel) {
+    const extra = members && members.length ? { members } : undefined;
+    /* TODO backend-wire-up:client.channel */
+    void client;
+    void extra;
+    void id;
+    void type;
+    return {} as Channel;
+  }
+
+  const theChannel = channel;
 
   // need to keep as with call to channel.watch the id can be changed from undefined to an actual ID generated server-side
   const originalCid = theChannel?.id
