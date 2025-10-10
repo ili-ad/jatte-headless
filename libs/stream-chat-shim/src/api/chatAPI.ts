@@ -104,7 +104,7 @@ export type {
 
 export type DeleteMessageParams = {
   cid: string;
-  message_id: number;
+  message_id: string | number;
 };
 
 export type AddAnswerInput = {
@@ -126,21 +126,21 @@ export type AddAnswer = {
 
 export type UpdateMessageInput = {
   cid: string;
-  message_id: number;
+  message_id: string | number;
   text: string;
 };
 
 export type CreateReminderInput = {
   cid: string;
   remind_at: string;
-  message_id?: number;
+  message_id?: string | number;
   note?: string;
 };
 
 export type Reminder = {
   id: number;
   remind_at: string;
-  message_id?: number | null;
+  message_id?: string | number | null;
   note?: string | null;
   created_by: number;
   created_at: string;
@@ -196,7 +196,7 @@ export type RegisterSubscriptionsResponse = {
 };
 
 export type Message = {
-  id: number;
+  id: string | number;
   body: string;
   created_at: string;
   sent_by: string;
@@ -219,7 +219,7 @@ export type FlagMessageParams = {
 
 export type FlagMessageResult = {
   flagged: true;
-  message_id: string;
+  message_id: string | number;
   flagged_at: string;
   flagged_by?: string;
 };
@@ -3425,7 +3425,13 @@ export const deleteReaction = async ({
   type,
   userId,
 }: DeleteReactionParams): Promise<DeleteReactionResult> => {
-  const normalizedId = normalizeMessageId(messageId) ?? String(messageId);
+  const normalizedId =
+    normalizeMessageId(messageId) ??
+    normalizeMessageId((message as { id?: unknown } | null | undefined)?.id);
+
+  if (!normalizedId) {
+    throw new Error("Invalid message id provided to deleteReaction");
+  }
 
   const baseMessage =
     (message && typeof message === "object" ? message : undefined) ??
@@ -4414,7 +4420,7 @@ export const getMessage = async ({
   message_id,
 }: {
   cid: string;
-  message_id: number;
+  message_id: string | number;
 }): Promise<Message> => {
   const response = await fetch(
     `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
@@ -4464,8 +4470,8 @@ export const listRoomDrafts = async ({
 
 type ReminderEntryLike = {
   reminder?: Partial<Reminder> & {
-    id?: number | string | null;
-    message_id?: number | string | null;
+    id?: string | number | null;
+    message_id?: string | number | null;
   };
   timer?: ReturnType<typeof setTimeout> | null;
 };
