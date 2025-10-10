@@ -1,83 +1,104 @@
 #!/usr/bin/env python3
-"""Validate that each manifest row has a resolved (method, path)."""
+"""Verify Auth & Identity entries in the wire-up manifest are resolved."""
 
 from __future__ import annotations
 
-import argparse
 import json
-from pathlib import Path
 import sys
-from typing import Dict, Iterable, Tuple
+from pathlib import Path
+from typing import Dict, Tuple
 
-import yaml
+EXPECTED_STUBS: Dict[str, str] = {
+    "connectUser": "syncUser",
+    "disconnectUser": "endSession",
+    "refreshToken": "refreshToken",
+    "currentUser": "currentUser",
+    "wsAuth": "wsAuth",
+    "getClientId": "getClientId",
+    "getConnectionId": "getConnectionId",
+}
 
 
-HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+def load_manifest(path: Path) -> list[dict]:
+    with path.open("r", encoding="utf-8") as fh:
+        return json.load(fh)
 
 
-def load_operation_map(spec_paths: Iterable[Path]) -> Dict[str, Tuple[str, str]]:
-    mapping: Dict[str, Tuple[str, str]] = {}
-    for spec_path in spec_paths:
-        with spec_path.open("r", encoding="utf-8") as handle:
-            spec = yaml.safe_load(handle)
-        paths = spec.get("paths", {}) if isinstance(spec, dict) else {}
-        for url, operations in paths.items():
-            if not isinstance(operations, dict):
+def load_spec(path: Path) -> Dict[str, Tuple[str, str]]:
+    operations: Dict[str, Tuple[str, str]] = {}
+    current_path: str | None = None
+    current_method: str | None = None
+
+    with path.open("r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            line = raw_line.rstrip()
+            stripped = line.strip()
+
+            if not stripped or stripped.startswith("#"):
                 continue
-            for method, details in operations.items():
-                if method.upper() not in HTTP_METHODS:
-                    continue
-                if not isinstance(details, dict):
-                    continue
-                op_id = details.get("operationId")
-                if not op_id or op_id in mapping:
-                    continue
-                mapping[op_id] = (method.upper(), url)
-    return mapping
+
+            indent = len(line) - len(line.lstrip(" "))
+
+            if stripped.endswith(":") and not stripped.startswith("-"):
+                key = stripped[:-1]
+                if indent == 2:  # path level (e.g., "  /sync-user/:")
+                    current_path = key
+                    current_method = None
+                elif indent == 4:  # method level (e.g., "    post:")
+                    current_method = key.upper()
+                continue
+
+            if stripped.startswith("operationId:") and current_path and current_method:
+                _, value = stripped.split(":", 1)
+                op_id = value.strip()
+                operations[op_id] = (current_method, current_path)
+
+    return operations
 
 
-def check_manifest(manifest_path: Path, spec_paths: Iterable[Path]) -> int:
-    operation_map = load_operation_map(spec_paths)
-    with manifest_path.open("r", encoding="utf-8") as handle:
-        manifest = json.load(handle)
+def main(manifest_path: str, spec_path: str) -> int:
+    manifest_entries = load_manifest(Path(manifest_path))
+    spec_operations = load_spec(Path(spec_path))
 
-    unresolved = []
-    for row in manifest:
-        if not isinstance(row, dict):
+    unresolved: list[str] = []
+
+    for stub, op_id in EXPECTED_STUBS.items():
+        expected = spec_operations.get(op_id)
+        if expected is None:
+            unresolved.append(f"{stub} ({op_id}) missing from spec")
             continue
-        op_id = row.get("operationId")
-        if not op_id:
+
+        entry = next(
+            (item for item in manifest_entries if item.get("stubName") == stub),
+            None,
+        )
+        if entry is None:
+            unresolved.append(f"{stub} ({op_id}) missing from manifest")
             continue
-        method = row.get("method")
-        path = row.get("path")
-        if method and path:
-            continue
-        match = operation_map.get(op_id)
-        if match:
-            method = method or match[0]
-            path = path or match[1]
+
+        method = (entry.get("method") or "").upper()
+        path = entry.get("path") or ""
         if not method or not path:
-            unresolved.append(op_id)
+            unresolved.append(f"{stub} ({op_id}) missing method/path binding")
+            continue
+
+        if (method, path) != expected:
+            unresolved.append(
+                f"{stub} ({op_id}) expected {expected[0]} {expected[1]} but found {method} {path}"
+            )
 
     if unresolved:
-        print(f"Unresolved operationIds ({len(unresolved)}):")
-        for op_id in sorted(set(unresolved)):
-            print(f" - {op_id}")
+        print("Found unresolved operationIds in domain Auth & Identity:")
+        for item in unresolved:
+            print(f" - {item}")
         return 1
 
-    print("OK: all operationIds resolved to (method, path)")
+    print("OK: 0 unresolved operationIds in domain Auth & Identity")
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("manifest", type=Path)
-    parser.add_argument("frontend_spec", type=Path)
-    parser.add_argument("backend_spec", type=Path)
-    args = parser.parse_args(argv)
-
-    return check_manifest(args.manifest, [args.frontend_spec, args.backend_spec])
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    if len(sys.argv) != 3:
+        print("Usage: check_manifest.py <manifest> <spec>")
+        sys.exit(2)
+    sys.exit(main(sys.argv[1], sys.argv[2]))

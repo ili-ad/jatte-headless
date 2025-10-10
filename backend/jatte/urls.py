@@ -2,7 +2,6 @@
 from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
-from chat.views_auth import WebsocketAuthView
 from chat.views import TokenView  # real view
 from chat.api_views import (
     RoomDraftView,
@@ -15,6 +14,7 @@ from chat.api_views import (
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
+    path("", include("backend.auth.urls")),
     path("", include("accounts_supabase.urls")),
     path("", include("core.urls")),
     path("admin/", admin.site.urls),
@@ -26,8 +26,6 @@ urlpatterns = [
 urlpatterns += [
     path("api/ws-auth/", api.ws_auth, name="ws-auth"),
     re_path(r"^api/ws-auth/?$", api.ws_auth),
-    path("ws-auth/", WebsocketAuthView.as_view(), name="ws-auth-live"),
-    re_path(r"^ws-auth/?$", WebsocketAuthView.as_view()),
     path("api/connection-id/", api.connection_id, name="connection-id"),
     re_path(r"^api/connection-id/?$", api.connection_id),
     path(
