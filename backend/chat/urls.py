@@ -71,6 +71,7 @@ from .api_views import (
     ConnectionIDView,
     WsAuthView,
 )
+from .views import RoomMembersCIDView
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
@@ -144,6 +145,11 @@ urlpatterns = [
         "api/rooms/<str:room_uuid>/members/",
         RoomMembersView.as_view(),
         name="room-members",
+    ),
+    path(
+        "api/rooms/<path:cid>/members/",
+        RoomMembersCIDView.as_view(),
+        name="room-members-cid",
     ),
     path(
         "api/rooms/<str:room_uuid>/pinned/",
