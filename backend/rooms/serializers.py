@@ -24,3 +24,17 @@ class RoomListSerializer(serializers.ModelSerializer):
             return None
         name = obj.data.get("name")
         return name if isinstance(name, str) else None
+
+
+class ComposerConfigSerializer(serializers.Serializer):
+    """Represent the composer configuration returned to the shim."""
+
+    file_uploads = serializers.BooleanField()
+    max_length = serializers.IntegerField(required=False)
+    cooldown_seconds = serializers.IntegerField(required=False)
+
+
+class RoomConfigStateSerializer(serializers.Serializer):
+    """Wrap the composer configuration inside the expected envelope."""
+
+    composer = ComposerConfigSerializer()

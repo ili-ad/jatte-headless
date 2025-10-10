@@ -4,9 +4,7 @@ from django.urls import re_path, include, path
 from chat import api
 from chat.views import TokenView  # real view
 from chat.api_views import (
-    RoomDraftView,
     RoomConfigView,
-    RoomConfigStateView,
     RoomMessageListCreateView,
 )
 
@@ -18,6 +16,7 @@ urlpatterns = [
     path("", include("core.urls")),
     path("", include("mutes.urls")),
     path("", include("rooms.urls")),
+    path("", include("drafts.urls")),
     path("", include("polls.urls")),
     path("", include("reminders.urls")),
     path("", include("events.urls")),
@@ -44,10 +43,6 @@ urlpatterns += [
     ),
     re_path(r"^api/editing-audit-state/?$", api.editing_audit_state),
     path(
-        "api/rooms/<str:room_uuid>/draft/", RoomDraftView.as_view(), name="room-draft"
-    ),
-    re_path(r"^api/rooms/(?P<room_uuid>[^/]+)/draft/?$", RoomDraftView.as_view()),
-    path(
         "api/rooms/<path:cid>/messages/",
         RoomMessageListCreateView.as_view(),
         name="room-messages-cid",
@@ -55,15 +50,6 @@ urlpatterns += [
     re_path(r"^api/rooms/(?P<cid>.+)/messages/?$", RoomMessageListCreateView.as_view()),
     path("api/rooms/<path:cid>/config/", RoomConfigView.as_view(), name="room-config"),
     re_path(r"^api/rooms/(?P<cid>.+)/config/?$", RoomConfigView.as_view()),
-    path(
-        "api/rooms/<str:room_uuid>/config-state/",
-        RoomConfigStateView.as_view(),
-        name="room-config-state",
-    ),
-    re_path(
-        r"^api/rooms/(?P<room_uuid>[^/]+)/config-state/?$",
-        RoomConfigStateView.as_view(),
-    ),
 ]
 
 # If you want the DEV stub only in DEBUG:

@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     'chat',
     'mutes',
     'reminders',
+    'drafts',
     'rooms',
     'events',
     'core',
