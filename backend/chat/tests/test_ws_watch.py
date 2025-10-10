@@ -41,7 +41,11 @@ async def test_channel_watch_initializes_state():
     assert payload["messages"], "expected messages array to be non-empty"
     assert payload["next"] is None
     assert isinstance(payload["members"], list)
-    assert any(member["user_id"] == "tester" for member in payload["members"])
+    assert any(
+        member.get("user", {}).get("id") == "tester"
+        or member.get("user_id") == "tester"
+        for member in payload["members"]
+    )
 
     await communicator.send_json_to({"type": "message.new", "cid": cid, "text": "ping"})
     broadcast = await communicator.receive_json_from()

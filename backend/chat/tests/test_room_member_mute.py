@@ -10,6 +10,7 @@ from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
 from chat.models import Room, RoomMemberMute
+from chat.utils import group_name_for_cid
 
 
 @override_settings(ROOT_URLCONF="chat.urls")
@@ -92,11 +93,13 @@ class RoomMemberMuteAPITests(APITestCase):
         self.assertEqual(res.status_code, 201)
         channel_layer.group_send.assert_awaited_once()
         group_name, payload = channel_layer.group_send.await_args.args
-        self.assertEqual(group_name, f"channel_{room.uuid}")
+        self.assertEqual(group_name, group_name_for_cid(f"messaging:{room.uuid}"))
         self.assertEqual(payload["type"], "chat.message")
         self.assertEqual(payload["payload"]["type"], "member.muted")
         self.assertEqual(payload["payload"]["cid"], f"messaging:{room.uuid}")
+        self.assertEqual(payload["payload"]["target_user"], self.member.id)
         self.assertEqual(payload["payload"]["user_id"], self.member.id)
+        self.assertTrue(payload["payload"]["muted"])
         self.assertEqual(payload["payload"]["muted_by"], self.agent.id)
         self.assertIn("ts", payload["payload"])
         self.assertIsNone(payload["payload"]["muted_until"])
