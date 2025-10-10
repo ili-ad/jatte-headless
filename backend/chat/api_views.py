@@ -1062,6 +1062,25 @@ class ReminderListCreateView(RoomFromCIDMixin, APIView):
         return Response(reminder_data, status=201)
 
 
+class ReminderDetailView(APIView):
+    """Retrieve or delete a specific reminder."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, reminder_id: int):
+        try:
+            reminder = Reminder.objects.get(id=reminder_id)
+        except Reminder.DoesNotExist:
+            return Response(status=404)
+
+        if reminder.created_by_id != request.user.id:
+            return Response(status=403)
+
+        reminder.delete()
+        return Response(status=204)
+
+
 class RoomReminderCreateView(RoomFromCIDMixin, APIView):
     """Create a reminder scoped to a room."""
 
