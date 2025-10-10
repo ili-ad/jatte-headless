@@ -970,5 +970,41 @@
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/recover-state/",
+    "operationId": "recoverState",
+    "stubName": "state.recoverState",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/disconnected/",
+    "operationId": "isDisconnected",
+    "stubName": "state.isDisconnected",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/initialized/",
+    "operationId": "isInitialized",
+    "stubName": "state.isInitialized",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/editing-audit-state/",
+    "operationId": "editingAuditState",
+    "stubName": "state.editingAuditState",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
