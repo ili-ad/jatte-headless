@@ -525,7 +525,9 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
+          oneOf:
+            - type: string
+            - type: integer
     get:
       operationId: getMessage
       description: Retrieve, update or delete a single message.
@@ -564,6 +566,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+          description: ''
+      tags:
+      - api
+  /api/messages/{message_id}/reactions/{type}/:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          oneOf:
+            - type: string
+            - type: integer
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: addReaction
+      description: Persist a reaction for the current user.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message_id:
+                    type: string
+                  type:
+                    type: string
+                required:
+                  - status
+                  - message_id
+                  - type
+          description: ''
+      tags:
+      - api
+    delete:
+      operationId: deleteReaction
+      description: Remove a reaction created by the current user.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message_id:
+                    type: string
+                  type:
+                    type: string
+                required:
+                  - status
+                  - message_id
+                  - type
           description: ''
       tags:
       - api
@@ -840,6 +902,18 @@ components:
         updated_at:
           type: string
           format: date-time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        pinned:
+          type: boolean
+          readOnly: true
+        pinned_by:
+          type: integer
+          nullable: true
           readOnly: true
     Reminder:
       type: object

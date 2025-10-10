@@ -25,6 +25,8 @@ class MessageSerializer(serializers.ModelSerializer):
     """Expose `body` via the `text` field while keeping the column read-only."""
 
     text = serializers.CharField(source="body", allow_blank=True)
+    pinned = serializers.SerializerMethodField()
+    pinned_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -36,6 +38,8 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "pinned",
+            "pinned_by",
         ]
         read_only_fields = [
             "id",
@@ -44,18 +48,64 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "pinned",
+            "pinned_by",
         ]
+
+    def get_pinned(self, obj: Message) -> bool:
+        return obj.pins.exists()
+
+    def get_pinned_by(self, obj: Message) -> int | None:
+        pin = obj.pins.order_by("-created_at").first()
+        return getattr(pin, "user_id", None)
 
 
 class MessageUpdateSerializer(serializers.ModelSerializer):
     """Serializer used for message updates via the room-scoped endpoint."""
 
     text = serializers.CharField(source="body", allow_blank=True, write_only=True)
+    pinned = serializers.BooleanField(required=False, write_only=True)
+    pinned_by = serializers.IntegerField(required=False, write_only=True)
 
     class Meta:
         model = Message
-        fields = ["id", "text", "body", "sent_by", "created_at"]
+        fields = [
+            "id",
+            "text",
+            "body",
+            "sent_by",
+            "created_at",
+            "pinned",
+            "pinned_by",
+        ]
         read_only_fields = ["id", "body", "sent_by", "created_at"]
+
+    def update(self, instance: Message, validated_data: dict) -> Message:
+        pinned = validated_data.pop("pinned", serializers.empty)
+        pinned_by = validated_data.pop("pinned_by", None)
+
+        instance = super().update(instance, validated_data)
+
+        if pinned is not serializers.empty:
+            request = self.context.get("request") if self.context else None
+            pin_user = getattr(request, "user", None)
+
+            if pinned_by is not None:
+                User = get_user_model()
+                try:
+                    pin_user = User.objects.get(pk=pinned_by)
+                except User.DoesNotExist:
+                    raise serializers.ValidationError({"pinned_by": "Invalid user."})
+
+            if pinned:
+                if pin_user is None or not getattr(pin_user, "is_authenticated", False):
+                    raise serializers.ValidationError({"pinned": "Authentication required."})
+                Pin.objects.filter(message=instance).delete()
+                Pin.objects.create(message=instance, user=pin_user)
+            else:
+                Pin.objects.filter(message=instance).delete()
+
+        return instance
 
 
 
