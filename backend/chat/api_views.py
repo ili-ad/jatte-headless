@@ -8,7 +8,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import QueryDict
+from django.http import Http404, QueryDict
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -72,6 +72,30 @@ def _user_can_access_room(user, room) -> bool:
             getattr(user, "is_superuser", False),
         )
     )
+
+
+def _message_from_identifier(message_id: str) -> Message:
+    """Return a message for either numeric or string identifiers."""
+
+    try:
+        message_pk = int(message_id)
+    except (TypeError, ValueError) as exc:
+        raise Http404 from exc
+
+    return get_object_or_404(Message, id=message_pk)
+
+
+def _broadcast_to_cid(cid: str, payload: dict) -> None:
+    """Send a payload to subscribers of the given ``cid``."""
+
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"channel_{cid.replace(':', '_')}",
+            {"type": "chat.message", "payload": payload},
+        )
+    except Exception:
+        pass
 
 
 def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
@@ -224,15 +248,21 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
     def _can_update(self, user, room: Room, message: Message) -> bool:
         return self._can_manage(user, room, message)
 
-    def get(self, request, cid: str, message_id: int):
+    def _get_message(self, room: Room, message_id: str) -> Message:
+        message = _message_from_identifier(message_id)
+        if not room.messages.filter(pk=message.pk).exists():
+            raise Http404
+        return message
+
+    def get(self, request, cid: str, message_id: str):
         room = self._get_room(cid)
-        message = get_object_or_404(room.messages, id=message_id)
+        message = self._get_message(room, message_id)
         serializer = MessageSerializer(message)
         return Response(serializer.data)
 
-    def patch(self, request, cid: str, message_id: int):
+    def patch(self, request, cid: str, message_id: str):
         room = self._get_room(cid)
-        message = get_object_or_404(room.messages, id=message_id)
+        message = self._get_message(room, message_id)
 
         if not self._can_update(request.user, room, message):
             return Response(status=403)
@@ -241,6 +271,7 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
             message,
             data=request.data,
             partial=True,
+            context={"request": request},
         )
         update_serializer.is_valid(raise_exception=True)
         update_serializer.save()
@@ -248,27 +279,17 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         response_serializer = MessageSerializer(message)
         message_payload = response_serializer.data
 
-        try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"channel_{room.uuid}",
-                {
-                    "type": "chat.message",
-                    "payload": {
-                        "type": "message.updated",
-                        "cid": f"messaging:{room.uuid}",
-                        "message": message_payload,
-                    },
-                },
-            )
-        except Exception:
-            pass
+        cid = f"messaging:{room.uuid}"
+        _broadcast_to_cid(
+            cid,
+            {"type": "message.updated", "cid": cid, "message": message_payload},
+        )
 
         return Response(message_payload)
 
-    def delete(self, request, cid: str, message_id: int):
+    def delete(self, request, cid: str, message_id: str):
         room = self._get_room(cid)
-        message = get_object_or_404(room.messages, id=message_id)
+        message = self._get_message(room, message_id)
 
         if not self._can_delete(request.user, room, message):
             return Response(status=403)
@@ -277,23 +298,17 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         message.deleted_at = deleted_at
         message.save(update_fields=["deleted_at"])
 
-        try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"channel_{room.uuid}",
-                {
-                    "type": "chat.message",
-                    "payload": {
-                        "type": "message.deleted",
-                        "cid": room.uuid,
-                        "message_id": message.id,
-                        "deleted_by": request.user.id,
-                        "ts": deleted_at.isoformat(),
-                    },
-                },
-            )
-        except Exception:
-            pass
+        cid = f"messaging:{room.uuid}"
+        _broadcast_to_cid(
+            cid,
+            {
+                "type": "message.deleted",
+                "cid": cid,
+                "message_id": str(message.id),
+                "deleted_by": request.user.id,
+                "ts": deleted_at.isoformat(),
+            },
+        )
 
         return Response(status=204)
 
@@ -464,51 +479,47 @@ class MessageDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         serializer = MessageSerializer(msg)
         return Response(serializer.data)
 
     def put(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
-        data = request.data.copy()
-        if "text" in data and "body" not in data:
-            data["body"] = data.pop("text")
-        serializer = MessageSerializer(msg, data=data, partial=True)
+        msg = _message_from_identifier(message_id)
+        serializer = MessageUpdateSerializer(
+            msg,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        try:
-            channel_layer = get_channel_layer()
-            cid = f"messaging:{msg.channel.uuid}"
-            async_to_sync(channel_layer.group_send)(
-                cid.replace(":", "_"),
-                {
-                    "type": "chat.message",
-                    "payload": {"type": "message.updated", "cid": cid, "id": msg.id},
-                },
-            )
-        except Exception:
-            pass
+        payload = MessageSerializer(msg).data
 
-        return Response(serializer.data)
+        cid = f"messaging:{msg.channel.uuid}"
+        _broadcast_to_cid(
+            cid,
+            {"type": "message.updated", "cid": cid, "message": payload},
+        )
+
+        return Response(payload)
 
     def delete(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         msg.deleted_at = timezone.now()
         msg.save(update_fields=["deleted_at"])
 
-        try:
-            channel_layer = get_channel_layer()
-            cid = f"messaging:{msg.channel.uuid}"
-            async_to_sync(channel_layer.group_send)(
-                cid.replace(":", "_"),
-                {
-                    "type": "chat.message",
-                    "payload": {"type": "message.deleted", "cid": cid, "id": msg.id},
-                },
-            )
-        except Exception:
-            pass
+        cid = f"messaging:{msg.channel.uuid}"
+        _broadcast_to_cid(
+            cid,
+            {
+                "type": "message.deleted",
+                "cid": cid,
+                "message_id": str(msg.id),
+                "deleted_by": request.user.id,
+                "ts": msg.deleted_at.isoformat(),
+            },
+        )
 
         return Response(MessageSerializer(msg).data)
 
@@ -520,24 +531,18 @@ class MessageRestoreView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         msg.deleted_at = None
         msg.save(update_fields=["deleted_at"])
 
-        try:
-            channel_layer = get_channel_layer()
-            cid = f"messaging:{msg.channel.uuid}"
-            async_to_sync(channel_layer.group_send)(
-                cid.replace(":", "_"),
-                {
-                    "type": "chat.message",
-                    "payload": {"type": "message.updated", "cid": cid, "id": msg.id},
-                },
-            )
-        except Exception:
-            pass
+        payload = MessageSerializer(msg).data
+        cid = f"messaging:{msg.channel.uuid}"
+        _broadcast_to_cid(
+            cid,
+            {"type": "message.updated", "cid": cid, "message": payload},
+        )
 
-        return Response(MessageSerializer(msg).data)
+        return Response(payload)
 
 
 class MessageRepliesView(APIView):
@@ -547,7 +552,7 @@ class MessageRepliesView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
-        parent = get_object_or_404(Message, id=message_id)
+        parent = _message_from_identifier(message_id)
         serializer = MessageSerializer(parent.replies.all(), many=True)
         return Response(serializer.data)
 
@@ -559,12 +564,12 @@ class MessageReactionsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         serializer = ReactionSerializer(msg.reactions.all(), many=True)
         return Response(serializer.data)
 
     def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         serializer = ReactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reaction = Reaction.objects.create(
@@ -575,6 +580,75 @@ class MessageReactionsView(APIView):
         return Response(ReactionSerializer(reaction).data, status=201)
 
 
+class MessageReactionTypeView(APIView):
+    """Create or delete a reaction of a specific type for the current user."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, message_id, reaction_type):
+        message = _message_from_identifier(message_id)
+        reaction, created = Reaction.objects.get_or_create(
+            message=message,
+            user=request.user,
+            type=reaction_type,
+        )
+
+        ts = reaction.created_at if created else timezone.now()
+        cid = f"messaging:{message.channel.uuid}"
+
+        _broadcast_to_cid(
+            cid,
+            {
+                "event": "reaction.new",
+                "event_type": "reaction.new",
+                "cid": cid,
+                "message_id": str(message.id),
+                "user_id": request.user.id,
+                "type": reaction_type,
+                "reaction_type": reaction_type,
+                "ts": ts.isoformat(),
+            },
+        )
+
+        return Response(
+            {"status": "ok", "message_id": str(message.id), "type": reaction_type},
+            status=200,
+        )
+
+    def delete(self, request, message_id, reaction_type):
+        message = _message_from_identifier(message_id)
+        qs = Reaction.objects.filter(
+            message=message,
+            user=request.user,
+            type=reaction_type,
+        )
+        existed = qs.exists()
+        if existed:
+            qs.delete()
+
+        if existed:
+            cid = f"messaging:{message.channel.uuid}"
+            _broadcast_to_cid(
+                cid,
+                {
+                    "event": "reaction.deleted",
+                    "event_type": "reaction.deleted",
+                    "cid": cid,
+                    "message_id": str(message.id),
+                    "user_id": request.user.id,
+                    "type": reaction_type,
+                    "reaction_type": reaction_type,
+                    "ts": timezone.now().isoformat(),
+                },
+            )
+
+        return Response(
+            {"status": "ok", "message_id": str(message.id), "type": reaction_type},
+            status=200,
+        )
+
+
 class MessageFlagView(APIView):
     """Flag a message for moderation."""
 
@@ -582,26 +656,9 @@ class MessageFlagView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         flag, _ = Flag.objects.get_or_create(message=msg, user=request.user)
         return Response({"flag": FlagSerializer(flag).data}, status=201)
-
-
-class ReactionDetailView(APIView):
-    """Delete a single reaction."""
-
-    authentication_classes = [DevTokenOrJWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
-        flag, _ = Flag.objects.get_or_create(message=msg, user=request.user)
-        return Response({"flag": FlagSerializer(flag).data}, status=201)
-
-    def delete(self, request, message_id, reaction_id):
-        reaction = get_object_or_404(Reaction, id=reaction_id, message_id=message_id)
-        reaction.delete()
-        return Response(status=204)
 
 
 class MessagePinView(APIView):
@@ -611,7 +668,7 @@ class MessagePinView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         pin, _ = Pin.objects.get_or_create(message=msg, user=request.user)
         return Response({"pin": PinSerializer(pin).data}, status=201)
 
@@ -623,7 +680,7 @@ class MessageUnpinView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         Pin.objects.filter(message=msg, user=request.user).delete()
         return Response(status=204)
 
@@ -635,7 +692,7 @@ class MessageActionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, message_id):
-        msg = get_object_or_404(Message, id=message_id)
+        msg = _message_from_identifier(message_id)
         data = request.data or {}
         custom = msg.custom_data or {}
         actions = custom.get("actions", [])

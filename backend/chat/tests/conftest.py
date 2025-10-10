@@ -9,6 +9,6 @@ import pytest
 # future.
 
 @pytest.fixture(autouse=True)
-def configure_settings(settings):
+def configure_settings():
     """Apply any test specific setting tweaks."""
     pass
