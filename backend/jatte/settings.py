@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     'chat',
     'rooms',
     'core',
+    'polls',
 ]
 
 # REST framework configuration
