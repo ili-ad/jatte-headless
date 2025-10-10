@@ -213,6 +213,21 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
                     },
                 },
             )
+
+            parent = getattr(serializer.instance, "reply_to", None)
+            if parent:
+                thread_cid = f"{cid}:thread:{parent.id}"
+                async_to_sync(channel_layer.group_send)(
+                    f"channel_{thread_cid.replace(':', '_')}",
+                    {
+                        "type": "chat.message",
+                        "payload": {
+                            "type": "message.new",
+                            "cid": thread_cid,
+                            "message": message_payload,
+                        },
+                    },
+                )
         except Exception:
             pass
 
@@ -543,18 +558,6 @@ class MessageRestoreView(APIView):
         )
 
         return Response(payload)
-
-
-class MessageRepliesView(APIView):
-    """Return replies to a given message."""
-
-    authentication_classes = [DevTokenOrJWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, message_id):
-        parent = _message_from_identifier(message_id)
-        serializer = MessageSerializer(parent.replies.all(), many=True)
-        return Response(serializer.data)
 
 
 class MessageReactionsView(APIView):
@@ -1158,18 +1161,6 @@ class RoomReminderCreateView(RoomFromCIDMixin, APIView):
         _broadcast_reminder_created(room, cid, reminder_data)
 
         return Response(reminder_data, status=201)
-
-
-class ThreadListView(APIView):
-    """Return parent messages that have replies."""
-
-    authentication_classes = [DevTokenOrJWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        msgs = Message.objects.filter(replies__isnull=False).distinct()
-        serializer = MessageSerializer(msgs, many=True)
-        return Response(serializer.data)
 
 
 class MutedChannelListView(APIView):
