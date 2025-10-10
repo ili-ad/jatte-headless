@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, patch
 
 from chat.models import Channel, Message, Room
+from chat.utils import group_name_for_cid
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -87,7 +88,8 @@ class UpdateMessageAPITests(APITestCase):
         mock_layer.group_send.assert_awaited_once()
 
         group_name, payload = mock_layer.group_send.await_args.args
-        self.assertEqual(group_name, f"channel_{self.room.uuid}")
+        expected_group = group_name_for_cid(f"messaging:{self.room.uuid}")
+        self.assertEqual(group_name, expected_group)
         self.assertEqual(payload["type"], "chat.message")
 
         event = payload["payload"]

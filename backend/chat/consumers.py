@@ -6,6 +6,8 @@ import jwt
 
 from .models import Channel, Message, Room
 from .serializers import MessageSerializer
+from .utils import canonical_cid, group_name_for_cid
+from .views import RoomMembersCIDView
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -130,7 +132,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     def _room_state(self, cid: str, message_limit: int = 30, member_limit: int = 50):
         room_uuid = self._room_uuid(cid)
-        channel, _ = Channel.objects.get_or_create(uuid=room_uuid, defaults={"client": "stream"})
+        channel, _ = Channel.objects.get_or_create(
+            uuid=room_uuid, defaults={"client": "stream"}
+        )
         room, _ = Room.objects.get_or_create(uuid=room_uuid, defaults={"client": "stream"})
 
         qs = list(
@@ -142,21 +146,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         message_payload = [dict(item) for item in serializer.data]
         next_cursor = messages[-1].id if has_more and messages else None
 
-        names: set[str] = set(
-            Message.objects.filter(channel=channel).values_list("sent_by", flat=True)
-        )
-        names.update(room.messages.values_list("sent_by", flat=True))
-        if room.client:
-            names.add(room.client)
-        if room.agent:
-            names.add(room.agent.username)
-        if self.user and self.user != "anonymous":
-            names.add(self.user)
-
-        member_list = [
-            {"user_id": name, "role": "member", "banned": False}
-            for name in sorted(n for n in names if n)[:member_limit]
-        ]
+        members_view = RoomMembersCIDView()
+        member_payload = members_view._collect_members(room)  # type: ignore[attr-defined]
+        member_list = list(member_payload[:member_limit])
 
         return message_payload, next_cursor, member_list
 
@@ -164,9 +156,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def _normalize_cid(cid: str | None) -> str | None:
         if not cid:
             return None
-        if ":" not in cid:
-            cid = f"messaging:{cid}"
-        return cid
+        return canonical_cid(cid)
 
     @staticmethod
     def _room_uuid(cid: str) -> str:
@@ -174,4 +164,4 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     @staticmethod
     def _group_name(cid: str) -> str:
-        return f"channel_{cid.replace(':', '_')}"
+        return group_name_for_cid(cid)

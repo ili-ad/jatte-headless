@@ -8,6 +8,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 from .models import Room
+from .utils import group_name_for_cid
 
 
 def _resolve_room_from_client_id(client_id: Any) -> Optional[Tuple[str, Room]]:
@@ -73,7 +74,7 @@ def broadcast_subscriptions_registered(
             payload["user"] = username
 
         async_to_sync(channel_layer.group_send)(
-            f"channel_{room.uuid}",
+            group_name_for_cid(cid_value),
             {"type": "chat.message", "payload": payload},
         )
     except Exception:
