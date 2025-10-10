@@ -22,9 +22,14 @@ async def test_message_round_trip():
     join = await communicator.receive_json_from()
     assert join == {"type": "user.join", "user": "u1"}
 
-    await communicator.send_json_to({"type": "message.new", "cid": f"messaging:{channel.uuid}", "text": "hello"})
+    cid = f"messaging:{channel.uuid}"
+    await communicator.send_json_to({"type": "channel.watch", "cid": cid})
+    watch = await communicator.receive_json_from()
+    assert watch["type"] == "initialized"
+
+    await communicator.send_json_to({"type": "message.new", "cid": cid, "text": "hello"})
     event = await communicator.receive_json_from()
-    assert event == {"cid": f"messaging:{channel.uuid}", "text": "hello", "user": "u1", "type": "message.new"}
+    assert event == {"cid": cid, "text": "hello", "user": "u1", "type": "message.new"}
 
     await communicator.disconnect()
     assert await sync_to_async(Message.objects.count)() == 1
@@ -46,9 +51,15 @@ async def test_two_clients_fanout():
     await c1.receive_json_from()
     await c2.receive_json_from()
 
-    await c1.send_json_to({"type": "message.new", "cid": f"messaging:{channel.uuid}", "text": "hi"})
+    cid = f"messaging:{channel.uuid}"
+    await c1.send_json_to({"type": "channel.watch", "cid": cid})
+    await c1.receive_json_from()
+    await c2.send_json_to({"type": "channel.watch", "cid": cid})
+    await c2.receive_json_from()
+
+    await c1.send_json_to({"type": "message.new", "cid": cid, "text": "hi"})
     event = await c2.receive_json_from()
-    assert event == {"cid": f"messaging:{channel.uuid}", "text": "hi", "user": "u1", "type": "message.new"}
+    assert event == {"cid": cid, "text": "hi", "user": "u1", "type": "message.new"}
 
     await c1.disconnect()
     await c2.disconnect()
