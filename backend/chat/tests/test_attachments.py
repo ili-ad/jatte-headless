@@ -19,6 +19,14 @@ class AttachmentAPITests(APITestCase):
         self.assertEqual(res.status_code, 201)
         self.assertIn("id", res.data["attachment"])
         self.assertEqual(res.data["attachment"]["name"], "file1")
+        self.assertIn("url", res.data["attachment"])
+        self.assertTrue(res.data["attachment"]["url"].startswith("http://testserver/attachments/"))
+
+    def test_requires_name(self):
+        token = self.make_token()
+        url = reverse("attachments")
+        res = self.client.post(url, {"name": "   "}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 400)
 
     def test_requires_auth(self):
         url = reverse("attachments")
