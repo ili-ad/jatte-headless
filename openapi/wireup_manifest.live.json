@@ -64,6 +64,51 @@
   },
   {
     "method": "GET",
+    "path": "/refresh-token/",
+    "operationId": "refreshToken",
+    "stubName": "refreshToken",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/user/",
+    "operationId": "currentUser",
+    "stubName": "currentUser",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/ws-auth/",
+    "operationId": "wsAuth",
+    "stubName": "wsAuth",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/client-id/",
+    "operationId": "getClientId",
+    "stubName": "getClientId",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/connection-id/",
+    "operationId": "getConnectionId",
+    "stubName": "getConnectionId",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/app-settings/",
     "operationId": "getAppSettings",
     "stubName": "getAppSettings",
@@ -163,7 +208,7 @@
   },
   {
     "method": "POST",
-    "path": "/api/sync-user/",
+    "path": "/sync-user/",
     "operationId": "syncUser",
     "stubName": "connectUser",
     "ticketType": "api",
