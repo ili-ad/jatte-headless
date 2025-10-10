@@ -391,24 +391,52 @@ paths:
     get:
       operationId: listPolls
       tags: [polls]
+      parameters:
+        - in: query
+          name: cid
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: polls
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Poll'
+                  next:
+                    type: string
+                    nullable: true
     post:
       operationId: createPoll
       tags: [polls]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [cid, question, options]
               properties:
+                cid:
+                  type: string
                 question:
                   type: string
                 options:
@@ -424,7 +452,153 @@ paths:
                 type: object
                 properties:
                   poll:
-                    type: object
+                    $ref: '#/components/schemas/Poll'
+  /polls/{pollId}/options/:
+    post:
+      operationId: createPollOption
+      tags: [polls]
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: created poll option
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  option:
+                    $ref: '#/components/schemas/PollOption'
+  /polls/{pollId}/options/{optionId}/votes/:
+    get:
+      operationId: queryOptionVotes
+      tags: [polls]
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: optionId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: vote page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PollVote'
+                  count:
+                    type: integer
+                  next:
+                    type: string
+                    nullable: true
+    post:
+      operationId: castVote
+      tags: [polls]
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: optionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollVoteEvent'
+    delete:
+      operationId: removeVote
+      tags: [polls]
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: optionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: vote removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollVoteEvent'
+  /polls/{pollId}/answers/:
+    post:
+      operationId: addAnswer
+      tags: [polls]
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: answer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    $ref: '#/components/schemas/PollAnswer'
   /reminders/:
     get:
       operationId: listReminders
@@ -1050,3 +1224,76 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    Poll:
+      type: object
+      properties:
+        poll_id:
+          type: string
+        cid:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOption'
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    PollVote:
+      type: object
+      properties:
+        user_id:
+          type: string
+        ts:
+          type: string
+          format: date-time
+    PollAnswer:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+    PollVoteEvent:
+      type: object
+      properties:
+        status:
+          type: string
+        poll_id:
+          type: string
+        option_id:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+        poll_vote:
+          type: object
+          additionalProperties: true
+          nullable: true
+        from_option_id:
+          type: string
+          nullable: true
+        to_option_id:
+          type: string
+          nullable: true
