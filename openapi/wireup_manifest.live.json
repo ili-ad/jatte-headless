@@ -82,6 +82,33 @@
   },
   {
     "method": "GET",
+    "path": "/rooms/",
+    "operationId": "listRooms",
+    "stubName": "listRooms",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/rooms/active/",
+    "operationId": "listActiveRooms",
+    "stubName": "listActiveRooms",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{cid}/members/",
+    "operationId": "listRoomMembersCIDs",
+    "stubName": "listRoomMembersCIDs",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/ws-auth/",
     "operationId": "wsAuth",
     "stubName": "wsAuth",
