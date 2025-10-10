@@ -21,6 +21,21 @@ from .models import (
 )
 
 
+class MessageAttachmentSerializer(serializers.Serializer):
+    """Serializer for message attachment payloads."""
+
+    id = serializers.CharField()
+    name = serializers.CharField()
+    url = serializers.URLField()
+
+
+class MessagePreviewSerializer(serializers.Serializer):
+    """Serializer for message link previews."""
+
+    url = serializers.URLField()
+    title = serializers.CharField(allow_blank=True)
+
+
 class MessageSerializer(serializers.ModelSerializer):
     """Expose ``body`` via ``text`` while supporting thread metadata."""
 
@@ -29,6 +44,8 @@ class MessageSerializer(serializers.ModelSerializer):
     pinned_by = serializers.SerializerMethodField()
     custom_data = serializers.JSONField(required=False, default=dict)
     show_in_channel = serializers.BooleanField(required=False, default=False)
+    attachments = MessageAttachmentSerializer(many=True, required=False, default=list)
+    preview = MessagePreviewSerializer(required=False, allow_null=True)
     reply_to = serializers.PrimaryKeyRelatedField(
         queryset=Message.objects.all(),
         required=False,
@@ -50,6 +67,8 @@ class MessageSerializer(serializers.ModelSerializer):
             "reply_to",
             "custom_data",
             "show_in_channel",
+            "attachments",
+            "preview",
             "parent_id",
             "pinned",
             "pinned_by",
@@ -68,6 +87,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict) -> Message:
         validated_data.setdefault("custom_data", {})
+        validated_data.setdefault("attachments", [])
+        if "preview" not in validated_data:
+            validated_data["preview"] = None
         return super().create(validated_data)
 
     def get_pinned(self, obj: Message) -> bool:
@@ -113,6 +135,8 @@ class MessageUpdateSerializer(serializers.ModelSerializer):
     text = serializers.CharField(source="body", allow_blank=True, write_only=True)
     pinned = serializers.BooleanField(required=False, write_only=True)
     pinned_by = serializers.IntegerField(required=False, write_only=True)
+    attachments = MessageAttachmentSerializer(many=True, required=False)
+    preview = MessagePreviewSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Message
@@ -124,6 +148,8 @@ class MessageUpdateSerializer(serializers.ModelSerializer):
             "created_at",
             "pinned",
             "pinned_by",
+            "attachments",
+            "preview",
         ]
         read_only_fields = ["id", "body", "sent_by", "created_at"]
 

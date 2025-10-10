@@ -1,6 +1,6 @@
 import json
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import redis
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
@@ -8,6 +8,8 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 from django.http import Http404, QueryDict
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -301,6 +303,9 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         )
 
         return Response(message_payload)
+
+    def put(self, request, cid: str, message_id: str):
+        return self.patch(request, cid, message_id)
 
     def delete(self, request, cid: str, message_id: str):
         room = self._get_room(cid)
@@ -1236,9 +1241,27 @@ class AttachmentUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        name = request.data.get("name", "")
-        att_id = uuid.uuid4()
-        return Response({"attachment": {"id": str(att_id), "name": name}}, status=201)
+        name = request.data.get("name")
+        if not name or not str(name).strip():
+            return Response({"error": "name required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        clean_name = str(name).strip()
+        attachment_id = f"att_{uuid.uuid4().hex}"
+        safe_name = quote(clean_name)
+        attachment_url = request.build_absolute_uri(
+            f"/attachments/{attachment_id}/{safe_name}"
+        )
+
+        return Response(
+            {
+                "attachment": {
+                    "id": attachment_id,
+                    "name": clean_name,
+                    "url": attachment_url,
+                }
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LinkPreviewView(APIView):
@@ -1248,9 +1271,16 @@ class LinkPreviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        url = request.data.get("url", "")
-        if not url:
-            return Response({"error": "url required"}, status=400)
+        url = request.data.get("url")
+        if not url or not str(url).strip():
+            return Response({"error": "url required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        validator = URLValidator()
+        try:
+            validator(url)
+        except DjangoValidationError:
+            return Response({"error": "invalid url"}, status=status.HTTP_400_BAD_REQUEST)
+
         parsed = urlparse(url)
         title = parsed.netloc or url
         return Response({"url": url, "title": title})
