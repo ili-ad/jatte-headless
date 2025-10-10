@@ -1,0 +1,731 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/rooms/{cid}/messages/",
+    "operationId": "createMessage",
+    "stubName": "sendMessage",
+    "ticketType": "api",
+    "todoCount": 10,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{cid}/messages/",
+    "operationId": "createMessage",
+    "stubName": "channel.sendMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{cid}/reminders/",
+    "operationId": "createReminder",
+    "stubName": "reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{cid}/reminders/",
+    "operationId": "createReminder",
+    "stubName": "client.reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/rooms/{cid}/mute/",
+    "operationId": "deleteMessage",
+    "stubName": "deleteMessage",
+    "ticketType": "api",
+    "todoCount": 6,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/rooms/{cid}/mute/",
+    "operationId": "deleteMessage",
+    "stubName": "client.deleteMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/session/",
+    "operationId": "endSession",
+    "stubName": "disconnectUser",
+    "ticketType": "api",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/app-settings/",
+    "operationId": "getAppSettings",
+    "stubName": "getAppSettings",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{cid}/messages/{message_id}/",
+    "operationId": "getMessage",
+    "stubName": "findMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "listRoomDrafts",
+    "stubName": "getDraft",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/user-agent/",
+    "operationId": "listUserAgents",
+    "stubName": "getUserAgent",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users/",
+    "operationId": "listUsers",
+    "stubName": "client.queryUsers",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{cid}/mute/",
+    "operationId": "muteStatus",
+    "stubName": "channel.muteStatus",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{cid}/mutes/",
+    "operationId": "muteUser",
+    "stubName": "muteUser",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/register-subscriptions/",
+    "operationId": "registerSubscriptions",
+    "stubName": "threads.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/register-subscriptions/",
+    "operationId": "registerSubscriptions",
+    "stubName": "polls.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/register-subscriptions/",
+    "operationId": "registerSubscriptions",
+    "stubName": "reminders.registerSubscriptions",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/user-agent/",
+    "operationId": "setUserAgent",
+    "stubName": "setUserAgent",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync-user/",
+    "operationId": "syncUser",
+    "stubName": "connectUser",
+    "ticketType": "api",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/user-mutes/unmute/",
+    "operationId": "unmuteUser",
+    "stubName": "unmuteUser",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "PUT",
+    "path": "/messages/{messageId}/",
+    "operationId": "updateMessage",
+    "stubName": "client.updateMessage",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "addAnswer",
+    "operationId": "shim::addAnswer",
+    "stubName": "addAnswer",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "addError",
+    "operationId": "shim::addError",
+    "stubName": "addError",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "castVote",
+    "operationId": "shim::castVote",
+    "stubName": "castVote",
+    "ticketType": "shim",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.archive",
+    "operationId": "shim::channel.archive",
+    "stubName": "channel.archive",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.countUnread",
+    "operationId": "shim::channel.countUnread",
+    "stubName": "channel.countUnread",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.getClient",
+    "operationId": "shim::channel.getClient",
+    "stubName": "channel.getClient",
+    "ticketType": "shim",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.getReplies",
+    "operationId": "shim::channel.getReplies",
+    "stubName": "channel.getReplies",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.markRead",
+    "operationId": "shim::channel.markRead",
+    "stubName": "channel.markRead",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.off",
+    "operationId": "shim::channel.off",
+    "stubName": "channel.off",
+    "ticketType": "shim",
+    "todoCount": 10,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.on",
+    "operationId": "shim::channel.on",
+    "stubName": "channel.on",
+    "ticketType": "shim",
+    "todoCount": 11,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.pin",
+    "operationId": "shim::channel.pin",
+    "stubName": "channel.pin",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.query",
+    "operationId": "shim::channel.query",
+    "stubName": "channel.query",
+    "ticketType": "shim",
+    "todoCount": 4,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.state.loadMessageIntoState",
+    "operationId": "shim::channel.state.loadMessageIntoState",
+    "stubName": "channel.state.loadMessageIntoState",
+    "ticketType": "shim",
+    "todoCount": 4,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.unarchive",
+    "operationId": "shim::channel.unarchive",
+    "stubName": "channel.unarchive",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.unpin",
+    "operationId": "shim::channel.unpin",
+    "stubName": "channel.unpin",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "channel.watch",
+    "operationId": "shim::channel.watch",
+    "stubName": "channel.watch",
+    "ticketType": "shim",
+    "todoCount": 3,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.channel",
+    "operationId": "shim::client.channel",
+    "stubName": "client.channel",
+    "ticketType": "shim",
+    "todoCount": 7,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.off",
+    "operationId": "shim::client.off",
+    "stubName": "client.off",
+    "ticketType": "shim",
+    "todoCount": 22,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.on",
+    "operationId": "shim::client.on",
+    "stubName": "client.on",
+    "ticketType": "shim",
+    "todoCount": 25,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.queryChannels",
+    "operationId": "shim::client.queryChannels",
+    "stubName": "client.queryChannels",
+    "ticketType": "shim",
+    "todoCount": 3,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.reminders.deleteReminder",
+    "operationId": "shim::client.reminders.deleteReminder",
+    "stubName": "client.reminders.deleteReminder",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.threads.activate",
+    "operationId": "shim::client.threads.activate",
+    "stubName": "client.threads.activate",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.threads.deactivate",
+    "operationId": "shim::client.threads.deactivate",
+    "stubName": "client.threads.deactivate",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.threads.loadNextPage",
+    "operationId": "shim::client.threads.loadNextPage",
+    "stubName": "client.threads.loadNextPage",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.threads.reload",
+    "operationId": "shim::client.threads.reload",
+    "stubName": "client.threads.reload",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "client.threads.state",
+    "operationId": "shim::client.threads.state",
+    "stubName": "client.threads.state",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "close",
+    "operationId": "shim::close",
+    "stubName": "close",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "WS",
+    "path": "countUnread",
+    "operationId": "shim::countUnread",
+    "stubName": "countUnread",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "createPollOption",
+    "operationId": "shim::createPollOption",
+    "stubName": "createPollOption",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "WS",
+    "path": "deleteReaction",
+    "operationId": "shim::deleteReaction",
+    "stubName": "deleteReaction",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "flagMessage",
+    "operationId": "shim::flagMessage",
+    "stubName": "flagMessage",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "lastRead",
+    "operationId": "shim::lastRead",
+    "stubName": "lastRead",
+    "ticketType": "shim",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "markUnread",
+    "operationId": "shim::markUnread",
+    "stubName": "markUnread",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "notifications.store",
+    "operationId": "shim::notifications.store",
+    "stubName": "notifications.store",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "on",
+    "operationId": "shim::on",
+    "stubName": "on",
+    "ticketType": "shim",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "on(poll.vote_casted)",
+    "operationId": "shim::on(poll.vote_casted)",
+    "stubName": "on(poll.vote_casted)",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "on(poll.vote_changed)",
+    "operationId": "shim::on(poll.vote_changed)",
+    "stubName": "on(poll.vote_changed)",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "on(poll.vote_removed)",
+    "operationId": "shim::on(poll.vote_removed)",
+    "stubName": "on(poll.vote_removed)",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "pinMessage",
+    "operationId": "shim::pinMessage",
+    "stubName": "pinMessage",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "polls.fromState",
+    "operationId": "shim::polls.fromState",
+    "stubName": "polls.fromState",
+    "ticketType": "shim",
+    "todoCount": 3,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "polls.unregisterSubscriptions",
+    "operationId": "shim::polls.unregisterSubscriptions",
+    "stubName": "polls.unregisterSubscriptions",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "query",
+    "operationId": "shim::query",
+    "stubName": "query",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "queryAnswers",
+    "operationId": "shim::queryAnswers",
+    "stubName": "queryAnswers",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "queryOptionVotes",
+    "operationId": "shim::queryOptionVotes",
+    "stubName": "queryOptionVotes",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "queryReactions",
+    "operationId": "shim::queryReactions",
+    "stubName": "queryReactions",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.clearTimers",
+    "operationId": "shim::reminders.clearTimers",
+    "stubName": "reminders.clearTimers",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.deleteReminder",
+    "operationId": "shim::reminders.deleteReminder",
+    "stubName": "reminders.deleteReminder",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.initTimers",
+    "operationId": "shim::reminders.initTimers",
+    "stubName": "reminders.initTimers",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.scheduledOffsetsMs",
+    "operationId": "shim::reminders.scheduledOffsetsMs",
+    "stubName": "reminders.scheduledOffsetsMs",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.unregisterSubscriptions",
+    "operationId": "shim::reminders.unregisterSubscriptions",
+    "stubName": "reminders.unregisterSubscriptions",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "reminders.upsertReminder",
+    "operationId": "shim::reminders.upsertReminder",
+    "stubName": "reminders.upsertReminder",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "removeVote",
+    "operationId": "shim::removeVote",
+    "stubName": "removeVote",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "missing"
+  },
+  {
+    "method": "WS",
+    "path": "search",
+    "operationId": "shim::search",
+    "stubName": "search",
+    "ticketType": "shim",
+    "todoCount": 2,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "sendAction",
+    "operationId": "shim::sendAction",
+    "stubName": "sendAction",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "sendReaction",
+    "operationId": "shim::sendReaction",
+    "stubName": "sendReaction",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "stopAIResponse",
+    "operationId": "shim::stopAIResponse",
+    "stubName": "stopAIResponse",
+    "ticketType": "shim",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "stopTyping",
+    "operationId": "shim::stopTyping",
+    "stubName": "stopTyping",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "threads.unregisterSubscriptions",
+    "operationId": "shim::threads.unregisterSubscriptions",
+    "stubName": "threads.unregisterSubscriptions",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "WS",
+    "path": "truncate",
+    "operationId": "shim::truncate",
+    "stubName": "truncate",
+    "ticketType": "shim",
+    "todoCount": 4,
+    "status": "missing"
+  },
+  {
+    "method": "WS",
+    "path": "unpinMessage",
+    "operationId": "shim::unpinMessage",
+    "stubName": "unpinMessage",
+    "ticketType": "shim",
+    "todoCount": 1,
+    "status": "ok"
+  }
+]

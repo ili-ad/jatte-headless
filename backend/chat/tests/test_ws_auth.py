@@ -31,3 +31,15 @@ class WsAuthAPITests(APITestCase):
         url = reverse("ws-auth")
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 403)
+
+    def test_ws_auth_live_ok(self):
+        token = self.make_token()
+        url = reverse("ws-auth-live")
+        res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data, {"status": "ok"})
+
+    def test_ws_auth_live_requires_auth(self):
+        url = reverse("ws-auth-live")
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 403)
