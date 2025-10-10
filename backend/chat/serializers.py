@@ -22,11 +22,20 @@ from .models import (
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    """Expose `body` via the `text` field while keeping the column read-only."""
+    """Expose ``body`` via ``text`` while supporting thread metadata."""
 
     text = serializers.CharField(source="body", allow_blank=True)
     pinned = serializers.SerializerMethodField()
     pinned_by = serializers.SerializerMethodField()
+    custom_data = serializers.JSONField(required=False, default=dict)
+    show_in_channel = serializers.BooleanField(required=False, default=False)
+    reply_to = serializers.PrimaryKeyRelatedField(
+        queryset=Message.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    parent_id = serializers.IntegerField(source="reply_to_id", read_only=True)
 
     class Meta:
         model = Message
@@ -38,6 +47,10 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "reply_to",
+            "custom_data",
+            "show_in_channel",
+            "parent_id",
             "pinned",
             "pinned_by",
         ]
@@ -48,9 +61,14 @@ class MessageSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "parent_id",
             "pinned",
             "pinned_by",
         ]
+
+    def create(self, validated_data: dict) -> Message:
+        validated_data.setdefault("custom_data", {})
+        return super().create(validated_data)
 
     def get_pinned(self, obj: Message) -> bool:
         return obj.pins.exists()
@@ -58,6 +76,35 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_pinned_by(self, obj: Message) -> int | None:
         pin = obj.pins.order_by("-created_at").first()
         return getattr(pin, "user_id", None)
+
+
+class ThreadPreviewSerializer(serializers.Serializer):
+    """Serialize a thread preview with root and last reply metadata."""
+
+    thread_id = serializers.SerializerMethodField()
+    cid = serializers.SerializerMethodField()
+    root_message = serializers.SerializerMethodField()
+    reply_count = serializers.IntegerField()
+    last_reply_at = serializers.DateTimeField(allow_null=True)
+    last_reply_preview = serializers.SerializerMethodField()
+
+    def get_thread_id(self, obj: Message) -> str:
+        return f"root-{obj.id}"
+
+    def get_cid(self, obj: Message) -> str:
+        return self.context["cid"]
+
+    def get_root_message(self, obj: Message) -> dict:
+        serializer = MessageSerializer(obj, context=self.context)
+        return serializer.data
+
+    def get_last_reply_preview(self, obj: Message) -> dict | None:
+        replies_map: dict[int, Message] = self.context.get("replies_map", {})
+        reply = replies_map.get(getattr(obj, "last_reply_id", None))
+        if not reply:
+            return None
+        serializer = MessageSerializer(reply, context=self.context)
+        return serializer.data
 
 
 class MessageUpdateSerializer(serializers.ModelSerializer):

@@ -238,6 +238,49 @@ paths:
             application/json:
               schema:
                 type: object
+  /messages/{messageId}/replies/:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: listReplies
+      tags: [messages]
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: before
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: replies for a message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  next:
+                    type: string
+                    nullable: true
+        '400':
+          description: invalid query parameters
+        '403':
+          description: forbidden
+        '404':
+          description: parent message not found
   /messages/{messageId}/restore/:
     post:
       operationId: restoreMessage
@@ -423,15 +466,42 @@ paths:
     get:
       operationId: listThreads
       tags: [threads]
+      parameters:
+        - in: query
+          name: cid
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
       responses:
         '200':
-          description: threads
+          description: thread previews
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ThreadPreview'
+                  next:
+                    type: string
+                    nullable: true
+        '400':
+          description: missing or invalid cid
+        '403':
+          description: forbidden
   /link-preview/:
     post:
       operationId: createLinkPreview
@@ -800,6 +870,64 @@ paths:
                     type: string
 components:
   schemas:
+    Message:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: integer
+            - type: string
+        text:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        sent_by:
+          type: string
+          nullable: true
+        parent_id:
+          oneOf:
+            - type: integer
+            - type: string
+          nullable: true
+        show_in_channel:
+          type: boolean
+        custom_data:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id]
+    ThreadPreview:
+      type: object
+      properties:
+        thread_id:
+          type: string
+        cid:
+          type: string
+        root_message:
+          $ref: '#/components/schemas/Message'
+        reply_count:
+          type: integer
+        last_reply_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_reply_preview:
+          $ref: '#/components/schemas/Message'
+          nullable: true
+      required: [thread_id, cid, root_message, reply_count]
     MuteStatus:
       type: object
       properties:
