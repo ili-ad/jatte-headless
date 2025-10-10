@@ -6,6 +6,12 @@ import type { Channel, PollVote, TranslationLanguages, UserResponse } from 'chat
 import type { TranslationContextValue } from '../../context/TranslationContext';
 import type { ChatContextValue } from '../../context';
 
+const getChannelClientUserId = (channel: Channel): string | undefined => {
+  void channel;
+  /* TODO backend-wire-up:channel.getClient */
+  return undefined;
+};
+
 export const renderPreviewText = (text: string) => (
   <ReactMarkdown skipHtml>{text}</ReactMarkdown>
 );
@@ -46,10 +52,10 @@ export const getLatestMessagePreview = (
   }
 
   if (poll) {
+    const channelClientId = getChannelClientUserId(channel);
     if (!poll.vote_count) {
-        const createdBy =
-        poll.created_by?.id ===
-          channel.getClient()
+      const createdBy =
+        poll.created_by?.id === channelClientId
           ? t('You')
           : poll.created_by?.name ?? t('Poll');
       return t('📊 {{createdBy}} created: {{ pollName}}', {
@@ -66,11 +72,10 @@ export const getLatestMessagePreview = (
       if (option && latestVote) {
         return t('📊 {{votedBy}} voted: {{pollOptionText}}', {
           pollOptionText: option.text,
-            votedBy:
-              latestVote?.user?.id ===
-                channel.getClient()
-                ? t('You')
-                : latestVote.user?.name ?? t('Poll'),
+          votedBy:
+            latestVote?.user?.id === channelClientId
+              ? t('You')
+              : latestVote.user?.name ?? t('Poll'),
         });
       }
     }
