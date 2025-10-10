@@ -27,6 +27,15 @@ class Message(models.Model):
     )
     body = models.TextField()
     sent_by = models.CharField(max_length=255)
+    custom_data = models.JSONField(default=dict, blank=True)
+    reply_to = models.ForeignKey(
+        "self",
+        related_name="replies",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+    )
+    show_in_channel = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

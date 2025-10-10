@@ -14,7 +14,6 @@ from .api_views import (
     RoomMemberMuteCreateView,
     RoomMuteStatusView,
     MessageDetailView,
-    MessageRepliesView,
     MessageReactionsView,
     MessageReactionTypeView,
     RoomConfigStateView,
@@ -49,7 +48,6 @@ from .api_views import (
     ReminderListCreateView,
     ReminderDetailView,
     RoomReminderCreateView,
-    ThreadListView,
     RecoverStateView,
     TextComposerView,
     ComposeView,
@@ -73,6 +71,7 @@ from .api_views import (
     WsAuthView as LegacyWsAuthView,
 )
 from .views import RoomMembersCIDView
+from .views_threads import MessageRepliesView, ThreadListView
 from .views_auth import WebsocketAuthView
 
 router = DefaultRouter()
@@ -199,7 +198,7 @@ urlpatterns = [
         name="message-restore",
     ),
     path(
-        "api/messages/<str:message_id>/replies/",
+        "messages/<str:message_id>/replies/",
         MessageRepliesView.as_view(),
         name="message-replies",
     ),
@@ -215,7 +214,7 @@ urlpatterns = [
         RoomReminderCreateView.as_view(),
         name="room-reminders",
     ),
-    path("api/threads/", ThreadListView.as_view(), name="threads"),
+    path("threads/", ThreadListView.as_view(), name="threads"),
     path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
         "api/messages/<str:message_id>/reactions/",
