@@ -47,6 +47,7 @@ from .api_views import (
     UnmuteUserView,
     AttachmentUploadView,
     ReminderListCreateView,
+    ReminderDetailView,
     RoomReminderCreateView,
     ThreadListView,
     RecoverStateView,
@@ -203,6 +204,11 @@ urlpatterns = [
     ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
     path("api/reminders/", ReminderListCreateView.as_view(), name="reminders"),
+    path(
+        "api/reminders/<int:reminder_id>/",
+        ReminderDetailView.as_view(),
+        name="reminder-detail",
+    ),
     path(
         "api/rooms/<path:cid>/reminders/",
         RoomReminderCreateView.as_view(),
