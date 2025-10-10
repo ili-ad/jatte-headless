@@ -91,6 +91,69 @@
   },
   {
     "method": "GET",
+    "path": "/polls/",
+    "operationId": "listPolls",
+    "stubName": "listPolls",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/polls/",
+    "operationId": "createPoll",
+    "stubName": "createPoll",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/polls/{pollId}/options/",
+    "operationId": "createPollOption",
+    "stubName": "createPollOption",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/polls/{pollId}/options/{optionId}/votes/",
+    "operationId": "queryOptionVotes",
+    "stubName": "queryOptionVotes",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/polls/{pollId}/options/{optionId}/votes/",
+    "operationId": "castVote",
+    "stubName": "castVote",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/polls/{pollId}/options/{optionId}/votes/",
+    "operationId": "removeVote",
+    "stubName": "removeVote",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/polls/{pollId}/answers/",
+    "operationId": "addAnswer",
+    "stubName": "addAnswer",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/rooms/active/",
     "operationId": "listActiveRooms",
     "stubName": "listActiveRooms",
