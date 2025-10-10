@@ -1006,5 +1006,41 @@
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "listRoomDrafts",
+    "stubName": "drafts.listRoomDrafts",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "createRoomDraft",
+    "stubName": "drafts.createRoomDraft",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "destroyRoomDraft",
+    "stubName": "drafts.destroyRoomDraft",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{room_uuid}/config-state/",
+    "operationId": "listRoomConfigStates",
+    "stubName": "rooms.listRoomConfigStates",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
