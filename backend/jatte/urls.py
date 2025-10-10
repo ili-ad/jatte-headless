@@ -16,6 +16,7 @@ urlpatterns = [
     path("", include("backend.auth.urls")),
     path("", include("accounts_supabase.urls")),
     path("", include("core.urls")),
+    path("", include("mutes.urls")),
     path("", include("rooms.urls")),
     path("", include("polls.urls")),
     path("", include("reminders.urls")),
