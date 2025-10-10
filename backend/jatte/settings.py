@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'rooms',
     'events',
     'core',
+    'state',
     'polls',
 ]
 
