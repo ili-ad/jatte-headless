@@ -18,8 +18,17 @@
     "status": "ok"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "GET",
+    "path": "/reminders/",
+    "operationId": "listReminders",
+    "stubName": "reminders.listReminders",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/reminders/",
     "operationId": "createReminder",
     "stubName": "reminders.createReminder",
     "ticketType": "api",
@@ -27,10 +36,19 @@
     "status": "ok"
   },
   {
-    "method": "",
-    "path": "",
+    "method": "POST",
+    "path": "/reminders/",
     "operationId": "createReminder",
     "stubName": "client.reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/reminders/{id}/",
+    "operationId": "deleteReminder",
+    "stubName": "reminders.deleteReminder",
     "ticketType": "api",
     "todoCount": 1,
     "status": "ok"
@@ -606,7 +624,7 @@
     "method": "",
     "path": "",
     "operationId": "shim::reminders.deleteReminder",
-    "stubName": "reminders.deleteReminder",
+    "stubName": "reminders.deleteReminder.ws",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "ok"

@@ -629,53 +629,62 @@ paths:
           description: ''
       tags:
       - api
-  /api/reminders/:
+  /reminders/:
     get:
       operationId: listReminders
       description: List reminders for the current user.
       parameters: []
       responses:
         '200':
+          description: reminders
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Reminder'
-          description: ''
       tags:
-      - api
+      - reminders
     post:
       operationId: createReminder
       description: Create a new reminder.
       parameters: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                cid:
-                  type: string
-                remind_at:
-                  type: string
-                  format: date-time
-                message_id:
-                  type: integer
-                note:
-                  type: string
-              required:
-              - cid
-              - remind_at
+              $ref: '#/components/schemas/ReminderCreate'
       responses:
         '201':
+          description: created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Reminder'
-          description: ''
+                type: object
+                properties:
+                  reminder:
+                    $ref: '#/components/schemas/Reminder'
+                required:
+                - reminder
       tags:
-      - api
+      - reminders
+  /reminders/{id}/:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: deleteReminder
+      description: Delete a reminder owned by the current user.
+      responses:
+        '204':
+          description: No Content
+      tags:
+      - reminders
   /api/mute-status/{target_username}/:
     parameters:
       - name: target_username
@@ -919,22 +928,25 @@ components:
       type: object
       properties:
         id:
-          type: integer
-          readOnly: true
+          type: string
+          format: uuid
+        text:
+          type: string
         remind_at:
           type: string
           format: date-time
-        message_id:
-          type: integer
-          nullable: true
-          readOnly: true
-        note:
+      required:
+      - id
+      - text
+      - remind_at
+    ReminderCreate:
+      type: object
+      properties:
+        text:
           type: string
-          nullable: true
-        created_by:
-          type: integer
-          readOnly: true
-        created_at:
+        remind_at:
           type: string
           format: date-time
-          readOnly: true
+      required:
+      - text
+      - remind_at
