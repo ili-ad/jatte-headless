@@ -9,6 +9,7 @@ import jwt
 
 from accounts_supabase.models import CustomUser
 from chat.models import Channel, Message, Reminder, Room
+from chat.utils import group_name_for_cid
 
 @override_settings(ROOT_URLCONF="chat.urls")
 class ReminderAPITests(APITestCase):
@@ -93,7 +94,8 @@ class ReminderAPITests(APITestCase):
         self.assertEqual(res.data["note"], "new")
         channel_layer.group_send.assert_awaited_once()
         group_name, event = channel_layer.group_send.await_args.args
-        self.assertEqual(group_name, f"channel_{self.room.uuid}")
+        expected_group = group_name_for_cid(f"messaging:{self.room.uuid}")
+        self.assertEqual(group_name, expected_group)
         self.assertEqual(event["payload"]["type"], "reminder.new")
 
     @patch("chat.api_views.get_channel_layer")
@@ -119,7 +121,8 @@ class ReminderAPITests(APITestCase):
         self.assertEqual(res.data["note"], "global")
         channel_layer.group_send.assert_awaited_once()
         group_name, event = channel_layer.group_send.await_args.args
-        self.assertEqual(group_name, f"channel_{self.room.uuid}")
+        expected_group = group_name_for_cid(f"messaging:{self.room.uuid}")
+        self.assertEqual(group_name, expected_group)
         self.assertEqual(event["payload"]["type"], "reminder.new")
 
     def test_create_reminder_requires_cid(self):

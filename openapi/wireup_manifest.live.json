@@ -1042,5 +1042,14 @@
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/ws-auth/",
+    "operationId": "wsAuth",
+    "stubName": "wsAuth",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
