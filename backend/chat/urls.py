@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 from rest_framework.routers import DefaultRouter
 from .api_views import (
     RoomListCreateView,
@@ -70,9 +70,10 @@ from .api_views import (
     SubarrayView,
     AxiosTestView,
     ConnectionIDView,
-    WsAuthView,
+    WsAuthView as LegacyWsAuthView,
 )
 from .views import RoomMembersCIDView
+from .views_auth import WebsocketAuthView
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
@@ -308,5 +309,7 @@ urlpatterns = [
     path("api/register-subscriptions/", RegisterSubscriptionsView.as_view(), name="register-subscriptions"),
     path("api/test/", AxiosTestView.as_view(), name="axios-test"),
     path("api/connection-id/", ConnectionIDView.as_view(), name="connection-id"),
-    path("api/ws-auth/", WsAuthView.as_view(), name="ws-auth"),
+    path("api/ws-auth/", LegacyWsAuthView.as_view(), name="ws-auth"),
+    path("ws-auth/", WebsocketAuthView.as_view(), name="ws-auth-live"),
+    re_path(r"^ws-auth/?$", WebsocketAuthView.as_view()),
 ]
