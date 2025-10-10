@@ -50,7 +50,7 @@ if os.environ.get("PRINT_JWT_SECRET"):
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
 
 AUTH_USER_MODEL = 'accounts_supabase.CustomUser'
 
@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts_supabase',
     'chat',
+    'rooms',
     'core',
 ]
 
