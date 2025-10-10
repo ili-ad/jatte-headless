@@ -15,6 +15,7 @@
   "reminders.listReminders": "listReminders",
   "getAppSettings": "getAppSettings",
   "getUserAgent": "listUserAgents",
+  "currentUser": "currentUser",
   "setUserAgent": "setUserAgent",
   "threads.registerSubscriptions": "registerSubscriptions",
   "polls.registerSubscriptions": "registerSubscriptions",

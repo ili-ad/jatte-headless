@@ -13,6 +13,7 @@ from chat.api_views import (
 urlpatterns = [
     path("", include("backend.auth.urls")),
     path("", include("accounts_supabase.urls")),
+    path("", include("users.urls")),
     path("", include("core.urls")),
     path("", include("mutes.urls")),
     path("", include("rooms.urls")),
