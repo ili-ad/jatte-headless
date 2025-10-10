@@ -611,7 +611,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
+                  $ref: '#/components/schemas/Reminder'
     post:
       operationId: createReminder
       tags: [reminders]
@@ -619,13 +619,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                text:
-                  type: string
-                remind_at:
-                  type: string
-                  format: date-time
+              $ref: '#/components/schemas/ReminderCreate'
       responses:
         '201':
           description: created
@@ -635,7 +629,23 @@ paths:
                 type: object
                 properties:
                   reminder:
-                    type: object
+                    $ref: '#/components/schemas/Reminder'
+                required:
+                - reminder
+  /reminders/{id}/:
+    delete:
+      operationId: deleteReminder
+      tags: [reminders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: deleted
   /threads/:
     get:
       operationId: listThreads
@@ -1078,6 +1088,32 @@ components:
           type: string
           format: date-time
           nullable: true
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        remind_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - text
+      - remind_at
+    ReminderCreate:
+      type: object
+      properties:
+        text:
+          type: string
+        remind_at:
+          type: string
+          format: date-time
+      required:
+      - text
+      - remind_at
         deleted_at:
           type: string
           format: date-time
