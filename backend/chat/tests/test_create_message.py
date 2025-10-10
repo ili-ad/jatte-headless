@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
-from chat.models import Room
+from chat.models import Channel, Message, Room
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -13,6 +13,7 @@ class CreateMessageAPITests(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user(username="u1", password="pw")
         self.room = Room.objects.create(uuid="r1", client="c1")
+        self.channel = Channel.objects.create(uuid=self.room.uuid, client=self.room.client)
 
     def test_create_message(self):
         self.client.force_authenticate(self.user)
@@ -52,3 +53,34 @@ class CreateMessageAPITests(APITestCase):
         self.assertEqual(event["cid"], f"messaging:{self.room.uuid}")
         self.assertEqual(event["message"]["body"], "hi")
         self.assertEqual(event["message"]["text"], "hi")
+
+    @patch("chat.api_views.get_channel_layer")
+    def test_broadcasts_thread_message_event(self, mock_get_channel_layer):
+        self.client.force_authenticate(self.user)
+        mock_layer = mock_get_channel_layer.return_value
+        mock_layer.group_send = AsyncMock()
+
+        parent = Message.objects.create(channel=self.channel, body="parent", sent_by="u2")
+        self.room.messages.add(parent)
+
+        url = reverse("room-messages", kwargs={"room_uuid": self.room.uuid})
+        resp = self.client.post(
+            url,
+            {"text": "reply", "reply_to": parent.id},
+            format="json",
+        )
+
+        self.assertEqual(resp.status_code, 201)
+        calls = mock_layer.group_send.await_args_list
+        self.assertEqual(len(calls), 2)
+
+        main_group, main_payload = calls[0].args
+        self.assertEqual(main_group, f"channel_{self.room.uuid}")
+        self.assertEqual(main_payload["payload"]["message"]["parent_id"], parent.id)
+
+        thread_group, thread_payload = calls[1].args
+        expected_thread_cid = f"messaging:{self.room.uuid}:thread:{parent.id}"
+        self.assertEqual(thread_group, f"channel_messaging_{self.room.uuid}_thread_{parent.id}")
+        thread_event = thread_payload["payload"]
+        self.assertEqual(thread_event["cid"], expected_thread_cid)
+        self.assertEqual(thread_event["message"]["parent_id"], parent.id)

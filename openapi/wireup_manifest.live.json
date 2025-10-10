@@ -100,6 +100,24 @@
   },
   {
     "method": "GET",
+    "path": "/threads/",
+    "operationId": "listThreads",
+    "stubName": "listThreads",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/messages/{messageId}/replies/",
+    "operationId": "listReplies",
+    "stubName": "listReplies",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/api/rooms/{cid}/members/",
     "operationId": "listRoomMembersCIDs",
     "stubName": "listRoomMembersCIDs",
