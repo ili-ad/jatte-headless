@@ -1,0 +1,41 @@
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="EventNotification",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("event_type", models.CharField(max_length=255)),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("cid", models.CharField(blank=True, max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="event_notifications", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                "ordering": ("-created_at", "-id"),
+            },
+        ),
+        migrations.CreateModel(
+            name="EventSubscription",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("subscriptions", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="event_subscriptions", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                "unique_together": {("user",)},
+            },
+        ),
+    ]

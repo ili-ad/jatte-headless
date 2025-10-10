@@ -20,6 +20,7 @@ urlpatterns = [
     path("", include("rooms.urls")),
     path("", include("polls.urls")),
     path("", include("reminders.urls")),
+    path("", include("events.urls")),
     path("admin/", admin.site.urls),
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.
     path("api/token/", TokenView.as_view(), name="token-obtain"),

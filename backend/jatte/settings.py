@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'mutes',
     'reminders',
     'rooms',
+    'events',
     'core',
     'polls',
 ]
