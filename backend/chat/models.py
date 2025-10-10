@@ -28,6 +28,8 @@ class Message(models.Model):
     body = models.TextField()
     sent_by = models.CharField(max_length=255)
     custom_data = models.JSONField(default=dict, blank=True)
+    attachments = models.JSONField(default=list, blank=True)
+    preview = models.JSONField(null=True, blank=True)
     reply_to = models.ForeignKey(
         "self",
         related_name="replies",

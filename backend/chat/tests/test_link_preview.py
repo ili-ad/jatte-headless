@@ -23,7 +23,13 @@ class LinkPreviewAPITests(APITestCase):
         res = self.client.post(url, {"url": "https://example.com"}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["url"], "https://example.com")
-        self.assertIn("title", res.data)
+        self.assertEqual(res.data["title"], "example.com")
+
+    def test_preview_validates_url(self):
+        token = self.make_token()
+        url = reverse("link-preview")
+        res = self.client.post(url, {"url": "not-a-url"}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 400)
 
     def test_preview_wrong_method(self):
         token = self.make_token()
