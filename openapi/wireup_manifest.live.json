@@ -943,5 +943,32 @@
     "ticketType": "shim",
     "todoCount": 1,
     "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/listeners/",
+    "operationId": "getListeners",
+    "stubName": "getListeners",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/dispatch-event/",
+    "operationId": "dispatchEvent",
+    "stubName": "dispatchEvent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/notifications/",
+    "operationId": "listNotifications",
+    "stubName": "listNotifications",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
