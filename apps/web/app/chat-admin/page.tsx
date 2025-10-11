@@ -15,6 +15,12 @@ import {
   updateGatingRules,
 } from '../../lib/chat-addons/admin';
 import { sendSms } from '../../lib/chat-addons/integrationsApi';
+import {
+  escalateRoom,
+  getOnCallConfig,
+  sendAdminHeartbeat,
+  setOnCallConfig,
+} from '../../lib/chat-addons/notificationsApi';
 
 interface IntakeState {
   items: IntakeItem[];
@@ -48,11 +54,21 @@ export default function ChatAdminPage() {
   const [summary, setSummary] = useState<IntakeSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
+  const [onCallPhone, setOnCallPhone] = useState('');
+  const [onCallEmail, setOnCallEmail] = useState('');
+  const [onCallLoading, setOnCallLoading] = useState(true);
+  const [onCallSaving, setOnCallSaving] = useState(false);
+  const [onCallError, setOnCallError] = useState<string | null>(null);
+  const [onCallSuccess, setOnCallSuccess] = useState<string | null>(null);
+
   const [smsCid, setSmsCid] = useState('');
   const [smsPhone, setSmsPhone] = useState('');
   const [smsText, setSmsText] = useState('');
   const [smsSending, setSmsSending] = useState(false);
   const [smsStatus, setSmsStatus] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
+
+  const [escalating, setEscalating] = useState<Record<string, boolean>>({});
+  const [escalateMessages, setEscalateMessages] = useState<Record<string, string>>({});
 
   const loadRules = useCallback(async () => {
     setRulesLoading(true);
@@ -107,6 +123,22 @@ export default function ChatAdminPage() {
     }
   }, []);
 
+  const loadOnCall = useCallback(async () => {
+    setOnCallLoading(true);
+    setOnCallError(null);
+    setOnCallSuccess(null);
+    try {
+      const payload = await getOnCallConfig();
+      setOnCallPhone(payload.phone_e164 ?? '');
+      setOnCallEmail(payload.email ?? '');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load on-call settings';
+      setOnCallError(message);
+    } finally {
+      setOnCallLoading(false);
+    }
+  }, []);
+
   const handleSmsSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -136,10 +168,53 @@ export default function ChatAdminPage() {
     [smsCid, smsPhone, smsText, smsSending],
   );
 
+  const handleOnCallSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (onCallSaving) {
+        return;
+      }
+      setOnCallSaving(true);
+      setOnCallError(null);
+      setOnCallSuccess(null);
+      const trimmedPhone = onCallPhone.trim();
+      const trimmedEmail = onCallEmail.trim();
+      try {
+        const payload = await setOnCallConfig({
+          phone_e164: trimmedPhone ? trimmedPhone : null,
+          email: trimmedEmail ? trimmedEmail : null,
+        });
+        setOnCallPhone(payload.phone_e164 ?? '');
+        setOnCallEmail(payload.email ?? '');
+        setOnCallSuccess('On-call contact updated.');
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unable to update on-call contact';
+        setOnCallError(message);
+      } finally {
+        setOnCallSaving(false);
+      }
+    },
+    [onCallEmail, onCallPhone, onCallSaving],
+  );
+
   useEffect(() => {
     void loadRules();
     void loadSummary();
   }, [loadRules, loadSummary]);
+
+  useEffect(() => {
+    void loadOnCall();
+  }, [loadOnCall]);
+
+  useEffect(() => {
+    const beat = () => void sendAdminHeartbeat().catch(() => undefined);
+    beat();
+    const interval = window.setInterval(beat, 60_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     void loadIntake(intakeStatus);
@@ -226,6 +301,35 @@ export default function ChatAdminPage() {
     [loadSummary],
   );
 
+  const handleEscalate = useCallback(
+    async (item: IntakeItem) => {
+      setEscalating((prev) => ({ ...prev, [item.cid]: true }));
+      setEscalateMessages((prev) => {
+        const next = { ...prev };
+        delete next[item.cid];
+        return next;
+      });
+      try {
+        const response = await escalateRoom({
+          cid: item.cid,
+          reason: item.reason ?? 'no operator available',
+        });
+        const message = response.notified
+          ? response.via === 'none'
+            ? 'Escalation logged (admins notified in-app).'
+            : `Escalation sent via ${response.via.toUpperCase()}.`
+          : 'Escalation recorded without alert.';
+        setEscalateMessages((prev) => ({ ...prev, [item.cid]: message }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to escalate room';
+        setEscalateMessages((prev) => ({ ...prev, [item.cid]: `Error: ${message}` }));
+      } finally {
+        setEscalating((prev) => ({ ...prev, [item.cid]: false }));
+      }
+    },
+    [],
+  );
+
   const languagesPreview = useMemo(() => languagesInput.trim() || '—', [languagesInput]);
   const blocklistPreview = useMemo(() => blocklistInput.trim() || '—', [blocklistInput]);
 
@@ -264,6 +368,60 @@ export default function ChatAdminPage() {
           </dl>
         ) : (
           <p className="mt-3 text-sm text-gray-500">Loading summary…</p>
+        )}
+      </section>
+
+      <section className="rounded-md border border-gray-200 p-4 shadow-sm">
+        <h2 className="text-lg font-medium">On-call escalation</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Configure the destination used for out-of-band alerts when no admin is active.
+        </p>
+        {onCallError ? <p className="mt-2 text-sm text-red-600">{onCallError}</p> : null}
+        {onCallSuccess ? <p className="mt-2 text-sm text-green-600">{onCallSuccess}</p> : null}
+        {onCallLoading ? (
+          <p className="mt-4 text-sm text-gray-500">Loading on-call settings…</p>
+        ) : (
+          <form className="mt-4 space-y-4" onSubmit={handleOnCallSubmit}>
+            <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
+              <label className="text-sm font-medium">
+                <span>Phone number (E.164)</span>
+                <input
+                  type="tel"
+                  value={onCallPhone}
+                  onChange={(event) => setOnCallPhone(event.target.value)}
+                  className="mt-1 w-full rounded border px-3 py-2 text-sm"
+                  placeholder="+15551234567"
+                />
+              </label>
+              <label className="text-sm font-medium">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={onCallEmail}
+                  onChange={(event) => setOnCallEmail(event.target.value)}
+                  className="mt-1 w-full rounded border px-3 py-2 text-sm"
+                  placeholder="ops@example.com"
+                />
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                disabled={onCallSaving}
+              >
+                {onCallSaving ? 'Saving…' : 'Save contact'}
+              </button>
+              <button
+                type="button"
+                className="rounded border px-4 py-2 text-sm"
+                onClick={() => void loadOnCall()}
+                disabled={onCallSaving}
+              >
+                Reset
+              </button>
+            </div>
+          </form>
         )}
       </section>
 
@@ -486,23 +644,44 @@ export default function ChatAdminPage() {
                       {item.reason ? <div className="text-xs text-gray-500">{item.reason}</div> : null}
                     </td>
                     <td className="px-3 py-2 align-top">
-                      <div className="flex gap-2 text-sm">
-                        <button
-                          type="button"
-                          className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-60"
-                          onClick={() => void handleApprove(item)}
-                          disabled={!!actioning[item.message_id]}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-60"
-                          onClick={() => void handleReject(item)}
-                          disabled={!!actioning[item.message_id]}
-                        >
-                          Reject
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2 text-sm">
+                          <button
+                            type="button"
+                            className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-60"
+                            onClick={() => void handleApprove(item)}
+                            disabled={!!actioning[item.message_id]}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-60"
+                            onClick={() => void handleReject(item)}
+                            disabled={!!actioning[item.message_id]}
+                          >
+                            Reject
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded bg-amber-500 px-3 py-1 text-white disabled:opacity-60"
+                            onClick={() => void handleEscalate(item)}
+                            disabled={!!escalating[item.cid]}
+                          >
+                            {escalating[item.cid] ? 'Escalating…' : 'Escalate'}
+                          </button>
+                        </div>
+                        {escalateMessages[item.cid] ? (
+                          <div
+                            className={`text-xs ${
+                              escalateMessages[item.cid].startsWith('Error')
+                                ? 'text-red-600'
+                                : 'text-gray-600'
+                            }`}
+                          >
+                            {escalateMessages[item.cid]}
+                          </div>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
