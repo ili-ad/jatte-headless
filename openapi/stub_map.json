@@ -76,7 +76,7 @@
   "reminders.unregisterSubscriptions": "shim::reminders.unregisterSubscriptions",
   "reminders.upsertReminder": "shim::reminders.upsertReminder",
   "removeVote": "removeVote",
-  "search": "shim::search",
+  "search": "searchMessages",
   "sendAction": "shim::sendAction",
   "sendReaction": "shim::sendReaction",
   "stopAIResponse": "shim::stopAIResponse",

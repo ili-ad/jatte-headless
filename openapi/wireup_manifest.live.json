@@ -1105,5 +1105,50 @@
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/attachments/sign",
+    "operationId": "signAttachmentUpload",
+    "stubName": "signAttachmentUpload",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/attachments/commit",
+    "operationId": "commitAttachmentUpload",
+    "stubName": "commitAttachmentUpload",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/messages/{messageId}/hide/",
+    "operationId": "hideMessage",
+    "stubName": "hideMessage",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/messages/{messageId}/unhide/",
+    "operationId": "unhideMessage",
+    "stubName": "unhideMessage",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/search/messages",
+    "operationId": "searchMessages",
+    "stubName": "searchMessages",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
