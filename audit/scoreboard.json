@@ -1,17 +1,8 @@
 {
   "totalOpIds": 47,
-  "bound": 41,
+  "bound": 42,
   "wsEventsVerified": 10,
   "missingBindings": [
-    {
-      "operationId": "createLinkPreview",
-      "expected": [
-        {
-          "method": "POST",
-          "path": "/link-preview/"
-        }
-      ]
-    },
     {
       "operationId": "getQuotedMessage",
       "expected": [

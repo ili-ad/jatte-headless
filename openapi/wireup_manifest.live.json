@@ -963,6 +963,15 @@
     "status": "ok"
   },
   {
+    "method": "POST",
+    "path": "/link-preview/",
+    "operationId": "createLinkPreview",
+    "stubName": "createLinkPreview",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
     "method": "GET",
     "path": "/notifications/",
     "operationId": "listNotifications",

@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from urllib.parse import quote, urlparse
 
@@ -18,6 +19,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
 from .models import (
@@ -1254,17 +1257,41 @@ class LinkPreviewView(APIView):
     def post(self, request):
         url = request.data.get("url")
         if not url or not str(url).strip():
-            return Response({"error": "url required"}, status=status.HTTP_400_BAD_REQUEST)
+            return self._invalid_url_response(request, url, "url required")
 
         validator = URLValidator()
         try:
             validator(url)
         except DjangoValidationError:
-            return Response({"error": "invalid url"}, status=status.HTTP_400_BAD_REQUEST)
+            return self._invalid_url_response(request, url, "invalid url")
 
         parsed = urlparse(url)
         title = parsed.netloc or url
         return Response({"url": url, "title": title})
+
+    def _invalid_url_response(self, request, raw_url, message):
+        request_id = getattr(request, "request_id", None)
+        if not request_id:
+            request_id = request.headers.get("X-Request-ID") or request.META.get(
+                "HTTP_X_REQUEST_ID"
+            )
+        logger.warning(
+            "Link preview validation error: %s (request_id=%s, url=%s)",
+            message,
+            request_id,
+            raw_url,
+        )
+
+        status_code = status.HTTP_400_BAD_REQUEST
+        if self._is_frontend_alias(request):
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        return Response({"error": message}, status=status_code)
+
+    def _is_frontend_alias(self, request):
+        path = request.path or ""
+        normalized = path.rstrip("/")
+        return normalized == "/link-preview" and not path.startswith("/api/")
 
 
 class RoomHideView(RoomFromCIDMixin, APIView):
