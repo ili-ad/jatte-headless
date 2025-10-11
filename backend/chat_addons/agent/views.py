@@ -15,6 +15,12 @@ from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from chat.models import Room
 from chat.utils import canonical_cid
 
+from ..common_audit.decorators import audit_action
+from ..common_audit.models import AuditTrail
+from ..common_audit.throttling import (
+    AgentInvokeRateThrottle,
+    AgentToggleRateThrottle,
+)
 from .models import RoomAgentFlag
 from .tasks import run_agent_invocation
 
@@ -55,15 +61,22 @@ class AgentEnableView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [AgentToggleRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.AGENT_ENABLE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
         canonical, room = _resolve_room(cid)
+        request._audit_context = {"cid": canonical}
         with transaction.atomic():
             flag, _ = RoomAgentFlag.objects.select_for_update().get_or_create(
                 room=room
             )
             flag.agent_enabled = True
             flag.save(update_fields=["agent_enabled", "updated_at"])
+        request._audit_context = {
+            "cid": canonical,
+            "meta": {"agent_enabled": True},
+        }
         serializer = AgentToggleResponseSerializer(
             {
                 "cid": canonical,
@@ -79,15 +92,22 @@ class AgentDisableView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [AgentToggleRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.AGENT_DISABLE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
         canonical, room = _resolve_room(cid)
+        request._audit_context = {"cid": canonical}
         with transaction.atomic():
             flag, _ = RoomAgentFlag.objects.select_for_update().get_or_create(
                 room=room
             )
             flag.agent_enabled = False
             flag.save(update_fields=["agent_enabled", "updated_at"])
+        request._audit_context = {
+            "cid": canonical,
+            "meta": {"agent_enabled": False},
+        }
         serializer = AgentToggleResponseSerializer(
             {
                 "cid": canonical,
@@ -103,19 +123,27 @@ class AgentInvokeView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [AgentInvokeRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.AGENT_INVOKE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
         serializer = AgentInvokeRequestSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
         canonical, room = _resolve_room(cid)
         RoomAgentFlag.objects.get_or_create(room=room)
+        request._audit_context = {"cid": canonical}
 
         prompt: str = serializer.validated_data["prompt"]
         meta: dict[str, Any] = serializer.validated_data.get("meta", {})
 
         run_id = str(uuid.uuid4())
         run_agent_invocation.delay(run_id, canonical, prompt, meta)
+        request._audit_context = {
+            "cid": canonical,
+            "target_id": run_id,
+            "meta": {"meta_keys": sorted(meta.keys())},
+        }
 
         return Response(
             {"run_id": run_id, "status": "queued"},
