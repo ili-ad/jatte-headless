@@ -197,6 +197,12 @@ urlpatterns = [
         MessageRestoreView.as_view(),
         name="message-restore",
     ),
+    # Alias for frontend operationId restoreMessage (POST /messages/{messageId}/restore/)
+    path(
+        "messages/<str:message_id>/restore/",
+        MessageRestoreView.as_view(),
+        name="restoreMessage",
+    ),
     path(
         "messages/<str:message_id>/replies/",
         MessageRepliesView.as_view(),

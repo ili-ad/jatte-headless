@@ -1,6 +1,6 @@
 {
   "totalOpIds": 47,
-  "bound": 43,
+  "bound": 44,
   "wsEventsVerified": 10,
   "missingBindings": [
     {
@@ -9,15 +9,6 @@
         {
           "method": "GET",
           "path": "/quoted-message/"
-        }
-      ]
-    },
-    {
-      "operationId": "restoreMessage",
-      "expected": [
-        {
-          "method": "POST",
-          "path": "/messages/{messageId}/restore/"
         }
       ]
     },
