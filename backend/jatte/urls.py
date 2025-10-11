@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
 from chat.views import TokenView  # real view
+from chat.views_quoted import QuotedMessageView
 from chat.api_views import (
     RoomConfigView,
     RoomMessageListCreateView,
@@ -22,6 +23,7 @@ urlpatterns = [
     path("", include("reminders.urls")),
     path("", include("events.urls")),
     path("", include("state.urls")),
+    path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.
     path("api/token/", TokenView.as_view(), name="token-obtain"),
