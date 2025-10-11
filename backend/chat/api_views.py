@@ -62,6 +62,7 @@ from .serializers import (
 )
 from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
+from .search import SearchTimeoutError, search_messages
 
 
 def _user_can_access_room(user, room) -> bool:
@@ -129,6 +130,101 @@ def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
         )
     except Exception:
         pass
+
+
+class SearchMessagesView(APIView):
+    """Perform full-text search across chat messages."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):  # noqa: D401 - inherited docstring sufficient
+        query = request.query_params.get("q", "")
+        if not isinstance(query, str):
+            query = ""
+        trimmed_query = query.strip()
+        if len(trimmed_query) < 2:
+            return Response(
+                {"detail": "Query must be at least 2 characters"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        limit_param = request.query_params.get("limit")
+        try:
+            limit = int(limit_param) if limit_param is not None else 20
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid limit"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        if limit <= 0:
+            return Response(
+                {"detail": "limit must be positive"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        limit = min(limit, 50)
+
+        cid = request.query_params.get("cid")
+        before = request.query_params.get("before")
+
+        allowed_uuids: list[str] | None
+        if cid:
+            canonical = canonical_cid(cid)
+            try:
+                _, room_uuid = canonical.split(":", 1)
+            except ValueError:
+                return Response(
+                    {"detail": "Invalid cid"},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
+            room = get_object_or_404(Room, uuid=room_uuid)
+            if not _user_can_access_room(request.user, room):
+                raise PermissionDenied()
+            allowed_uuids = [room.uuid]
+        else:
+            if getattr(request.user, "is_staff", False) or getattr(
+                request.user, "is_superuser", False
+            ):
+                allowed_uuids = None
+            else:
+                username = getattr(request.user, "username", "")
+                rooms = (
+                    Room.objects.filter(
+                        Q(client=username)
+                        | Q(agent=request.user)
+                        | Q(messages__sent_by=username)
+                    )
+                    .distinct()
+                    .values_list("uuid", flat=True)
+                )
+                allowed_uuids = list(rooms)
+                if not allowed_uuids:
+                    return Response({"results": [], "next": None})
+
+        try:
+            results, next_cursor = search_messages(
+                query=trimmed_query,
+                limit=limit,
+                before=before,
+                cid=cid,
+                allowed_channel_uuids=allowed_uuids,
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        except SearchTimeoutError:
+            logger.warning("messages search timed out for user %s", request.user)
+            return Response(
+                {"detail": "Search timed out"},
+                status=status.HTTP_504_GATEWAY_TIMEOUT,
+            )
+
+        return Response({"results": results, "next": next_cursor})
 
 
 class RoomListCreateView(generics.ListCreateAPIView):

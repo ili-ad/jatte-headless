@@ -239,7 +239,7 @@ export type SearchRequest = {
   q: string;
   cid?: string;
   limit?: number;
-  offset?: number;
+  offset?: number | string;
 };
 
 export type SearchResponse = {
@@ -2275,13 +2275,18 @@ export const channelQuery = async ({
   return { messages, next };
 };
 
-export const search = async ({
-  q,
+const searchLocal = ({
+  query,
   cid,
   limit,
   offset,
-}: SearchRequest): Promise<SearchResponse> => {
-  const normalizedQuery = typeof q === "string" ? q.trim().toLowerCase() : "";
+}: {
+  query: string;
+  cid?: string;
+  limit?: number;
+  offset?: number | string;
+}): SearchResponse => {
+  const normalizedQuery = query.toLowerCase();
   if (!normalizedQuery) {
     return { messages: [] };
   }
@@ -2319,6 +2324,125 @@ export const search = async ({
   const next = end < matches.length ? String(end) : undefined;
 
   return { messages: page, next };
+};
+
+const parseServerSearchResults = (input: unknown): LocalMessage[] => {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  const results: LocalMessage[] = [];
+
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const candidate = item as Record<string, unknown>;
+
+    const id = candidate.id;
+    if (id === undefined || id === null) continue;
+
+    const createdAt = candidate.created_at;
+    if (typeof createdAt !== "string" || !createdAt.trim()) continue;
+
+    const cid = candidate.cid;
+    if (typeof cid !== "string" || !cid.trim()) continue;
+
+    const textValue = candidate.text;
+    const normalizedText =
+      typeof textValue === "string"
+        ? textValue
+        : typeof candidate.body === "string"
+          ? (candidate.body as string)
+          : "";
+
+    const userId = candidate.user_id;
+    const normalizedUserId =
+      typeof userId === "string" || typeof userId === "number"
+        ? userId
+        : undefined;
+
+    const message: Record<string, unknown> = {
+      id,
+      text: normalizedText,
+      body: normalizedText,
+      cid,
+      created_at: createdAt,
+    };
+
+    if (normalizedUserId !== undefined) {
+      message.user_id = normalizedUserId;
+      message.user = { id: normalizedUserId };
+    }
+
+    results.push(message as LocalMessage);
+  }
+
+  return results;
+};
+
+export const search = async ({
+  q,
+  cid,
+  limit,
+  offset,
+}: SearchRequest): Promise<SearchResponse> => {
+  const trimmedQuery = typeof q === "string" ? q.trim() : "";
+  if (trimmedQuery.length < 2) {
+    return { messages: [] };
+  }
+
+  const normalizedCid = typeof cid === "string" ? cid.trim() : undefined;
+  const limitNumber = toNonNegativeInteger(limit);
+
+  const params = new URLSearchParams();
+  params.set("q", trimmedQuery);
+  if (normalizedCid) {
+    params.set("cid", normalizedCid);
+  }
+  if (limitNumber !== undefined) {
+    params.set("limit", String(limitNumber));
+  }
+  if (typeof offset === "string" && offset) {
+    params.set("before", offset);
+  }
+
+  const queryString = params.toString();
+  const response = await fetch(
+    `/search/messages/${queryString ? `?${queryString}` : ""}`,
+    {
+      method: "GET",
+      credentials: "same-origin",
+    },
+  );
+
+  if (response.status === 501) {
+    return searchLocal({
+      query: trimmedQuery,
+      cid: normalizedCid,
+      limit: limitNumber,
+      offset,
+    });
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      `Failed to search messages (status ${response.status})`,
+    );
+    (error as ErrorWithStatus).status = response.status;
+    throw error;
+  }
+
+  const payload = (await response.json()) as {
+    results?: unknown;
+    next?: unknown;
+  } | null;
+
+  const messages = parseServerSearchResults(payload?.results);
+  const nextCursor =
+    typeof payload?.next === "string" && payload.next.trim()
+      ? payload.next
+      : undefined;
+
+  return { messages, next: nextCursor };
 };
 
 const toThreadPreviewMessage = (message: Message): ThreadPreviewMessage => {
