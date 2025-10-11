@@ -1,10 +1,12 @@
 from django.urls import reverse
 from rest_framework.test import APITestCase
+from django.test import override_settings
 from django.conf import settings
 import jwt
 
 from accounts_supabase.models import CustomUser
 
+@override_settings(ROOT_URLCONF="chat.urls")
 class AttachmentAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
@@ -21,6 +23,18 @@ class AttachmentAPITests(APITestCase):
         self.assertEqual(res.data["attachment"]["name"], "file1")
         self.assertIn("url", res.data["attachment"])
         self.assertTrue(res.data["attachment"]["url"].startswith("http://testserver/attachments/"))
+
+    def test_upload_attachment_alias(self):
+        token = self.make_token()
+        res = self.client.post(
+            "/attachments/",
+            {"name": "alias.txt"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertIn("attachment", res.data)
+        self.assertEqual(res.data["attachment"]["name"], "alias.txt")
 
     def test_requires_name(self):
         token = self.make_token()
