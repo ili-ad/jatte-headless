@@ -230,6 +230,8 @@ urlpatterns = [
     # Alias for frontend operationId createLinkPreview (POST /link-preview/)
     path("link-preview/", LinkPreviewView.as_view(), name="createLinkPreview"),
     path("api/attachments/", AttachmentUploadView.as_view(), name="attachments"),
+    # Alias for frontend operationId uploadAttachment (POST /attachments/)
+    path("attachments/", AttachmentUploadView.as_view(), name="uploadAttachment"),
     path(
         "api/messages/<str:message_id>/flag/",
         MessageFlagView.as_view(),
