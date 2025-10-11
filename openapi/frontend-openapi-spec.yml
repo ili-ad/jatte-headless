@@ -728,6 +728,47 @@ paths:
                     type: boolean
         '404':
           description: relay not found
+  /chat/agent/policy:
+    get:
+      operationId: getAgentPolicy
+      tags: [chat-agent]
+      parameters:
+        - name: cid
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: policy configuration for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRoomPolicy'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+    put:
+      operationId: setAgentPolicy
+      tags: [chat-agent]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentPolicyUpdateRequest'
+      responses:
+        '200':
+          description: updated policy configuration for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRoomPolicy'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /chat/agent/skills:
     get:
       operationId: listSkillsForRoom
@@ -2130,6 +2171,55 @@ components:
           type: string
           enum: [queued]
       required: [run_id, status]
+    AgentRoomPolicy:
+      type: object
+      properties:
+        cid:
+          type: string
+        agent_enabled:
+          type: boolean
+        enabled_skills:
+          type: array
+          items:
+            type: string
+        tool_hop_cap:
+          type: integer
+        turn_cap:
+          type: integer
+        auto_reply_mode:
+          type: string
+          enum: [receptionist, off, manual]
+        handoff_message:
+          type: string
+      required:
+        - cid
+        - agent_enabled
+        - enabled_skills
+        - tool_hop_cap
+        - turn_cap
+        - auto_reply_mode
+        - handoff_message
+    AgentPolicyUpdateRequest:
+      type: object
+      properties:
+        cid:
+          type: string
+        agent_enabled:
+          type: boolean
+        enabled_skills:
+          type: array
+          items:
+            type: string
+        tool_hop_cap:
+          type: integer
+        turn_cap:
+          type: integer
+        auto_reply_mode:
+          type: string
+          enum: [receptionist, off, manual]
+        handoff_message:
+          type: string
+      required: [cid]
         size:
           type: integer
         sha256:

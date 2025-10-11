@@ -235,6 +235,24 @@
   },
   {
     "method": "GET",
+    "path": "/chat/agent/policy",
+    "operationId": "getAgentPolicy",
+    "stubName": "chatAgent.getAgentPolicy",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "PUT",
+    "path": "/chat/agent/policy",
+    "operationId": "setAgentPolicy",
+    "stubName": "chatAgent.setAgentPolicy",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/chat/agent/skills",
     "operationId": "listSkillsForRoom",
     "stubName": "chatAgent.listSkillsForRoom",
