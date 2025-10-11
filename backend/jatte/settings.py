@@ -142,6 +142,7 @@ INSTALLED_APPS = [
     'core',
     'state',
     'polls',
+    'backend.chat_addons',
 ]
 
 # REST framework configuration
