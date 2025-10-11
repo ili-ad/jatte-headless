@@ -43,6 +43,7 @@ from .models import (
     RoomMute,
     UserMute,
 )
+from .consumers import broadcast_message_update
 from .serializers import (
     DraftSerializer,
     FlagSerializer,
@@ -88,6 +89,12 @@ def _user_can_access_room(user, room) -> bool:
             getattr(user, "is_superuser", False),
         )
     )
+
+
+def _user_is_moderator(user) -> bool:
+    """Return whether the given ``user`` has moderator privileges."""
+
+    return bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False))
 
 
 def _message_from_identifier(message_id: str) -> Message:
@@ -334,6 +341,13 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
         if not _user_can_access_room(self.request.user, room):
             raise PermissionDenied()
         qs = room.messages.order_by("-id")
+        include_hidden_value = self.request.query_params.get("include_hidden")
+        include_hidden = (
+            isinstance(include_hidden_value, str)
+            and include_hidden_value.lower() in {"1", "true", "yes"}
+        )
+        if not (_user_is_moderator(self.request.user) and include_hidden):
+            qs = qs.filter(hidden=False)
         before = self.request.query_params.get("before")
         if before:
             try:
@@ -719,6 +733,53 @@ class MessageRestoreView(APIView):
         )
 
         return Response(payload)
+
+
+class MessageHideView(APIView):
+    """Hide or unhide a message."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _allow_self_hide(self) -> bool:
+        return bool(getattr(settings, "CHAT_ALLOW_SELF_HIDE", False))
+
+    def _can_moderate(self, user, message: Message) -> bool:
+        if _user_is_moderator(user):
+            return True
+        if self._allow_self_hide() and message.sent_by == getattr(user, "username", None):
+            return True
+        return False
+
+    def post(self, request, message_id: str):
+        message = _message_from_identifier(message_id)
+        if not self._can_moderate(request.user, message):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        now = timezone.now()
+        if not message.hidden:
+            message.hidden = True
+        message.hidden_by = request.user
+        message.hidden_at = now
+        message.save(update_fields=["hidden", "hidden_by", "hidden_at", "updated_at"])
+
+        broadcast_message_update(message)
+        payload = MessageSerializer(message).data
+        return Response({"status": "hidden", "message": payload})
+
+    def delete(self, request, message_id: str):
+        message = _message_from_identifier(message_id)
+        if not self._can_moderate(request.user, message):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        message.hidden = False
+        message.hidden_by = None
+        message.hidden_at = None
+        message.save(update_fields=["hidden", "hidden_by", "hidden_at", "updated_at"])
+
+        broadcast_message_update(message)
+        payload = MessageSerializer(message).data
+        return Response({"status": "visible", "message": payload})
 
 
 class MessageReactionsView(APIView):

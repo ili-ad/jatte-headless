@@ -329,6 +329,53 @@ paths:
           description: forbidden
         '404':
           description: parent message not found
+  /messages/{messageId}/hide/:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: hideMessage
+      tags: [moderation]
+      responses:
+        '200':
+          description: message hidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [hidden]
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '403':
+          description: forbidden
+        '404':
+          description: message not found
+    delete:
+      operationId: unhideMessage
+      tags: [moderation]
+      responses:
+        '200':
+          description: message visible
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [visible]
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '403':
+          description: forbidden
+        '404':
+          description: message not found
   /messages/{messageId}/restore/:
     post:
       operationId: restoreMessage
@@ -1232,6 +1279,12 @@ components:
           format: date-time
           nullable: true
         updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        hidden:
+          type: boolean
+        hidden_at:
           type: string
           format: date-time
           nullable: true
