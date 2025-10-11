@@ -198,6 +198,33 @@
     "status": "ok"
   },
   {
+    "method": "POST",
+    "path": "/chat/integrations/sms/webhook/",
+    "operationId": "smsInboundWebhook",
+    "stubName": "chatIntegrations.smsInboundWebhook",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/integrations/sms/send/",
+    "operationId": "smsSend",
+    "stubName": "chatIntegrations.smsSend",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/integrations/sms/receipt/",
+    "operationId": "smsDeliveryReceipt",
+    "stubName": "chatIntegrations.smsDeliveryReceipt",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
     "method": "GET",
     "path": "/api/chat/agent/{cid}/",
     "operationId": "getAgentStatus",
