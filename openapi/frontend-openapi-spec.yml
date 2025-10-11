@@ -583,6 +583,42 @@ paths:
           description: forbidden
         '404':
           description: intake not found
+  /chat/admin/audit/:
+    get:
+      operationId: listAudit
+      tags: [chat-admin]
+      parameters:
+        - in: query
+          name: cid
+          required: false
+          schema:
+            type: string
+          description: Filter audit events to a specific channel.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: Maximum number of entries to return (default 50).
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+          description: Pagination cursor from a previous response.
+      responses:
+        '200':
+          description: structured audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /chat/integrations/sms/webhook/:
     post:
       operationId: smsInboundWebhook
@@ -1876,6 +1912,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/IntakeItem'
+        next:
+          type: string
+          nullable: true
+      required: [results]
+    AuditTrailEntry:
+      type: object
+      properties:
+        ts:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        cid:
+          type: string
+        action:
+          type: string
+          enum:
+            [claim, approve, reject, escalate, agent_enable, agent_disable, agent_invoke, sms_send]
+        target_id:
+          type: string
+          nullable: true
+        request_id:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+      required: [ts, user_id, cid, action, request_id, meta]
+    AuditListResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditTrailEntry'
         next:
           type: string
           nullable: true

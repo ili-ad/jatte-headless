@@ -21,6 +21,9 @@ from chat.models import Message
 from chat.serializers import MessageSerializer
 from chat.consumers import broadcast_message_update
 
+from ..common_audit.decorators import audit_action
+from ..common_audit.models import AuditTrail
+from ..common_audit.throttling import SmsSendRateThrottle
 from .models import SmsRelay
 from .serializers import SmsReceiptSerializer, SmsSendSerializer, SmsWebhookSerializer
 from .services.linking import (
@@ -113,7 +116,9 @@ class SmsWebhookView(APIView):
 class SmsSendView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [DevTokenOrJWTAuthentication]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [SmsSendRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.SMS_SEND)
     def post(self, request: Request) -> Response:
         serializer = SmsSendSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -129,6 +134,8 @@ class SmsSendView(APIView):
             or getattr(request.user, "username", None)
             or str(request.user.pk)
         )
+
+        request._audit_context = {"cid": canonical}
 
         client = SmsProviderClient()
         try:
@@ -150,6 +157,11 @@ class SmsSendView(APIView):
         )
 
         run_id = str(uuid.uuid4())
+        request._audit_context = {
+            "cid": canonical,
+            "target_id": provider_response.external_id,
+            "meta": {"run_id": run_id},
+        }
         return Response(
             {"run_id": run_id, "status": "queued"},
             status=status.HTTP_202_ACCEPTED,

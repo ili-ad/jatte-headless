@@ -14,7 +14,13 @@ from rest_framework.views import APIView
 
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from chat.models import Room
+from chat.utils import canonical_cid
 
+from ..common_audit.decorators import audit_action
+from ..common_audit.models import AuditTrail
+from ..common_audit.throttling import ClaimRoomRateThrottle, IntakeWriteRateThrottle
+
+from .models import MessageIntake
 from .serializers import (
     ClaimRoomSerializer,
     GatingRulesSerializer,
@@ -57,9 +63,14 @@ class ClaimRoomView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ClaimRoomRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.CLAIM, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        room = _get_room(cid)
+        canonical = canonical_cid(cid)
+        room = _get_room(canonical)
+        request._audit_context = {"cid": canonical, "target_id": room.uuid}
+
         with transaction.atomic():
             try:
                 ownership = triage.claim_room(user=request.user, room=room)
@@ -67,9 +78,14 @@ class ClaimRoomView(APIView):
                 raise PermissionDenied(str(exc)) from exc
 
         owner_identifier = _resolve_user_identifier(request.user)
+        request._audit_context = {
+            "cid": canonical,
+            "target_id": room.uuid,
+            "meta": {"owner_id": owner_identifier},
+        }
         serializer = ClaimRoomSerializer(
             data={
-                "cid": cid,
+                "cid": canonical,
                 "owner_id": owner_identifier,
                 "claimed_at": ownership.claimed_at,
             }
@@ -137,9 +153,28 @@ class ApproveIntakeView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [IntakeWriteRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.APPROVE, target_kwarg="message_id")
     def post(self, request: Request, message_id: str) -> Response:
+        base_context = {"target_id": message_id}
+        request._audit_context = dict(base_context)
+        intake_lookup = (
+            MessageIntake.objects.filter(message_id=message_id)
+            .values_list("cid", flat=True)
+            .first()
+        )
+        if intake_lookup:
+            base_context["cid"] = canonical_cid(intake_lookup)
+            request._audit_context = dict(base_context)
+
         result = gating.approve_intake(message_id=message_id, actor=request.user)
+        enriched_context = dict(base_context)
+        enriched_context["meta"] = {
+            "status": result.status,
+            "muted": result.muted,
+        }
+        request._audit_context = enriched_context
         serializer = IntakeActionResponseSerializer(asdict(result))
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -149,7 +184,9 @@ class RejectIntakeView(APIView):
         DevTokenOrJWTAuthentication
     ]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [IntakeWriteRateThrottle]
 
+    @audit_action(action=AuditTrail.Action.REJECT, target_kwarg="message_id")
     def post(self, request: Request, message_id: str) -> Response:
         payload = request.data or {}
         reason = payload.get("reason") or "spam"
@@ -160,14 +197,86 @@ class RejectIntakeView(APIView):
         elif isinstance(mute_raw, str):
             mute = mute_raw.lower() in {"1", "true", "yes", "on"}
 
+        base_context = {"target_id": message_id}
+        request._audit_context = dict(base_context)
+        intake_lookup = (
+            MessageIntake.objects.filter(message_id=message_id)
+            .values_list("cid", flat=True)
+            .first()
+        )
+        if intake_lookup:
+            base_context["cid"] = canonical_cid(intake_lookup)
+            request._audit_context = dict(base_context)
+
         result = gating.reject_intake(
             message_id=message_id,
             actor=request.user,
             reason=reason,
             mute=mute,
         )
+        enriched_context = dict(base_context)
+        enriched_context["meta"] = {
+            "status": result.status,
+            "muted": result.muted,
+        }
+        request._audit_context = enriched_context
         serializer = IntakeActionResponseSerializer(asdict(result))
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AuditTrailListView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        limit_param = request.query_params.get("limit")
+        cursor_param = request.query_params.get("cursor")
+        cid_param = request.query_params.get("cid")
+
+        limit = 50
+        if limit_param:
+            try:
+                limit = max(1, min(100, int(limit_param)))
+            except (TypeError, ValueError) as exc:
+                raise ValidationError({"limit": "Invalid limit"}) from exc
+
+        queryset = AuditTrail.objects.all().order_by("-ts", "-id")
+        if cid_param:
+            try:
+                canonical = canonical_cid(cid_param)
+            except ValueError as exc:
+                raise ValidationError({"cid": "Invalid cid"}) from exc
+            queryset = queryset.filter(cid=canonical)
+
+        if cursor_param:
+            try:
+                cursor_id = int(cursor_param)
+            except (TypeError, ValueError) as exc:
+                raise ValidationError({"cursor": "Invalid cursor"}) from exc
+            queryset = queryset.filter(id__lt=cursor_id)
+
+        rows = list(queryset[: limit + 1])
+        has_next = len(rows) > limit
+        if has_next:
+            rows = rows[:limit]
+        next_cursor = str(rows[-1].id) if has_next and rows else None
+
+        results = [
+            {
+                "ts": entry.ts.isoformat().replace("+00:00", "Z"),
+                "user_id": entry.user_id,
+                "cid": entry.cid,
+                "action": entry.action,
+                "target_id": entry.target_id,
+                "request_id": entry.request_id,
+                "meta": entry.meta or {},
+            }
+            for entry in rows
+        ]
+
+        return Response({"results": results, "next": next_cursor})
 
 
 def _get_room(cid: str) -> Room:
