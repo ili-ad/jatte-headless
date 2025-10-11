@@ -27,6 +27,27 @@ class MessageAttachmentSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
     url = serializers.URLField()
+    size = serializers.IntegerField(required=False)
+    mime_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    scan_status = serializers.CharField(read_only=True)
+    scan_label = serializers.CharField(read_only=True, allow_blank=True, allow_null=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw = dict(instance)
+        status = raw.get("scan_status") or Message.ATTACHMENT_SCAN_PENDING
+        if status not in {
+            Message.ATTACHMENT_SCAN_PENDING,
+            Message.ATTACHMENT_SCAN_CLEAN,
+            Message.ATTACHMENT_SCAN_FLAGGED,
+            Message.ATTACHMENT_SCAN_ERROR,
+        }:
+            status = Message.ATTACHMENT_SCAN_PENDING
+        data["scan_status"] = status
+        data["scan_label"] = raw.get("scan_label")
+        if not data.get("mime_type") and raw.get("content_type"):
+            data["mime_type"] = raw.get("content_type")
+        return data
 
 
 class MessagePreviewSerializer(serializers.Serializer):
@@ -87,7 +108,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict) -> Message:
         validated_data.setdefault("custom_data", {})
-        validated_data.setdefault("attachments", [])
+        attachments = validated_data.setdefault("attachments", [])
+        if attachments:
+            validated_data["attachments"] = [
+                Message.ensure_attachment_scan_defaults(item) for item in attachments
+            ]
         if "preview" not in validated_data:
             validated_data["preview"] = None
         return super().create(validated_data)
@@ -156,6 +181,12 @@ class MessageUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance: Message, validated_data: dict) -> Message:
         pinned = validated_data.pop("pinned", serializers.empty)
         pinned_by = validated_data.pop("pinned_by", None)
+
+        attachments = validated_data.get("attachments")
+        if attachments is not None:
+            validated_data["attachments"] = [
+                Message.ensure_attachment_scan_defaults(item) for item in attachments
+            ]
 
         instance = super().update(instance, validated_data)
 

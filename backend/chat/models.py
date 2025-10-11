@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -21,6 +25,11 @@ class Channel(models.Model):
 
 class Message(models.Model):
     """Message belonging to a channel."""
+
+    ATTACHMENT_SCAN_PENDING = "pending"
+    ATTACHMENT_SCAN_CLEAN = "clean"
+    ATTACHMENT_SCAN_FLAGGED = "flagged"
+    ATTACHMENT_SCAN_ERROR = "error"
 
     channel = models.ForeignKey(
         Channel, related_name="messages", on_delete=models.CASCADE
@@ -47,6 +56,46 @@ class Message(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.sent_by}"
+
+    @staticmethod
+    def ensure_attachment_scan_defaults(attachment: dict[str, Any] | None) -> dict[str, Any]:
+        """Return ``attachment`` with default scan metadata populated."""
+
+        data: dict[str, Any] = dict(attachment or {})
+        status = data.get("scan_status") or Message.ATTACHMENT_SCAN_PENDING
+        if status not in {
+            Message.ATTACHMENT_SCAN_PENDING,
+            Message.ATTACHMENT_SCAN_CLEAN,
+            Message.ATTACHMENT_SCAN_FLAGGED,
+            Message.ATTACHMENT_SCAN_ERROR,
+        }:
+            status = Message.ATTACHMENT_SCAN_PENDING
+        data["scan_status"] = status
+        data.setdefault("scan_label", None)
+        return data
+
+    def get_attachment(self, attachment_id: str) -> dict[str, Any] | None:
+        """Return a shallow copy of an attachment payload by ``attachment_id``."""
+
+        for attachment in self.attachments or []:
+            if attachment.get("id") == attachment_id:
+                return dict(attachment)
+        return None
+
+    def update_attachment(self, attachment_id: str, **updates: Any) -> dict[str, Any] | None:
+        """Update attachment metadata in-place and persist changes."""
+
+        attachments = list(self.attachments or [])
+        for index, attachment in enumerate(attachments):
+            if attachment.get("id") != attachment_id:
+                continue
+            new_payload = dict(attachment)
+            new_payload.update(updates)
+            attachments[index] = new_payload
+            self.attachments = attachments
+            self.save(update_fields=["attachments", "updated_at"])
+            return new_payload
+        return None
 
 
 class ReadState(models.Model):
