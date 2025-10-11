@@ -4,11 +4,6 @@
   "wsEventsVerified": 10,
   "missingBindings": [],
   "shapeMismatches": [],
-  "authIssues": [
-    {
-      "operationId": "listUserAgents",
-      "detail": "GET /user-agent/ bypasses Supabase auth (AllowAny)"
-    }
-  ],
+  "authIssues": [],
   "stragglerTokens": []
 }
