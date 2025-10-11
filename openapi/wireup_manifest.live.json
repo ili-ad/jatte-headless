@@ -136,7 +136,7 @@
   },
   {
     "method": "GET",
-    "path": "/api/chat/admin/queue/",
+    "path": "/chat/admin/queue/",
     "operationId": "listAdminQueue",
     "stubName": "chatAdmin.listAdminQueue",
     "ticketType": "api",
@@ -145,9 +145,54 @@
   },
   {
     "method": "POST",
-    "path": "/api/chat/admin/rooms/{cid}/claim/",
+    "path": "/chat/admin/rooms/{cid}/claim/",
     "operationId": "claimRoom",
     "stubName": "chatAdmin.claimRoom",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/chat/admin/gating-rules/",
+    "operationId": "getGatingRules",
+    "stubName": "chatAdmin.getGatingRules",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "PUT",
+    "path": "/chat/admin/gating-rules/",
+    "operationId": "updateGatingRules",
+    "stubName": "chatAdmin.updateGatingRules",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/chat/admin/intake/",
+    "operationId": "listIntake",
+    "stubName": "chatAdmin.listIntake",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/admin/intake/{messageId}/approve/",
+    "operationId": "approveIntake",
+    "stubName": "chatAdmin.approveIntake",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/admin/intake/{messageId}/reject/",
+    "operationId": "rejectIntake",
+    "stubName": "chatAdmin.rejectIntake",
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
@@ -184,6 +229,15 @@
     "path": "/api/chat/agent/{cid}/invoke/",
     "operationId": "invokeAgent",
     "stubName": "chatAgent.invokeAgent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/chat/notifications/intake/",
+    "operationId": "getIntakeSummary",
+    "stubName": "chatNotifications.getIntakeSummary",
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
