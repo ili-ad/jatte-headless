@@ -39,6 +39,7 @@ from ..skills import ConversationCtx, Skill
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
+from .metrics import estimate_prompt_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,36 @@ class AgentReply:
 
     def __str__(self) -> str:  # pragma: no cover - convenience
         return self.text
+
+
+@dataclass
+class AgentOrchestrationResult:
+    """Internal representation of an orchestration cycle."""
+
+    request_id: str
+    text: str
+    status: str
+    tools_used: list[str]
+    latency_ms: int
+    tokens_in: int
+    tokens_out: int
+    cost_usd: Decimal
+    reason: str
+    handoff_triggered: bool
+
+
+@dataclass
+class AgentSimulationResult:
+    """Return payload for simulation endpoints."""
+
+    reply: str
+    status: str
+    tools_used: list[str]
+    latency_ms: int
+    tokens_in: int
+    tokens_out: int
+    cost_usd: Decimal
+    model: str
 
 
 class AgentService:
@@ -84,7 +115,108 @@ class AgentService:
         """Produce an agent reply and persist/broadcast it."""
 
         message_text = text if text is not None else (prompt or "")
-        effective_request_id = request_id or (meta or {}).get("request_id") or str(uuid.uuid4())
+        meta_payload = dict(meta or {})
+
+        result = self._orchestrate(
+            cid=cid,
+            user_id=user_id,
+            message_text=message_text,
+            meta=meta_payload,
+            request_id=request_id,
+            persist=True,
+            record_run=True,
+        )
+
+        reply = AgentReply(
+            text=result.text,
+            tokens_used=result.tokens_out,
+            latency_ms=result.latency_ms,
+            model=AGENT_MODEL,
+            cost_usd=result.cost_usd,
+            reason=result.status,
+        )
+
+        log_reason = result.reason if result.status == AgentRun.STATUS_ERROR else result.status
+
+        logger.info(
+            "agent.generate",
+            extra={
+                "request_id": result.request_id,
+                "cid": cid,
+                "user_id": user_id,
+                "latency_ms": result.latency_ms,
+                "tokens_used": result.tokens_out,
+                "reason": log_reason,
+                "status": result.status,
+                "tools_used": result.tools_used,
+            },
+        )
+
+        return reply
+
+    def simulate(
+        self,
+        *,
+        cid: str,
+        prompt: str,
+        meta: dict[str, Any] | None = None,
+        user_id: str | None = None,
+        request_id: str | None = None,
+    ) -> AgentSimulationResult:
+        """Execute the orchestration flow without persisting any messages."""
+
+        meta_payload = dict(meta or {})
+        message_text = prompt or ""
+
+        result = self._orchestrate(
+            cid=cid,
+            user_id=user_id,
+            message_text=message_text,
+            meta=meta_payload,
+            request_id=request_id,
+            persist=False,
+            record_run=False,
+        )
+
+        log_reason = result.reason if result.status == AgentRun.STATUS_ERROR else result.status
+
+        logger.info(
+            "agent.simulate",
+            extra={
+                "request_id": result.request_id,
+                "cid": cid,
+                "user_id": user_id,
+                "latency_ms": result.latency_ms,
+                "tokens_used": result.tokens_out,
+                "reason": log_reason,
+                "status": result.status,
+                "tools_used": result.tools_used,
+            },
+        )
+
+        return AgentSimulationResult(
+            reply=result.text,
+            status=result.status,
+            tools_used=result.tools_used,
+            latency_ms=result.latency_ms,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            cost_usd=result.cost_usd,
+            model=AGENT_MODEL,
+        )
+
+    def _orchestrate(
+        self,
+        *,
+        cid: str,
+        user_id: str | None,
+        message_text: str,
+        meta: dict[str, Any],
+        request_id: str | None,
+        persist: bool,
+        record_run: bool,
+    ) -> AgentOrchestrationResult:
+        effective_request_id = request_id or meta.get("request_id") or str(uuid.uuid4())
         start = time.perf_counter()
         run_status = AgentRun.STATUS_OK
         tools_used: list[str] = []
@@ -164,7 +296,6 @@ class AgentService:
                             handoff_triggered = True
                             break
 
-                    # No tool, no fallback, treat as final reply (possibly empty)
                     reply_text = potential_text or ""
                     break
 
@@ -195,50 +326,40 @@ class AgentService:
             handoff_triggered = True
             logger.exception("agent.generate.failure", extra={"cid": cid})
 
-        message = self._persist_reply(cid=cid, text=reply_text, handoff=handoff_triggered)
         latency_ms = int((time.perf_counter() - start) * 1000)
+        tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
-        self._mark_provenance(message)
-        if handoff_triggered:
-            self._notify_handoff(cid)
+        if persist:
+            message = self._persist_reply(cid=cid, text=reply_text, handoff=handoff_triggered)
+            self._mark_provenance(message)
+            if handoff_triggered:
+                self._notify_handoff(cid)
 
-        self._record_run(
-            run_id=effective_request_id,
-            cid=cid,
-            user_id=user_id,
-            tools_used=tools_used,
-            status=run_status,
-            latency_ms=latency_ms,
-            tokens_out=tokens_out,
-            cost=total_cost,
-        )
+        if record_run:
+            self._record_run(
+                run_id=effective_request_id,
+                cid=cid,
+                user_id=user_id,
+                tools_used=tools_used,
+                status=run_status,
+                latency_ms=latency_ms,
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                cost=total_cost,
+            )
 
-        reply = AgentReply(
+        return AgentOrchestrationResult(
+            request_id=effective_request_id,
             text=reply_text,
-            tokens_used=tokens_out,
+            status=run_status,
+            tools_used=tools_used,
             latency_ms=latency_ms,
-            model=AGENT_MODEL,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
             cost_usd=total_cost,
-            reason=run_status,
+            reason=reason,
+            handoff_triggered=handoff_triggered,
         )
-
-        log_reason = reason if run_status == AgentRun.STATUS_ERROR else run_status
-
-        logger.info(
-            "agent.generate",
-            extra={
-                "request_id": effective_request_id,
-                "cid": cid,
-                "user_id": user_id,
-                "latency_ms": latency_ms,
-                "tokens_used": tokens_out,
-                "reason": log_reason,
-                "status": run_status,
-                "tools_used": tools_used,
-            },
-        )
-
-        return reply
 
     # ------------------------------------------------------------------
     # Helper methods
@@ -427,6 +548,7 @@ class AgentService:
         tools_used: Sequence[str],
         status: str,
         latency_ms: int,
+        tokens_in: int,
         tokens_out: int,
         cost: Decimal,
     ) -> None:
@@ -438,7 +560,7 @@ class AgentService:
                 "tools_used": list(tools_used),
                 "status": status,
                 "latency_ms": latency_ms,
-                "tokens_in": 0,
+                "tokens_in": max(tokens_in, 0),
                 "tokens_out": tokens_out,
                 "cost_usd": cost,
             },
