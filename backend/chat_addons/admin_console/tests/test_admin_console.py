@@ -1,10 +1,14 @@
+from unittest.mock import patch
+
+import jwt
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
-import jwt
 
 from accounts_supabase.models import CustomUser
-from chat.models import Room
+from chat.models import Message, Room, RoomMemberMute
+from backend.chat_addons.admin_console.models import GatingConfig, MessageIntake
 from backend.chat_addons.models import RoomOwnership
 
 
@@ -95,3 +99,184 @@ class AdminConsoleQueueTests(APITestCase):
         )
         self.assertEqual(len(response_new.json()["results"]), 1)
         self.assertEqual(response_new.json()["results"][0]["cid"], "messaging:mine-new")
+
+
+class GatingRulesAPITests(APITestCase):
+    def setUp(self):
+        self.operator = CustomUser.objects.create_user(
+            username="gate-admin",
+            email="gate@example.com",
+            password="secret",
+            supabase_uid="gate-admin",
+        )
+
+    def make_token(self, user: CustomUser) -> str:
+        return jwt.encode(
+            {"sub": user.supabase_uid, "email": user.email},
+            settings.SUPABASE_JWT_SECRET,
+            algorithm="HS256",
+        )
+
+    def test_get_and_update_rules(self):
+        token = self.make_token(self.operator)
+        url = reverse("get-gating-rules")
+
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("languages", payload)
+        self.assertEqual(payload["languages"], ["en"])
+
+        update_payload = {
+            "languages": ["en", "es"],
+            "min_length": 3,
+            "max_length": 500,
+            "min_interval_seconds": 12,
+            "blocklist": ["casino"],
+        }
+        update_response = self.client.put(
+            url,
+            update_payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(update_response.status_code, 200)
+        updated = update_response.json()
+        self.assertEqual(updated["languages"], ["en", "es"])
+        config = GatingConfig.objects.get(slug=GatingConfig.DEFAULT_SLUG)
+        self.assertEqual(config.blocklist, ["casino"])
+
+
+@override_settings(
+    ROOT_URLCONF="jatte.urls",
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "intake-tests",
+        }
+    },
+)
+class IntakeWorkflowTests(APITestCase):
+    def setUp(self):
+        self.operator = CustomUser.objects.create_user(
+            username="admin",
+            email="admin@example.com",
+            password="secret",
+            supabase_uid="admin",
+        )
+        self.visitor = CustomUser.objects.create_user(
+            username="visitor",
+            email="visitor@example.com",
+            password="secret",
+            supabase_uid="visitor",
+        )
+        self.room = Room.objects.create(uuid="intake-room", client="stream")
+
+    def make_token(self, user: CustomUser) -> str:
+        return jwt.encode(
+            {"sub": user.supabase_uid, "email": user.email},
+            settings.SUPABASE_JWT_SECRET,
+            algorithm="HS256",
+        )
+
+    def auth_headers(self, token: str) -> dict[str, str]:
+        return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+
+    def create_pending_message(self, text: str = "?") -> Message:
+        url = f"/api/rooms/{self.room.uuid}/messages/"
+        visitor_token = self.make_token(self.visitor)
+        with patch("chat.api_views._broadcast_to_cid") as mocked_broadcast:
+            response = self.client.post(
+                url,
+                {"text": text},
+                format="json",
+                **self.auth_headers(visitor_token),
+            )
+        self.assertEqual(response.status_code, 201)
+        mocked_broadcast.assert_not_called()
+        message = Message.objects.order_by("-id").first()
+        message.refresh_from_db()
+        self.assertTrue(message.hidden)
+        return message
+
+    def test_hold_first_message_creates_intake(self):
+        message = self.create_pending_message("?")
+        intake = MessageIntake.objects.get(message=message)
+        self.assertEqual(intake.status, MessageIntake.STATUS_PENDING)
+        self.assertIsNone(intake.reason)
+        self.assertEqual(intake.cid, f"messaging:{self.room.uuid}")
+
+    def test_approve_intake_unhides_and_broadcasts(self):
+        message = self.create_pending_message("?")
+        intake = MessageIntake.objects.get(message=message)
+
+        token = self.make_token(self.operator)
+        url = reverse("approve-intake", kwargs={"message_id": str(message.id)})
+
+        with patch(
+            "backend.chat_addons.admin_console.services.gating._broadcast_message_new"
+        ) as mocked_broadcast, patch(
+            "backend.chat_addons.admin_console.services.gating.broadcast_message_update"
+        ) as mocked_update:
+            response = self.client.post(url, **self.auth_headers(token))
+
+        self.assertEqual(response.status_code, 200)
+        message.refresh_from_db()
+        intake.refresh_from_db()
+        self.assertFalse(message.hidden)
+        self.assertEqual(intake.status, MessageIntake.STATUS_APPROVED)
+        mocked_broadcast.assert_called_once()
+        mocked_update.assert_not_called()
+
+    def test_reject_intake_with_mute(self):
+        message = self.create_pending_message("?")
+        intake = MessageIntake.objects.get(message=message)
+        token = self.make_token(self.operator)
+        url = reverse("reject-intake", kwargs={"message_id": str(message.id)})
+
+        response = self.client.post(
+            url,
+            {"mute": True, "reason": "spam"},
+            format="json",
+            **self.auth_headers(token),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["muted"])
+        self.assertTrue(
+            RoomMemberMute.objects.filter(room=self.room, user=self.visitor).exists()
+        )
+        intake.refresh_from_db()
+        self.assertEqual(intake.status, MessageIntake.STATUS_REJECTED)
+        self.assertTrue(intake.muted)
+
+    def test_blocklisted_text_rejected(self):
+        GatingConfig.objects.update_or_create(
+            slug=GatingConfig.DEFAULT_SLUG,
+            defaults={
+                "languages": ["en"],
+                "min_length": 1,
+                "max_length": 1000,
+                "min_interval_seconds": 0,
+                "blocklist": ["casino"],
+            },
+        )
+        url = f"/api/rooms/{self.room.uuid}/messages/"
+        visitor_token = self.make_token(self.visitor)
+        with patch("chat.api_views._broadcast_to_cid") as mocked_broadcast:
+            response = self.client.post(
+                url,
+                {"text": "visit this casino now"},
+                format="json",
+                **self.auth_headers(visitor_token),
+            )
+
+        self.assertEqual(response.status_code, 201)
+        mocked_broadcast.assert_not_called()
+        message = Message.objects.get()
+        message.refresh_from_db()
+        self.assertTrue(message.hidden)
+        intake = MessageIntake.objects.get(message=message)
+        self.assertEqual(intake.status, MessageIntake.STATUS_REJECTED)
+        self.assertEqual(intake.reason, "spam")
