@@ -1,6 +1,6 @@
 {
   "totalOpIds": 47,
-  "bound": 42,
+  "bound": 43,
   "wsEventsVerified": 10,
   "missingBindings": [
     {
@@ -36,15 +36,6 @@
         {
           "method": "POST",
           "path": "/subarray/"
-        }
-      ]
-    },
-    {
-      "operationId": "uploadAttachment",
-      "expected": [
-        {
-          "method": "POST",
-          "path": "/attachments/"
         }
       ]
     }
