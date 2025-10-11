@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.db import models
 
 
@@ -25,11 +27,31 @@ class RoomAgentFlag(models.Model):
 
 
 class AgentRoomPolicy(models.Model):
-    """Persisted skill enablement state for a chat room."""
+    """Persisted skill enablement and orchestration policy for a chat room."""
+
+    RECEPTIONIST = "receptionist"
+    AUTO_REPLY_OFF = "off"
+    AUTO_REPLY_MANUAL = "manual"
+    AUTO_REPLY_CHOICES = [
+        (RECEPTIONIST, "Receptionist"),
+        (AUTO_REPLY_OFF, "Off"),
+        (AUTO_REPLY_MANUAL, "Manual"),
+    ]
 
     cid = models.CharField(max_length=255, unique=True)
     agent_enabled = models.BooleanField(default=False)
     enabled_skills = models.JSONField(default=list)
+    tool_hop_cap = models.PositiveIntegerField(default=2)
+    turn_cap = models.PositiveIntegerField(default=6)
+    auto_reply_mode = models.CharField(
+        max_length=16,
+        choices=AUTO_REPLY_CHOICES,
+        default=RECEPTIONIST,
+    )
+    handoff_message = models.CharField(
+        max_length=255,
+        default="Let me connect you with a teammate.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -40,3 +62,37 @@ class AgentRoomPolicy(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - debug helper
         return f"{self.cid} → {sorted(self.enabled_skills)}"
+
+
+class AgentRun(models.Model):
+    """Audit record for an agent invocation."""
+
+    STATUS_OK = "ok"
+    STATUS_CAPPED = "capped"
+    STATUS_HANDOFF = "handoff"
+    STATUS_ERROR = "error"
+    STATUS_CHOICES = [
+        (STATUS_OK, "Ok"),
+        (STATUS_CAPPED, "Capped"),
+        (STATUS_HANDOFF, "Handoff"),
+        (STATUS_ERROR, "Error"),
+    ]
+
+    run_id = models.CharField(max_length=255, unique=True)
+    cid = models.CharField(max_length=255)
+    user_id = models.CharField(max_length=255, blank=True)
+    tools_used = models.JSONField(default=list)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES)
+    latency_ms = models.PositiveIntegerField(default=0)
+    tokens_in = models.PositiveIntegerField(default=0)
+    tokens_out = models.PositiveIntegerField(default=0)
+    cost_usd = models.DecimalField(max_digits=10, decimal_places=6, default=Decimal("0"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "chat_addons"
+        ordering = ("-created_at", "-id")
+
+    def __str__(self) -> str:  # pragma: no cover - debug helper
+        return f"{self.run_id}:{self.status}"
