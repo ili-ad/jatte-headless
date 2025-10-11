@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AdminQueueView,
+    AuditTrailListView,
     ApproveIntakeView,
     ClaimRoomView,
     GatingRulesView,
@@ -24,4 +25,5 @@ urlpatterns = [
         RejectIntakeView.as_view(),
         name="reject-intake",
     ),
+    path("audit/", AuditTrailListView.as_view(), name="list-audit-trail"),
 ]
