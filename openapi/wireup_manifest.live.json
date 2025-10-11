@@ -154,6 +154,42 @@
   },
   {
     "method": "GET",
+    "path": "/api/chat/agent/{cid}/",
+    "operationId": "getAgentStatus",
+    "stubName": "chatAgent.getAgentStatus",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chat/agent/{cid}/enable/",
+    "operationId": "enableAgent",
+    "stubName": "chatAgent.enableAgent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chat/agent/{cid}/disable/",
+    "operationId": "disableAgent",
+    "stubName": "chatAgent.disableAgent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chat/agent/{cid}/invoke/",
+    "operationId": "invokeAgent",
+    "stubName": "chatAgent.invokeAgent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/muted-channels/",
     "operationId": "listMutedChannels",
     "stubName": "listMutedChannels",
