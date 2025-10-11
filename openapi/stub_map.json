@@ -24,6 +24,8 @@
   "client.queryChannels": "listRooms",
   "client.reminders.createReminder": "createReminder",
   "client.reminders.deleteReminder": "shim::client.reminders.deleteReminder",
+  "chatAgent.listSkillsForRoom": "listSkillsForRoom",
+  "chatAgent.setSkillsForRoom": "setSkillsForRoom",
   "chatAgent.getAgentStatus": "getAgentStatus",
   "chatAgent.enableAgent": "enableAgent",
   "chatAgent.disableAgent": "disableAgent",
