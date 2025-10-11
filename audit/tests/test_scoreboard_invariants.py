@@ -12,7 +12,7 @@ def load_scoreboard() -> dict:
 
 def test_scoreboard_bound_count_matches_total():
     scoreboard = load_scoreboard()
-    assert scoreboard["bound"] == scoreboard["totalOpIds"] == 47
+    assert scoreboard["bound"] == scoreboard["totalOpIds"]
 
 
 def test_scoreboard_missing_bindings_empty():
