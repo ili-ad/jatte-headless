@@ -1,4 +1,5 @@
 import logging
+import time
 
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -21,6 +22,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.joined_cids: set[str] = set()
         self.user = "anonymous"
+        self._bucket_capacity = max(1, getattr(settings, "WS_BUCKET_CAPACITY", 30))
+        self._bucket_refill_per_sec = max(
+            0.0, float(getattr(settings, "WS_BUCKET_REFILL_PER_SEC", 5))
+        )
+        self._bucket_tokens = float(self._bucket_capacity)
+        self._bucket_last_refill = time.monotonic()
         query = parse_qs(self.scope.get("query_string", b"").decode())
         token = (query.get("token") or [None])[0]
         if token:
@@ -43,6 +50,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def receive_json(self, content, **kwargs):
+        if not self._consume_ws_token():
+            cid = content.get("cid") or next(iter(self.joined_cids), None)
+            logger.warning(
+                "rate_limited=true user_id=%s cid=%s", self.user, cid
+            )
+            await self.close(code=getattr(settings, "WS_RATE_LIMIT_CLOSE_CODE", 4408))
+            return
+
         msg_type = content.get("type")
         if msg_type == "channel.watch":
             await self._handle_channel_watch(content)
@@ -50,6 +65,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self._handle_message_new(content)
         elif msg_type in {"typing.start", "typing.stop"}:
             await self._handle_typing_event(msg_type, content)
+
+    def _consume_ws_token(self) -> bool:
+        now = time.monotonic()
+        elapsed = now - self._bucket_last_refill
+        if elapsed > 0:
+            self._bucket_tokens = min(
+                float(self._bucket_capacity),
+                self._bucket_tokens + elapsed * self._bucket_refill_per_sec,
+            )
+            self._bucket_last_refill = now
+
+        if self._bucket_tokens >= 1:
+            self._bucket_tokens -= 1
+            return True
+        return False
 
     async def chat_message(self, event):
         await self.send_json(event["payload"])
