@@ -33,10 +33,11 @@ from django.conf import settings
 from django.db import transaction
 
 from chat.api_views import _broadcast_to_cid
-from chat.models import Channel, Room
+from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 from chat.utils import canonical_cid
 
+from ..common_audit.models import MessageProvenance
 from .services.agent_service import get_agent_service
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def _room_uuid(cid: str) -> str:
     return cid.split(":", 1)[1] if ":" in cid else cid
 
 
-def _persist_message(*, cid: str, text: str) -> None:
+def _persist_message(*, cid: str, text: str) -> Message:
     serializer = MessageSerializer(data={"text": text})
     serializer.is_valid(raise_exception=True)
 
@@ -75,6 +76,7 @@ def _persist_message(*, cid: str, text: str) -> None:
 
     payload = MessageSerializer(serializer.instance).data
     _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
+    return serializer.instance
 
 
 @shared_task
@@ -100,6 +102,10 @@ def run_agent_invocation(
         return
 
     try:
-        _persist_message(cid=canonical, text=str(response_text))
+        message = _persist_message(cid=canonical, text=str(response_text))
+        MessageProvenance.objects.get_or_create(
+            message=message,
+            defaults={"source": MessageProvenance.Source.AGENT},
+        )
     except Exception:  # pragma: no cover - defensive logging
         logger.exception("Unable to persist agent message for run %s", run_id)

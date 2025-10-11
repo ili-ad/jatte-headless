@@ -198,6 +198,15 @@
     "status": "ok"
   },
   {
+    "method": "GET",
+    "path": "/chat/admin/audit/",
+    "operationId": "listAudit",
+    "stubName": "chatAdmin.listAudit",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
     "method": "POST",
     "path": "/chat/integrations/sms/webhook/",
     "operationId": "smsInboundWebhook",
