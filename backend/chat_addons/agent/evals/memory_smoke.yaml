@@ -1,0 +1,22 @@
+name: memory_smoke
+cid: messaging:eval-memory
+skills:
+  - memory.store
+  - memory.recall
+policy:
+  tool_hop_cap: 3
+  turn_cap: 4
+steps:
+  - user: "Please remember that the wifi password is BlueBird42."
+    expect:
+      reply_contains: "remember"
+      tools_used:
+        - memory.store
+      memory_add: true
+      status: "ok"
+  - user: "What's the wifi password?"
+    expect:
+      reply_contains: "BlueBird42"
+      tools_used:
+        - memory.recall
+      status: "ok"

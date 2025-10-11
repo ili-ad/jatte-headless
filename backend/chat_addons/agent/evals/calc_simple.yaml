@@ -1,0 +1,14 @@
+name: calc_simple
+cid: messaging:eval-calc
+skills:
+  - utility.calc
+policy:
+  tool_hop_cap: 2
+  turn_cap: 4
+steps:
+  - user: "What is 2*(3+4)?"
+    expect:
+      reply_contains: "14"
+      tools_used:
+        - utility.calc
+      status: "ok"
