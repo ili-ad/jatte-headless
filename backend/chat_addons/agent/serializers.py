@@ -24,6 +24,12 @@ class RoomSkillListSerializer(serializers.Serializer):
     skills = SkillListItemSerializer(many=True)
 
 
+class AgentRunListQuerySerializer(serializers.Serializer):
+    cid = serializers.CharField()
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100)
+    cursor = serializers.CharField(required=False, allow_blank=False)
+
+
 class AgentRoomPolicySerializer(serializers.ModelSerializer):
     enabled_skills = serializers.ListField(
         child=serializers.CharField(),
@@ -44,18 +50,31 @@ class AgentRoomPolicySerializer(serializers.ModelSerializer):
         ]
 
 
-class AgentRunSerializer(serializers.ModelSerializer):
+class AgentRunSummarySerializer(serializers.ModelSerializer):
+    ts = serializers.DateTimeField(source="created_at")
+    cost_usd = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        coerce_to_string=False,
+    )
+
     class Meta:
         model = AgentRun
         fields = [
-            "run_id",
-            "cid",
-            "user_id",
-            "tools_used",
+            "ts",
             "status",
+            "tools_used",
             "latency_ms",
             "tokens_in",
             "tokens_out",
             "cost_usd",
-            "created_at",
+            "run_id",
         ]
+
+
+class AgentSimulateRequestSerializer(serializers.Serializer):
+    cid = serializers.CharField()
+    prompt = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    meta = serializers.DictField(
+        child=serializers.JSONField(), required=False, default=dict
+    )
