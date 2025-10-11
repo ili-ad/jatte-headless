@@ -1,26 +1,8 @@
 {
   "totalOpIds": 47,
-  "bound": 44,
+  "bound": 46,
   "wsEventsVerified": 10,
   "missingBindings": [
-    {
-      "operationId": "getQuotedMessage",
-      "expected": [
-        {
-          "method": "GET",
-          "path": "/quoted-message/"
-        }
-      ]
-    },
-    {
-      "operationId": "setQuotedMessage",
-      "expected": [
-        {
-          "method": "POST",
-          "path": "/quoted-message/"
-        }
-      ]
-    },
     {
       "operationId": "subarray",
       "expected": [
