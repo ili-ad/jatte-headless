@@ -111,7 +111,7 @@ export const LinkPreviewCard = ({ linkPreview }: LinkPreviewProps) => {
         'str-chat__link-preview-card--loading':
           LinkPreviewsManager.previewIsLoading(linkPreview),
       })}
-      data-testid='link-preview-card'
+      data-testid='link-preview'
     >
       <PopperTooltip
         offset={[0, 5]}

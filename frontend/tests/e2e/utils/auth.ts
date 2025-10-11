@@ -6,6 +6,29 @@ interface Credentials {
 }
 
 async function waitForChatInput(page: Page): Promise<Locator | null> {
+  const composer = page.getByTestId('composer-input')
+  if (await composer.count()) {
+    const textarea = composer.locator('textarea')
+    if (await textarea.count()) {
+      try {
+        await expect(textarea).toBeVisible({ timeout: 5000 })
+        return textarea
+      } catch (error) {
+        /* fall back to placeholder search */
+      }
+    }
+
+    const contentEditable = composer.locator('[contenteditable="true"]')
+    if (await contentEditable.count()) {
+      try {
+        await expect(contentEditable).toBeVisible({ timeout: 5000 })
+        return contentEditable
+      } catch (error) {
+        /* fall back to placeholder search */
+      }
+    }
+  }
+
   const input = page.getByPlaceholder('Type your message')
   if (!(await input.count())) return null
   try {

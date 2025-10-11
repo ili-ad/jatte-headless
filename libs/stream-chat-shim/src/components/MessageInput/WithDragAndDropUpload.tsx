@@ -1,4 +1,9 @@
-import type { CSSProperties, ElementType, PropsWithChildren } from 'react';
+import type {
+  CSSProperties,
+  ElementType,
+  HTMLAttributes,
+  PropsWithChildren,
+} from 'react';
 import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import clsx from 'clsx';
@@ -60,6 +65,7 @@ export const WithDragAndDropUpload = ({
   className,
   component: Component = 'div',
   style,
+  ...rest
 }: PropsWithChildren<{
   acceptedFiles?: string[];
   /**
@@ -69,7 +75,7 @@ export const WithDragAndDropUpload = ({
   component?: ElementType;
   className?: string;
   style?: CSSProperties;
-}>) => {
+}> & HTMLAttributes<HTMLElement>) => {
   const dropHandlersRef = useRef<Set<(f: File[]) => void>>(new Set());
   const { t } = useTranslationContext();
 
@@ -122,7 +128,11 @@ export const WithDragAndDropUpload = ({
   // nested WithDragAndDropUpload components render wrappers without functionality
   // (MessageInputFlat has a default WithDragAndDropUpload)
   if (dragAndDropUploadContext.subscribeToDrop !== null) {
-    return <Component className={className}>{children}</Component>;
+    return (
+      <Component className={className} {...rest}>
+        {children}
+      </Component>
+    );
   }
 
   return (
@@ -131,7 +141,7 @@ export const WithDragAndDropUpload = ({
         subscribeToDrop,
       }}
     >
-      <Component {...getRootProps({ className, style })}>
+      <Component {...getRootProps({ className, style })} {...rest}>
         {/* TODO: could be a replaceable component */}
         {isDragActive && (
           <div
