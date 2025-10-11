@@ -15,7 +15,7 @@ const UnMemoizedFileAttachment = ({ attachment }: FileAttachmentProps) => (
       <div className='str-chat__message-attachment-file--item-first-row'>
         <div
           className='str-chat__message-attachment-file--item-name'
-          data-testid='file-title'
+          data-testid='attachment-name'
         >
           {attachment.title}
         </div>
