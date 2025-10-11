@@ -81,6 +81,15 @@
     "status": "ok"
   },
   {
+    "method": "POST",
+    "path": "/subarray/",
+    "operationId": "subarray",
+    "stubName": "subarray",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
     "method": "GET",
     "path": "/refresh-token/",
     "operationId": "refreshToken",
