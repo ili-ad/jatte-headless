@@ -1,18 +1,22 @@
 # backend/accounts_supabase/views.py
 from typing import Any, Mapping
 
+import logging
+import uuid
+
+import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import generics, serializers, status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts_supabase.authentication import SupabaseJWTAuthentication
 from accounts_supabase.models import UserProfile
 
-import jwt
-import uuid
+
+logger = logging.getLogger(__name__)
 
 class SyncUserRequestSerializer(serializers.Serializer):
     display_name = serializers.CharField(
@@ -156,16 +160,6 @@ class UserAgentView(APIView):
     authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_authenticators(self):
-        if self.request.method == "GET":
-            return []
-        return super().get_authenticators()
-
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [AllowAny()]
-        return super().get_permissions()
-
     def post(self, request):
         serializer = UserAgentSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
@@ -180,7 +174,19 @@ class UserAgentView(APIView):
         return Response({"user_agent": user_agent}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        user_agent = request.session.get("user_agent")
+        if user_agent is None:
+            user_agent = request.META.get("HTTP_USER_AGENT", "")
+
+        request_id = getattr(request, "request_id", None) or request.headers.get(
+            "X-Request-ID"
+        ) or request.META.get("HTTP_X_REQUEST_ID")
+        user_id = getattr(getattr(request, "user", None), "id", None)
+        logger.info(
+            "user-agent.get request_id=%s user_id=%s",
+            request_id,
+            user_id,
+        )
         return Response({"user_agent": user_agent})
 
 
