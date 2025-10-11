@@ -583,6 +583,115 @@ paths:
           description: forbidden
         '404':
           description: intake not found
+  /chat/integrations/sms/webhook/:
+    post:
+      operationId: smsInboundWebhook
+      tags: [chat-integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from, to, text, external_id, event]
+              properties:
+                from:
+                  type: string
+                  description: Sender phone number in E.164 format.
+                to:
+                  type: string
+                  description: Business phone number receiving the SMS.
+                text:
+                  type: string
+                external_id:
+                  type: string
+                  description: Provider message identifier.
+                event:
+                  type: string
+                  enum: [message]
+      responses:
+        '200':
+          description: webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '403':
+          description: invalid signature
+  /chat/integrations/sms/send/:
+    post:
+      operationId: smsSend
+      tags: [chat-integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cid, to, text]
+              properties:
+                cid:
+                  type: string
+                  description: Room channel identifier (e.g. messaging:<uuid>).
+                to:
+                  type: string
+                  description: Destination phone number in E.164 format.
+                text:
+                  type: string
+      responses:
+        '202':
+          description: SMS accepted for delivery
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [run_id, status]
+                properties:
+                  run_id:
+                    type: string
+                  status:
+                    type: string
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+        '502':
+          description: provider error
+  /chat/integrations/sms/receipt/:
+    post:
+      operationId: smsDeliveryReceipt
+      tags: [chat-integrations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [external_id, status]
+              properties:
+                external_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [delivered, failed]
+                error_code:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: receipt applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '404':
+          description: relay not found
   /chat/agent/{cid}/:
     parameters:
       - name: cid

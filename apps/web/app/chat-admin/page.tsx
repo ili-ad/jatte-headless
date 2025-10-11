@@ -14,6 +14,7 @@ import {
   rejectIntake,
   updateGatingRules,
 } from '../../lib/chat-addons/admin';
+import { sendSms } from '../../lib/chat-addons/integrationsApi';
 
 interface IntakeState {
   items: IntakeItem[];
@@ -46,6 +47,12 @@ export default function ChatAdminPage() {
 
   const [summary, setSummary] = useState<IntakeSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  const [smsCid, setSmsCid] = useState('');
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsText, setSmsText] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsStatus, setSmsStatus] = useState<{ variant: 'success' | 'error'; message: string } | null>(null);
 
   const loadRules = useCallback(async () => {
     setRulesLoading(true);
@@ -99,6 +106,35 @@ export default function ChatAdminPage() {
       setSummaryError(message);
     }
   }, []);
+
+  const handleSmsSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (smsSending) {
+        return;
+      }
+      const trimmedCid = smsCid.trim();
+      const trimmedPhone = smsPhone.trim();
+      const trimmedText = smsText.trim();
+      if (!trimmedCid || !trimmedPhone || !trimmedText) {
+        setSmsStatus({ variant: 'error', message: 'CID, phone number, and message are required.' });
+        return;
+      }
+      setSmsSending(true);
+      setSmsStatus(null);
+      try {
+        const response = await sendSms({ cid: trimmedCid, to: trimmedPhone, text: trimmedText });
+        setSmsStatus({ variant: 'success', message: `SMS queued (${response.run_id.slice(0, 8)}…)` });
+        setSmsText('');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to send SMS';
+        setSmsStatus({ variant: 'error', message });
+      } finally {
+        setSmsSending(false);
+      }
+    },
+    [smsCid, smsPhone, smsText, smsSending],
+  );
 
   useEffect(() => {
     void loadRules();
@@ -229,6 +265,79 @@ export default function ChatAdminPage() {
         ) : (
           <p className="mt-3 text-sm text-gray-500">Loading summary…</p>
         )}
+      </section>
+
+      <section className="rounded-md border border-gray-200 p-4 shadow-sm">
+        <h2 className="text-lg font-medium">SMS bridge</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Send a quick SMS reply to the participant linked to a room. Messages are queued with the
+          chat timeline and marked as pending until a delivery receipt arrives.
+        </p>
+        {smsStatus ? (
+          <p
+            className={`mt-3 text-sm ${
+              smsStatus.variant === 'success' ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            {smsStatus.message}
+          </p>
+        ) : null}
+        <form className="mt-4 space-y-3" onSubmit={handleSmsSubmit}>
+          <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
+            <label className="text-sm font-medium">
+              <span>Room CID</span>
+              <input
+                type="text"
+                value={smsCid}
+                onChange={(event) => setSmsCid(event.target.value)}
+                className="mt-1 w-full rounded border px-3 py-2 text-sm"
+                placeholder="messaging:<room-uuid>"
+              />
+            </label>
+            <label className="text-sm font-medium">
+              <span>Phone number</span>
+              <input
+                type="tel"
+                value={smsPhone}
+                onChange={(event) => setSmsPhone(event.target.value)}
+                className="mt-1 w-full rounded border px-3 py-2 text-sm"
+                placeholder="+15551234567"
+              />
+            </label>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium" htmlFor="sms-text">
+              Message
+            </label>
+            <textarea
+              id="sms-text"
+              value={smsText}
+              onChange={(event) => setSmsText(event.target.value)}
+              className="min-h-[96px] rounded border px-3 py-2 text-sm"
+              placeholder="Type the SMS to send"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              disabled={smsSending}
+            >
+              {smsSending ? 'Sending…' : 'Send SMS'}
+            </button>
+            <button
+              type="button"
+              className="rounded border px-4 py-2 text-sm"
+              onClick={() => {
+                setSmsStatus(null);
+                setSmsText('');
+              }}
+              disabled={smsSending}
+            >
+              Reset message
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="rounded-md border border-gray-200 p-4 shadow-sm">
