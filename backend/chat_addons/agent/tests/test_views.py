@@ -30,6 +30,7 @@ from accounts_supabase.models import CustomUser
 from chat.models import Message, Room
 from backend.chat_addons.agent.models import AgentRun, RoomAgentFlag
 from backend.chat_addons.agent.services.agent_service import AgentSimulationResult
+from backend.chat_addons.agent.services.memory import MemoryService
 
 
 class AgentViewsTests(APITestCase):
@@ -173,6 +174,29 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(len(next_payload["results"]), 1)
         self.assertIsNone(next_payload["next"])
         self.assertEqual(next_payload["results"][0]["run_id"], "r-1")
+
+    def test_memory_list_endpoint(self) -> None:
+        service = MemoryService(max_lines=6)
+        for idx in range(4):
+            service.add_line(
+                cid="messaging:memory-room",
+                role="human",
+                text=f"memory {idx}",
+            )
+
+        url = reverse("agent-memory") + "?cid=messaging:memory-room&limit=2"
+        response = self.client.get(url, **self.auth_headers())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual([item["text"] for item in payload["results"]], ["memory 3", "memory 2"])
+        self.assertIsNotNone(payload["next"])
+
+        next_url = reverse("agent-memory") + f"?cid=messaging:memory-room&cursor={payload['next']}"
+        next_response = self.client.get(next_url, **self.auth_headers())
+        self.assertEqual(next_response.status_code, status.HTTP_200_OK)
+        next_payload = next_response.json()
+        self.assertEqual([item["text"] for item in next_payload["results"]], ["memory 1", "memory 0"])
+        self.assertIsNone(next_payload["next"])
 
     @mock.patch("backend.chat_addons.agent.views.get_agent_service")
     def test_simulate_invokes_service_without_messages(
