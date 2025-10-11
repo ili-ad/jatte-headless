@@ -10,6 +10,12 @@ import {
   claimRoom,
   listAdminQueue,
 } from '../../lib/chat-addons/adminApi';
+import {
+  disableAgent,
+  enableAgent,
+  getAgentStatus,
+  invokeAgent,
+} from '../../lib/chat-addons/agentApi';
 
 interface QueueState {
   items: AdminQueueRow[];
@@ -27,6 +33,22 @@ const DEFAULT_QUEUE_STATE: QueueState = {
   initialized: false,
 };
 
+interface AgentStatusState {
+  enabled: boolean;
+  loading: boolean;
+  error: string | null;
+  initialized: boolean;
+  toggling: boolean;
+}
+
+const DEFAULT_AGENT_STATUS: AgentStatusState = {
+  enabled: false,
+  loading: false,
+  error: null,
+  initialized: false,
+  toggling: false,
+};
+
 const TABS: { key: AdminQueueStatus; label: string }[] = [
   { key: 'new', label: 'New' },
   { key: 'mine', label: 'Mine' },
@@ -39,6 +61,9 @@ export default function ChatAdminPage() {
     new: { ...DEFAULT_QUEUE_STATE },
     mine: { ...DEFAULT_QUEUE_STATE },
   });
+  const [agentStates, setAgentStates] = useState<Record<string, AgentStatusState>>({});
+  const [invokePrompts, setInvokePrompts] = useState<Record<string, string>>({});
+  const [invoking, setInvoking] = useState<Record<string, boolean>>({});
 
   const activeQueue = queues[activeTab];
 
@@ -138,6 +163,136 @@ export default function ChatAdminPage() {
     [loadQueue],
   );
 
+  useEffect(() => {
+    let cancelled = false;
+    const missing = activeQueue.items
+      .map((row) => row.cid)
+      .filter((cid) => {
+        const status = agentStates[cid];
+        return !(status && (status.loading || status.initialized));
+      });
+
+    missing.forEach((cid) => {
+      setAgentStates((prev) => ({
+        ...prev,
+        [cid]: {
+          ...(prev[cid] ?? DEFAULT_AGENT_STATUS),
+          loading: true,
+          error: null,
+        },
+      }));
+
+      void getAgentStatus(cid)
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
+          setAgentStates((prev) => ({
+            ...prev,
+            [cid]: {
+              enabled: response.agent_enabled,
+              loading: false,
+              error: null,
+              initialized: true,
+              toggling: false,
+            },
+          }));
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Failed to load agent status';
+          setAgentStates((prev) => ({
+            ...prev,
+            [cid]: {
+              ...(prev[cid] ?? DEFAULT_AGENT_STATUS),
+              loading: false,
+              error: message,
+              initialized: true,
+              toggling: false,
+            },
+          }));
+        });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeQueue.items, agentStates]);
+
+  const handleAgentToggle = useCallback(
+    async (cid: string, nextEnabled: boolean) => {
+      setAgentStates((prev) => ({
+        ...prev,
+        [cid]: {
+          ...(prev[cid] ?? DEFAULT_AGENT_STATUS),
+          toggling: true,
+          error: null,
+        },
+      }));
+      try {
+        const response = nextEnabled ? await enableAgent(cid) : await disableAgent(cid);
+        setAgentStates((prev) => ({
+          ...prev,
+          [cid]: {
+            enabled: response.agent_enabled,
+            loading: false,
+            error: null,
+            initialized: true,
+            toggling: false,
+          },
+        }));
+        toast.success(`Agent ${nextEnabled ? 'enabled' : 'disabled'} for ${cid}`);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unable to update agent state';
+        toast.error(message);
+        setAgentStates((prev) => ({
+          ...prev,
+          [cid]: {
+            ...(prev[cid] ?? DEFAULT_AGENT_STATUS),
+            error: message,
+            toggling: false,
+            loading: false,
+            initialized: true,
+          },
+        }));
+      }
+    },
+    [],
+  );
+
+  const handlePromptChange = useCallback((cid: string, value: string) => {
+    setInvokePrompts((prev) => ({ ...prev, [cid]: value }));
+  }, []);
+
+  const handleInvoke = useCallback(
+    async (cid: string) => {
+      const prompt = (invokePrompts[cid] ?? '').trim();
+      if (!prompt) {
+        toast.error('Enter a prompt before invoking the agent.');
+        return;
+      }
+      setInvoking((prev) => ({ ...prev, [cid]: true }));
+      try {
+        await invokeAgent(cid, { prompt });
+        toast.success('Agent run queued.');
+        setInvokePrompts((prev) => ({ ...prev, [cid]: '' }));
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to invoke agent';
+        toast.error(message);
+      } finally {
+        setInvoking((prev) => ({ ...prev, [cid]: false }));
+      }
+    },
+    [invokePrompts],
+  );
+
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(undefined, {
@@ -185,47 +340,103 @@ export default function ChatAdminPage() {
         ) : null}
 
         <ul className="flex flex-col divide-y rounded-md border">
-          {activeQueue.items.map((row) => (
-            <li key={row.cid} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex flex-1 flex-col">
-                <div className="flex items-center justify-between gap-2 text-sm font-medium text-neutral-700">
-                  <span>{row.name ?? row.cid}</span>
-                  <span className="text-xs text-neutral-400">{row.cid}</span>
+          {activeQueue.items.map((row) => {
+            const status = agentStates[row.cid] ?? DEFAULT_AGENT_STATUS;
+            const statusLoading = status.loading || !status.initialized;
+            const toggling = status.toggling;
+            const agentEnabled = status.enabled;
+            const agentError = status.error;
+            const showLoadingState = status.loading && !status.initialized;
+            const promptValue = invokePrompts[row.cid] ?? '';
+            const isInvoking = Boolean(invoking[row.cid]);
+            const disableToggle = statusLoading || toggling;
+            const disableInvoke =
+              isInvoking || promptValue.trim().length === 0 || statusLoading;
+
+            return (
+              <li
+                key={row.cid}
+                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4"
+              >
+                <div className="flex flex-1 flex-col">
+                  <div className="flex items-center justify-between gap-2 text-sm font-medium text-neutral-700">
+                    <span>{row.name ?? row.cid}</span>
+                    <span className="text-xs text-neutral-400">{row.cid}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-4 text-xs text-neutral-500">
+                    <span>
+                      Last activity:{' '}
+                      {row.last_message_at
+                        ? dateFormatter.format(new Date(row.last_message_at))
+                        : '—'}
+                    </span>
+                    <span>Owner: {row.owner_id ?? 'Unassigned'}</span>
+                    <span>Unread: {row.unread_count ?? 0}</span>
+                  </div>
+                  <p className="mt-2 overflow-hidden text-ellipsis text-sm text-neutral-600">
+                    {row.last_text ?? 'No messages yet'}
+                  </p>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-4 text-xs text-neutral-500">
-                  <span>
-                    Last activity:{' '}
-                    {row.last_message_at
-                      ? dateFormatter.format(new Date(row.last_message_at))
-                      : '—'}
-                  </span>
-                  <span>Owner: {row.owner_id ?? 'Unassigned'}</span>
-                  <span>Unread: {row.unread_count ?? 0}</span>
+                <div className="flex w-full flex-col gap-3 sm:w-80">
+                  <div className="flex w-full flex-col gap-2 rounded-md border border-neutral-200 p-3">
+                    <label className="flex items-center gap-2 text-sm text-neutral-700">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+                        checked={agentEnabled}
+                        onChange={() => handleAgentToggle(row.cid, !agentEnabled)}
+                        disabled={disableToggle}
+                      />
+                      <span>Auto-reply agent</span>
+                    </label>
+                    {showLoadingState ? (
+                      <span className="text-xs text-neutral-400">Loading agent status…</span>
+                    ) : null}
+                    {agentError ? (
+                      <span className="text-xs text-red-600">{agentError}</span>
+                    ) : null}
+                    <div className="flex w-full flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={promptValue}
+                        onChange={(event) =>
+                          handlePromptChange(row.cid, event.target.value)
+                        }
+                        placeholder="Prompt"
+                        className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleInvoke(row.cid)}
+                        disabled={disableInvoke}
+                        className="inline-flex items-center justify-center rounded-md border border-blue-500 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isInvoking ? 'Invoking…' : 'Invoke agent'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/demo?cid=${encodeURIComponent(row.cid)}`}
+                      className="inline-flex items-center rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-neutral-400"
+                    >
+                      Open in demo
+                    </Link>
+                    {activeTab === 'new' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleClaim(row)}
+                        disabled={claimingCid === row.cid}
+                        className="inline-flex items-center rounded-md border border-blue-500 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {claimingCid === row.cid ? 'Claiming…' : 'Claim'}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <p className="mt-2 overflow-hidden text-ellipsis text-sm text-neutral-600">
-                  {row.last_text ?? 'No messages yet'}
-                </p>
-              </div>
-              <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
-                <Link
-                  href={`/demo?cid=${encodeURIComponent(row.cid)}`}
-                  className="inline-flex items-center rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-neutral-400"
-                >
-                  Open in demo
-                </Link>
-                {activeTab === 'new' ? (
-                  <button
-                    type="button"
-                    onClick={() => handleClaim(row)}
-                    disabled={claimingCid === row.cid}
-                    className="inline-flex items-center rounded-md border border-blue-500 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {claimingCid === row.cid ? 'Claiming…' : 'Claim'}
-                  </button>
-                ) : null}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
 
         {activeQueue.next ? (
