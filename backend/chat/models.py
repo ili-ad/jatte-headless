@@ -47,6 +47,15 @@ class Message(models.Model):
         on_delete=models.CASCADE,
     )
     show_in_channel = models.BooleanField(default=False)
+    hidden = models.BooleanField(default=False)
+    hidden_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hidden_messages",
+    )
+    hidden_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
