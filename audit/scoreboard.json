@@ -1,18 +1,8 @@
 {
   "totalOpIds": 47,
-  "bound": 46,
+  "bound": 47,
   "wsEventsVerified": 10,
-  "missingBindings": [
-    {
-      "operationId": "subarray",
-      "expected": [
-        {
-          "method": "POST",
-          "path": "/subarray/"
-        }
-      ]
-    }
-  ],
+  "missingBindings": [],
   "shapeMismatches": [],
   "authIssues": [
     {
