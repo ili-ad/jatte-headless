@@ -459,6 +459,98 @@ paths:
           description: room already owned by a different operator
         '404':
           description: room not found
+  /chat/agent/{cid}/:
+    parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getAgentStatus
+      tags: [chat-agent]
+      responses:
+        '200':
+          description: agent toggle state for the requested room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentToggleResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/agent/{cid}/enable/:
+    parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: enableAgent
+      tags: [chat-agent]
+      responses:
+        '200':
+          description: agent enabled for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentToggleResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/agent/{cid}/disable/:
+    parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: disableAgent
+      tags: [chat-agent]
+      responses:
+        '200':
+          description: agent disabled for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentToggleResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/agent/{cid}/invoke/:
+    parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: invokeAgent
+      tags: [chat-agent]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentInvokeRequest'
+      responses:
+        '202':
+          description: invocation accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInvokeResponse'
+        '400':
+          description: invalid prompt
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /app-settings/:
     get:
       operationId: getAppSettings
@@ -1417,6 +1509,36 @@ components:
           type: string
           format: date-time
       required: [cid, owner_id, claimed_at]
+    AgentToggleResponse:
+      type: object
+      properties:
+        cid:
+          type: string
+        agent_enabled:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [cid, agent_enabled]
+    AgentInvokeRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+    AgentInvokeResponse:
+      type: object
+      properties:
+        run_id:
+          type: string
+        status:
+          type: string
+          enum: [queued]
+      required: [run_id, status]
         size:
           type: integer
         sha256:
