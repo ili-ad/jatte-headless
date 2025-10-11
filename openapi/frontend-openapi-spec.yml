@@ -728,6 +728,47 @@ paths:
                     type: boolean
         '404':
           description: relay not found
+  /chat/agent/skills:
+    get:
+      operationId: listSkillsForRoom
+      tags: [chat-agent]
+      parameters:
+        - name: cid
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: configured skills for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSkillListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+    put:
+      operationId: setSkillsForRoom
+      tags: [chat-agent]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentSkillUpdateRequest'
+      responses:
+        '200':
+          description: updated skill configuration for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSkillListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /chat/agent/{cid}/:
     parameters:
       - name: cid
@@ -2035,6 +2076,42 @@ components:
           format: date-time
           nullable: true
       required: [cid, agent_enabled]
+    AgentSkillToggle:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled:
+          type: boolean
+      required: [name, enabled]
+    AgentSkill:
+      allOf:
+        - $ref: '#/components/schemas/AgentSkillToggle'
+        - type: object
+          properties:
+            description:
+              type: string
+          required: [description]
+    AgentSkillListResponse:
+      type: object
+      properties:
+        cid:
+          type: string
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentSkill'
+      required: [cid, skills]
+    AgentSkillUpdateRequest:
+      type: object
+      properties:
+        cid:
+          type: string
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentSkillToggle'
+      required: [cid, skills]
     AgentInvokeRequest:
       type: object
       required: [prompt]
