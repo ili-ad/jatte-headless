@@ -810,6 +810,39 @@ paths:
           description: unauthenticated
         '403':
           description: forbidden
+  /chat/agent/memory:
+    get:
+      operationId: listAgentMemory
+      tags: [chat-agent]
+      parameters:
+        - name: cid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: paginated memory entries for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMemoryListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /chat/agent/runs:
     get:
       operationId: listAgentRuns
@@ -2250,6 +2283,29 @@ components:
           type: string
           nullable: true
       required: [results]
+    AgentMemoryEntry:
+      type: object
+      properties:
+        text:
+          type: string
+        role:
+          type: string
+          enum: [human, agent, system]
+        created_at:
+          type: string
+          format: date-time
+      required: [text, role, created_at]
+    AgentMemoryListResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentMemoryEntry'
+        next:
+          type: string
+          nullable: true
+      required: [results, next]
     AgentInvokeRequest:
       type: object
       required: [prompt]
