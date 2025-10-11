@@ -45,6 +45,7 @@ from .api_views import (
     MuteUserView,
     UnmuteUserView,
     AttachmentUploadView,
+    CommitAttachmentView,
     SearchMessagesView,
     ReminderListCreateView,
     ReminderDetailView,
@@ -65,6 +66,7 @@ from .api_views import (
     ListenersView,
     OffView,
     RegisterSubscriptionsView,
+    SignAttachmentView,
     SubarrayView,
     AxiosTestView,
     ConnectionIDView,
@@ -237,6 +239,10 @@ urlpatterns = [
     path("api/link-preview/", LinkPreviewView.as_view(), name="link-preview"),
     # Alias for frontend operationId createLinkPreview (POST /link-preview/)
     path("link-preview/", LinkPreviewView.as_view(), name="createLinkPreview"),
+    path("api/attachments/sign/", SignAttachmentView.as_view(), name="attachments-sign"),
+    path("attachments/sign/", SignAttachmentView.as_view(), name="attachments-sign-alias"),
+    path("api/attachments/commit/", CommitAttachmentView.as_view(), name="attachments-commit"),
+    path("attachments/commit/", CommitAttachmentView.as_view(), name="attachments-commit-alias"),
     path("api/attachments/", AttachmentUploadView.as_view(), name="attachments"),
     # Alias for frontend operationId uploadAttachment (POST /attachments/)
     path("attachments/", AttachmentUploadView.as_view(), name="uploadAttachment"),

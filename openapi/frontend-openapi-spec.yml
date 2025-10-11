@@ -981,6 +981,99 @@ paths:
                 properties:
                   attachment:
                     $ref: '#/components/schemas/MessageAttachment'
+  /attachments/sign/:
+    post:
+      operationId: signAttachmentUpload
+      tags: [attachments]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content_type, size]
+              properties:
+                name:
+                  type: string
+                content_type:
+                  type: string
+                size:
+                  type: integer
+                cid:
+                  type: string
+                  nullable: true
+                message_id:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: signed upload url
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_id:
+                    type: string
+                  method:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+                  headers:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  constraints:
+                    type: object
+                    properties:
+                      maxSize:
+                        type: integer
+                      allowedTypes:
+                        type: array
+                        items:
+                          type: string
+                  blob_name:
+                    type: string
+                  attachment_id:
+                    type: string
+                required: [upload_id, method, url, headers, blob_name]
+  /attachments/commit/:
+    post:
+      operationId: commitAttachmentUpload
+      tags: [attachments]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [upload_id, blob_name, sha256, size]
+              properties:
+                upload_id:
+                  type: string
+                blob_name:
+                  type: string
+                sha256:
+                  type: string
+                size:
+                  type: integer
+                cid:
+                  type: string
+                  nullable: true
+                message_id:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: attachment committed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachment:
+                    $ref: '#/components/schemas/MessageAttachment'
+        '400':
+          description: validation error
   /disconnected/:
     get:
       operationId: isDisconnected
@@ -1171,6 +1264,12 @@ components:
         url:
           type: string
           format: uri
+        content_type:
+          type: string
+        size:
+          type: integer
+        sha256:
+          type: string
       required:
       - id
       - name
