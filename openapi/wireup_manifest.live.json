@@ -262,6 +262,42 @@
   },
   {
     "method": "GET",
+    "path": "/chat/notifications/oncall/",
+    "operationId": "getOnCall",
+    "stubName": "chatNotifications.getOnCall",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "PUT",
+    "path": "/chat/notifications/oncall/",
+    "operationId": "setOnCall",
+    "stubName": "chatNotifications.setOnCall",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/notifications/presence/",
+    "operationId": "adminHeartbeat",
+    "stubName": "chatNotifications.adminHeartbeat",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/notifications/escalate/",
+    "operationId": "escalateRoom",
+    "stubName": "chatNotifications.escalateRoom",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/chat/notifications/intake/",
     "operationId": "getIntakeSummary",
     "stubName": "chatNotifications.getIntakeSummary",
