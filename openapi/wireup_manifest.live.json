@@ -136,6 +136,24 @@
   },
   {
     "method": "GET",
+    "path": "/api/chat/admin/queue/",
+    "operationId": "listAdminQueue",
+    "stubName": "chatAdmin.listAdminQueue",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chat/admin/rooms/{cid}/claim/",
+    "operationId": "claimRoom",
+    "stubName": "chatAdmin.claimRoom",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/muted-channels/",
     "operationId": "listMutedChannels",
     "stubName": "listMutedChannels",

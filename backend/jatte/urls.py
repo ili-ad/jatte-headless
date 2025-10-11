@@ -23,6 +23,7 @@ urlpatterns = [
     path("", include("reminders.urls")),
     path("", include("events.urls")),
     path("", include("state.urls")),
+    path("", include("backend.chat_addons.urls")),
     path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.
