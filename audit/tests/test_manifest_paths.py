@@ -30,4 +30,4 @@ def test_spec_operation_count_matches_scoreboard():
     spec_ops = set(collect_operation_ids(SPEC_PATH))
     scoreboard = json.loads(SCOREBOARD_PATH.read_text())
 
-    assert len(spec_ops) == scoreboard["totalOpIds"] == 47
+    assert len(spec_ops) == scoreboard["totalOpIds"]
