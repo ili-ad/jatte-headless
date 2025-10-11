@@ -1060,5 +1060,14 @@
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/attachments/",
+    "operationId": "uploadAttachment",
+    "stubName": "uploadAttachment",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
   }
 ]
