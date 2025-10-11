@@ -16,6 +16,7 @@ from .api_views import (
     MessageDetailView,
     MessageReactionsView,
     MessageReactionTypeView,
+    MessageHideView,
     RoomConfigStateView,
     MessageFlagView,
     MessagePinView,
@@ -192,9 +193,14 @@ urlpatterns = [
         name="room-show",
     ),
     path(
-        "api/messages/<str:message_id>/",
+        "api/messages/<str:message_id>/", 
         MessageDetailView.as_view(),
         name="message-detail",
+    ),
+    path(
+        "api/messages/<str:message_id>/hide/",
+        MessageHideView.as_view(),
+        name="message-hide",
     ),
     path(
         "api/messages/<str:message_id>/restore/",
@@ -206,6 +212,11 @@ urlpatterns = [
         "messages/<str:message_id>/restore/",
         MessageRestoreView.as_view(),
         name="restoreMessage",
+    ),
+    path(
+        "messages/<str:message_id>/hide/",
+        MessageHideView.as_view(),
+        name="hideMessage",
     ),
     path(
         "messages/<str:message_id>/replies/",
