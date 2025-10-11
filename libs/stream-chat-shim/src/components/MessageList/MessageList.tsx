@@ -234,6 +234,7 @@ const MessageListWithContext = (props: MessageListWithContextProps) => {
           )}
           <div
             className={clsx(messageListClass, customClasses?.threadList)}
+            data-testid='message-list'
             onScroll={onScroll}
             ref={setListElement}
             tabIndex={0}
