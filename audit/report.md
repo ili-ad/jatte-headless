@@ -1,7 +1,7 @@
 # Phase 1 Audit Report – DRF bridge + WS parity
 
 **Highlights**
-- 41 of 47 frontend opIds are presently wired (6 gaps remain for link previews, attachments, quoted-message helpers, message restore, and subarray utilities).
+- 44 of 47 frontend opIds are presently wired (3 gaps remain for quoted-message helpers and the subarray utility).
 - WebSocket `channel.watch` handshake returns the required keys and downstream REST actions broadcast canonical `cid` events for messages, reactions, polls, mutes, and reminders.
 - Shim token inventory is fully mapped to opIds with no outstanding TODO buckets; one auth gap persists (`GET /user-agent/` skips Supabase guards).
 
@@ -41,7 +41,7 @@
 - `POST /api/rooms/{cid}/messages/` (via DRF view used in WS parity test) creates messages serialized by `MessageSerializer` including pinned/attachment fields.【F:backend/chat/serializers.py†L39-L101】【F:backend/chat/tests/test_ws_handshake_parity.py†L82-L94】
 - `PATCH /api/rooms/{cid}/messages/{id}/` honors body updates and pin toggles, broadcasting `message.updated` with canonical `cid` through `_broadcast_to_cid`.【F:backend/chat/api_views.py†L560-L612】【F:backend/chat/tests/test_ws_handshake_parity.py†L95-L108】
 - `DELETE /api/rooms/{cid}/messages/{id}/` emits `message.deleted` frames carrying `message_id` and timestamp, satisfying parity expectations.【F:backend/chat/api_views.py†L612-L647】【F:backend/chat/tests/test_ws_handshake_parity.py†L169-L180】
-- **Gap**: the frontend surface expects `POST /messages/{messageId}/restore/`, but only `/api/messages/{id}/restore/` exists; `restoreMessage` remains unbound in the live manifest.【F:backend/chat/urls.py†L191-L201】【F:openapi/wireup_manifest.live.json†L1-L15】【F:audit/scoreboard.json†L5-L18】
+- `POST /messages/{messageId}/restore/` aliases the legacy restore view, returning the restored payload under Supabase auth and broadcasting `message.updated` with canonical `cid`.【F:backend/chat/urls.py†L191-L200】【F:backend/chat/tests/test_restore_message.py†L17-L79】
 
 ## 9. Message reactions
 - `POST /api/messages/{id}/reactions/{type}/` upserts reactions, persisting rows and broadcasting `reaction.new` with canonical `cid` and reaction metadata.【F:backend/chat/api_views.py†L581-L615】
