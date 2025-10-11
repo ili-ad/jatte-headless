@@ -227,6 +227,8 @@ urlpatterns = [
         name="message-reaction-type",
     ),
     path("api/link-preview/", LinkPreviewView.as_view(), name="link-preview"),
+    # Alias for frontend operationId createLinkPreview (POST /link-preview/)
+    path("link-preview/", LinkPreviewView.as_view(), name="createLinkPreview"),
     path("api/attachments/", AttachmentUploadView.as_view(), name="attachments"),
     path(
         "api/messages/<str:message_id>/flag/",
