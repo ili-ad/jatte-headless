@@ -25,6 +25,8 @@ from ..common_audit.throttling import (
 from . import registry
 from .models import AgentRoomPolicy, AgentRun, RoomAgentFlag
 from .serializers import (
+    AgentMemoryListQuerySerializer,
+    AgentMemoryListSerializer,
     AgentRoomPolicySerializer,
     AgentRunListQuerySerializer,
     AgentRunSummarySerializer,
@@ -34,6 +36,10 @@ from .serializers import (
 )
 from .tasks import run_agent_invocation
 from .services.agent_service import get_agent_service
+from .services.memory import MemoryService
+
+
+_MEMORY_SERVICE = MemoryService()
 
 
 class AgentToggleResponseSerializer(serializers.Serializer):
@@ -387,6 +393,26 @@ class AgentRunListView(APIView):
             "next": next_cursor,
         }
         return Response(payload, status=status.HTTP_200_OK)
+
+
+class AgentMemoryListView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        serializer = AgentMemoryListQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        canonical = canonical_cid(serializer.validated_data["cid"])
+        limit = serializer.validated_data.get("limit") or 20
+        cursor = serializer.validated_data.get("cursor")
+
+        payload = _MEMORY_SERVICE.list_memory(cid=canonical, limit=limit, cursor=cursor)
+        response = AgentMemoryListSerializer(data=payload)
+        response.is_valid(raise_exception=True)
+        return Response(response.data, status=status.HTTP_200_OK)
 
 
 class AgentSimulateView(APIView):

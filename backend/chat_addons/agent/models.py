@@ -96,3 +96,34 @@ class AgentRun(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - debug helper
         return f"{self.run_id}:{self.status}"
+
+
+class AgentMemoryEntry(models.Model):
+    """Persisted chat memory line for a given conversation id."""
+
+    ROLE_HUMAN = "human"
+    ROLE_AGENT = "agent"
+    ROLE_SYSTEM = "system"
+    ROLE_CHOICES = [
+        (ROLE_HUMAN, "Human"),
+        (ROLE_AGENT, "Agent"),
+        (ROLE_SYSTEM, "System"),
+    ]
+
+    cid = models.CharField(max_length=255, db_index=True)
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "chat_addons"
+        ordering = ("-created_at", "-id")
+        verbose_name = "Agent memory entry"
+        verbose_name_plural = "Agent memory entries"
+        indexes = [
+            models.Index(fields=["cid", "-id"], name="agent_memory_cid_id_idx"),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - debug helper
+        preview = (self.text[:30] + "…") if len(self.text) > 30 else self.text
+        return f"{self.cid}:{self.role}:{preview}"

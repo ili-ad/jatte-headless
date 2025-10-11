@@ -30,6 +30,23 @@ class AgentRunListQuerySerializer(serializers.Serializer):
     cursor = serializers.CharField(required=False, allow_blank=False)
 
 
+class AgentMemoryListQuerySerializer(serializers.Serializer):
+    cid = serializers.CharField()
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100)
+    cursor = serializers.CharField(required=False, allow_blank=False)
+
+
+class AgentMemoryEntrySerializer(serializers.Serializer):
+    text = serializers.CharField()
+    role = serializers.ChoiceField(choices=["human", "agent", "system"])
+    created_at = serializers.DateTimeField()
+
+
+class AgentMemoryListSerializer(serializers.Serializer):
+    results = AgentMemoryEntrySerializer(many=True)
+    next = serializers.CharField(required=False, allow_null=True, default=None)
+
+
 class AgentRoomPolicySerializer(serializers.ModelSerializer):
     enabled_skills = serializers.ListField(
         child=serializers.CharField(),
