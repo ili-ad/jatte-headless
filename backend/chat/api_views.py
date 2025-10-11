@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 from urllib.parse import quote, urlparse
@@ -11,11 +10,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
-from django.http import Http404, QueryDict
+from django.http import Http404
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -1360,37 +1359,91 @@ class SubarrayView(APIView):
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    MAX_ARRAY_LENGTH = 10000
+
+    class InputSerializer(serializers.Serializer):
+        array = serializers.ListField(
+            child=serializers.JSONField(), allow_empty=True
+        )
+        start = serializers.IntegerField()
+        end = serializers.IntegerField(required=False, allow_null=True)
+
     def post(self, request):
-        array = request.data.get("array", [])
-        if hasattr(request.data, "getlist") and request.data.getlist("array"):
-            array = request.data.getlist("array")
-        elif isinstance(array, str):
-            try:
-                parsed = json.loads(array)
-                array = parsed if isinstance(parsed, list) else [parsed]
-            except Exception:
-                array = [array]
-        elif not isinstance(array, list):
-            try:
-                q = QueryDict(request.body)
-                array = q.getlist("array") or [array]
-            except Exception:
-                array = [array]
-        start_raw = request.data.get("start", 0)
-        if isinstance(start_raw, list):
-            start_raw = start_raw[0]
-        end_raw = request.data.get("end")
-        if isinstance(end_raw, list):
-            end_raw = end_raw[0]
-        start = int(start_raw)
-        end = int(end_raw) if end_raw is not None else None
-        if not isinstance(array, list):
-            return Response({"error": "array must be a list"}, status=400)
-        slice_result = array[start:end] if end is not None else array[start:]
-        result = [
-            int(x) if isinstance(x, str) and x.isdigit() else x for x in slice_result
-        ]
+        serializer = self.InputSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            detail = self._format_error(serializer.errors)
+            self._log_event(
+                "validation_failed",
+                request,
+                detail=detail,
+            )
+            return Response(
+                {"detail": detail}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        array = serializer.validated_data["array"]
+        start = serializer.validated_data["start"]
+        end = serializer.validated_data.get("end")
+
+        payload_length = len(array)
+        if payload_length > self.MAX_ARRAY_LENGTH:
+            detail = f"array may not contain more than {self.MAX_ARRAY_LENGTH} items"
+            self._log_event(
+                "payload_too_large",
+                request,
+                detail=detail,
+                payload_length=payload_length,
+            )
+            return Response(
+                {"detail": detail},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        normalized_start = start
+        if start < 0:
+            normalized_start = max(0, payload_length + start)
+
+        normalized_end = end
+        if end is None:
+            normalized_end = payload_length
+
+        result = array[normalized_start:normalized_end]
+
+        self._log_event(
+            "success",
+            request,
+            payload_length=payload_length,
+            result_length=len(result),
+        )
         return Response({"result": result})
+
+    def _format_error(self, errors):
+        if isinstance(errors, dict):
+            parts = []
+            for key, value in errors.items():
+                value_str = self._format_error(value)
+                parts.append(f"{key}: {value_str}")
+            return "; ".join(parts)
+        if isinstance(errors, (list, tuple)) and errors:
+            return self._format_error(errors[0])
+        return str(errors)
+
+    def _request_id(self, request):
+        return (
+            getattr(request, "request_id", None)
+            or request.headers.get("X-Request-ID")
+            or request.META.get("HTTP_X_REQUEST_ID")
+        )
+
+    def _log_event(self, event, request, **extra):
+        request_id = self._request_id(request)
+        extra_bits = " ".join(f"{key}={value}" for key, value in extra.items())
+        message = f"subarray.{event} request_id={request_id}"
+        if extra_bits:
+            message = f"{message} {extra_bits}"
+        log_func = logger.info if event == "success" else logger.warning
+        log_func(message)
 
 
 class TextComposerView(APIView):
