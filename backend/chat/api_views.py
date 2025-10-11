@@ -1,5 +1,7 @@
+import json
 import logging
 import uuid
+from datetime import timedelta
 from urllib.parse import quote, urlparse
 
 import redis
@@ -8,6 +10,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
 from django.http import Http404
@@ -59,6 +62,12 @@ from .serializers import (
     RoomMemberMuteSerializer,
     RoomSerializer,
     UserMuteUnmuteSerializer,
+)
+from .storage.gcs import (
+    blob_name_for,
+    download_blob,
+    generate_signed_url,
+    load_service_account,
 )
 from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
@@ -130,6 +139,64 @@ def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
         )
     except Exception:
         pass
+
+
+def _upload_session_key(upload_id: str) -> str:
+    return f"chat:upload:{upload_id}"
+
+
+def _store_upload_session(upload_id: str, data: dict) -> None:
+    ttl = getattr(settings, "CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS", 600)
+    ttl = max(60, int(ttl or 0))
+    payload = json.dumps(data)
+    try:
+        r = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            decode_responses=True,
+        )
+        r.setex(_upload_session_key(upload_id), ttl, payload)
+        return
+    except Exception:
+        logger.debug("Falling back to cache for upload session", exc_info=True)
+    cache.set(_upload_session_key(upload_id), data, ttl)
+
+
+def _load_upload_session(upload_id: str) -> dict | None:
+    key = _upload_session_key(upload_id)
+    try:
+        r = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            decode_responses=True,
+        )
+        raw = r.get(key)
+    except Exception:
+        raw = None
+    if raw:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("Invalid upload session payload for %s", upload_id)
+            return None
+    cached = cache.get(key)
+    if isinstance(cached, dict):
+        return cached
+    return None
+
+
+def _delete_upload_session(upload_id: str) -> None:
+    key = _upload_session_key(upload_id)
+    try:
+        r = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            decode_responses=True,
+        )
+        r.delete(key)
+    except Exception:
+        pass
+    cache.delete(key)
 
 
 class SearchMessagesView(APIView):
@@ -1311,6 +1378,311 @@ class UnmuteUserView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.save()
         return Response(payload, status=status.HTTP_200_OK)
+
+
+_service_account_cache = None
+_service_account_cache_key = None
+
+
+def _get_service_account():
+    global _service_account_cache, _service_account_cache_key
+    raw = getattr(settings, "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO", None)
+    if not raw:
+        return None
+    cache_key = raw
+    if isinstance(raw, dict):
+        cache_key = json.dumps(raw, sort_keys=True)
+    if _service_account_cache and _service_account_cache_key == cache_key:
+        return _service_account_cache
+    try:
+        account = load_service_account(raw)
+    except Exception:
+        logger.exception("Invalid service account configuration")
+        return None
+    _service_account_cache = account
+    _service_account_cache_key = cache_key
+    return account
+
+
+def _direct_uploads_enabled() -> bool:
+    return bool(
+        getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
+        and _get_service_account()
+    )
+
+
+def _attachment_allowed_types() -> list[str]:
+    raw = getattr(settings, "CHAT_ATTACHMENTS_ALLOWED_TYPES", None)
+    if raw is None:
+        return []
+    if isinstance(raw, (list, tuple)):
+        return [str(item) for item in raw]
+    return [part.strip() for part in str(raw).split(",") if part.strip()]
+
+
+def _attachment_max_size() -> int:
+    default = 25 * 1024 * 1024
+    try:
+        return int(getattr(settings, "CHAT_ATTACHMENTS_MAX_SIZE", default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _public_blob_url(blob_name: str) -> str:
+    base = getattr(settings, "CHAT_ATTACHMENTS_PUBLIC_BASE_URL", None)
+    if base:
+        return f"{base.rstrip('/')}/{blob_name}"
+    bucket = getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
+    if bucket:
+        return f"https://storage.googleapis.com/{bucket}/{quote(blob_name, safe='/~')}"
+    return blob_name
+
+
+class SignAttachmentView(APIView):
+    """Return a signed URL for uploading an attachment to GCS."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    class InputSerializer(serializers.Serializer):
+        name = serializers.CharField()
+        content_type = serializers.CharField()
+        size = serializers.IntegerField(min_value=1)
+        cid = serializers.CharField(required=False, allow_blank=True)
+        message_id = serializers.CharField(required=False, allow_blank=True)
+
+    def post(self, request):
+        if not _direct_uploads_enabled():
+            return Response(
+                {"detail": "Direct uploads are disabled"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated = serializer.validated_data
+
+        name = str(validated["name"]).strip()
+        if not name:
+            return Response({"detail": "name required"}, status=400)
+
+        allowed_types = _attachment_allowed_types()
+        content_type = str(validated["content_type"]).strip()
+        if allowed_types and content_type not in allowed_types:
+            return Response({"detail": "unsupported content_type"}, status=400)
+
+        size = int(validated["size"])
+        max_size = _attachment_max_size()
+        if size > max_size:
+            return Response({"detail": "size exceeds limit"}, status=400)
+
+        attachment_id = f"att_{uuid.uuid4().hex}"
+        blob_name = blob_name_for(attachment_id, name)
+        upload_id = f"upl_{uuid.uuid4().hex}"
+
+        account = _get_service_account()
+        if not account:
+            return Response({"detail": "Direct uploads misconfigured"}, status=503)
+
+        expires = getattr(settings, "CHAT_ATTACHMENTS_SIGN_TTL_SECONDS", 600)
+        try:
+            ttl_seconds = max(300, int(expires))
+        except (TypeError, ValueError):
+            ttl_seconds = 600
+
+        try:
+            signed_url = generate_signed_url(
+                service_account=account,
+                method="PUT",
+                bucket=settings.CHAT_ATTACHMENTS_BUCKET,
+                blob_name=blob_name,
+                content_type=content_type,
+                expires=timedelta(seconds=ttl_seconds),
+            )
+        except Exception:
+            logger.exception("Failed to sign GCS upload URL")
+            return Response({"detail": "failed to sign upload"}, status=503)
+
+        session_data = {
+            "attachment_id": attachment_id,
+            "name": name,
+            "content_type": content_type,
+            "size": size,
+            "blob_name": blob_name,
+            "user_id": request.user.id,
+            "cid": validated.get("cid") or None,
+            "message_id": validated.get("message_id") or None,
+        }
+        _store_upload_session(upload_id, session_data)
+
+        return Response(
+            {
+                "upload_id": upload_id,
+                "method": "PUT",
+                "url": signed_url,
+                "headers": {"Content-Type": content_type},
+                "constraints": {
+                    "maxSize": max_size,
+                    "allowedTypes": allowed_types,
+                },
+                "blob_name": blob_name,
+                "attachment_id": attachment_id,
+            }
+        )
+
+
+class CommitAttachmentView(APIView):
+    """Verify an uploaded attachment and optionally attach to a message."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    class InputSerializer(serializers.Serializer):
+        upload_id = serializers.CharField()
+        blob_name = serializers.CharField()
+        sha256 = serializers.CharField()
+        size = serializers.IntegerField(min_value=1)
+        cid = serializers.CharField(required=False, allow_blank=True)
+        message_id = serializers.CharField(required=False, allow_blank=True)
+
+    def post(self, request):
+        if not _direct_uploads_enabled():
+            return Response(
+                {"detail": "Direct uploads are disabled"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated = serializer.validated_data
+
+        upload_id = validated["upload_id"]
+        session = _load_upload_session(upload_id)
+        if not session:
+            return Response({"detail": "upload expired"}, status=400)
+
+        if session.get("user_id") != request.user.id:
+            _delete_upload_session(upload_id)
+            return Response(status=403)
+
+        blob_name = validated["blob_name"]
+        if blob_name != session.get("blob_name"):
+            _delete_upload_session(upload_id)
+            return Response({"detail": "blob mismatch"}, status=400)
+
+        expected_size = int(session.get("size") or 0)
+        provided_size = int(validated["size"])
+        if expected_size != provided_size:
+            _delete_upload_session(upload_id)
+            return Response({"detail": "size mismatch"}, status=400)
+
+        checksum = str(validated["sha256"]).lower()
+
+        account = _get_service_account()
+        if not account:
+            _delete_upload_session(upload_id)
+            return Response({"detail": "Direct uploads misconfigured"}, status=503)
+
+        try:
+            verify_url = generate_signed_url(
+                service_account=account,
+                method="GET",
+                bucket=settings.CHAT_ATTACHMENTS_BUCKET,
+                blob_name=blob_name,
+                expires=timedelta(seconds=120),
+            )
+            actual_checksum, actual_size = download_blob(verify_url)
+        except Exception:
+            _delete_upload_session(upload_id)
+            logger.exception("Failed to verify uploaded attachment")
+            return Response({"detail": "verification failed"}, status=503)
+
+        if actual_size != expected_size:
+            _delete_upload_session(upload_id)
+            return Response({"detail": "size mismatch"}, status=400)
+
+        if actual_checksum.lower() != checksum:
+            _delete_upload_session(upload_id)
+            return Response({"detail": "checksum mismatch"}, status=400)
+
+        message_id = session.get("message_id") or validated.get("message_id") or None
+        if session.get("message_id") and validated.get("message_id"):
+            if session["message_id"] != validated["message_id"]:
+                _delete_upload_session(upload_id)
+                return Response({"detail": "message mismatch"}, status=400)
+
+        cid_value = session.get("cid") or validated.get("cid") or None
+        if session.get("cid") and validated.get("cid"):
+            if session["cid"] != validated["cid"]:
+                _delete_upload_session(upload_id)
+                return Response({"detail": "cid mismatch"}, status=400)
+
+        attachment_payload = {
+            "id": session["attachment_id"],
+            "name": session["name"],
+            "url": _public_blob_url(blob_name),
+            "content_type": session["content_type"],
+            "size": expected_size,
+            "sha256": checksum,
+        }
+
+        if message_id:
+            try:
+                message = _message_from_identifier(message_id)
+            except Http404:
+                _delete_upload_session(upload_id)
+                raise
+
+            room = None
+            if cid_value:
+                try:
+                    canonical = canonical_cid(cid_value)
+                    _, room_uuid = canonical.split(":", 1)
+                except ValueError:
+                    _delete_upload_session(upload_id)
+                    return Response({"detail": "invalid cid"}, status=400)
+                room = get_object_or_404(Room, uuid=room_uuid)
+                if not room.messages.filter(pk=message.pk).exists():
+                    _delete_upload_session(upload_id)
+                    return Response({"detail": "message not in room"}, status=400)
+            else:
+                room = message.rooms.first()
+
+            if room and not _user_can_access_room(request.user, room):
+                _delete_upload_session(upload_id)
+                return Response(status=403)
+
+            if message.sent_by != request.user.username and not (
+                getattr(request.user, "is_staff", False)
+                or getattr(request.user, "is_superuser", False)
+                or (room and room.agent_id == request.user.id)
+            ):
+                _delete_upload_session(upload_id)
+                return Response(status=403)
+
+            attachments = list(message.attachments or [])
+            attachments.append(attachment_payload)
+            message.attachments = attachments
+            message.save(update_fields=["attachments", "updated_at"])
+
+            if room:
+                cid_for_event = canonical_cid(cid_value, room_uuid=room.uuid)
+            elif message.rooms.exists():
+                first_room = message.rooms.first()
+                cid_for_event = canonical_cid(cid_value, room_uuid=first_room.uuid)
+            else:
+                cid_for_event = None
+
+            if cid_for_event:
+                payload = MessageSerializer(message).data
+                _broadcast_to_cid(
+                    cid_for_event,
+                    {"type": "message.updated", "cid": cid_for_event, "message": payload},
+                )
+
+        _delete_upload_session(upload_id)
+
+        return Response({"attachment": attachment_payload}, status=201)
 
 
 class AttachmentUploadView(APIView):

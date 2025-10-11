@@ -71,6 +71,29 @@ if ":" in REDIS_HOST:
 else:
     REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 
+
+def _split_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+CHAT_ATTACHMENTS_BUCKET = os.environ.get("CHAT_ATTACHMENTS_BUCKET")
+CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO = os.environ.get(
+    "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_JSON"
+)
+CHAT_ATTACHMENTS_ALLOWED_TYPES = _split_csv(
+    os.environ.get("CHAT_ATTACHMENTS_ALLOWED_TYPES", "")
+)
+CHAT_ATTACHMENTS_MAX_SIZE = int(os.environ.get("CHAT_ATTACHMENTS_MAX_SIZE", "26214400"))
+CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS", "600")
+)
+CHAT_ATTACHMENTS_SIGN_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_SIGN_TTL_SECONDS", "600")
+)
+CHAT_ATTACHMENTS_PUBLIC_BASE_URL = os.environ.get("CHAT_ATTACHMENTS_PUBLIC_BASE_URL")
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
