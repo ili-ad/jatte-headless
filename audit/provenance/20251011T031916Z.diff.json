@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2025-10-11T03:19:16.971924Z",
+  "manifest": {
+    "added": [],
+    "removed": []
+  },
+  "scoreboard": {
+    "changes": [
+      {
+        "field": "authIssues",
+        "before": [
+          {
+            "operationId": "listUserAgents",
+            "detail": "GET /user-agent/ bypasses Supabase auth (AllowAny)"
+          }
+        ],
+        "after": []
+      }
+    ]
+  }
+}
