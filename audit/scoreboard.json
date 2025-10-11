@@ -1,0 +1,69 @@
+{
+  "totalOpIds": 47,
+  "bound": 41,
+  "wsEventsVerified": 10,
+  "missingBindings": [
+    {
+      "operationId": "createLinkPreview",
+      "expected": [
+        {
+          "method": "POST",
+          "path": "/link-preview/"
+        }
+      ]
+    },
+    {
+      "operationId": "getQuotedMessage",
+      "expected": [
+        {
+          "method": "GET",
+          "path": "/quoted-message/"
+        }
+      ]
+    },
+    {
+      "operationId": "restoreMessage",
+      "expected": [
+        {
+          "method": "POST",
+          "path": "/messages/{messageId}/restore/"
+        }
+      ]
+    },
+    {
+      "operationId": "setQuotedMessage",
+      "expected": [
+        {
+          "method": "POST",
+          "path": "/quoted-message/"
+        }
+      ]
+    },
+    {
+      "operationId": "subarray",
+      "expected": [
+        {
+          "method": "POST",
+          "path": "/subarray/"
+        }
+      ]
+    },
+    {
+      "operationId": "uploadAttachment",
+      "expected": [
+        {
+          "method": "POST",
+          "path": "/attachments/"
+        }
+      ]
+    }
+  ],
+  "shapeMismatches": [],
+  "authIssues": [
+    {
+      "operationId": "listUserAgents",
+      "detail": "GET /user-agent/ bypasses Supabase auth (AllowAny)"
+    }
+  ],
+  "stragglerTokens": []
+}
