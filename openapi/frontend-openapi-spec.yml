@@ -393,6 +393,72 @@ paths:
             application/json:
               schema:
                 type: object
+  /chat/admin/queue/:
+    get:
+      operationId: listAdminQueue
+      tags: [chat-admin]
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [new, mine]
+          description: Filter by unclaimed or rooms owned by the caller.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            description: Keyset cursor returned from a previous call.
+      responses:
+        '200':
+          description: queue rows for the requested status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminQueueRoom'
+                  next:
+                    type: string
+                    nullable: true
+                required: [results]
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/admin/rooms/{cid}/claim/:
+    parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: claimRoom
+      tags: [chat-admin]
+      responses:
+        '200':
+          description: room claimed by the caller
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimRoomResponse'
+        '403':
+          description: room already owned by a different operator
+        '404':
+          description: room not found
   /app-settings/:
     get:
       operationId: getAppSettings
@@ -1319,6 +1385,38 @@ components:
           format: uri
         content_type:
           type: string
+    AdminQueueRoom:
+      type: object
+      properties:
+        cid:
+          type: string
+        name:
+          type: string
+          nullable: true
+        last_message_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_text:
+          type: string
+          nullable: true
+        owner_id:
+          type: string
+          nullable: true
+        unread_count:
+          type: integer
+      required: [cid, unread_count]
+    ClaimRoomResponse:
+      type: object
+      properties:
+        cid:
+          type: string
+        owner_id:
+          type: string
+        claimed_at:
+          type: string
+          format: date-time
+      required: [cid, owner_id, claimed_at]
         size:
           type: integer
         sha256:
