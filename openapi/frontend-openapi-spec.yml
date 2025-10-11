@@ -59,6 +59,54 @@ paths:
                 properties:
                   connection_id:
                     type: string
+  /search/messages/:
+    get:
+      operationId: searchMessages
+      tags: [messages]
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - in: query
+          name: cid
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: before
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchMessage'
+                  next:
+                    type: string
+                    nullable: true
+                required: [results]
+        '422':
+          description: Invalid search parameters
+        '504':
+          description: Search timed out
   /rooms/:
     get:
       operationId: listRooms
@@ -1094,6 +1142,25 @@ components:
           type: string
           format: date-time
           nullable: true
+    SearchMessage:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: integer
+            - type: string
+        text:
+          type: string
+        user_id:
+          oneOf:
+            - type: integer
+            - type: string
+        created_at:
+          type: string
+          format: date-time
+        cid:
+          type: string
+      required: [id, text, user_id, created_at, cid]
     MessageAttachment:
       type: object
       properties:

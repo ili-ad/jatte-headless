@@ -45,6 +45,7 @@ from .api_views import (
     MuteUserView,
     UnmuteUserView,
     AttachmentUploadView,
+    SearchMessagesView,
     ReminderListCreateView,
     ReminderDetailView,
     RoomReminderCreateView,
@@ -78,6 +79,7 @@ router = DefaultRouter()
 # Router is not used here but left for extensibility
 
 urlpatterns = [
+    path("search/messages/", SearchMessagesView.as_view(), name="search-messages"),
     path("api/rooms/", RoomListCreateView.as_view(), name="room-list"),
     path("api/rooms/active/", ActiveRoomListView.as_view(), name="active-rooms"),
     path("api/rooms/<str:uuid>/", RoomDetailView.as_view(), name="room-detail"),
