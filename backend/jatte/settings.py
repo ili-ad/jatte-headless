@@ -101,6 +101,26 @@ CHANNEL_LAYERS = {
     }
 }
 
+MESSAGE_BURST_RATE = os.environ.get("MESSAGE_BURST", "20/min")
+MESSAGE_SUSTAINED_RATE = os.environ.get("MESSAGE_SUSTAINED", "200/hour")
+REACTION_BURST_RATE = os.environ.get("REACTION_BURST", "60/min")
+REACTION_SUSTAINED_RATE = os.environ.get("REACTION_SUSTAINED", "400/hour")
+
+WS_BUCKET_CAPACITY = int(os.environ.get("WS_BUCKET_CAPACITY", "30"))
+WS_BUCKET_REFILL_PER_SEC = float(os.environ.get("WS_BUCKET_REFILL_PER_SEC", "5"))
+WS_RATE_LIMIT_CLOSE_CODE = int(os.environ.get("WS_RATE_LIMIT_CLOSE_CODE", "4408"))
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "default",
+    },
+    "throttles": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -132,7 +152,13 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
-    ), 
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "message-burst": MESSAGE_BURST_RATE,
+        "message-sustained": MESSAGE_SUSTAINED_RATE,
+        "reaction-burst": REACTION_BURST_RATE,
+        "reaction-sustained": REACTION_SUSTAINED_RATE,
+    },
 }
 
 
@@ -241,3 +267,20 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        }
+    },
+    "loggers": {
+        "chat": {
+            "handlers": ["console"],
+            "level": os.environ.get("CHAT_LOG_LEVEL", "INFO"),
+            "propagate": True,
+        }
+    },
+}

@@ -22,6 +22,13 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.common.throttling import (
+    MessageBurstRateThrottle,
+    MessageSustainedRateThrottle,
+    ReactionBurstRateThrottle,
+    ReactionSustainedRateThrottle,
+)
+
 logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
@@ -324,6 +331,12 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MessageSerializer
+    throttle_classes = [MessageBurstRateThrottle, MessageSustainedRateThrottle]
+
+    def get_throttles(self):  # type: ignore[override]
+        if self.request.method.upper() != "POST":
+            return []
+        return super().get_throttles()
 
     def get_room(self):
         cid = self.kwargs.get("cid")
@@ -412,6 +425,12 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [MessageBurstRateThrottle, MessageSustainedRateThrottle]
+
+    def get_throttles(self):  # type: ignore[override]
+        if self.request.method.upper() not in {"PATCH", "PUT", "DELETE"}:
+            return []
+        return super().get_throttles()
 
     def _get_room(self, cid: str) -> Room:
         if ":" in cid:
@@ -667,6 +686,12 @@ class MessageDetailView(APIView):
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [MessageBurstRateThrottle, MessageSustainedRateThrottle]
+
+    def get_throttles(self):  # type: ignore[override]
+        if self.request.method.upper() not in {"PUT", "DELETE"}:
+            return []
+        return super().get_throttles()
 
     def get(self, request, message_id):
         msg = _message_from_identifier(message_id)
@@ -719,6 +744,12 @@ class MessageRestoreView(APIView):
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [MessageBurstRateThrottle, MessageSustainedRateThrottle]
+
+    def get_throttles(self):  # type: ignore[override]
+        if self.request.method.upper() != "POST":
+            return []
+        return super().get_throttles()
 
     def post(self, request, message_id):
         msg = _message_from_identifier(message_id)
@@ -810,6 +841,12 @@ class MessageReactionTypeView(APIView):
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ReactionBurstRateThrottle, ReactionSustainedRateThrottle]
+
+    def get_throttles(self):  # type: ignore[override]
+        if self.request.method.upper() not in {"POST", "DELETE"}:
+            return []
+        return super().get_throttles()
 
     def post(self, request, message_id, reaction_type):
         message = _message_from_identifier(message_id)
