@@ -1351,7 +1351,7 @@
   },
   {
     "method": "POST",
-    "path": "/attachments/sign",
+    "path": "/attachments/sign/",
     "operationId": "signAttachmentUpload",
     "stubName": "signAttachmentUpload",
     "ticketType": "api",
@@ -1360,7 +1360,7 @@
   },
   {
     "method": "POST",
-    "path": "/attachments/commit",
+    "path": "/attachments/commit/",
     "operationId": "commitAttachmentUpload",
     "stubName": "commitAttachmentUpload",
     "ticketType": "api",
@@ -1377,8 +1377,8 @@
     "status": "ok"
   },
   {
-    "method": "POST",
-    "path": "/messages/{messageId}/unhide/",
+    "method": "DELETE",
+    "path": "/messages/{messageId}/hide/",
     "operationId": "unhideMessage",
     "stubName": "unhideMessage",
     "ticketType": "api",
@@ -1387,9 +1387,9 @@
   },
   {
     "method": "GET",
-    "path": "/search/messages",
+    "path": "/search/messages/",
     "operationId": "searchMessages",
-    "stubName": "searchMessages",
+    "stubName": "search",
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
