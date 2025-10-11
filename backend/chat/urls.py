@@ -55,7 +55,6 @@ from .api_views import (
     InitStateView,
     StateView,
     EditingAuditStateView,
-    QuotedMessageView,
     CompositionIsEmptyView,
     DispatchEventView,
     ContextTypeView,
@@ -73,6 +72,7 @@ from .api_views import (
 from .views import RoomMembersCIDView
 from .views_threads import MessageRepliesView, ThreadListView
 from .views_auth import WebsocketAuthView
+from .views_quoted import QuotedMessageView
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
