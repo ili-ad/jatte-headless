@@ -63,6 +63,7 @@ from .serializers import (
     RoomSerializer,
     UserMuteUnmuteSerializer,
 )
+from .tasks import scan_attachment
 from .storage.gcs import (
     blob_name_for,
     download_blob,
@@ -1622,9 +1623,11 @@ class CommitAttachmentView(APIView):
             "name": session["name"],
             "url": _public_blob_url(blob_name),
             "content_type": session["content_type"],
+            "mime_type": session["content_type"],
             "size": expected_size,
             "sha256": checksum,
         }
+        attachment_payload = Message.ensure_attachment_scan_defaults(attachment_payload)
 
         if message_id:
             try:
@@ -1665,6 +1668,11 @@ class CommitAttachmentView(APIView):
             message.attachments = attachments
             message.save(update_fields=["attachments", "updated_at"])
 
+            try:
+                scan_attachment.delay(message.id, attachment_payload["id"])
+            except Exception:
+                logger.exception("Failed to enqueue attachment scan")
+
             if room:
                 cid_for_event = canonical_cid(cid_value, room_uuid=room.uuid)
             elif message.rooms.exists():
@@ -1703,14 +1711,12 @@ class AttachmentUploadView(APIView):
             f"/attachments/{attachment_id}/{safe_name}"
         )
 
+        attachment_payload = Message.ensure_attachment_scan_defaults(
+            {"id": attachment_id, "name": clean_name, "url": attachment_url}
+        )
+
         return Response(
-            {
-                "attachment": {
-                    "id": attachment_id,
-                    "name": clean_name,
-                    "url": attachment_url,
-                }
-            },
+            {"attachment": attachment_payload},
             status=status.HTTP_201_CREATED,
         )
 
