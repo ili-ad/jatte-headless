@@ -22,6 +22,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.chatcore.services import should_gate_first_message
 from backend.common.throttling import (
     MessageBurstRateThrottle,
     MessageSustainedRateThrottle,
@@ -387,8 +388,21 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         room = self.get_room()
+        cid = canonical_cid(None, room_uuid=room.uuid)
+        message_text = serializer.validated_data.get("body") or ""
+        decision = should_gate_first_message(
+            cid=cid,
+            user_id=self.request.user.username,
+            text=str(message_text),
+            now=timezone.now(),
+        )
+
         channel, _ = Channel.objects.get_or_create(uuid=room.uuid, client=room.client)
-        serializer.save(channel=channel, sent_by=self.request.user.username)
+        serializer.save(
+            channel=channel,
+            sent_by=self.request.user.username,
+            hidden=decision in {"hold", "reject"},
+        )
         room.messages.add(serializer.instance)
         Draft.objects.filter(user=self.request.user, room=room).delete()
         try:
@@ -401,19 +415,31 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
         except Exception:
             pass
 
-        cid = canonical_cid(None, room_uuid=room.uuid)
-        message_payload = MessageSerializer(serializer.instance).data
-        _broadcast_to_cid(
-            cid,
-            {"type": "message.new", "cid": cid, "message": message_payload},
-        )
-
-        parent = getattr(serializer.instance, "reply_to", None)
-        if parent:
-            thread_cid = f"{cid}:thread:{parent.id}"
+        if decision == "allow":
+            message_payload = MessageSerializer(serializer.instance).data
             _broadcast_to_cid(
-                thread_cid,
-                {"type": "message.new", "cid": thread_cid, "message": message_payload},
+                cid,
+                {"type": "message.new", "cid": cid, "message": message_payload},
+            )
+
+            parent = getattr(serializer.instance, "reply_to", None)
+            if parent:
+                thread_cid = f"{cid}:thread:{parent.id}"
+                _broadcast_to_cid(
+                    thread_cid,
+                    {"type": "message.new", "cid": thread_cid, "message": message_payload},
+                )
+        else:
+            from backend.chat_addons.admin_console.services import gating as gating_service
+
+            gating_service.record_intake(
+                message=serializer.instance,
+                cid=cid,
+                user_id=self.request.user.username,
+                text=str(message_text),
+                decision=decision,
+                initial_broadcast=False,
+                reason="spam" if decision == "reject" else None,
             )
 
 

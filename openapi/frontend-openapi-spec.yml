@@ -459,6 +459,130 @@ paths:
           description: room already owned by a different operator
         '404':
           description: room not found
+  /chat/admin/gating-rules/:
+    get:
+      operationId: getGatingRules
+      tags: [chat-admin]
+      responses:
+        '200':
+          description: current gating configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatingRules'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+    put:
+      operationId: updateGatingRules
+      tags: [chat-admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatingRules'
+      responses:
+        '200':
+          description: updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatingRules'
+        '400':
+          description: validation error
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/admin/intake/:
+    get:
+      operationId: listIntake
+      tags: [chat-admin]
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [pending, rejected, all]
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            description: Encoded cursor from a previous response.
+      responses:
+        '200':
+          description: intake entries for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntakeListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/admin/intake/{messageId}/approve/:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: approveIntake
+      tags: [chat-admin]
+      responses:
+        '200':
+          description: message approved and revealed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntakeActionResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+        '404':
+          description: intake not found
+  /chat/admin/intake/{messageId}/reject/:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: rejectIntake
+      tags: [chat-admin]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectIntakeRequest'
+      responses:
+        '200':
+          description: message rejected and remains hidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntakeActionResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+        '404':
+          description: intake not found
   /chat/agent/{cid}/:
     parameters:
       - name: cid
@@ -547,6 +671,21 @@ paths:
                 $ref: '#/components/schemas/AgentInvokeResponse'
         '400':
           description: invalid prompt
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/notifications/intake/:
+    get:
+      operationId: getIntakeSummary
+      tags: [chat-notifications]
+      responses:
+        '200':
+          description: aggregate intake counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntakeSummary'
         '401':
           description: unauthenticated
         '403':
@@ -1509,6 +1648,85 @@ components:
           type: string
           format: date-time
       required: [cid, owner_id, claimed_at]
+    GatingRules:
+      type: object
+      properties:
+        languages:
+          type: array
+          items:
+            type: string
+        min_length:
+          type: integer
+        max_length:
+          type: integer
+        min_interval_seconds:
+          type: integer
+        blocklist:
+          type: array
+          items:
+            type: string
+      required: [languages, min_length, max_length, min_interval_seconds, blocklist]
+    IntakeItem:
+      type: object
+      properties:
+        message_id:
+          type: string
+        cid:
+          type: string
+        user_id:
+          type: string
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        reason:
+          type: string
+          nullable: true
+      required: [message_id, cid, user_id, text, created_at, status]
+    IntakeListResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntakeItem'
+        next:
+          type: string
+          nullable: true
+      required: [results]
+    IntakeActionResponse:
+      type: object
+      properties:
+        message_id:
+          type: string
+        status:
+          type: string
+        muted:
+          type: boolean
+      required: [message_id, status, muted]
+    RejectIntakeRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+        mute:
+          type: boolean
+      additionalProperties: false
+    IntakeSummary:
+      type: object
+      properties:
+        intake:
+          type: object
+          properties:
+            pending:
+              type: integer
+            rejected:
+              type: integer
+          required: [pending, rejected]
+      required: [intake]
     AgentToggleResponse:
       type: object
       properties:
