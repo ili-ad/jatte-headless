@@ -5,6 +5,7 @@ from unittest import mock
 import os
 import sys
 from pathlib import Path
+from decimal import Decimal
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(BASE_DIR))
@@ -27,7 +28,8 @@ from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
 from chat.models import Message, Room
-from backend.chat_addons.agent.models import RoomAgentFlag
+from backend.chat_addons.agent.models import AgentRun, RoomAgentFlag
+from backend.chat_addons.agent.services.agent_service import AgentSimulationResult
 
 
 class AgentViewsTests(APITestCase):
@@ -116,3 +118,98 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(messages.count(), 1)
         self.assertEqual(messages.first().body, "pong")
         mock_broadcast.assert_called()
+
+    def test_list_runs_with_pagination(self) -> None:
+        AgentRun.objects.create(
+            run_id="r-1",
+            cid="messaging:test-room",
+            user_id="user",
+            tools_used=["utility.calc"],
+            status=AgentRun.STATUS_OK,
+            latency_ms=101,
+            tokens_in=21,
+            tokens_out=11,
+            cost_usd=Decimal("0.0011"),
+        )
+        AgentRun.objects.create(
+            run_id="r-2",
+            cid="messaging:test-room",
+            user_id="user",
+            tools_used=["utility.calc"],
+            status=AgentRun.STATUS_HANDOFF,
+            latency_ms=102,
+            tokens_in=22,
+            tokens_out=12,
+            cost_usd=Decimal("0.0012"),
+        )
+        AgentRun.objects.create(
+            run_id="r-3",
+            cid="messaging:test-room",
+            user_id="user",
+            tools_used=["utility.calc"],
+            status=AgentRun.STATUS_ERROR,
+            latency_ms=103,
+            tokens_in=23,
+            tokens_out=13,
+            cost_usd=Decimal("0.0013"),
+        )
+
+        url = reverse("agent-runs") + "?cid=messaging:test-room&limit=2"
+        response = self.client.get(url, **self.auth_headers())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(len(payload["results"]), 2)
+        self.assertIsNotNone(payload["next"])
+        self.assertEqual(payload["results"][0]["run_id"], "r-3")
+        self.assertEqual(payload["results"][0]["status"], AgentRun.STATUS_ERROR)
+        self.assertEqual(payload["results"][0]["tokens_in"], 23)
+        self.assertIsInstance(payload["results"][0]["cost_usd"], float)
+
+        next_cursor = payload["next"]
+        next_url = reverse("agent-runs") + f"?cid=messaging:test-room&cursor={next_cursor}"
+        next_response = self.client.get(next_url, **self.auth_headers())
+        self.assertEqual(next_response.status_code, status.HTTP_200_OK)
+        next_payload = next_response.json()
+        self.assertEqual(len(next_payload["results"]), 1)
+        self.assertIsNone(next_payload["next"])
+        self.assertEqual(next_payload["results"][0]["run_id"], "r-1")
+
+    @mock.patch("backend.chat_addons.agent.views.get_agent_service")
+    def test_simulate_invokes_service_without_messages(
+        self, mock_get_service: mock.MagicMock
+    ) -> None:
+        service = mock.Mock()
+        service.simulate.return_value = AgentSimulationResult(
+            reply="It's 14.",
+            status="ok",
+            tools_used=["utility.calc"],
+            latency_ms=115,
+            tokens_in=200,
+            tokens_out=40,
+            cost_usd=Decimal("0.0020"),
+            model="test-model",
+        )
+        mock_get_service.return_value = service
+
+        before_count = Message.objects.count()
+
+        response = self.client.post(
+            reverse("agent-simulate"),
+            {"cid": "messaging:sim-room", "prompt": "2*(3+4)"},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(payload["reply"], "It's 14.")
+        self.assertEqual(payload["tools_used"], ["utility.calc"])
+        self.assertEqual(payload["tokens_in"], 200)
+        self.assertEqual(payload["tokens_out"], 40)
+        self.assertAlmostEqual(payload["cost_usd"], 0.002)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(Message.objects.count(), before_count)
+
+        service.simulate.assert_called_once_with(
+            cid="messaging:sim-room", prompt="2*(3+4)", meta={}
+        )

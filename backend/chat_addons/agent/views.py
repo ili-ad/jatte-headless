@@ -4,6 +4,7 @@ import uuid
 from typing import Any, Sequence
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -22,13 +23,17 @@ from ..common_audit.throttling import (
     AgentToggleRateThrottle,
 )
 from . import registry
-from .models import AgentRoomPolicy, RoomAgentFlag
+from .models import AgentRoomPolicy, AgentRun, RoomAgentFlag
 from .serializers import (
     AgentRoomPolicySerializer,
+    AgentRunListQuerySerializer,
+    AgentRunSummarySerializer,
+    AgentSimulateRequestSerializer,
     RoomSkillListSerializer,
     RoomSkillPolicySerializer,
 )
 from .tasks import run_agent_invocation
+from .services.agent_service import get_agent_service
 
 
 class AgentToggleResponseSerializer(serializers.Serializer):
@@ -342,4 +347,73 @@ class AgentPolicyView(APIView):
         serializer = AgentRoomPolicySerializer(policy)
         payload = dict(serializer.data)
         payload["cid"] = canonical
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class AgentRunListView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        serializer = AgentRunListQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        canonical = canonical_cid(serializer.validated_data["cid"])
+        limit = serializer.validated_data.get("limit") or 25
+        cursor = serializer.validated_data.get("cursor")
+
+        queryset = AgentRun.objects.filter(cid=canonical).order_by("-created_at", "-id")
+
+        if cursor:
+            try:
+                cursor_run = AgentRun.objects.get(run_id=cursor, cid=canonical)
+            except AgentRun.DoesNotExist as exc:
+                raise serializers.ValidationError({"cursor": "Invalid cursor"}) from exc
+            queryset = queryset.filter(
+                Q(created_at__lt=cursor_run.created_at)
+                | (Q(created_at=cursor_run.created_at) & Q(id__lte=cursor_run.id))
+            )
+
+        entries = list(queryset[: limit + 1])
+        next_cursor = None
+        if len(entries) > limit:
+            next_cursor = entries[limit].run_id
+            entries = entries[:limit]
+
+        payload = {
+            "results": AgentRunSummarySerializer(entries, many=True).data,
+            "next": next_cursor,
+        }
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class AgentSimulateView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [AgentInvokeRateThrottle]
+
+    def post(self, request: Request) -> Response:
+        serializer = AgentSimulateRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+
+        canonical = canonical_cid(serializer.validated_data["cid"])
+        prompt = serializer.validated_data["prompt"]
+        meta = serializer.validated_data.get("meta", {})
+
+        service = get_agent_service()
+        result = service.simulate(cid=canonical, prompt=prompt, meta=meta)
+
+        payload = {
+            "reply": result.reply,
+            "tools_used": result.tools_used,
+            "latency_ms": result.latency_ms,
+            "tokens_in": result.tokens_in,
+            "tokens_out": result.tokens_out,
+            "cost_usd": float(result.cost_usd),
+            "status": result.status,
+        }
         return Response(payload, status=status.HTTP_200_OK)

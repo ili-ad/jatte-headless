@@ -810,6 +810,60 @@ paths:
           description: unauthenticated
         '403':
           description: forbidden
+  /chat/agent/runs:
+    get:
+      operationId: listAgentRuns
+      tags: [chat-agent]
+      parameters:
+        - name: cid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: recent agent runs for the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunListResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
+  /chat/agent/simulate:
+    post:
+      operationId: simulateAgent
+      tags: [chat-agent]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentSimulationRequest'
+      responses:
+        '200':
+          description: simulated agent response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSimulationResponse'
+        '401':
+          description: unauthenticated
+        '403':
+          description: forbidden
   /chat/agent/{cid}/:
     parameters:
       - name: cid
@@ -2153,6 +2207,49 @@ components:
           items:
             $ref: '#/components/schemas/AgentSkillToggle'
       required: [cid, skills]
+    AgentRunSummary:
+      type: object
+      properties:
+        ts:
+          type: string
+          format: date-time
+        status:
+          type: string
+        tools_used:
+          type: array
+          items:
+            type: string
+        latency_ms:
+          type: integer
+        tokens_in:
+          type: integer
+        tokens_out:
+          type: integer
+        cost_usd:
+          type: number
+          format: float
+        run_id:
+          type: string
+      required:
+        - ts
+        - status
+        - tools_used
+        - latency_ms
+        - tokens_in
+        - tokens_out
+        - cost_usd
+        - run_id
+    AgentRunListResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentRunSummary'
+        next:
+          type: string
+          nullable: true
+      required: [results]
     AgentInvokeRequest:
       type: object
       required: [prompt]
@@ -2199,6 +2296,45 @@ components:
         - turn_cap
         - auto_reply_mode
         - handoff_message
+    AgentSimulationRequest:
+      type: object
+      required: [cid, prompt]
+      properties:
+        cid:
+          type: string
+        prompt:
+          type: string
+        meta:
+          type: object
+          additionalProperties: true
+    AgentSimulationResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+        tools_used:
+          type: array
+          items:
+            type: string
+        latency_ms:
+          type: integer
+        tokens_in:
+          type: integer
+        tokens_out:
+          type: integer
+        cost_usd:
+          type: number
+          format: float
+        status:
+          type: string
+      required:
+        - reply
+        - tools_used
+        - latency_ms
+        - tokens_in
+        - tokens_out
+        - cost_usd
+        - status
     AgentPolicyUpdateRequest:
       type: object
       properties:

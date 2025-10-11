@@ -271,6 +271,24 @@
   },
   {
     "method": "GET",
+    "path": "/chat/agent/runs",
+    "operationId": "listAgentRuns",
+    "stubName": "chatAgent.listAgentRuns",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/chat/agent/simulate",
+    "operationId": "simulateAgent",
+    "stubName": "chatAgent.simulateAgent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
     "path": "/chat/agent/{cid}/",
     "operationId": "getAgentStatus",
     "stubName": "chatAgent.getAgentStatus",
