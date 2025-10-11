@@ -91,8 +91,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts_supabase',
     'chat',
+    'mutes',
+    'reminders',
+    'drafts',
     'rooms',
+    'events',
     'core',
+    'state',
     'polls',
 ]
 

@@ -1,6 +1,6 @@
 import json
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import redis
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
@@ -8,6 +8,8 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 from django.http import Http404, QueryDict
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -56,6 +58,7 @@ from .serializers import (
     RoomSerializer,
     UserMuteUnmuteSerializer,
 )
+from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
 
 
@@ -90,8 +93,13 @@ def _broadcast_to_cid(cid: str, payload: dict) -> None:
 
     try:
         channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+        canonical = canonical_cid(cid)
+        payload = dict(payload)
+        payload.setdefault("cid", canonical)
         async_to_sync(channel_layer.group_send)(
-            f"channel_{cid.replace(':', '_')}",
+            group_name_for_cid(canonical),
             {"type": "chat.message", "payload": payload},
         )
     except Exception:
@@ -103,14 +111,16 @@ def _broadcast_reminder_created(room, cid: str, reminder_data: dict) -> None:
 
     try:
         channel_layer = get_channel_layer()
-        cid_value = cid if ":" in cid else f"messaging:{room.uuid}"
+        if channel_layer is None:
+            return
+        canonical = canonical_cid(cid, room_uuid=room.uuid)
         async_to_sync(channel_layer.group_send)(
-            f"channel_{room.uuid}",
+            group_name_for_cid(canonical),
             {
                 "type": "chat.message",
                 "payload": {
                     "type": "reminder.new",
-                    "cid": cid_value,
+                    "cid": canonical,
                     "reminder": reminder_data,
                 },
             },
@@ -198,38 +208,20 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
         except Exception:
             pass
 
-        try:
-            channel_layer = get_channel_layer()
-            cid = f"messaging:{room.uuid}"
-            message_payload = MessageSerializer(serializer.instance).data
-            async_to_sync(channel_layer.group_send)(
-                f"channel_{room.uuid}",
-                {
-                    "type": "chat.message",
-                    "payload": {
-                        "type": "message.new",
-                        "cid": cid,
-                        "message": message_payload,
-                    },
-                },
-            )
+        cid = canonical_cid(None, room_uuid=room.uuid)
+        message_payload = MessageSerializer(serializer.instance).data
+        _broadcast_to_cid(
+            cid,
+            {"type": "message.new", "cid": cid, "message": message_payload},
+        )
 
-            parent = getattr(serializer.instance, "reply_to", None)
-            if parent:
-                thread_cid = f"{cid}:thread:{parent.id}"
-                async_to_sync(channel_layer.group_send)(
-                    f"channel_{thread_cid.replace(':', '_')}",
-                    {
-                        "type": "chat.message",
-                        "payload": {
-                            "type": "message.new",
-                            "cid": thread_cid,
-                            "message": message_payload,
-                        },
-                    },
-                )
-        except Exception:
-            pass
+        parent = getattr(serializer.instance, "reply_to", None)
+        if parent:
+            thread_cid = f"{cid}:thread:{parent.id}"
+            _broadcast_to_cid(
+                thread_cid,
+                {"type": "message.new", "cid": thread_cid, "message": message_payload},
+            )
 
 
 # New Stream Chat API endpoints below
@@ -301,6 +293,9 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         )
 
         return Response(message_payload)
+
+    def put(self, request, cid: str, message_id: str):
+        return self.patch(request, cid, message_id)
 
     def delete(self, request, cid: str, message_id: str):
         room = self._get_room(cid)
@@ -603,12 +598,12 @@ class MessageReactionTypeView(APIView):
         _broadcast_to_cid(
             cid,
             {
+                "type": "reaction.new",
                 "event": "reaction.new",
                 "event_type": "reaction.new",
                 "cid": cid,
                 "message_id": str(message.id),
                 "user_id": request.user.id,
-                "type": reaction_type,
                 "reaction_type": reaction_type,
                 "ts": ts.isoformat(),
             },
@@ -635,12 +630,12 @@ class MessageReactionTypeView(APIView):
             _broadcast_to_cid(
                 cid,
                 {
+                    "type": "reaction.deleted",
                     "event": "reaction.deleted",
                     "event_type": "reaction.deleted",
                     "cid": cid,
                     "message_id": str(message.id),
                     "user_id": request.user.id,
-                    "type": reaction_type,
                     "reaction_type": reaction_type,
                     "ts": timezone.now().isoformat(),
                 },
@@ -894,27 +889,18 @@ class RoomMemberMuteCreateView(RoomFromCIDMixin, APIView):
 
         response_data = RoomMemberMuteSerializer(mute).data
 
-        try:
-            channel_layer = get_channel_layer()
-            cid_value = cid if ":" in cid else f"messaging:{room.uuid}"
-            async_to_sync(channel_layer.group_send)(
-                f"channel_{room.uuid}",
-                {
-                    "type": "chat.message",
-                    "payload": {
-                        "type": "member.muted",
-                        "cid": cid_value,
-                        "user_id": target_user.id,
-                        "muted_until": (
-                            mute.muted_until.isoformat() if mute.muted_until else None
-                        ),
-                        "muted_by": request.user.id,
-                        "ts": timezone.now().isoformat(),
-                    },
-                },
-            )
-        except Exception:
-            pass
+        canonical = canonical_cid(cid, room_uuid=room.uuid)
+        payload = {
+            "type": "member.muted",
+            "cid": canonical,
+            "target_user": target_user.id,
+            "user_id": target_user.id,
+            "muted": True,
+            "muted_until": mute.muted_until.isoformat() if mute.muted_until else None,
+            "muted_by": request.user.id,
+            "ts": timezone.now().isoformat(),
+        }
+        _broadcast_to_cid(canonical, payload)
 
         return Response(response_data, status=201)
 
@@ -1236,9 +1222,27 @@ class AttachmentUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        name = request.data.get("name", "")
-        att_id = uuid.uuid4()
-        return Response({"attachment": {"id": str(att_id), "name": name}}, status=201)
+        name = request.data.get("name")
+        if not name or not str(name).strip():
+            return Response({"error": "name required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        clean_name = str(name).strip()
+        attachment_id = f"att_{uuid.uuid4().hex}"
+        safe_name = quote(clean_name)
+        attachment_url = request.build_absolute_uri(
+            f"/attachments/{attachment_id}/{safe_name}"
+        )
+
+        return Response(
+            {
+                "attachment": {
+                    "id": attachment_id,
+                    "name": clean_name,
+                    "url": attachment_url,
+                }
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LinkPreviewView(APIView):
@@ -1248,9 +1252,16 @@ class LinkPreviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        url = request.data.get("url", "")
-        if not url:
-            return Response({"error": "url required"}, status=400)
+        url = request.data.get("url")
+        if not url or not str(url).strip():
+            return Response({"error": "url required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        validator = URLValidator()
+        try:
+            validator(url)
+        except DjangoValidationError:
+            return Response({"error": "invalid url"}, status=status.HTTP_400_BAD_REQUEST)
+
         parsed = urlparse(url)
         title = parsed.netloc or url
         return Response({"url": url, "title": title})
