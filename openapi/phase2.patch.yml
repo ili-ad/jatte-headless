@@ -1,0 +1,560 @@
+openapi: 3.0.2
+info:
+  title: Phase 2 additive patch
+  version: '0.2.0'
+paths:
+  /api/messages/{message_id}/flag/:
+    post:
+      operationId: flagMessage
+      summary: Flag a message for moderation review.
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional human-readable reason for the flag.
+      responses:
+        '201':
+          description: Flag created.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlagResponse'
+  /api/messages/{message_id}/hide/:
+    post:
+      operationId: hideMessage
+      summary: Soft-hide a message from channel timelines.
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageHideRequest'
+      responses:
+        '200':
+          description: Message hidden.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageModerationResponse'
+  /api/messages/{message_id}/show/:
+    post:
+      operationId: showMessage
+      summary: Restore a previously hidden message.
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Message restored.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageModerationResponse'
+  /api/rooms/{room_uuid}/moderation/bans/:
+    get:
+      operationId: listRoomBans
+      summary: List banned members for a room.
+      parameters:
+        - name: room_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ban list retrieved.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomBanListResponse'
+    post:
+      operationId: createRoomBan
+      summary: Ban a user from a room.
+      parameters:
+        - name: room_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomBanRequest'
+      responses:
+        '201':
+          description: Ban created.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomBan'
+  /api/rooms/{room_uuid}/moderation/bans/{user_id}/:
+    delete:
+      operationId: deleteRoomBan
+      summary: Remove a ban for a user in a room.
+      parameters:
+        - name: room_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Ban removed.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+  /api/rooms/{room_uuid}/hide/:
+    post:
+      operationId: hideRoom
+      summary: Hide a room for the current user.
+      parameters:
+        - name: room_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room hidden.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomModerationResponse'
+  /api/rooms/{room_uuid}/show/:
+    post:
+      operationId: showRoom
+      summary: Unhide a room for the current user.
+      parameters:
+        - name: room_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room unhidden.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomModerationResponse'
+  /api/search/messages/:
+    get:
+      operationId: searchMessages
+      summary: Search messages with optional channel, user, and time filters.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: cid
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: before
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Search results.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchMessagesResponse'
+    post:
+      operationId: searchMessagesAdvanced
+      summary: Search messages using a JSON payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchMessagesRequest'
+      responses:
+        '200':
+          description: Search results.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchMessagesResponse'
+  /healthz:
+    get:
+      operationId: healthz
+      summary: Report application health.
+      responses:
+        '200':
+          description: Service is healthy.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /readyz:
+    get:
+      operationId: readyz
+      summary: Report readiness (database, queue connectivity).
+      responses:
+        '200':
+          description: Service is ready.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /api/attachments/:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                - $ref: '#/components/schemas/AttachmentUploadRequest'
+      responses:
+        '201':
+          description: attachment created
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachment:
+                    allOf:
+                      - $ref: '#/components/schemas/MessageAttachment'
+                      - $ref: '#/components/schemas/AttachmentModerationMeta'
+                  scan:
+                    $ref: '#/components/schemas/AttachmentScanStatus'
+components:
+  headers:
+    X-Request-Id:
+      description: Correlation identifier for the request.
+      schema:
+        type: string
+    X-RateLimit-Limit:
+      description: Maximum number of requests allowed in the current window.
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: Remaining requests in the current window.
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: Epoch seconds when the rate limit window resets.
+      schema:
+        type: integer
+  schemas:
+    FlagResponse:
+      type: object
+      properties:
+        flag:
+          $ref: '#/components/schemas/Flag'
+    Flag:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - created_at
+    MessageHideRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+    MessageModerationResponse:
+      type: object
+      properties:
+        message_id:
+          type: string
+        hidden:
+          type: boolean
+        hidden_by:
+          type: string
+        hidden_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    RoomBanRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: integer
+        banned_until:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    RoomBan:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        banned_until:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: integer
+        reason:
+          type: string
+      required:
+        - user_id
+        - created_at
+    RoomBanListResponse:
+      type: object
+      properties:
+        bans:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomBan'
+    RoomModerationResponse:
+      type: object
+      properties:
+        room_uuid:
+          type: string
+        hidden:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+        actor:
+          type: string
+    SearchMessagesRequest:
+      type: object
+      properties:
+        q:
+          type: string
+        cid:
+          type: string
+        user_id:
+          type: string
+        before:
+          type: string
+          format: date-time
+        after:
+          type: string
+          format: date-time
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+      required:
+        - q
+    MessageSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        cid:
+          type: string
+        text:
+          type: string
+        sent_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        score:
+          type: number
+        highlights:
+          type: array
+          items:
+            type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageAttachment'
+    SearchMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageSearchResult'
+        next:
+          type: string
+          nullable: true
+        estimated_total:
+          type: integer
+          nullable: true
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, fail]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - status
+    AttachmentUploadRequest:
+      type: object
+      properties:
+        size:
+          type: integer
+          minimum: 0
+        mime_type:
+          type: string
+        checksum:
+          type: string
+        status:
+          type: string
+          enum: [pending, uploading, complete]
+        scan_requested:
+          type: boolean
+    AttachmentModerationMeta:
+      type: object
+      properties:
+        mime_type:
+          type: string
+        size:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum: [pending, available, rejected]
+        scan_id:
+          type: string
+        scan_result:
+          type: string
+    AttachmentScanStatus:
+      type: object
+      nullable: true
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, passed, failed]
+        updated_at:
+          type: string
+          format: date-time
+        details:
+          type: string
