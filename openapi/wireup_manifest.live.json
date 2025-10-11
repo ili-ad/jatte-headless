@@ -235,7 +235,25 @@
   },
   {
     "method": "GET",
-    "path": "/api/chat/agent/{cid}/",
+    "path": "/chat/agent/skills",
+    "operationId": "listSkillsForRoom",
+    "stubName": "chatAgent.listSkillsForRoom",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "PUT",
+    "path": "/chat/agent/skills",
+    "operationId": "setSkillsForRoom",
+    "stubName": "chatAgent.setSkillsForRoom",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/chat/agent/{cid}/",
     "operationId": "getAgentStatus",
     "stubName": "chatAgent.getAgentStatus",
     "ticketType": "api",
@@ -244,7 +262,7 @@
   },
   {
     "method": "POST",
-    "path": "/api/chat/agent/{cid}/enable/",
+    "path": "/chat/agent/{cid}/enable/",
     "operationId": "enableAgent",
     "stubName": "chatAgent.enableAgent",
     "ticketType": "api",
@@ -253,7 +271,7 @@
   },
   {
     "method": "POST",
-    "path": "/api/chat/agent/{cid}/disable/",
+    "path": "/chat/agent/{cid}/disable/",
     "operationId": "disableAgent",
     "stubName": "chatAgent.disableAgent",
     "ticketType": "api",
@@ -262,7 +280,7 @@
   },
   {
     "method": "POST",
-    "path": "/api/chat/agent/{cid}/invoke/",
+    "path": "/chat/agent/{cid}/invoke/",
     "operationId": "invokeAgent",
     "stubName": "chatAgent.invokeAgent",
     "ticketType": "api",
