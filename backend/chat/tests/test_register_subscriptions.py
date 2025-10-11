@@ -7,6 +7,7 @@ import jwt
 from rest_framework.test import APITestCase
 
 from chat.models import Room, WebPushSubscription
+from chat.utils import group_name_for_cid
 
 
 @pytest.fixture
@@ -133,7 +134,7 @@ class RegisterSubscriptionsAPITests(APITestCase):
         self.assertEqual(response.status_code, 201)
         channel_layer.group_send.assert_awaited_once()
         group_name, event = channel_layer.group_send.await_args.args
-        self.assertEqual(group_name, f"channel_{room.uuid}")
+        self.assertEqual(group_name, group_name_for_cid(f"messaging:{room.uuid}"))
         self.assertEqual(event["type"], "chat.message")
         payload_sent = event["payload"]
         self.assertEqual(payload_sent["type"], "push.subscription.registered")

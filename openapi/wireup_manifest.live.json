@@ -18,8 +18,17 @@
     "status": "ok"
   },
   {
+    "method": "GET",
+    "path": "/reminders/",
+    "operationId": "listReminders",
+    "stubName": "reminders.listReminders",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
     "method": "POST",
-    "path": "/api/rooms/{cid}/reminders/",
+    "path": "/reminders/",
     "operationId": "createReminder",
     "stubName": "reminders.createReminder",
     "ticketType": "api",
@@ -28,9 +37,18 @@
   },
   {
     "method": "POST",
-    "path": "/api/rooms/{cid}/reminders/",
+    "path": "/reminders/",
     "operationId": "createReminder",
     "stubName": "client.reminders.createReminder",
+    "ticketType": "api",
+    "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/reminders/{id}/",
+    "operationId": "deleteReminder",
+    "stubName": "reminders.deleteReminder",
     "ticketType": "api",
     "todoCount": 1,
     "status": "ok"
@@ -85,6 +103,51 @@
     "path": "/rooms/",
     "operationId": "listRooms",
     "stubName": "listRooms",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/mute-status/{username}/",
+    "operationId": "muteStatus",
+    "stubName": "channel.muteStatus",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/muted-users/",
+    "operationId": "listMutedUsers",
+    "stubName": "listMutedUsers",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/muted-channels/",
+    "operationId": "listMutedChannels",
+    "stubName": "listMutedChannels",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/mute/{username}/",
+    "operationId": "muteUser",
+    "stubName": "muteUser",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/unmute/{username}/",
+    "operationId": "unmuteUser",
+    "stubName": "unmuteUser",
     "ticketType": "api",
     "todoCount": 0,
     "status": "ok"
@@ -253,7 +316,7 @@
   },
   {
     "method": "GET",
-    "path": "/api/users/",
+    "path": "/users/",
     "operationId": "listUsers",
     "stubName": "client.queryUsers",
     "ticketType": "api",
@@ -757,9 +820,9 @@
   },
   {
     "method": "WS",
-    "path": "reminders.deleteReminder",
+    "path": "reminders.deleteReminder.ws",
     "operationId": "shim::reminders.deleteReminder",
-    "stubName": "reminders.deleteReminder",
+    "stubName": "reminders.deleteReminder.ws",
     "ticketType": "shim",
     "todoCount": 1,
     "status": "ok"
@@ -879,6 +942,114 @@
     "stubName": "unpinMessage",
     "ticketType": "shim",
     "todoCount": 1,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/listeners/",
+    "operationId": "getListeners",
+    "stubName": "getListeners",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/dispatch-event/",
+    "operationId": "dispatchEvent",
+    "stubName": "dispatchEvent",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/notifications/",
+    "operationId": "listNotifications",
+    "stubName": "listNotifications",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/recover-state/",
+    "operationId": "recoverState",
+    "stubName": "state.recoverState",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/disconnected/",
+    "operationId": "isDisconnected",
+    "stubName": "state.isDisconnected",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/initialized/",
+    "operationId": "isInitialized",
+    "stubName": "state.isInitialized",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/editing-audit-state/",
+    "operationId": "editingAuditState",
+    "stubName": "state.editingAuditState",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "listRoomDrafts",
+    "stubName": "drafts.listRoomDrafts",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "POST",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "createRoomDraft",
+    "stubName": "drafts.createRoomDraft",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/rooms/{room_uuid}/draft/",
+    "operationId": "destroyRoomDraft",
+    "stubName": "drafts.destroyRoomDraft",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/api/rooms/{room_uuid}/config-state/",
+    "operationId": "listRoomConfigStates",
+    "stubName": "rooms.listRoomConfigStates",
+    "ticketType": "api",
+    "todoCount": 0,
+    "status": "ok"
+  },
+  {
+    "method": "GET",
+    "path": "/ws-auth/",
+    "operationId": "wsAuth",
+    "stubName": "wsAuth",
+    "ticketType": "api",
+    "todoCount": 0,
     "status": "ok"
   }
 ]
