@@ -1,5 +1,8 @@
-from asgiref.sync import sync_to_async
+import logging
+
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from channels.layers import get_channel_layer
 from django.conf import settings
 from urllib.parse import parse_qs
 import jwt
@@ -165,3 +168,43 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     @staticmethod
     def _group_name(cid: str) -> str:
         return group_name_for_cid(cid)
+
+
+logger = logging.getLogger(__name__)
+
+
+def broadcast_message_update(message: Message) -> None:
+    """Broadcast a ``message.updated`` event for the given message."""
+
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        payload = MessageSerializer(message).data
+        cids: list[str] = []
+        for room in message.rooms.all():
+            cids.append(canonical_cid(None, room_uuid=room.uuid))
+
+        if not cids and getattr(message, "channel_id", None):
+            try:
+                channel_uuid = message.channel.uuid
+            except Channel.DoesNotExist:  # pragma: no cover - safety guard
+                channel_uuid = None
+            if channel_uuid:
+                cids.append(canonical_cid(None, room_uuid=channel_uuid))
+
+        for cid in cids:
+            async_to_sync(channel_layer.group_send)(
+                group_name_for_cid(cid),
+                {
+                    "type": "chat.message",
+                    "payload": {
+                        "type": "message.updated",
+                        "cid": cid,
+                        "message": payload,
+                    },
+                },
+            )
+    except Exception:  # pragma: no cover - defensive logging
+        logger.exception("Failed to broadcast message update")
