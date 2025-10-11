@@ -96,7 +96,11 @@ export const MessageInputFlat = () => {
     !!StopAIGenerationButton;
 
   return (
-    <WithDragAndDropUpload className='str-chat__message-input' component='div'>
+    <WithDragAndDropUpload
+      className='str-chat__message-input'
+      component='div'
+      data-testid='composer-input'
+    >
       {recordingEnabled &&
         recordingController.permissionState === 'denied' &&
         showRecordingPermissionDeniedNotification && (
