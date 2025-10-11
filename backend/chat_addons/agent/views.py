@@ -23,7 +23,11 @@ from ..common_audit.throttling import (
 )
 from . import registry
 from .models import AgentRoomPolicy, RoomAgentFlag
-from .serializers import RoomSkillListSerializer, RoomSkillPolicySerializer
+from .serializers import (
+    AgentRoomPolicySerializer,
+    RoomSkillListSerializer,
+    RoomSkillPolicySerializer,
+)
 from .tasks import run_agent_invocation
 
 
@@ -259,4 +263,83 @@ class AgentSkillPolicyView(APIView):
 
         registry.set_policy(canonical, agent_enabled, ordered_enabled)
         payload = _build_skill_payload(canonical, ordered_enabled)
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class AgentPolicyView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        cid_param = request.query_params.get("cid")
+        if not cid_param:
+            raise serializers.ValidationError({"cid": "This query parameter is required."})
+
+        canonical, room = _resolve_room(cid_param)
+        flag = RoomAgentFlag.objects.filter(room=room).first()
+        defaults = {"agent_enabled": bool(flag.agent_enabled) if flag else False}
+        policy, created = AgentRoomPolicy.objects.get_or_create(
+            cid=canonical,
+            defaults=defaults,
+        )
+        if not created and flag and policy.agent_enabled != bool(flag.agent_enabled):
+            policy.agent_enabled = bool(flag.agent_enabled)
+            policy.save(update_fields=["agent_enabled", "updated_at"])
+
+        serializer = AgentRoomPolicySerializer(policy)
+        payload = dict(serializer.data)
+        payload["cid"] = canonical
+        return Response(payload, status=status.HTTP_200_OK)
+
+    def put(self, request: Request) -> Response:
+        data = request.data or {}
+        cid_value = data.get("cid")
+        if not cid_value:
+            raise serializers.ValidationError({"cid": "This field is required."})
+
+        canonical, room = _resolve_room(cid_value)
+        policy, _ = AgentRoomPolicy.objects.get_or_create(cid=canonical)
+
+        serializer = AgentRoomPolicySerializer(policy, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        validated = serializer.validated_data
+
+        enabled_names = validated.get("enabled_skills")
+        if enabled_names is not None:
+            metas = registry.list_all()
+            known = {meta.name for meta in metas}
+            unknown = sorted({name for name in enabled_names if name not in known})
+            if unknown:
+                raise serializers.ValidationError(
+                    {"enabled_skills": [f"Unknown skill: {name}" for name in unknown]}
+                )
+            deduped: list[str] = []
+            seen: set[str] = set()
+            for name in enabled_names:
+                if name not in seen:
+                    deduped.append(name)
+                    seen.add(name)
+            validated["enabled_skills"] = deduped
+
+        for field in (
+            "agent_enabled",
+            "enabled_skills",
+            "tool_hop_cap",
+            "turn_cap",
+            "auto_reply_mode",
+            "handoff_message",
+        ):
+            if field in validated:
+                setattr(policy, field, validated[field])
+
+        if policy.agent_enabled:
+            RoomAgentFlag.objects.get_or_create(room=room)
+        policy.cid = canonical
+        policy.save()
+
+        serializer = AgentRoomPolicySerializer(policy)
+        payload = dict(serializer.data)
+        payload["cid"] = canonical
         return Response(payload, status=status.HTTP_200_OK)
