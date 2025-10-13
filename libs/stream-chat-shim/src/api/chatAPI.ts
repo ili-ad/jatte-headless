@@ -1,6 +1,6 @@
 import { getLocalClient } from 'chat-shim';
 import { clearAllReminderTimers } from '../reminders/timerRegistry';
-import { API_BASE as DEFAULT_API_BASE } from '../config/env';
+import { API_BASE as DEFAULT_API_BASE, CHAT_AUTH_MODE } from '../config/env';
 import {
   Channel,
   ChannelFilters,
@@ -36,26 +36,41 @@ export function configureApiBase(base: string) {
 }
 
 function apiUrl(path: string): string {
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  return `${API_BASE}${normalized}`;
+  if (!API_BASE) return path;
+  return path.startsWith('/') ? `${API_BASE}${path}` : `${API_BASE}/${path}`;
 }
 
-let AUTH_TOKEN: string | null = null;
-
-/** Call this once you have a Supabase access token (or whatever JWT you use). */
+let authToken: string | null = null;
 export function setAuthToken(token: string | null) {
-  AUTH_TOKEN = token && token.trim() ? token : null;
+  if (typeof token === 'string') {
+    const trimmed = token.trim();
+    authToken = trimmed ? trimmed : null;
+    return;
+  }
+  authToken = null;
 }
 
-/** Wrap fetch to include Bearer when we have it. */
-function authorizedFetch(path: string, init: RequestInit = {}) {
-  const headers = new Headers(init.headers);
-  if (AUTH_TOKEN) headers.set('Authorization', `Bearer ${AUTH_TOKEN}`);
-  return fetch(
-    // keep relative if API_BASE is empty, otherwise prefix
-    apiUrl(path),
-    { credentials: init.credentials ?? 'same-origin', ...init, headers }
-  );
+export async function authorizedFetch(
+  input: string,
+  init: RequestInit = {},
+) {
+  const headers = new Headers(init.headers || {});
+  const method =
+    typeof init.method === 'string' ? init.method.toUpperCase() : undefined;
+  const mustAuth =
+    CHAT_AUTH_MODE === 'strict' ||
+    (method !== undefined && method !== 'GET');
+
+  if (mustAuth && authToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${authToken}`);
+  }
+
+  const requestInit: RequestInit = { ...init, headers };
+  if (!('credentials' in requestInit)) {
+    requestInit.credentials = 'same-origin';
+  }
+
+  return fetch(apiUrl(input), requestInit);
 }
 
 
@@ -2575,11 +2590,10 @@ export const queryChannelWatchers = async ({
 
   const query = params.toString();
 
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/members/${query ? `?${query}` : ""}`,
     {
       method: "GET",
-      credentials: "same-origin",
     },
   );
 
@@ -2617,11 +2631,10 @@ export const channelQuery = async ({
 
   const query = params.toString();
 
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/messages/${query ? `?${query}` : ""}`,
     {
       method: "GET",
-      credentials: "same-origin",
     },
   );
 
@@ -4523,9 +4536,8 @@ const parseWebPushSubscription = (value: unknown): WebPushSubscription => {
 };
 
 export const getAppSettings = async (): Promise<AppSettings> => {
-  const response = await fetch("/api/app-settings/", {
+  const response = await authorizedFetch("/api/app-settings/", {
     method: "GET",
-    credentials: "same-origin",
   });
 
   if (!response.ok) {
@@ -4650,7 +4662,6 @@ export const syncUser = async (
 
   const options: RequestInit = {
     method: "POST",
-    credentials: "same-origin",
   };
 
   if (Object.keys(headers).length > 0) {
@@ -4661,7 +4672,7 @@ export const syncUser = async (
     options.body = JSON.stringify(payload);
   }
 
-  const response = await fetch("/api/sync-user/", options);
+  const response = await authorizedFetch("/api/sync-user/", options);
 
   if (!response.ok) {
     const error = new Error(`Failed to sync user (status ${response.status})`);
