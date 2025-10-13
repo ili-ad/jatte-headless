@@ -56,6 +56,8 @@ declare module 'stream-chat' {
     static getInstance(apiKey?: string): StreamChat;
   }
 
+  export function configureWebsocketBase(base: string): void;
+
   /** Convenience helper */
   export function getLocalClient(): LocalChatClient;
 
