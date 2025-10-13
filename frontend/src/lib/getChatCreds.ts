@@ -1,3 +1,5 @@
+import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
+
 import { supabase } from './supabaseClient';
 
 export async function getChatCreds() {
@@ -9,5 +11,8 @@ export async function getChatCreds() {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error('token endpoint failed');
-  return res.json() as Promise<{ userID: number; userToken: string }>;
+
+  const creds = (await res.json()) as { userID: number; userToken: string };
+  setAuthToken(creds?.userToken ?? null);
+  return creds;
 }
