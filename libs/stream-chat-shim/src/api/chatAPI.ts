@@ -23,9 +23,21 @@ import type { ClientKnownEventMap } from '../chatSDKShim';
 import type { ChannelEventSubscription, EventTargetLike } from '../client';
 import { clientOn, createSubscription } from '../client';
 
-
 // Base URLs (keep relative by default so Next rewrites still work)
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+let API_BASE = '';
+
+export function configureApiBase(base: string) {
+  if (typeof base === 'string' && base.trim()) {
+    API_BASE = base.trim();
+    return;
+  }
+  API_BASE = '';
+}
+
+function apiUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE}${normalized}`;
+}
 
 let AUTH_TOKEN: string | null = null;
 
@@ -40,7 +52,7 @@ function authorizedFetch(path: string, init: RequestInit = {}) {
   if (AUTH_TOKEN) headers.set('Authorization', `Bearer ${AUTH_TOKEN}`);
   return fetch(
     // keep relative if API_BASE is empty, otherwise prefix
-    `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`,
+    apiUrl(path),
     { credentials: init.credentials ?? 'same-origin', ...init, headers }
   );
 }

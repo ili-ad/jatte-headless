@@ -15,21 +15,13 @@ export * from "./MessageComposer";
 export * from "./noopStore";
 
 /* ----- connection details -------------------------------------------- */
-const resolveWsBase = () => {
-  if (process.env.NEXT_PUBLIC_WS_URL) {
-    return process.env.NEXT_PUBLIC_WS_URL;
+let WS_BASE = "ws://127.0.0.1:8000";
+
+export function configureWebsocketBase(base: string) {
+  if (typeof base === "string" && base.trim()) {
+    WS_BASE = base;
   }
-
-  if (typeof window === "undefined") {
-    return "ws://127.0.0.1:8000";
-  }
-
-  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-  const hostname = window.location.hostname || "127.0.0.1";
-  return `${scheme}://${hostname}:8000`;
-};
-
-const WS_BASE = resolveWsBase();
+}
 
 
 /* ----- runtime instance -------------------------------------------- */

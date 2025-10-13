@@ -3,8 +3,8 @@ import "./globals.css";
 
 import '@iliad/stream-chat-shim/dist/css/v2/index.css'; // ← v1 if you prefer
 
-import { Providers } from "./Providers";
 import { SessionProvider } from "@/lib/SessionProvider";
+import EndpointConfig from "./endpoint-config";
 
 
 export const metadata: Metadata = {
@@ -20,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+          <EndpointConfig />
           <SessionProvider>
             {children}
           </SessionProvider>

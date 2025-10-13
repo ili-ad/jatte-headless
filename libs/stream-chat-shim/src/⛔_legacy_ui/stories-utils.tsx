@@ -4,7 +4,7 @@ import type { OwnUserResponse, TokenOrProvider, UserResponse } from 'chat-shim';
 
 import { Chat } from './Chat';
 
-const appKey = process.env.NEXT_PUBLIC_STREAM_KEY;
+const appKey = '';
 if (!appKey) {
   throw new Error('expected APP_KEY');
 }
