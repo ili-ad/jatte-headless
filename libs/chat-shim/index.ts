@@ -1,7 +1,12 @@
 // libs/chat-shim/index.ts
 "use client";
 import { useSyncExternalStore } from "react";
-import { chatAPI, type SyncUserRequest, type SyncUserResponse } from "../stream-chat-shim/src/api/chatAPI";
+import {
+  authorizedFetch,
+  chatAPI,
+  type SyncUserRequest,
+  type SyncUserResponse,
+} from "../stream-chat-shim/src/api/chatAPI";
 import { WS_BASE as DEFAULT_WS_BASE } from "../stream-chat-shim/src/config/env";
 import { createStore } from "./stateStore";
 
@@ -583,9 +588,8 @@ export class LocalChatClient {
   }
 
   async queryUsers() {
-    const resp = await fetch('/api/users/', {
-      method: 'GET',
-      credentials: 'same-origin',
+    const resp = await authorizedFetch("/api/users/", {
+      method: "GET",
     });
     const data = await resp.json();
     return { users: data };
@@ -688,15 +692,16 @@ export class LocalChatClient {
 
   /** Delete a message by id via the backend */
   async deleteMessage(id: string): Promise<any> {
-    const resp = await fetch(`/api/messages/${id}/`, { method: "DELETE" });
+    const resp = await authorizedFetch(`/api/messages/${id}/`, {
+      method: "DELETE",
+    });
     return resp.json();
   }
 
   /** Update a message via the backend */
   async updateMessage(id: string, text: string): Promise<any> {
-    const resp = await fetch(`/api/messages/${id}/`, {
+    const resp = await authorizedFetch(`/api/messages/${id}/`, {
       method: "PUT",
-      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
@@ -705,7 +710,7 @@ export class LocalChatClient {
 
   /** Retrieve a single message by id via the backend */
   async getMessage(id: string): Promise<any> {
-    const resp = await fetch(`/api/messages/${id}/`);
+    const resp = await authorizedFetch(`/api/messages/${id}/`);
     return resp.json();
   }
 }
@@ -761,7 +766,7 @@ export class LinkPreviewsManager {
       return cached;
     }
 
-    const resp = await fetch(
+    const resp = await authorizedFetch(
       `/api/link-preview?url=${encodeURIComponent(url)}`,
     );
     const data: LinkPreview = {
@@ -1314,7 +1319,7 @@ export class ReminderManager {
   /** Create a reminder via the backend and store it */
   async createReminder(params: ReminderCreateParams): Promise<Reminder> {
     const { cid, ...body } = params;
-    const resp = await fetch(
+    const resp = await authorizedFetch(
       `/api/rooms/${encodeURIComponent(cid)}/reminders/`,
       {
         method: "POST",

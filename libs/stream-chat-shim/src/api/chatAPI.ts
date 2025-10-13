@@ -1202,11 +1202,11 @@ export const queryOptionVotes = async ({
   }
 
   const query = searchParams.toString();
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/polls/${encodeURIComponent(normalizedPollId)}/options/${encodeURIComponent(
       normalizedOptionId,
-    )}/votes/${query ? `?${query}` : ''}`,
-    { method: 'GET', credentials: 'same-origin' },
+    )}/votes/${query ? `?${query}` : ""}`,
+    { method: "GET" },
   );
 
   if (!response.ok) {
@@ -4692,10 +4692,9 @@ export const syncUser = async (
 export const registerSubscriptions = async (
   body: RegisterSubscriptionsInput,
 ): Promise<RegisterSubscriptionsResponse> => {
-  const response = await fetch('/api/register-subscriptions/', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authorizedFetch("/api/register-subscriptions/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
@@ -4754,9 +4753,8 @@ export const registerSubscriptions = async (
 };
 
 export const listUsers = async (): Promise<User[]> => {
-  const response = await fetch("/api/users/", {
+  const response = await authorizedFetch("/api/users/", {
     method: "GET",
-    credentials: "same-origin",
   });
 
   if (!response.ok) {
@@ -4790,11 +4788,10 @@ export const listUsers = async (): Promise<User[]> => {
 };
 
 async function deleteMessage({ cid, message_id }: DeleteMessageParams): Promise<void> {
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
     {
       method: "DELETE",
-      credentials: "same-origin",
     },
   );
 
@@ -4813,11 +4810,10 @@ async function updateMessage({
   message_id,
   text,
 }: UpdateMessageInput): Promise<Message> {
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
     {
       method: "PATCH",
-      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     },
@@ -4845,11 +4841,10 @@ export const muteUser = async ({
     payload.muted_until = muted_until;
   }
 
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/mutes/`,
     {
       method: "POST",
-      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
@@ -4894,9 +4889,8 @@ export const muteUser = async ({
 export const unmuteUser = async ({
   target_user_id,
 }: UnmuteUserRequest): Promise<UnmuteUserResponse> => {
-  const response = await fetch("/api/user-mutes/unmute/", {
+  const response = await authorizedFetch("/api/user-mutes/unmute/", {
     method: "POST",
-    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ target_user_id }),
   });
@@ -4923,11 +4917,10 @@ export const unmuteUser = async ({
 };
 
 export const muteStatus = async ({ cid }: { cid: string }): Promise<MuteStatus> => {
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/mute/`,
     {
       method: "GET",
-      credentials: "same-origin",
     },
   );
 
@@ -4957,11 +4950,10 @@ export const getMessage = async ({
   cid: string;
   message_id: string | number;
 }): Promise<Message> => {
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(cid)}/messages/${encodeURIComponent(String(message_id))}/`,
     {
       method: "GET",
-      credentials: "same-origin",
     },
   );
 
@@ -4982,11 +4974,10 @@ export const listRoomDrafts = async ({
 }: {
   room_uuid: string;
 }): Promise<RoomDraft[]> => {
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/api/rooms/${encodeURIComponent(room_uuid)}/draft/`,
     {
-      method: 'GET',
-      credentials: 'same-origin',
+      method: "GET",
     },
   );
 
@@ -5032,9 +5023,8 @@ export type RemindersUpsertReminderParams = {
 };
 
 async function createReminder(body: CreateReminderInput): Promise<Reminder> {
-  const response = await fetch("/api/reminders/", {
+  const response = await authorizedFetch("/api/reminders/", {
     method: "POST",
-    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
@@ -5503,10 +5493,12 @@ const deleteReminder = async ({
     return { ok: true, reminderId: normalizedId };
   }
 
-  const response = await fetch(`/api/reminders/${encodeURIComponent(reminderId)}/`, {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
+  const response = await authorizedFetch(
+    `/api/reminders/${encodeURIComponent(reminderId)}/`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!response.ok) {
     const error = new Error(`Failed to delete reminder (status ${response.status})`);
@@ -5529,9 +5521,8 @@ const deleteReminder = async ({
 };
 
 async function endSession(): Promise<void> {
-  const response = await fetch("/api/session/", {
+  const response = await authorizedFetch("/api/session/", {
     method: "DELETE",
-    credentials: "same-origin",
   });
 
   if (!response.ok) {
