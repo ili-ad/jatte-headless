@@ -78,6 +78,11 @@ def _split_csv(value: str | None) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _split_env(name: str, default: str = "") -> list[str]:
+    value = os.environ.get(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 CHAT_ATTACHMENTS_BUCKET = os.environ.get("CHAT_ATTACHMENTS_BUCKET")
 CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO = os.environ.get(
     "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_JSON"
@@ -125,6 +130,7 @@ CACHES = {
 
 INSTALLED_APPS = [
     'daphne',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -180,6 +186,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -262,6 +269,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+CORS_ALLOWED_ORIGINS = _split_env(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
+CORS_ALLOW_CREDENTIALS = False
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type
