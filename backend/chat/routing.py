@@ -4,5 +4,6 @@ from . import consumers
 
 
 websocket_urlpatterns = [
-    re_path(r"ws/chat/?$", consumers.ChatConsumer.as_asgi()),
+    # allow colons in room keys (e.g., "messaging:general")
+    re_path(r"^ws/(?P<room_key>[^/]+)/$", consumers.ChatConsumer.as_asgi()),
 ]
