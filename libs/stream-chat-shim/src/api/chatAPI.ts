@@ -2138,7 +2138,7 @@ const getMessageCreatedAt = (
   return toDateSafe((message as { updated_at?: unknown }).updated_at);
 };
 
-const findMessageById = (
+const findMessageByIdInList = (
   messages: ChannelMessageLike[],
   id: string,
 ): ChannelMessageLike | undefined => {
@@ -2246,7 +2246,7 @@ const computeChannelUnreadCount = (
     ownReadState &&
     typeof (ownReadState as { last_read_message_id?: unknown }).last_read_message_id === 'string'
   ) {
-    const knownMessage = findMessageById(
+    const knownMessage = findMessageByIdInList(
       messages,
       (ownReadState as { last_read_message_id: string }).last_read_message_id,
     );
