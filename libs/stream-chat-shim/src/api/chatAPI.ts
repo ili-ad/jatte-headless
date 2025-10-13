@@ -70,7 +70,10 @@ export async function authorizedFetch(
     requestInit.credentials = 'same-origin';
   }
 
-  return fetch(apiUrl(input), requestInit);
+  const shouldRemainRelative =
+    API_BASE && input.startsWith('/search/messages');
+
+  return fetch(shouldRemainRelative ? input : apiUrl(input), requestInit);
 }
 
 
@@ -2789,7 +2792,7 @@ export const search = async ({
   }
 
   const queryString = params.toString();
-  const response = await fetch(
+  const response = await authorizedFetch(
     `/search/messages/${queryString ? `?${queryString}` : ""}`,
     {
       method: "GET",
