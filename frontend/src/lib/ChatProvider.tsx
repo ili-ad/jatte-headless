@@ -6,6 +6,7 @@ import type { ChatClient } from './stream-adapter';
 import type { Channel } from './stream-adapter/Channel';
 import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
+import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
 import { useSession } from './SessionProvider';
 
 export const chatClient: ChatClient = getStreamClient();
@@ -30,11 +31,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setChannel(null);
       client.disconnectUser();
+      setAuthToken(null);
       return;
     }
     let mounted = true;
     (async () => {
       const { userID, userToken } = await getChatCreds();
+      setAuthToken(userToken);
       await client.connectUser({ id: String(userID) }, userToken);
       (client as any)['jwt'] = userToken;
       const chan = client.channel('messaging', 'general');
