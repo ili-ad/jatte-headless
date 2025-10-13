@@ -2,6 +2,7 @@
 "use client";
 import { useSyncExternalStore } from "react";
 import { chatAPI, type SyncUserRequest, type SyncUserResponse } from "../stream-chat-shim/src/api/chatAPI";
+import { WS_BASE as DEFAULT_WS_BASE } from "../stream-chat-shim/src/config/env";
 import { createStore } from "./stateStore";
 
 /* ----- public types the UI already references ---------------------- */
@@ -15,11 +16,11 @@ export * from "./MessageComposer";
 export * from "./noopStore";
 
 /* ----- connection details -------------------------------------------- */
-let WS_BASE = "ws://127.0.0.1:8000";
+let WS_BASE = DEFAULT_WS_BASE;
 
 export function configureWebsocketBase(base: string) {
   if (typeof base === "string" && base.trim()) {
-    WS_BASE = base;
+    WS_BASE = base.trim().replace(/\/+$/, "");
   }
 }
 
@@ -628,7 +629,7 @@ export class LocalChatClient {
     const cid = config?.cid ?? `${type}:${channelId}`;
 
     if (!this.channels.has(cid)) {
-      const url = `${WS_BASE}/ws/${cid}/?token=${encodeURIComponent(this.jwt)}`;
+      const url = `${WS_BASE}/ws/${encodeURIComponent(cid)}/?token=${encodeURIComponent(this.jwt)}`;
       const sock = new WebSocket(url);
   
       sock.onmessage = (ev) => {
