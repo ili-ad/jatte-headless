@@ -840,11 +840,19 @@ var Channel = /** @class */ (function () {
                         return [3 /*break*/, 9];
                     case 9:
                         this.initialized = true;
-                        wsRoot = process.env.NEXT_PUBLIC_WS_URL;
-                        if (!wsRoot) {
-                            throw new Error('NEXT_PUBLIC_WS_URL is not set');
-                        }
-                        this.socket = new WebSocket("".concat(wsRoot, "/ws/").concat(this.cid, "/?token=").concat(this.client['jwt']));
+                        var resolveWsBase = function () {
+                            if (process.env.NEXT_PUBLIC_WS_URL) {
+                                return process.env.NEXT_PUBLIC_WS_URL;
+                            }
+                            if (typeof window === 'undefined') {
+                                return 'ws://127.0.0.1:8000';
+                            }
+                            var scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+                            var hostname = window.location.hostname || '127.0.0.1';
+                            return "".concat(scheme, "://").concat(hostname, ":8000");
+                        };
+                        var WS_BASE = resolveWsBase();
+                        this.socket = new WebSocket("".concat(WS_BASE, "/ws/").concat(this.cid, "/?token=").concat(encodeURIComponent(this.client['jwt'])));
                         this.socket.onmessage = function (ev) {
                             try {
                                 var p = JSON.parse(ev.data);

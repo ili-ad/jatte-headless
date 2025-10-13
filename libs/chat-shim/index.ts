@@ -15,11 +15,21 @@ export * from "./MessageComposer";
 export * from "./noopStore";
 
 /* ----- connection details -------------------------------------------- */
-const WS_BASE =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  (typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
-    : 'ws://127.0.0.1:8000');
+const resolveWsBase = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+
+  if (typeof window === "undefined") {
+    return "ws://127.0.0.1:8000";
+  }
+
+  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const hostname = window.location.hostname || "127.0.0.1";
+  return `${scheme}://${hostname}:8000`;
+};
+
+const WS_BASE = resolveWsBase();
 
 
 /* ----- runtime instance -------------------------------------------- */
@@ -150,9 +160,8 @@ export class LocalChannel {
   }
 
   async sendMessage(msg: { text: string }) {
-    this.sock.send(
-      JSON.stringify({ type: "message.new", cid: this.cid, ...msg }),
-    );
+    const { cid } = this;
+    this.sock.send(JSON.stringify({ type: "message.new", cid, ...msg }));
   }
 
   on(evt: string, cb: (ev: any) => void) {
@@ -172,13 +181,13 @@ export class LocalChannel {
   }
 
   markRead() {
-    this.sock.send(JSON.stringify({ type: "mark.read", cid: this.cid }));
+    const { cid } = this;
+    this.sock.send(JSON.stringify({ type: "mark.read", cid }));
   }
 
   markUnread(messageId: string) {
-    this.sock.send(
-      JSON.stringify({ type: "mark.unread", cid: this.cid, id: messageId }),
-    );
+    const { cid } = this;
+    this.sock.send(JSON.stringify({ type: "mark.unread", cid, id: messageId }));
   }
 
   /** Return basic configuration flags expected by Stream UI */
@@ -210,10 +219,11 @@ export class LocalChannel {
       muted_until,
     };
 
-    const index = this.client.mutedChannels.indexOf(this.cid);
+    const { cid } = this;
+    const index = this.client.mutedChannels.indexOf(cid);
     if (this.muteStatusState.muted) {
       if (index === -1) {
-        this.client.mutedChannels.push(this.cid);
+        this.client.mutedChannels.push(cid);
       }
     } else if (index !== -1) {
       this.client.mutedChannels.splice(index, 1);
@@ -260,9 +270,11 @@ export class LocalChannel {
       this.state.members[userId] = currentMember;
     }
 
+    const { cid } = this;
+
     const archiveEvent: Record<string, any> = {
       type: "channel.archived",
-      cid: this.cid,
+      cid,
       archived: true as const,
       at,
     };
@@ -272,7 +284,7 @@ export class LocalChannel {
 
     const memberEvent: Record<string, any> = {
       type: "member.updated",
-      cid: this.cid,
+      cid,
       channel_id: this.id,
       channel_type: this.type,
       member: {
