@@ -74,6 +74,7 @@ var constants_1 = require("./constants");
 var api_1 = require("../api");
 var errors_1 = require("../errors");
 var attachments_1 = require("./composer/attachments");
+var env_1 = require("@iliad/stream-chat-shim/config/env.js");
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
@@ -840,19 +841,7 @@ var Channel = /** @class */ (function () {
                         return [3 /*break*/, 9];
                     case 9:
                         this.initialized = true;
-                        var resolveWsBase = function () {
-                            if (process.env.NEXT_PUBLIC_WS_URL) {
-                                return process.env.NEXT_PUBLIC_WS_URL;
-                            }
-                            if (typeof window === 'undefined') {
-                                return 'ws://127.0.0.1:8000';
-                            }
-                            var scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-                            var hostname = window.location.hostname || '127.0.0.1';
-                            return "".concat(scheme, "://").concat(hostname, ":8000");
-                        };
-                        var WS_BASE = resolveWsBase();
-                        this.socket = new WebSocket("".concat(WS_BASE, "/ws/").concat(this.cid, "/?token=").concat(encodeURIComponent(this.client['jwt'])));
+                        this.socket = new WebSocket("".concat(env_1.WS_BASE, "/ws/").concat(encodeURIComponent(this.cid), "/?token=").concat(encodeURIComponent(this.client['jwt'] || '')));
                         this.socket.onmessage = function (ev) {
                             try {
                                 var p = JSON.parse(ev.data);
