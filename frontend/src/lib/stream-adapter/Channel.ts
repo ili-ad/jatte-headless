@@ -671,9 +671,7 @@ export class Channel {
         // );
 
         this.socket = new WebSocket(
-            `${WS_BASE}/ws/${encodeURIComponent(this.cid)}/?token=${encodeURIComponent(
-                this.client['jwt'] ?? '',
-            )}`
+            `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] ?? '')}`
         );
 
 

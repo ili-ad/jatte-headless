@@ -633,7 +633,7 @@ export class LocalChatClient {
     const cid = config?.cid ?? `${type}:${channelId}`;
 
     if (!this.channels.has(cid)) {
-      const url = `${WS_BASE}/ws/${encodeURIComponent(cid)}/?token=${encodeURIComponent(this.jwt)}`;
+      const url = `${WS_BASE}/ws/${cid}/?token=${encodeURIComponent(this.jwt)}`;
       const sock = new WebSocket(url);
   
       sock.onmessage = (ev) => {
