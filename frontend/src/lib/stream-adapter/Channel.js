@@ -657,7 +657,7 @@ var Channel = /** @class */ (function () {
             var res;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/config/"), {
+                    case 0: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/config/"), {
                             headers: { Authorization: "Bearer ".concat(this.client['jwt']) },
                         })];
                     case 1:
@@ -730,7 +730,7 @@ var Channel = /** @class */ (function () {
                 switch (_e.label) {
                     case 0:
                         _e.trys.push([0, 7, , 8]);
-                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/messages/"), {
+                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/messages/"), {
                                 headers: { Authorization: "Bearer ".concat(this.client['jwt']) },
                             })];
                     case 1:
@@ -755,7 +755,7 @@ var Channel = /** @class */ (function () {
                             this.bump({ messages: first, latestMessages: first });
                         }
                         _e.label = 3;
-                    case 3: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/members/"), {
+                    case 3: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/members/"), {
                             headers: { Authorization: "Bearer ".concat(this.client['jwt']) },
                         })];
                     case 4:
@@ -797,7 +797,7 @@ var Channel = /** @class */ (function () {
                         _e.label = 1;
                     case 1:
                         _e.trys.push([1, 8, , 9]);
-                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/messages/"), {
+                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/messages/"), {
                                 headers: { Authorization: "Bearer ".concat(this.client['jwt']) },
                             })];
                     case 2:
@@ -819,7 +819,7 @@ var Channel = /** @class */ (function () {
                             }, _b)),
                         });
                         _e.label = 4;
-                    case 4: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/members/"), {
+                    case 4: return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/members/"), {
                             headers: { Authorization: "Bearer ".concat(this.client['jwt']) },
                         })];
                     case 5:
@@ -940,7 +940,7 @@ var Channel = /** @class */ (function () {
                         if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
                             payload.show_in_channel = true;
                         }
-                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.cid, "/messages/"), {
+                        return [4 /*yield*/, (0, api_1.apiFetch)("".concat(constants_1.API.ROOMS).concat(this.uuid, "/messages/"), {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
