@@ -18,6 +18,7 @@ import {
 export type { ChannelEventSubscription };
 
 import {
+  authorizedFetch,
   chatAPI,
   type AddAnswer,
   type AddAnswerInput,
@@ -791,7 +792,7 @@ export async function createPollOption(
   pollId: string,
   data: { text: string },
 ): Promise<any> {
-  const resp = await fetch(
+  const resp = await authorizedFetch(
     `/api/polls/${encodeURIComponent(pollId)}/options/`,
     {
       method: "POST",
@@ -983,7 +984,7 @@ export async function unarchive(
 }
 
 export async function truncate(channel: { cid: string }): Promise<void> {
-  await fetch(`/api/rooms/${encodeURIComponent(channel.cid)}/truncate/`, {
+  await authorizedFetch(`/api/rooms/${encodeURIComponent(channel.cid)}/truncate/`, {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -1580,10 +1581,13 @@ export function onPollVoteChanged(
 }
 
 export async function deleteMessage(messageId: string): Promise<any> {
-  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
+  const resp = await authorizedFetch(
+    `/api/messages/${encodeURIComponent(messageId)}/`,
+    {
+      method: "DELETE",
+      credentials: "same-origin",
+    },
+  );
   return resp.json();
 }
 
@@ -1591,10 +1595,13 @@ export async function clientDeleteMessage(
   _client: unknown,
   messageId: string,
 ): Promise<any> {
-  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
-    method: "DELETE",
-    credentials: "same-origin",
-  });
+  const resp = await authorizedFetch(
+    `/api/messages/${encodeURIComponent(messageId)}/`,
+    {
+      method: "DELETE",
+      credentials: "same-origin",
+    },
+  );
   return resp.json();
 }
 
@@ -1608,19 +1615,25 @@ export async function clientUpdateMessage(
   ) {
     return (client as any).updateMessage(messageId, text);
   }
-  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
-    method: "PUT",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+  const resp = await authorizedFetch(
+    `/api/messages/${encodeURIComponent(messageId)}/`,
+    {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    },
+  );
   return resp.json();
 }
 
 export async function findMessage(messageId: string): Promise<any> {
-  const resp = await fetch(`/api/messages/${encodeURIComponent(messageId)}/`, {
-    credentials: "same-origin",
-  });
+  const resp = await authorizedFetch(
+    `/api/messages/${encodeURIComponent(messageId)}/`,
+    {
+      credentials: "same-origin",
+    },
+  );
   return resp.json();
 }
 
@@ -2045,7 +2058,7 @@ export async function clientQueryChannels(
   }
 
   const query = searchParams.toString();
-  const response = await fetch(`/api/rooms/${query ? `?${query}` : ""}`, {
+  const response = await authorizedFetch(`/api/rooms/${query ? `?${query}` : ""}`, {
     credentials: "same-origin",
   });
 
@@ -2478,7 +2491,7 @@ export async function queryReactions(
     }
   }
   const query = searchParams.toString();
-  const resp = await fetch(
+  const resp = await authorizedFetch(
     `/api/messages/${encodeURIComponent(message.id)}/reactions/${
       query ? `?${query}` : ''
     }`,
@@ -2799,7 +2812,7 @@ export async function search(
   if (client?.search) {
     return client.search(filter, query, options);
   }
-  const resp = await fetch('/api/search/', {
+  const resp = await authorizedFetch('/api/search/', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
