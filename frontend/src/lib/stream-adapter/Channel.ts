@@ -669,14 +669,24 @@ export class Channel {
         //     `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
         // );
 
-        const WS_BASE =
-        process.env.NEXT_PUBLIC_WS_URL ||
-        (typeof window !== 'undefined'
-            ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
-            : 'ws://127.0.0.1:8000');
+        const resolveWsBase = () => {
+            if (process.env.NEXT_PUBLIC_WS_URL) {
+                return process.env.NEXT_PUBLIC_WS_URL;
+            }
+
+            if (typeof window === 'undefined') {
+                return 'ws://127.0.0.1:8000';
+            }
+
+            const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const hostname = window.location.hostname || '127.0.0.1';
+            return `${scheme}://${hostname}:8000`;
+        };
+
+        const WS_BASE = resolveWsBase();
 
         this.socket = new WebSocket(
-        `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] as string)}`
+            `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] as string)}`
         );
 
 
