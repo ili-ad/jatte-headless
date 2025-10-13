@@ -13,7 +13,7 @@ import {
   remindersUnregisterSubscriptions as remindersUnregisterSubscriptionsShim,
   queryReactions as queryReactionsShim,
 } from '../chatSDKShim';
-import { getLocalClient } from '../../chat-shim';
+import { getLocalClient } from 'chat-shim';
 import { clearAllReminderTimers } from '../reminders/timerRegistry';
 import type {
   Channel,
@@ -33,7 +33,7 @@ import type {
   StateStore,
   StreamChat,
   VotingVisibility,
-} from '../../chat-shim';
+} from 'chat-shim';
 import type {
   ChannelEventSubscription,
   ClientKnownEventMap,
