@@ -1,5 +1,6 @@
 import { getLocalClient } from 'chat-shim';
 import { clearAllReminderTimers } from '../reminders/timerRegistry';
+import { API_BASE as DEFAULT_API_BASE } from '../config/env';
 import {
   Channel,
   ChannelFilters,
@@ -24,14 +25,14 @@ import type { ChannelEventSubscription, EventTargetLike } from '../client';
 import { clientOn, createSubscription } from '../client';
 
 // Base URLs (keep relative by default so Next rewrites still work)
-let API_BASE = '';
+let API_BASE = DEFAULT_API_BASE;
 
 export function configureApiBase(base: string) {
   if (typeof base === 'string' && base.trim()) {
-    API_BASE = base.trim();
+    API_BASE = base.trim().replace(/\/+$/, '');
     return;
   }
-  API_BASE = '';
+  API_BASE = DEFAULT_API_BASE;
 }
 
 function apiUrl(path: string): string {

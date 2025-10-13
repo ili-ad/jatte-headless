@@ -6,6 +6,7 @@ import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
+import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -669,24 +670,10 @@ export class Channel {
         //     `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
         // );
 
-        const resolveWsBase = () => {
-            if (process.env.NEXT_PUBLIC_WS_URL) {
-                return process.env.NEXT_PUBLIC_WS_URL;
-            }
-
-            if (typeof window === 'undefined') {
-                return 'ws://127.0.0.1:8000';
-            }
-
-            const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-            const hostname = window.location.hostname || '127.0.0.1';
-            return `${scheme}://${hostname}:8000`;
-        };
-
-        const WS_BASE = resolveWsBase();
-
         this.socket = new WebSocket(
-            `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] as string)}`
+            `${WS_BASE}/ws/${encodeURIComponent(this.cid)}/?token=${encodeURIComponent(
+                this.client['jwt'] ?? '',
+            )}`
         );
 
 
