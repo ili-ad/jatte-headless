@@ -1,12 +1,12 @@
-import { StateStore } from '../../chat-shim';
+import { StateStore } from 'chat-shim';
 import type {
   Channel,
   PollOption as ChatShimPollOption,
   PollVote,
   NotificationManagerState,
   StreamChat,
-} from '../../chat-shim';
-import { stopTyping as stopTypingImpl } from '../../chat-shim/typing';
+} from 'chat-shim';
+import { stopTyping as stopTypingImpl } from 'chat-shim/typing';
 import {
   clientOff,
   clientOn,
