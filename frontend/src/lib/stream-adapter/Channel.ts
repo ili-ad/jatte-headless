@@ -533,7 +533,7 @@ export class Channel {
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
     async getConfig() {
-        const res = await apiFetch(`${API.ROOMS}${this.cid}/config/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/config/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (res.status === 403) throw new AuthError('Unauthenticated');
@@ -581,7 +581,7 @@ export class Channel {
     /** Fetch initial state without opening a websocket */
     async query() {
         try {
-            const res = await apiFetch(`${API.ROOMS}${this.cid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -605,7 +605,7 @@ export class Channel {
                 }
             }
 
-            const memRes = await apiFetch(`${API.ROOMS}${this.cid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -626,7 +626,7 @@ export class Channel {
 
         /* initial history + read row */
         try {
-            const res = await apiFetch(`${API.ROOMS}${this.cid}/messages/`, {
+            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (res.ok) {
@@ -647,7 +647,7 @@ export class Channel {
                 });
             }
 
-            const memRes = await apiFetch(`${API.ROOMS}${this.cid}/members/`, {
+            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
             if (memRes.ok) {
@@ -750,7 +750,7 @@ export class Channel {
         if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
             payload.show_in_channel = true;
         }
-        const res = await apiFetch(`${API.ROOMS}${this.cid}/messages/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
