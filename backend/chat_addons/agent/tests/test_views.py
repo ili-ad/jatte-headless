@@ -28,9 +28,9 @@ from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
 from chat.models import Message, Room
-from backend.chat_addons.agent.models import AgentRun, RoomAgentFlag
-from backend.chat_addons.agent.services.agent_service import AgentSimulationResult
-from backend.chat_addons.agent.services.memory import MemoryService
+from chat_addons.agent.models import AgentRun, RoomAgentFlag
+from chat_addons.agent.services.agent_service import AgentSimulationResult
+from chat_addons.agent.services.memory import MemoryService
 
 
 class AgentViewsTests(APITestCase):

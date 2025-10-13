@@ -13,8 +13,8 @@ from rest_framework.test import APITestCase
 from accounts_supabase.models import CustomUser
 from chat.models import Channel, Message, Room
 
-from backend.chat_addons.sms_bridge.models import SmsRelay, SmsRoomLink
-from backend.chat_addons.sms_bridge.services.provider import SmsProviderResponse
+from chat_addons.sms_bridge.models import SmsRelay, SmsRoomLink
+from chat_addons.sms_bridge.services.provider import SmsProviderResponse
 
 
 def make_signature(secret: str, payload: dict[str, object]) -> str:

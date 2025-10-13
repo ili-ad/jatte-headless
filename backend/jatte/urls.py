@@ -12,7 +12,7 @@ from chat.api_views import (
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
-    path("", include("backend.auth.urls")),
+    path("", include("auth.urls")),
     path("", include("accounts_supabase.urls")),
     path("", include("users.urls")),
     path("", include("core.urls")),
@@ -23,7 +23,7 @@ urlpatterns = [
     path("", include("reminders.urls")),
     path("", include("events.urls")),
     path("", include("state.urls")),
-    path("", include("backend.chat_addons.urls")),
+    path("", include("chat_addons.urls")),
     path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.

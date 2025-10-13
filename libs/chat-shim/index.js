@@ -1,6 +1,11 @@
 // libs/chat-shim/index.ts
 "use client";
 "use strict";
+const WS_BASE =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
+    : 'ws://127.0.0.1:8000');
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -439,8 +444,10 @@ var LocalChatClient = /** @class */ (function () {
         }
         var cid = (config === null || config === void 0 ? void 0 : config.cid) || "".concat(type, ":").concat(channelId);
         if (!this.channels.has(cid)) {
-            var url = "ws://".concat(location.host, "/ws/").concat(cid, "/?token=").concat(this.jwt);
-            var sock = new WebSocket(url);
+            // var url = "ws://".concat(location.host, "/ws/").concat(cid, "/?token=").concat(this.jwt);
+            // var sock = new WebSocket(url);
+            const url = `${WS_BASE}/ws/${cid}/?token=${encodeURIComponent(this.jwt)}`;
+            const sock = new WebSocket(url);            
             sock.onmessage = function (ev) {
                 var _a;
                 var data = JSON.parse(ev.data);

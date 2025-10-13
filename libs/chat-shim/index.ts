@@ -14,6 +14,14 @@ export type StreamChat = {
 export * from "./MessageComposer";
 export * from "./noopStore";
 
+/* ----- connection details -------------------------------------------- */
+const WS_BASE =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
+    : 'ws://127.0.0.1:8000');
+
+
 /* ----- runtime instance -------------------------------------------- */
 export const streamClient: StreamChat = {
   threads: { state: createStore({ unreadThreadCount: 0 }) },
@@ -616,8 +624,9 @@ export class LocalChatClient {
     const cid = config?.cid ?? `${type}:${channelId}`;
 
     if (!this.channels.has(cid)) {
-      const url = `ws://${location.host}/ws/${cid}/?token=${this.jwt}`;
+      const url = `${WS_BASE}/ws/${cid}/?token=${encodeURIComponent(this.jwt)}`;
       const sock = new WebSocket(url);
+  
       sock.onmessage = (ev) => {
         const data = JSON.parse(ev.data);
         this.channels.get(data.cid)?.emit(data.type, data);

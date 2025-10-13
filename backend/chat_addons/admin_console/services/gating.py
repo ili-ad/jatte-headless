@@ -371,8 +371,8 @@ def _decode_cursor(cursor: str) -> tuple[datetime, int] | None:
 
 
 def _schedule_agent_if_enabled(*, cid: str, room_uuid: str, message: Message) -> None:
-    from backend.chat_addons.agent.models import RoomAgentFlag
-    from backend.chat_addons.agent.tasks import run_agent_invocation
+    from chat_addons.agent.models import RoomAgentFlag
+    from chat_addons.agent.tasks import run_agent_invocation
 
     flag = RoomAgentFlag.objects.filter(room__uuid=room_uuid).first()
     if not flag or not flag.agent_enabled:

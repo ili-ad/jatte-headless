@@ -20,7 +20,7 @@ django.setup()
 import pytest
 from django.utils import timezone
 
-from backend.chat_addons.agent.skills.utility.skill import UtilityCalcSkill
+from chat_addons.agent.skills.utility.skill import UtilityCalcSkill
 
 
 def _ctx() -> dict:

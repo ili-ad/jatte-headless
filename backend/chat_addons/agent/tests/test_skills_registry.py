@@ -27,8 +27,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
-from backend.chat_addons.agent import registry
-from backend.chat_addons.agent.models import AgentRoomPolicy
+from chat_addons.agent import registry
+from chat_addons.agent.models import AgentRoomPolicy
 
 
 class SkillRegistryTests(TestCase):

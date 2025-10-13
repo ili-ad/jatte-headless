@@ -26,9 +26,9 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from chat.models import Message
-from backend.chat_addons.agent.models import AgentRoomPolicy, AgentRun
-from backend.chat_addons.agent.services.agent_service import AgentService
-from backend.chat_addons.agent.services.llm_client import LLMClient
+from chat_addons.agent.models import AgentRoomPolicy, AgentRun
+from chat_addons.agent.services.agent_service import AgentService
+from chat_addons.agent.services.llm_client import LLMClient
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 

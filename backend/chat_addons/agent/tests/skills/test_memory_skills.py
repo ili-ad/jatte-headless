@@ -17,7 +17,7 @@ django.setup()
 
 from django.test import SimpleTestCase
 
-from backend.chat_addons.agent.skills.memory.skill import RecallSkill, RememberSkill
+from chat_addons.agent.skills.memory.skill import RecallSkill, RememberSkill
 
 
 class RememberSkillTests(SimpleTestCase):

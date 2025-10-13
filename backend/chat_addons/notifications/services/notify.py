@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 
 from chat.models import Notification
 
-from backend.chat_addons.sms_bridge.services.provider import SmsProviderClient, SmsProviderError
+from chat_addons.sms_bridge.services.provider import SmsProviderClient, SmsProviderError
 
 
 class NotificationService:

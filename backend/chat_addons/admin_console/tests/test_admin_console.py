@@ -8,8 +8,8 @@ from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
 from chat.models import Message, Room, RoomMemberMute
-from backend.chat_addons.admin_console.models import GatingConfig, MessageIntake
-from backend.chat_addons.models import RoomOwnership
+from chat_addons.admin_console.models import GatingConfig, MessageIntake
+from chat_addons.models import RoomOwnership
 
 
 class AdminConsoleQueueTests(APITestCase):

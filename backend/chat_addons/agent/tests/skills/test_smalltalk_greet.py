@@ -20,8 +20,8 @@ django.setup()
 import pytest
 from django.utils import timezone
 
-from backend.chat_addons.agent import registry
-from backend.chat_addons.agent.skills.smalltalk.skill import SmalltalkGreetSkill
+from chat_addons.agent import registry
+from chat_addons.agent.skills.smalltalk.skill import SmalltalkGreetSkill
 
 
 def _ctx() -> dict:

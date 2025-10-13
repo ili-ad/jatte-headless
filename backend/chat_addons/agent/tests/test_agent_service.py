@@ -18,8 +18,8 @@ django.setup()
 
 import pytest
 
-from backend.chat_addons.agent.services.agent_service import AgentReply, AgentService
-from backend.chat_addons.agent.services.llm_client import (
+from chat_addons.agent.services.agent_service import AgentReply, AgentService
+from chat_addons.agent.services.llm_client import (
     BudgetExceeded,
     CannedProvider,
     CostGuard,
