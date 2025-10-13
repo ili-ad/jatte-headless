@@ -18,7 +18,7 @@ import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from backend.chat_addons.agent.evals import runner
+from chat_addons.agent.evals import runner
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 

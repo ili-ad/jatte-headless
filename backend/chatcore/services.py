@@ -5,7 +5,7 @@ from typing import Literal
 
 from django.utils import timezone
 
-from backend.chat_addons.admin_console.services import gating
+from chat_addons.admin_console.services import gating
 
 GateDecision = Literal["allow", "hold", "reject"]
 

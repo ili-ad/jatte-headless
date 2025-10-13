@@ -11,7 +11,7 @@ from django.utils.functional import cached_property
 
 from .models import AuditTrail
 
-logger = logging.getLogger("backend.chat_addons.common_audit")
+logger = logging.getLogger("chat_addons.common_audit")
 
 
 def _request_identifier(request: Any) -> str:

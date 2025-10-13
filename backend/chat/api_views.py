@@ -22,8 +22,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from backend.chatcore.services import should_gate_first_message
-from backend.common.throttling import (
+from chatcore.services import should_gate_first_message
+from common.throttling import (
     MessageBurstRateThrottle,
     MessageSustainedRateThrottle,
     ReactionBurstRateThrottle,
@@ -430,7 +430,7 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
                     {"type": "message.new", "cid": thread_cid, "message": message_payload},
                 )
         else:
-            from backend.chat_addons.admin_console.services import gating as gating_service
+            from chat_addons.admin_console.services import gating as gating_service
 
             gating_service.record_intake(
                 message=serializer.instance,

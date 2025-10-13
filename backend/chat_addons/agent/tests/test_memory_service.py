@@ -15,8 +15,8 @@ django.setup()
 from django.core.management import call_command
 from django.test import TestCase
 
-from backend.chat_addons.agent.models import AgentMemoryEntry
-from backend.chat_addons.agent.services.memory import MemoryService
+from chat_addons.agent.models import AgentMemoryEntry
+from chat_addons.agent.services.memory import MemoryService
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 

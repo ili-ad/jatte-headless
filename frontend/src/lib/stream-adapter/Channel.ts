@@ -661,13 +661,25 @@ export class Channel {
         this.initialized = true;
 
         /* web-socket for live updates */
-        const wsRoot = process.env.NEXT_PUBLIC_WS_URL;
-        if (!wsRoot) {
-            throw new Error('NEXT_PUBLIC_WS_URL is not set');
-        }
+        // const wsRoot = process.env.NEXT_PUBLIC_WS_URL;
+        // if (!wsRoot) {
+        //     throw new Error('NEXT_PUBLIC_WS_URL is not set');
+        // }
+        // this.socket = new WebSocket(
+        //     `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
+        // );
+
+        const WS_BASE =
+        process.env.NEXT_PUBLIC_WS_URL ||
+        (typeof window !== 'undefined'
+            ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
+            : 'ws://127.0.0.1:8000');
+
         this.socket = new WebSocket(
-            `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
+        `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] as string)}`
         );
+
+
         this.socket.onmessage = (ev) => {
             try {
                 const p = JSON.parse(ev.data);

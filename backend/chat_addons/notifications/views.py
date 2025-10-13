@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
 
-from backend.chat_addons.admin_console.models import MessageIntake
+from chat_addons.admin_console.models import MessageIntake
 
 from .models import AdminPresence, EscalationRecord, OnCallConfig
 from .serializers import EscalationRequestSerializer, OnCallConfigSerializer

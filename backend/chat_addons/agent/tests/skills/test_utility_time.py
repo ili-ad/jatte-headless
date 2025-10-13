@@ -22,8 +22,8 @@ django.setup()
 import pytest
 from django.utils import timezone
 
-from backend.chat_addons.agent import registry
-from backend.chat_addons.agent.skills.utility.skill import UtilityTimeNowSkill
+from chat_addons.agent import registry
+from chat_addons.agent.skills.utility.skill import UtilityTimeNowSkill
 
 
 def _ctx() -> dict:

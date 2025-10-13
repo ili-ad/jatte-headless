@@ -26,10 +26,10 @@ call_command("flush", verbosity=0, interactive=False)
 
 from accounts_supabase.models import CustomUser
 from chat.models import Channel, Message, Room
-from backend.chat_addons.admin_console.models import MessageIntake
-from backend.chat_addons.agent.tasks import run_agent_invocation
-from backend.chat_addons.common_audit.models import AuditTrail, MessageProvenance
-from backend.chat_addons.common_audit.throttling import reset_rate_limit_cache
+from chat_addons.admin_console.models import MessageIntake
+from chat_addons.agent.tasks import run_agent_invocation
+from chat_addons.common_audit.models import AuditTrail, MessageProvenance
+from chat_addons.common_audit.throttling import reset_rate_limit_cache
 
 if TYPE_CHECKING:  # pragma: no cover - typing helpers
     from rest_framework.test import APIClient

@@ -22,7 +22,7 @@ from rest_framework.test import APITestCase
 from accounts_supabase.models import CustomUser
 from chat.models import Notification
 
-from backend.chat_addons.notifications.models import AdminPresence, EscalationRecord
+from chat_addons.notifications.models import AdminPresence, EscalationRecord
 
 
 @override_settings(ROOT_URLCONF="jatte.urls")
