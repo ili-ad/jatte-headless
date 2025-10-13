@@ -1,21 +1,6 @@
-import {
-  chatSDKShim,
-  clientQueryChannels as clientQueryChannelsShim,
-  clientThreadsActivate as clientThreadsActivateShim,
-  clientThreadsLoadNextPage as clientThreadsLoadNextPageShim,
-  clientThreadsReload as clientThreadsReloadShim,
-  loadMessageIntoChannelState,
-  pollsFromState as pollsFromStateShim,
-  pollsUnregisterSubscriptions as pollsUnregisterSubscriptionsShim,
-  threadsUnregisterSubscriptions as threadsUnregisterSubscriptionsShim,
-  remindersInitTimers as remindersInitTimersShim,
-  remindersClearTimers as remindersClearTimersShim,
-  remindersUnregisterSubscriptions as remindersUnregisterSubscriptionsShim,
-  queryReactions as queryReactionsShim,
-} from '../chatSDKShim';
 import { getLocalClient } from 'chat-shim';
 import { clearAllReminderTimers } from '../reminders/timerRegistry';
-import type {
+import {
   Channel,
   ChannelFilters,
   ChannelOptions,
@@ -34,11 +19,48 @@ import type {
   StreamChat,
   VotingVisibility,
 } from 'chat-shim';
-import type {
-  ChannelEventSubscription,
-  ClientKnownEventMap,
-} from '../chatSDKShim';
-import type { EventTargetLike } from '../client';
+import type { ClientKnownEventMap } from '../chatSDKShim';
+import type { ChannelEventSubscription, EventTargetLike } from '../client';
+import { clientOn, createSubscription } from '../client';
+
+type ChatSDKShimModule = typeof import('../chatSDKShim');
+
+let chatSDKShimModulePromise: Promise<ChatSDKShimModule> | null = null;
+
+const getChatSDKShimModule = (): Promise<ChatSDKShimModule> => {
+  if (!chatSDKShimModulePromise) {
+    chatSDKShimModulePromise = import('../chatSDKShim');
+  }
+  return chatSDKShimModulePromise;
+};
+
+const loadMessageIntoChannelState = async (
+  channel: unknown,
+  message: unknown,
+) => {
+  const module = await getChatSDKShimModule();
+  return module.loadMessageIntoChannelState(channel as any, message as any);
+};
+
+const clientThreadsLoadNextPage = async (
+  client: { threads?: { loadNextPage?: (options?: unknown) => Promise<unknown> } },
+  args?: LoadNextPageArgs,
+) => {
+  const module = await getChatSDKShimModule();
+  return module.clientThreadsLoadNextPage(client, args);
+};
+
+const invokeStopTyping = async (): Promise<void> => {
+  const module = await getChatSDKShimModule();
+  await module.stopTyping();
+};
+
+const clientOnTyped = <TEvent extends keyof ClientKnownEventMap>(
+  client: EventTargetLike | undefined,
+  eventType: TEvent,
+  handler: (event: ClientKnownEventMap[TEvent]) => void,
+): ChannelEventSubscription =>
+  clientOn(client, eventType, handler as (...args: any[]) => void);
 
 type ChannelWithEmitter = Channel & {
   emit?: (eventType: string, payload: Record<string, unknown>) => void;
@@ -352,6 +374,33 @@ export type PollsFromStateParams = {
 };
 
 export type PollsFromStateResult = PollWithState;
+
+const pollFromClientStore = (
+  client: { polls?: { store?: StateStore<{ polls: any[] }> } } | StreamChat | undefined,
+  pollId: string,
+): any | undefined => {
+  const store = client && (client as { polls?: { store?: StateStore<{ polls: any[] }> } }).polls?.store;
+  if (!store) {
+    return undefined;
+  }
+
+  const snapshot = store.getLatestValue();
+  const polls = snapshot?.polls;
+  if (!polls) return undefined;
+
+  for (const entry of polls) {
+    if (!entry) continue;
+    if ((entry as { id?: unknown }).id === pollId) {
+      return entry;
+    }
+    const nestedPoll = (entry as { poll?: { id?: unknown } }).poll;
+    if (nestedPoll && (nestedPoll as { id?: unknown }).id === pollId) {
+      return nestedPoll;
+    }
+  }
+
+  return undefined;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -779,12 +828,10 @@ export const polls_fromState = ({
 
   const candidates: PollCandidate[] = [];
 
-  const clientPoll = client
-    ? pollsFromStateShim(
-        client as { polls?: { store?: StateStore<{ polls: unknown[] }> } },
-        normalizedId,
-      )
-    : undefined;
+  const clientPoll = pollFromClientStore(
+    client as { polls?: { store?: StateStore<{ polls: unknown[] }> } } | undefined,
+    normalizedId,
+  );
   if (clientPoll) {
     const candidate = unwrapPollCandidate(clientPoll);
     if (candidate) candidates.push(candidate);
@@ -1202,7 +1249,8 @@ const toThreadsSubscriptionsClient = (
 const threadsUnregisterSubscriptions = async ({
   client,
 }: ThreadsUnregisterSubscriptionsParams = {}): Promise<void> => {
-  threadsUnregisterSubscriptionsShim(toThreadsSubscriptionsClient(client));
+  const target = toThreadsSubscriptionsClient(client);
+  target?.threads?.unregisterSubscriptions?.();
 };
 
 type PollsSubscriptionsClient = {
@@ -1226,7 +1274,8 @@ const toPollsSubscriptionsClient = (
 const pollsUnregisterSubscriptions = async ({
   client,
 }: PollsUnregisterSubscriptionsParams = {}): Promise<void> => {
-  pollsUnregisterSubscriptionsShim(toPollsSubscriptionsClient(client));
+  const target = toPollsSubscriptionsClient(client);
+  target?.polls?.unregisterSubscriptions?.();
 };
 
 type RemindersTimerClient = {
@@ -1265,7 +1314,7 @@ const remindersInitTimers = async (
   const client =
     toRemindersTimerClient(params.client) ?? getDefaultRemindersTimerClient();
 
-  remindersInitTimersShim(client);
+  client?.reminders?.initTimers?.();
 };
 
 const remindersClearTimers = async (
@@ -1274,7 +1323,7 @@ const remindersClearTimers = async (
   const client =
     toRemindersTimerClient(params.client) ?? getDefaultRemindersTimerClient();
 
-  remindersClearTimersShim(client);
+  client?.reminders?.clearTimers?.();
   clearAllReminderTimers();
 };
 
@@ -1580,8 +1629,11 @@ const registerListener = (
 
   if (!entry.subscription) {
     const handler = entry.handler as (...args: any[]) => void;
-    entry.subscription =
-      chatSDKShim.client.on(target, eventType, handler) ?? emptySubscription;
+    entry.subscription = createSubscription(
+      target as EventTargetLike,
+      eventType,
+      handler,
+    );
   }
 
   const record: ListenerRecord = { callback: listener, filter };
@@ -1708,12 +1760,12 @@ export const onPollVoteCasted = ({
     return emptySubscription;
   }
 
-  const subscription = chatSDKShim.on(
-    channel,
+  const subscription = createSubscription(
+    channel as unknown as EventTargetLike,
     'poll.vote_casted',
-    (event) => {
-      const pollVote = toPollVoteLike(event.poll_vote);
-      const metadata = withChannelMetadata(event, channel);
+    (event: any) => {
+      const pollVote = toPollVoteLike((event as { poll_vote?: unknown }).poll_vote);
+      const metadata = withChannelMetadata(event as Event, channel);
       const normalizedEvent: PollVoteCastedEvent = {
         ...(event as Event),
         ...metadata,
@@ -1746,10 +1798,10 @@ export const onPollVoteRemoved = ({
 
   const targetCid = cid ?? channel?.cid ?? null;
 
-  const subscription = chatSDKShim.client.on(
+  const subscription = clientOnTyped(
     client,
     'poll.vote_removed',
-    (event) => {
+    (event: ClientKnownEventMap['poll.vote_removed']) => {
       const eventCid =
         typeof event.cid === 'string' && event.cid ? event.cid : null;
       if (targetCid && eventCid && eventCid !== targetCid) {
@@ -1799,10 +1851,10 @@ export const onPollVoteChanged = ({
 
   const targetCid = cid ?? channel?.cid ?? null;
 
-  const subscription = chatSDKShim.client.on(
+  const subscription = clientOnTyped(
     client,
     'poll.vote_changed',
-    (event) => {
+    (event: ClientKnownEventMap['poll.vote_changed']) => {
       const eventCid =
         typeof event.cid === 'string' && event.cid ? event.cid : null;
       if (targetCid && eventCid && eventCid !== targetCid) {
@@ -1868,18 +1920,45 @@ export type ThreadPage = {
   hasMore: boolean;
 };
 
+type ChannelUserLike = { id?: string | number | null } & Record<string, unknown>;
+
+type ChannelMessageLike = {
+  cid?: string;
+  id?: string | number;
+  parent_id?: string | number | null;
+  reply_count?: number;
+  show_in_channel?: boolean;
+  created_at?: string | Date | number | null;
+  updated_at?: string | Date | number | null;
+  type?: string | null;
+  silent?: boolean | null;
+  shadowed?: boolean | null;
+  status?: string | null;
+  deleted_at?: string | Date | null;
+  user?: ChannelUserLike | null;
+  user_id?: string | number | null;
+} & Record<string, unknown>;
+
+type ChannelStateLike = {
+  messages?: ChannelMessageLike[];
+  messagePagination?: { hasPrev?: boolean; hasNext?: boolean };
+  loadMessageIntoState?: (
+    message: ChannelMessageLike,
+  ) => Promise<ChannelMessageLike>;
+  read?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+type ChannelWithLocalState = {
+  cid: string;
+  state?: ChannelStateLike;
+  stateStore?: { dispatch?: (patch: unknown) => void } | undefined;
+  getClient?: () => unknown;
+} & Record<string, unknown>;
+
 export type ChannelCountUnreadParams = {
-  channel: {
-    cid: string;
-    state?: {
-      messages?: Array<Record<string, unknown>>;
-      read?: Record<string, unknown>;
-      [key: string]: unknown;
-    };
-    stateStore?: { dispatch?: (patch: unknown) => void } | undefined;
+  channel: ChannelWithLocalState & {
     countUnread?: (lastRead?: Date) => number;
-    getClient?: () => unknown;
-    [key: string]: unknown;
   };
   lastRead?: Date;
 };
@@ -1898,21 +1977,25 @@ export type ClientThreadsReloadInput = {
   client: { threads?: { reload?: () => Promise<unknown> } };
 };
 
-// shim-only: no network; delegate to SDK shim
 export async function addAnswer(input: AddAnswerInput): Promise<AddAnswer> {
+  const { chatSDKShim } = await getChatSDKShimModule();
   return chatSDKShim.addAnswer(input);
 }
 
 export function clientThreadsActivate({
   client,
 }: ClientThreadsActivateInput): void {
-  clientThreadsActivateShim(client);
+  client.threads?.activate?.();
 }
 
 export async function clientThreadsReload({
   client,
 }: ClientThreadsReloadInput): Promise<void> {
-  await clientThreadsReloadShim(client);
+  if (typeof client.threads?.reload !== 'function') {
+    return;
+  }
+
+  await client.threads.reload();
 }
 
 const clientQueryChannels = async ({
@@ -1920,18 +2003,20 @@ const clientQueryChannels = async ({
   filters = {},
   sort = {},
   options = {},
-}: ClientQueryChannelsParams): Promise<Channel[]> =>
-  clientQueryChannelsShim(client, filters, sort, options);
+}: ClientQueryChannelsParams): Promise<Channel[]> => {
+  const { clientQueryChannels } = await getChatSDKShimModule();
+  return clientQueryChannels(client, filters, sort, options);
+};
 
 function channelCountUnread({
   channel,
   lastRead,
 }: ChannelCountUnreadParams): number {
-  return chatSDKShim.channelCountUnread(channel, lastRead);
+  return computeChannelUnreadCount(channel, lastRead);
 }
 
 function lastRead({ channel }: ChannelLastReadParams): Date | undefined {
-  return chatSDKShim.lastRead(channel);
+  return readLastRead(channel);
 }
 
 const isFiniteNumber = (value: unknown): value is number =>
@@ -1960,6 +2045,255 @@ const toTimestamp = (value: unknown): number | undefined => {
     }
   }
 
+  return undefined;
+};
+
+const toDateSafe = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  return undefined;
+};
+
+const toStringId = (value: unknown): string | undefined => {
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return undefined;
+};
+
+const getClientUserId = (
+  channel: ChannelWithLocalState & { getClient?: () => unknown },
+): string | undefined => {
+  if (typeof channel.getClient !== 'function') return undefined;
+  const client = channel.getClient();
+  if (!isRecord(client)) return undefined;
+
+  const directId =
+    toStringId((client as { userID?: unknown }).userID) ??
+    toStringId((client as { userId?: unknown }).userId);
+  if (directId) return directId;
+
+  const user = (client as { user?: unknown }).user;
+  if (isRecord(user)) {
+    return toStringId((user as { id?: unknown }).id);
+  }
+
+  return undefined;
+};
+
+const getOwnReadState = (
+  state: ChannelStateLike | undefined,
+  userId?: string,
+): Record<string, unknown> | undefined => {
+  const rawRead = state && (state as { read?: unknown }).read;
+  if (!isRecord(rawRead)) return undefined;
+
+  const readMap = rawRead as Record<string, unknown>;
+
+  if (userId) {
+    const direct = readMap[userId];
+    if (isRecord(direct)) return direct;
+
+    for (const value of Object.values(readMap)) {
+      if (!isRecord(value)) continue;
+      const candidateId =
+        toStringId((value as { user_id?: unknown }).user_id) ??
+        (isRecord((value as { user?: unknown }).user)
+          ? toStringId(
+              ((value as { user?: Record<string, unknown> }).user as {
+                id?: unknown;
+              }).id,
+            )
+          : undefined);
+      if (candidateId && candidateId === userId) {
+        return value;
+      }
+    }
+  }
+
+  for (const value of Object.values(readMap)) {
+    if (isRecord(value)) return value;
+  }
+
+  return undefined;
+};
+
+const getMessageCreatedAt = (
+  message: ChannelMessageLike,
+): Date | undefined => {
+  const createdAt = toDateSafe((message as { created_at?: unknown }).created_at);
+  if (createdAt) return createdAt;
+  return toDateSafe((message as { updated_at?: unknown }).updated_at);
+};
+
+const findMessageById = (
+  messages: ChannelMessageLike[],
+  id: string,
+): ChannelMessageLike | undefined => {
+  for (const message of messages) {
+    if (toStringId((message as { id?: unknown }).id) === id) {
+      return message;
+    }
+  }
+  return undefined;
+};
+
+const findMessageIndexById = (
+  messages: ChannelMessageLike[],
+  id: string,
+): number | undefined => {
+  for (let index = 0; index < messages.length; index += 1) {
+    if (toStringId((messages[index] as { id?: unknown }).id) === id) {
+      return index;
+    }
+  }
+  return undefined;
+};
+
+const shouldCountMessageAsUnread = (
+  message: ChannelMessageLike,
+  ownUserId?: string,
+): boolean => {
+  if (!isRecord(message)) return false;
+
+  const type = (message as { type?: unknown }).type;
+  if (type === 'system' || type === 'error' || type === 'ephemeral') {
+    return false;
+  }
+
+  const silent = (message as { silent?: unknown }).silent;
+  if (silent === true) return false;
+
+  const shadowed = (message as { shadowed?: unknown }).shadowed;
+  if (shadowed === true) return false;
+
+  const status = (message as { status?: unknown }).status;
+  if (typeof status === 'string') {
+    const normalized = status.toLowerCase();
+    if (normalized === 'failed' || normalized === 'sending' || normalized === 'draft') {
+      return false;
+    }
+  }
+
+  const deletedAt = (message as { deleted_at?: unknown }).deleted_at;
+  if (deletedAt !== undefined && deletedAt !== null) {
+    const deletedDate = toDateSafe(deletedAt);
+    if (deletedDate || deletedAt) {
+      return false;
+    }
+  }
+
+  const messageUser = (message as { user?: unknown }).user;
+  const messageUserId =
+    toStringId((message as { user_id?: unknown }).user_id) ||
+    (isRecord(messageUser) ? toStringId((messageUser as { id?: unknown }).id) : undefined);
+
+  if (ownUserId && messageUserId && messageUserId === ownUserId) {
+    return false;
+  }
+
+  return true;
+};
+
+const computeChannelUnreadCount = (
+  channel: ChannelCountUnreadParams['channel'],
+  lastRead?: Date,
+): number => {
+  if (typeof channel.countUnread === 'function') {
+    const direct = channel.countUnread(lastRead);
+    if (typeof direct === 'number' && Number.isFinite(direct)) {
+      return direct;
+    }
+  }
+
+  const state = channel.state as ChannelStateLike | undefined;
+  const ownUserId = getClientUserId(channel);
+  const ownReadState = getOwnReadState(state, ownUserId);
+
+  if (ownReadState) {
+    const stored = (ownReadState as { unread_messages?: unknown }).unread_messages;
+    if (typeof stored === 'number' && Number.isFinite(stored)) {
+      return stored;
+    }
+  }
+
+  const messages = Array.isArray(state?.messages)
+    ? (state?.messages as ChannelMessageLike[])
+    : [];
+
+  if (!messages.length) {
+    return 0;
+  }
+
+  const referenceDate =
+    lastRead ?? (ownReadState ? toDateSafe((ownReadState as { last_read?: unknown }).last_read) : undefined);
+  let referenceTimestamp = referenceDate?.getTime();
+
+  if (
+    referenceTimestamp === undefined &&
+    ownReadState &&
+    typeof (ownReadState as { last_read_message_id?: unknown }).last_read_message_id === 'string'
+  ) {
+    const knownMessage = findMessageById(
+      messages,
+      (ownReadState as { last_read_message_id: string }).last_read_message_id,
+    );
+    const createdAt = knownMessage ? getMessageCreatedAt(knownMessage) : undefined;
+    if (createdAt) {
+      referenceTimestamp = createdAt.getTime();
+    }
+  }
+
+  const firstUnreadId =
+    ownReadState &&
+    typeof (ownReadState as { first_unread_message_id?: unknown }).first_unread_message_id === 'string'
+      ? (ownReadState as { first_unread_message_id: string }).first_unread_message_id
+      : undefined;
+  const firstUnreadIndex =
+    firstUnreadId !== undefined ? findMessageIndexById(messages, firstUnreadId) : undefined;
+
+  let unread = 0;
+  for (let index = 0; index < messages.length; index += 1) {
+    if (firstUnreadIndex !== undefined && index < firstUnreadIndex) {
+      continue;
+    }
+
+    const message = messages[index];
+    if (!shouldCountMessageAsUnread(message, ownUserId)) {
+      continue;
+    }
+
+    if (referenceTimestamp !== undefined) {
+      const createdAt = getMessageCreatedAt(message);
+      if (!createdAt || createdAt.getTime() <= referenceTimestamp) {
+        continue;
+      }
+    }
+
+    unread += 1;
+  }
+
+  return unread;
+};
+
+const readLastRead = (
+  channel: ChannelLastReadParams['channel'],
+): Date | undefined => {
+  if (typeof channel.lastRead === 'function') {
+    return channel.lastRead();
+  }
   return undefined;
 };
 
@@ -2898,6 +3232,7 @@ const markUnread = async ({
     return undefined;
   }
 
+  const { chatSDKShim } = await getChatSDKShimModule();
   return chatSDKShim.markUnread(channel, normalizedId);
 };
 
@@ -3375,7 +3710,8 @@ export async function queryReactions({
     fallbackParams.sort = normalizedSort;
   }
 
-  const fallbackResponse = await queryReactionsShim(
+  const { queryReactions: shimQueryReactions } = await getChatSDKShimModule();
+  const fallbackResponse = await shimQueryReactions(
     fallbackMessage,
     fallbackParams,
   );
@@ -5056,7 +5392,7 @@ const remindersUnregisterSubscriptions = async (
     toRemindersSubscriptionsClient(params.client) ??
     getDefaultRemindersSubscriptionsClient();
 
-  remindersUnregisterSubscriptionsShim(normalizedClient);
+  normalizedClient?.reminders?.unregisterSubscriptions?.();
 
   const reminderManager =
     toReminderManager(params.client) ??
@@ -5148,7 +5484,10 @@ type NotificationStoreLike = {
 
 type NotificationsStoreClient = {
   notifications?: {
-    store?: NotificationStoreLike | null;
+    store?:
+      | StateStore<NotificationManagerState>
+      | NotificationStoreLike
+      | null;
   } | null;
 };
 
@@ -5157,6 +5496,10 @@ type NotificationsUpdater =
   | ((current: Notification[]) => Notification[]);
 
 const emptyNotificationsState: NotificationManagerState = { notifications: [] };
+
+const fallbackNotificationsStore = new StateStore<NotificationManagerState>({
+  notifications: [],
+});
 
 const readNotificationState = (
   store: NotificationStoreLike,
@@ -5221,11 +5564,11 @@ const applyNotificationPatch = (
 const ensureNotificationsStore = (
   client?: NotificationsStoreClient | null,
 ): NotificationStoreLike => {
-  const normalizedClient =
-    (client ?? ({} as NotificationsStoreClient)) as Parameters<
-      typeof chatSDKShim.notificationsStore
-    >[0];
-  return chatSDKShim.notificationsStore(normalizedClient) as NotificationStoreLike;
+  const storeCandidate = client?.notifications?.store;
+  if (storeCandidate) {
+    return storeCandidate as NotificationStoreLike;
+  }
+  return fallbackNotificationsStore;
 };
 
 export type NotificationsStoreParams = {
@@ -5317,7 +5660,7 @@ async function stopAIResponse(cid: string): Promise<void> {
 }
 
 async function stopTyping(): Promise<void> {
-  await chatSDKShim.stopTyping();
+  await invokeStopTyping();
 }
 
 export const chatAPI = {
@@ -5335,7 +5678,7 @@ export const chatAPI = {
   lastRead,
   clientQueryChannels,
   client: {
-    on: chatSDKShim.client.on,
+    on: clientOnTyped,
     threads: {
       loadNextPage: ({
         client,
@@ -5345,13 +5688,13 @@ export const chatAPI = {
           threads?: { loadNextPage?: (options?: unknown) => Promise<unknown> };
         };
       } & Partial<LoadNextPageArgs>) =>
-        clientThreadsLoadNextPageShim(
+        clientThreadsLoadNextPage(
           client,
           Object.keys(args).length ? (args as LoadNextPageArgs) : undefined,
         ),
       reload: ({
         client,
-      }: ClientThreadsReloadInput) => clientThreadsReloadShim(client),
+      }: ClientThreadsReloadInput) => clientThreadsReload(client),
       state: ({ cid, limit, before }: ClientThreadsStateParams) =>
         clientThreadsState({ cid, limit, before }),
     },
