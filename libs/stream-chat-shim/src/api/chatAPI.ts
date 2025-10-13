@@ -77,6 +77,51 @@ export async function authorizedFetch(
 }
 
 
+let ensureUserAgentPromise: Promise<void> | null = null;
+let userAgentPersisted = false;
+
+export async function ensureUserAgent(overrideToken?: string): Promise<void> {
+  if (userAgentPersisted) {
+    return;
+  }
+
+  if (typeof navigator === 'undefined' || typeof navigator.userAgent !== 'string') {
+    return;
+  }
+
+  if (!ensureUserAgentPromise) {
+    ensureUserAgentPromise = (async () => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (overrideToken) {
+        headers.Authorization = `Bearer ${overrideToken}`;
+      }
+
+      try {
+        const response = await authorizedFetch('/api/user-agent/', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ user_agent: navigator.userAgent }),
+        });
+
+        if (response?.ok) {
+          userAgentPersisted = true;
+        }
+      } catch (e) {
+        // dev only: don't hard-fail the app if this endpoint is missing in some env
+        console.warn('ensureUserAgent failed', e);
+      } finally {
+        ensureUserAgentPromise = null;
+      }
+    })();
+  }
+
+  const inflight = ensureUserAgentPromise;
+  if (inflight) {
+    await inflight;
+  }
+}
+
+
 type ChatSDKShimModule = typeof import('../chatSDKShim');
 
 let chatSDKShimModulePromise: Promise<ChatSDKShimModule> | null = null;
@@ -4621,6 +4666,8 @@ export const syncUser = async (
     options.body = JSON.stringify(payload);
   }
 
+  await ensureUserAgent(token);
+
   const response = await authorizedFetch("/api/sync-user/", options);
 
   if (!response.ok) {
@@ -5762,5 +5809,6 @@ export const chatAPI = {
   listUsers,
   listUserAgents,
   setUserAgent,
+  ensureUserAgent,
   syncUser,
 };
