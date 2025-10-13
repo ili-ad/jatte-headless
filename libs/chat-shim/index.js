@@ -1,11 +1,21 @@
 // libs/chat-shim/index.ts
 "use client";
 "use strict";
-const WS_BASE =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  (typeof window !== 'undefined'
-    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8000`
-    : 'ws://127.0.0.1:8000');
+const resolveWsBase = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+
+  if (typeof window === "undefined") {
+    return "ws://127.0.0.1:8000";
+  }
+
+  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const hostname = window.location.hostname || "127.0.0.1";
+  return `${scheme}://${hostname}:8000`;
+};
+
+const WS_BASE = resolveWsBase();
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -206,8 +216,10 @@ var LocalChannel = /** @class */ (function () {
     };
     LocalChannel.prototype.sendMessage = function (msg) {
         return __awaiter(this, void 0, void 0, function () {
+            var cid;
             return __generator(this, function (_a) {
-                this.sock.send(JSON.stringify(__assign({ type: 'message.new', cid: this.cid }, msg)));
+                cid = this.cid;
+                this.sock.send(JSON.stringify(__assign({ type: 'message.new', cid: cid }, msg)));
                 return [2 /*return*/];
             });
         });
@@ -233,7 +245,8 @@ var LocalChannel = /** @class */ (function () {
         }
     };
     LocalChannel.prototype.markRead = function () {
-        this.sock.send(JSON.stringify({ type: 'mark.read', cid: this.cid }));
+        var cid = this.cid;
+        this.sock.send(JSON.stringify({ type: 'mark.read', cid: cid }));
     };
     /** Return basic configuration flags expected by Stream UI */
     LocalChannel.prototype.getConfig = function () {
@@ -244,7 +257,8 @@ var LocalChannel = /** @class */ (function () {
         return this.state.countUnread(this.getUserId());
     };
     LocalChannel.prototype.muteStatus = function () {
-        var muted = this.client.mutedChannels.includes(this.cid);
+        var cid = this.cid;
+        var muted = this.client.mutedChannels.includes(cid);
         return { muted: muted };
     };
     LocalChannel.prototype.getClient = function () {
