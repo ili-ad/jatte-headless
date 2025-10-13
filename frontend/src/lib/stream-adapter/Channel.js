@@ -841,7 +841,7 @@ var Channel = /** @class */ (function () {
                         return [3 /*break*/, 9];
                     case 9:
                         this.initialized = true;
-                        this.socket = new WebSocket("".concat(env_1.WS_BASE, "/ws/").concat(encodeURIComponent(this.cid), "/?token=").concat(encodeURIComponent(this.client['jwt'] || '')));
+                        this.socket = new WebSocket("".concat(env_1.WS_BASE, "/ws/").concat(this.cid, "/?token=").concat(encodeURIComponent(this.client['jwt'] || '')));
                         this.socket.onmessage = function (ev) {
                             try {
                                 var p = JSON.parse(ev.data);
