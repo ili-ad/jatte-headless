@@ -1,21 +1,12 @@
 // libs/chat-shim/index.ts
 "use client";
 "use strict";
-const resolveWsBase = () => {
-  if (process.env.NEXT_PUBLIC_WS_URL) {
-    return process.env.NEXT_PUBLIC_WS_URL;
+let WS_BASE = "ws://127.0.0.1:8000";
+function configureWebsocketBase(base) {
+  if (typeof base === "string" && base.trim()) {
+    WS_BASE = base;
   }
-
-  if (typeof window === "undefined") {
-    return "ws://127.0.0.1:8000";
-  }
-
-  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-  const hostname = window.location.hostname || "127.0.0.1";
-  return `${scheme}://${hostname}:8000`;
-};
-
-const WS_BASE = resolveWsBase();
+}
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -99,7 +90,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SearchController = exports.UserSearchSource = exports.MessageSearchSource = exports.ChannelSearchSource = exports.BaseSearchSource = exports.SearchSourceType = exports.StateStore = exports.ReminderManager = exports.isVoteAnswer = exports.VotingVisibility = exports.MessageComposer = exports.isAudioAttachment = exports.isVideoAttachment = exports.isImageAttachment = exports.isLocalFileAttachment = exports.isLocalVoiceRecordingAttachment = exports.isLocalAudioAttachment = exports.isLocalVideoAttachment = exports.isLocalImageAttachment = exports.isLocalUploadAttachment = exports.isLocalAttachment = exports.isVoiceRecordingAttachment = exports.getLocalClient = exports.StreamChat = exports.LinkPreviewsManager = exports.LinkPreviewStatus = exports.LocalChatClient = exports.LocalChannel = exports.ChannelState = exports.FixedSizeQueueCache = void 0;
+exports.configureWebsocketBase = exports.SearchController = exports.UserSearchSource = exports.MessageSearchSource = exports.ChannelSearchSource = exports.BaseSearchSource = exports.SearchSourceType = exports.StateStore = exports.ReminderManager = exports.isVoteAnswer = exports.VotingVisibility = exports.MessageComposer = exports.isAudioAttachment = exports.isVideoAttachment = exports.isImageAttachment = exports.isLocalFileAttachment = exports.isLocalVoiceRecordingAttachment = exports.isLocalAudioAttachment = exports.isLocalVideoAttachment = exports.isLocalImageAttachment = exports.isLocalUploadAttachment = exports.isLocalAttachment = exports.isVoiceRecordingAttachment = exports.getLocalClient = exports.StreamChat = exports.LinkPreviewsManager = exports.LinkPreviewStatus = exports.LocalChatClient = exports.LocalChannel = exports.ChannelState = exports.FixedSizeQueueCache = void 0;
 exports.formatMessage = formatMessage;
 exports.localMessageToNewMessagePayload = localMessageToNewMessagePayload;
 exports.isScrapedContent = isScrapedContent;
@@ -151,6 +142,7 @@ var FixedSizeQueueCache = /** @class */ (function () {
     return FixedSizeQueueCache;
 }());
 exports.FixedSizeQueueCache = FixedSizeQueueCache;
+exports.configureWebsocketBase = configureWebsocketBase;
 /* -------------------------------- Channel -------------------------------- */
 var ChannelState = /** @class */ (function () {
     function ChannelState(notify) {
