@@ -453,7 +453,7 @@ var LocalChatClient = /** @class */ (function () {
         if (!this.channels.has(cid)) {
             // var url = "ws://".concat(location.host, "/ws/").concat(cid, "/?token=").concat(this.jwt);
             // var sock = new WebSocket(url);
-            const url = `${WS_BASE}/ws/${encodeURIComponent(cid)}/?token=${encodeURIComponent(this.jwt)}`;
+            const url = `${WS_BASE}/ws/${cid}/?token=${encodeURIComponent(this.jwt)}`;
             const sock = new WebSocket(url);            
             sock.onmessage = function (ev) {
                 var _a;
