@@ -4552,26 +4552,6 @@ export const getAppSettings = async (): Promise<AppSettings> => {
   return (await response.json()) as AppSettings;
 };
 
-// export const listUserAgents = async (): Promise<UserAgentInfo> => {
-//   const response = await fetch("/api/user-agent/", {
-//     method: "GET",
-//     credentials: "same-origin",
-//   });
-
-//   if (!response.ok) {
-//     const error = new Error(
-//       `Failed to fetch user agent (status ${response.status})`,
-//     );
-//     const errorWithStatus = error as ErrorWithStatus;
-//     errorWithStatus.status = response.status;
-//     throw errorWithStatus;
-//   }
-
-//   const data = (await response.json()) as Partial<UserAgentInfo>;
-//   return {
-//     user_agent: typeof data.user_agent === "string" ? data.user_agent : "",
-//   };
-// };
 
 export const listUserAgents = async (): Promise<UserAgentInfo> => {
   const response = await authorizedFetch("/api/user-agent/", { method: "GET" });
@@ -4584,40 +4564,6 @@ export const listUserAgents = async (): Promise<UserAgentInfo> => {
   return { user_agent: typeof data.user_agent === "string" ? data.user_agent : "" };
 };
 
-// export const setUserAgent = async (
-//   body: SetUserAgentInput = {},
-// ): Promise<UserAgentInfo> => {
-//   const payload = { ...body };
-//   const hasBody = Object.keys(payload).length > 0;
-//   const options: RequestInit = {
-//     method: "POST",
-//     credentials: "same-origin",
-//   };
-
-//   if (hasBody) {
-//     options.headers = { "Content-Type": "application/json" };
-//     options.body = JSON.stringify(payload);
-//   }
-
-//   const response = await fetch("/api/user-agent/", options);
-
-//   if (!response.ok) {
-//     const error = new Error(
-//       `Failed to set user agent (status ${response.status})`,
-//     );
-//     const errorWithStatus = error as ErrorWithStatus;
-//     errorWithStatus.status = response.status;
-//     throw errorWithStatus;
-//   }
-
-//   const data = (await response.json()) as Partial<UserAgentInfo>;
-//   if (typeof data.user_agent !== "string") {
-//     throw new Error("Invalid user agent response");
-//   }
-
-//   return { user_agent: data.user_agent };
-// };
-// AFTER
 export const setUserAgent = async (body: SetUserAgentInput = {}): Promise<UserAgentInfo> => {
   const options: RequestInit = { method: "POST" };
   if (Object.keys(body).length) {

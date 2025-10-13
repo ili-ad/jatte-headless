@@ -710,7 +710,9 @@ export class LocalChatClient {
 
   /** Retrieve a single message by id via the backend */
   async getMessage(id: string): Promise<any> {
-    const resp = await authorizedFetch(`/api/messages/${id}/`);
+    const resp = await authorizedFetch(`/api/messages/${id}/`, {
+      method: "GET",
+    });
     return resp.json();
   }
 }
@@ -768,6 +770,7 @@ export class LinkPreviewsManager {
 
     const resp = await authorizedFetch(
       `/api/link-preview?url=${encodeURIComponent(url)}`,
+      { method: "GET" },
     );
     const data: LinkPreview = {
       ...(await resp.json()),
