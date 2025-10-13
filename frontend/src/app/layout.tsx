@@ -4,6 +4,7 @@ import "./globals.css";
 import '@iliad/stream-chat-shim/dist/css/v2/index.css'; // ← v1 if you prefer
 
 import { SessionProvider } from "@/lib/SessionProvider";
+import AuthBootstrap from "./AuthBootstrap";
 import EndpointConfig from "./endpoint-config";
 
 
@@ -20,11 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-          <EndpointConfig />
-          <SessionProvider>
-            {children}
-          </SessionProvider>
-          {/* <Providers></Providers>   */}
+        <AuthBootstrap />
+        <EndpointConfig />
+        <SessionProvider>
+          {children}
+        </SessionProvider>
+        {/* <Providers></Providers>   */}
       </body>
     </html>
   );
