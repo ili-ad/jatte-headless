@@ -929,7 +929,7 @@ var Channel = /** @class */ (function () {
                     case 0:
                         custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
                         poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
-                        payload = { text: text };
+                        payload = { body: text };
                         if (Object.keys(custom).length)
                             payload.custom_data = custom;
                         if (poll)
@@ -1007,7 +1007,7 @@ var Channel = /** @class */ (function () {
                                 'Content-Type': 'application/json',
                                 Authorization: "Bearer ".concat(this.client['jwt']),
                             },
-                            body: JSON.stringify({ text: text }),
+                            body: JSON.stringify({ body: text }),
                         })];
                     case 1:
                         res = _a.sent();
