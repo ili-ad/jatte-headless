@@ -4811,7 +4811,7 @@ async function updateMessage({
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ body: text }),
     },
   );
 
