@@ -740,16 +740,25 @@ export class Channel {
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
+        // Collect extra data from the composer
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
         const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
-        const payload: any = { text };
+
+        // 🔴 Backend expects `body` for the message text, not `text`
+        const payload: any = { body: text };
+
+        // Preserve all the extra Stream-style metadata the adapter already supports
         if (Object.keys(custom).length) payload.custom_data = custom;
         if (poll) payload.poll = poll;
+
         const threadId = this.messageComposer.threadId;
         if (threadId) payload.reply_to = threadId;
+
         if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
             payload.show_in_channel = true;
         }
+
+        // This goes through `apiFetch`, which handles the `/api` prefix
         const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
@@ -759,19 +768,22 @@ export class Channel {
             body: JSON.stringify(payload),
         });
 
-        if (!res.ok) throw new Error('sendMessage failed');
+        if (!res.ok) {
+            throw new Error('sendMessage failed');
+        }
 
-        const msg = await res.json() as Message;
+        const msg = (await res.json()) as Message;
 
-        /* push to state */
+        // Push to local state
         this.bump({
             messages: [...this._state.messages, msg],
             latestMessages: [...this._state.latestMessages.slice(-49), msg],
         });
 
-        /* global bus notify */
+        // Global bus notify
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
 
+        // Clear composer extras
         this.messageComposer.customDataManager.clear();
         this.messageComposer.pollComposer.state._set({ poll: undefined as any });
 
@@ -801,14 +813,25 @@ export class Channel {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${this.client['jwt']}`,
             },
-            body: JSON.stringify({ text }),
+            // Backend also expects `body` here
+            body: JSON.stringify({ body: text }),
         });
-        if (!res.ok) throw new Error('updateMessage failed');
-        const updated = await res.json() as Message;
+
+        if (!res.ok) {
+            throw new Error('updateMessage failed');
+        }
+
+        const updated = (await res.json()) as Message;
+
         this.bump({
-            messages: this._state.messages.map(m => m.id === messageId ? updated : m),
-            latestMessages: this._state.latestMessages.map(m => m.id === messageId ? updated : m),
+            messages: this._state.messages.map((m) =>
+                m.id === messageId ? updated : m
+            ),
+            latestMessages: this._state.latestMessages.map((m) =>
+                m.id === messageId ? updated : m
+            ),
         });
+
         return updated;
     }
 
