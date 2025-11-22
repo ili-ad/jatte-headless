@@ -1621,7 +1621,7 @@ export async function clientUpdateMessage(
       method: "PUT",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ body: text }),
     },
   );
   return resp.json();
