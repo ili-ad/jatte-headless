@@ -1,4 +1,7 @@
-export type CreateMessagePayload = { text: string } & Record<string, unknown>;
+export type CreateMessagePayload = {
+  body?: string;
+  text?: string;
+} & Record<string, unknown>;
 
 export type CreateMessageResult = Record<string, unknown>;
 
@@ -20,12 +23,15 @@ export async function createMessage(
     headers.set("Content-Type", "application/json");
   }
 
+  const { body, text, ...restPayload } = payload;
+  const payloadWithBody = { ...restPayload, body: body ?? text };
+
   const response = await fetch(url, {
     ...init,
     method: "POST",
     credentials: init?.credentials ?? "same-origin",
     headers,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payloadWithBody),
   });
 
   if (!response.ok) {
