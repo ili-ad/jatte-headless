@@ -16,7 +16,13 @@ describe('clientUpdateMessage', () => {
     // @ts-ignore
     global.fetch = fetchMock;
     const res = await clientUpdateMessage({} as any, '42', 'hi');
-    expect(fetchMock).toHaveBeenCalledWith('/api/messages/42/', expect.objectContaining({ method: 'PUT' }));
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('/api/messages/42/');
+    expect(init.method).toBe('PUT');
+    expect((init.headers as Headers).get('Content-Type')).toBe(
+      'application/json',
+    );
+    expect(JSON.parse(init.body as string)).toEqual({ body: 'hi' });
     expect(res).toBe('ok');
   });
 });
