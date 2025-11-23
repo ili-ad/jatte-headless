@@ -1,4 +1,4 @@
-import { ChatClient } from './stream-adapter';
+import { ChatClient } from '@/lib/stream-adapter';
 import { getLocalClient } from 'stream-chat';
 
 type AnyClient = ChatClient & Record<string, unknown>;
