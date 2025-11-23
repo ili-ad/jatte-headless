@@ -213,8 +213,13 @@ export class Channel {
 
                     /** ⇢ ACTUAL send logic */
                     async submit() {
+                        // const draft = textStore.getSnapshot().text.trim();
+                        // const userId = channelRef.client.user?.id;
+                        // if (!draft || !userId) return;
                         const draft = textStore.getSnapshot().text.trim();
-                        const userId = channelRef.client.user?.id;
+                        const userId = channelRef.client.user?.id ?? 'local-user';
+                        
+                        console.log('[textComposer.submit]', { draft, userId });
                         if (!draft || !userId) return;
 
                         /* 🔸 optimistic echo so the list updates immediately */
@@ -249,27 +254,48 @@ export class Channel {
                 },
 
                 /* 2️⃣  Check if any payload (text, attachment, poll, custom) is present */
+                // get hasSendableData() {
+                //     const text = this.textComposer.state.getSnapshot().text.trim();
+                //     const atts = this.attachmentManager.state.getSnapshot().attachments;
+                //     const poll = this.pollComposer.state.getSnapshot().poll;
+                //     const custom = this.customDataManager.state.getSnapshot().customData;
+                //     return (
+                //         text !== '' ||
+                //         atts.length > 0 ||
+                //         !!poll ||
+                //         Object.keys(custom).length > 0
+                //     );
+                // },
                 get hasSendableData() {
-                    const text = this.textComposer.state.getSnapshot().text.trim();
-                    const atts = this.attachmentManager.state.getSnapshot().attachments;
-                    const poll = this.pollComposer.state.getSnapshot().poll;
-                    const custom = this.customDataManager.state.getSnapshot().customData;
-                    return (
-                        text !== '' ||
-                        atts.length > 0 ||
-                        !!poll ||
-                        Object.keys(custom).length > 0
-                    );
-                },
+                    const text = this.textComposer.state.getSnapshot().text;
+                    return text != null && text.trim() !== '';
+                },                
 
                 /* 2️⃣  Build the composition object that <MessageInput> expects */
+                // async compose() {
+                //     if (this.compositionIsEmpty) return undefined;
+
+                //     const userId = channelRef.client.user?.id;
+                //     if (!userId) return undefined;
+
+                //     const text = this.textComposer.state.getSnapshot().text.trim();
+                //     const now = new Date().toISOString();
+                //     const localMessage: Message = {
+                //         id: `local-${Date.now()}`,
+                //         text,
+                //         user_id: userId,
+                //         created_at: now,
+                //     };
+
+                //     /* sendOptions can stay empty for MVP */
+                //     return { localMessage, message: localMessage, sendOptions: {} };
+                // },
+
                 async compose() {
-                    if (this.compositionIsEmpty) return undefined;
-
                     const userId = channelRef.client.user?.id;
-                    if (!userId) return undefined;
-
                     const text = this.textComposer.state.getSnapshot().text.trim();
+                    if (!userId || !text) return undefined;
+
                     const now = new Date().toISOString();
                     const localMessage: Message = {
                         id: `local-${Date.now()}`,
@@ -278,10 +304,8 @@ export class Channel {
                         created_at: now,
                     };
 
-                    /* sendOptions can stay empty for MVP */
                     return { localMessage, message: localMessage, sendOptions: {} };
                 },
-
                 /* 3️⃣  Called by useSubmitHandler (send-button / Enter) */
                 async sendMessage(
                     _localMessage: Message,
@@ -740,23 +764,65 @@ export class Channel {
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
+    // async sendMessage({ text }: { text: string }) {
+    //     const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
+    //     const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
+
+    //     // Backend expects `body` as the message text field
+    //     const payload: any = { body: text };
+
+    //     if (Object.keys(custom).length) payload.custom_data = custom;
+    //     if (poll) payload.poll = poll;
+
+    //     const threadId = this.messageComposer.threadId;
+    //     if (threadId) payload.reply_to = threadId;
+
+    //     if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
+    //         payload.show_in_channel = true;
+    //     }
+
+    //     const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
+    //         method: 'POST',
+    //         headers: {
+    //             'Content-Type': 'application/json',
+    //             Authorization: `Bearer ${this.client['jwt']}`,
+    //         },
+    //         body: JSON.stringify(payload),
+    //     });
+
+    //     if (!res.ok) throw new Error('sendMessage failed');
+
+    //     const msg = (await res.json()) as Message;
+
+    //     // push to state
+    //     this.bump({
+    //         messages: [...this._state.messages, msg],
+    //         latestMessages: [...this._state.latestMessages.slice(-49), msg],
+    //     });
+
+    //     // global bus notify
+    //     this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
+
+    //     this.messageComposer.customDataManager.clear();
+    //     this.messageComposer.pollComposer.state._set({ poll: undefined as any });
+
+    //     return msg;
+    // }
+
+    /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
+        console.log('[Channel.sendMessage] called with text:', text);
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
         const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
-
-        // Backend expects `body` as the message text field
-        const payload: any = { body: text };
-
+        //const payload: any = { body: text };
+        const payload: any = { body: text, text };   // send both
         if (Object.keys(custom).length) payload.custom_data = custom;
         if (poll) payload.poll = poll;
-
         const threadId = this.messageComposer.threadId;
         if (threadId) payload.reply_to = threadId;
-
         if (this.messageComposer.state.getSnapshot().showReplyInChannel) {
             payload.show_in_channel = true;
         }
-
         const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
             method: 'POST',
             headers: {
@@ -765,25 +831,18 @@ export class Channel {
             },
             body: JSON.stringify(payload),
         });
-
         if (!res.ok) throw new Error('sendMessage failed');
-
         const msg = (await res.json()) as Message;
-
-        // push to state
         this.bump({
             messages: [...this._state.messages, msg],
             latestMessages: [...this._state.latestMessages.slice(-49), msg],
         });
-
-        // global bus notify
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
-
         this.messageComposer.customDataManager.clear();
         this.messageComposer.pollComposer.state._set({ poll: undefined as any });
-
         return msg;
     }
+
 
 
     /** Delete a message by id */
@@ -811,7 +870,7 @@ export class Channel {
                 Authorization: `Bearer ${this.client['jwt']}`,
             },
             // Backend also expects `body` here
-            body: JSON.stringify({ body: text }),
+            body: JSON.stringify({ body: text, text }),
         });
 
         if (!res.ok) throw new Error('updateMessage failed');
