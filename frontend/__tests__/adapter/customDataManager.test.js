@@ -79,7 +79,7 @@ var originalFetch = global.fetch;
                         'Content-Type': 'application/json',
                         Authorization: 'Bearer jwt-test',
                     },
-                    body: JSON.stringify({ text: 'hello', custom_data: { foo: 1 } }),
+                    body: JSON.stringify({ body: 'hello', custom_data: { foo: 1 } }),
                 });
                 (0, vitest_1.expect)(channel.messageComposer.customDataManager.state.getSnapshot().customData).toEqual({});
                 return [2 /*return*/];

@@ -83,7 +83,7 @@ var originalFetch = global.fetch;
                         'Content-Type': 'application/json',
                         Authorization: 'Bearer jwt-test',
                     },
-                    body: JSON.stringify({ text: 'edited' }),
+                    body: JSON.stringify({ body: 'edited' }),
                 });
                 (0, vitest_1.expect)(channel.state.messages[0].text).toBe('edited');
                 (0, vitest_1.expect)(channel.state.messages[0].updated_at).toBe('2025-01-01T00:01:00Z');
