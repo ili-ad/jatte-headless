@@ -98,6 +98,9 @@ htmlcov/
 *.tsbuildinfo
 next-env.d.ts
 
+# Shim build artefacts
+frontend/src/lib/stream-adapter/**/*.js
+
 ###############################################################################
 #  📦  PACKAGE LOCK FILES (uncomment if you *don’t* commit them)              #
 ###############################################################################
