@@ -7,7 +7,7 @@ const originalFetch = global.fetch;
 beforeEach(() => {
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
-    json: async () => ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' }),
+    json: async () => ({ id: 'm1', body: 'hello', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' }),
   });
   (global as any).localStorage = { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() };
 });
@@ -34,9 +34,11 @@ test('submit sends message and clears text', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hello' }),
+    body: JSON.stringify({ body: 'hello' }),
   });
 
   expect(channel.messageComposer.textComposer.state.getSnapshot().text).toBe('');
   expect(eventSpy).toHaveBeenCalled();
+  expect(eventSpy.mock.calls[0][0].message.body).toBe('hello');
+  expect(eventSpy.mock.calls[0][0].message.text).toBe('hello');
 });

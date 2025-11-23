@@ -62,17 +62,17 @@ var originalFetch = global.fetch;
                 (0, vitest_1.expect)(channel.messageComposer.showReplyInChannel).toBe(false);
                 channel.messageComposer.toggleShowReplyInChannel();
                 (0, vitest_1.expect)(channel.messageComposer.showReplyInChannel).toBe(true);
-                return [4 /*yield*/, channel.sendMessage({ text: 'hi' })];
+    return [4 /*yield*/, channel.sendMessage({ text: 'hi' })];
             case 1:
                 _a.sent();
-                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.ROOMS, "room1/messages/"), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: 'Bearer jwt-test',
-                    },
-                    body: JSON.stringify({ text: 'hi', show_in_channel: true }),
-                });
+    (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.ROOMS, "room1/messages/"), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer jwt-test',
+        },
+        body: JSON.stringify({ body: 'hi', show_in_channel: true }),
+    });
                 return [2 /*return*/];
         }
     });

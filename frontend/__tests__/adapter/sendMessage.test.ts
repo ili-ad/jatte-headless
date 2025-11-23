@@ -16,7 +16,13 @@ afterEach(() => {
 test('sendMessage posts message, updates state, and emits event', async () => {
   (global.fetch as any).mockResolvedValue({
     ok: true,
-    json: async () => ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-06-15T00:00:00Z' }),
+    json: async () => ({
+      id: 'm1',
+      body: 'hello',
+      text: 'hello',
+      user_id: 'u1',
+      created_at: '2025-06-15T00:00:00Z',
+    }),
   });
 
   const client = new ChatClient('u1', 'jwt-test');
@@ -33,9 +39,10 @@ test('sendMessage posts message, updates state, and emits event', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hello' }),
+    body: JSON.stringify({ body: 'hello' }),
   });
 
   expect(eventSpy).toHaveBeenCalledTimes(1);
+  expect(eventSpy.mock.calls[0][0].message.body).toBe('hello');
   expect(eventSpy.mock.calls[0][0].message.text).toBe('hello');
 });

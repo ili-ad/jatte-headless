@@ -40,7 +40,7 @@ test('sendMessage includes custom_data payload', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hello', custom_data: { foo: 1 } }),
+    body: JSON.stringify({ body: 'hello', custom_data: { foo: 1 } }),
   });
   expect(channel.messageComposer.customDataManager.state.getSnapshot().customData).toEqual({});
 });

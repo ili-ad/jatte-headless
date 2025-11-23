@@ -60,17 +60,17 @@ var originalFetch = global.fetch;
                 client = new ChatClient_1.ChatClient('u1', 'jwt-test');
                 channel = client.channel('messaging', 'room1');
                 channel.messageComposer.setThreadId('p1');
-                return [4 /*yield*/, channel.sendMessage({ text: 'hi' })];
+    return [4 /*yield*/, channel.sendMessage({ text: 'hi' })];
             case 1:
                 _a.sent();
-                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.ROOMS, "room1/messages/"), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: 'Bearer jwt-test',
-                    },
-                    body: JSON.stringify({ text: 'hi', reply_to: 'p1' }),
-                });
+    (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith("".concat(constants_1.API.ROOMS, "room1/messages/"), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer jwt-test',
+        },
+        body: JSON.stringify({ body: 'hi', reply_to: 'p1' }),
+    });
                 return [2 /*return*/];
         }
     });
