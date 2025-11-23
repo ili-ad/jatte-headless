@@ -32,6 +32,12 @@ export class Channel {
         latestMessages: [] as Message[],
         messagePagination: { hasPrev: false, hasNext: false },
         pinnedMessages: [] as Message[],
+        /** Remove any errored messages the UI might have inserted */
+        filterErrorMessages: () => {
+            const keep = this._state.messages.filter(m => (m as any).status !== 'failed');
+            const keepLatest = this._state.latestMessages.filter(m => (m as any).status !== 'failed');
+            this.bump({ messages: keep, latestMessages: keepLatest });
+        },
 
         read: {} as Record<
             string,
