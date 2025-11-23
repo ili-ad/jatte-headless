@@ -225,7 +225,6 @@ export class Channel {
                         const draft = textStore.getSnapshot().text.trim();
                         const userId = channelRef.client.user?.id ?? 'local-user';
                         
-                        console.log('[textComposer.submit]', { draft, userId });
                         if (!draft || !userId) return;
 
                         /* 🔸 optimistic echo so the list updates immediately */
@@ -817,7 +816,6 @@ export class Channel {
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     async sendMessage({ text }: { text: string }) {
-        console.log('[Channel.sendMessage] called with text:', text);
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
         const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
         //const payload: any = { body: text };
