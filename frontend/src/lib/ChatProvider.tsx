@@ -2,7 +2,8 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import type { Channel, ChatClient } from '@/lib/stream-adapter';
+import type { Channel as ChannelType, ChatClient } from '@/lib/stream-adapter';
+import { Channel as AdapterChannel } from '@/lib/stream-adapter';
 import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
@@ -12,7 +13,7 @@ export const chatClient: ChatClient = getStreamClient();
 
 interface ChatContextValue {
   client: ChatClient | null;
-  channel: Channel | null;
+  channel: ChannelType | null;
 }
 
 const ChatContext = createContext<ChatContextValue>({ client: null, channel: null });
@@ -24,7 +25,7 @@ export function useChat() {
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
   const [client] = useState<ChatClient>(() => chatClient);
-  const [channel, setChannel] = useState<Channel | null>(null);
+  const [channel, setChannel] = useState<ChannelType | null>(null);
 
   useEffect(() => {
     if (!session) {
@@ -41,6 +42,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       (client as any)['jwt'] = userToken;
       const chan = client.channel('messaging', 'general');
       await chan.watch();
+      console.info('[ChatProvider] channel created', {
+        isAdapterChannel: chan instanceof AdapterChannel,
+        channelClass: chan.constructor?.name,
+        clientClass: client.constructor?.name,
+      });
       if (!mounted) return;
       setChannel(chan);
     })();
