@@ -7,9 +7,11 @@
     "libs/*"
   ],
   "devDependencies": {
+    "@testing-library/react": "^14.3.1",
     "@types/jest": "29",
     "character-entities": "2.0.2",
     "character-reference-invalid": "2.0.1",
+    "dayjs": "1.11.19",
     "decode-named-character-reference": "1.2.0",
     "fast-glob": "3.3.3",
     "jest": "29",
@@ -17,6 +19,8 @@
     "mdast-util-from-markdown": "2.0.2",
     "mml-react": "0.4.7",
     "next-transpile-modules": "10.0.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-markdown": "^9.1.0",
     "remark-parse": "11.0.0",
     "ts-jest": "29",
