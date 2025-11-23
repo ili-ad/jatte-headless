@@ -4,6 +4,8 @@ This monorepo hosts a minimal chat demo built with Django Channels and Next.js. 
 
 ## Development setup
 
+See [docs/dev-servers.md](./docs/dev-servers.md) for detailed local server instructions.
+
 1. Install Python and Node dependencies:
 
 ```bash
