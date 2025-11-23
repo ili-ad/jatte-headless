@@ -9,6 +9,14 @@ import type { MessageInputProps } from '../MessageInput';
 
 
 
+const restoreState = (store: { next?: (v: any) => void; _set?: (v: any) => void }, value: any) => {
+  if (store?.next) {
+    store.next(value);
+  } else if (store?._set) {
+    store._set(value);
+  }
+};
+
 const takeStateSnapshot = (messageComposer: MessageComposer) => {
   const textComposerState = messageComposer.textComposer.state.getLatestValue();
   const attachmentManagerState = messageComposer.attachmentManager.state.getLatestValue();
@@ -19,12 +27,12 @@ const takeStateSnapshot = (messageComposer: MessageComposer) => {
   const state = messageComposer.state.getLatestValue();
 
   return () => {
-    messageComposer.state.next(state);
-    messageComposer.textComposer.state.next(textComposerState);
-    messageComposer.attachmentManager.state.next(attachmentManagerState);
-    messageComposer.linkPreviewsManager.state.next(linkPreviewsManagerState);
-    messageComposer.pollComposer.state.next(pollComposerState);
-    messageComposer.customDataManager.state.next(customDataManagerState);
+    restoreState(messageComposer.state, state);
+    restoreState(messageComposer.textComposer.state, textComposerState);
+    restoreState(messageComposer.attachmentManager.state, attachmentManagerState);
+    restoreState(messageComposer.linkPreviewsManager.state, linkPreviewsManagerState);
+    restoreState(messageComposer.pollComposer.state, pollComposerState);
+    restoreState(messageComposer.customDataManager.state, customDataManagerState);
   };
 };
 
@@ -35,6 +43,15 @@ export const useSubmitHandler = (props: MessageInputProps) => {
     useChannelActionContext('useSubmitHandler');
   const { t } = useTranslationContext('useSubmitHandler');
   const messageComposer = useMessageComposer();
+
+  const submitViaTextComposer = useCallback(async () => {
+    const submit = (messageComposer as any)?.textComposer?.submit;
+    if (typeof submit === 'function') {
+      await submit();
+      return true;
+    }
+    return false;
+  }, [messageComposer]);
 
   const handleSubmit = useCallback(
     async (event?: React.BaseSyntheticEvent) => {
@@ -51,21 +68,14 @@ export const useSubmitHandler = (props: MessageInputProps) => {
         } catch (err) {
           addNotification(t('Edit message request failed'), 'error');
         }
-      } else {
-        const restoreComposerStateSnapshot = takeStateSnapshot(messageComposer);
-        try {
-          // FIXME: once MessageComposer has sendMessage method, then the following condition should be encapsulated by it
-          // keep attachments, text, quoted message (treat them as draft) ... if sending a poll
-          const sentPollMessage = !!message.poll_id;
-          if (sentPollMessage) {
-            messageComposer.state.partialNext({
-              id: MessageComposer.generateId(),
-              pollId: null,
-            });
-          } else {
-            messageComposer.clear();
-          }
-          // todo: get rid of overrideSubmitHandler once MessageComposer supports submission flow
+        return;
+      }
+
+      const restoreComposerStateSnapshot = takeStateSnapshot(messageComposer);
+      try {
+        const submittedViaTextComposer = await submitViaTextComposer();
+
+        if (!submittedViaTextComposer) {
           if (overrideSubmitHandler) {
             await overrideSubmitHandler({
               cid: messageComposer.channel.cid,
@@ -76,15 +86,15 @@ export const useSubmitHandler = (props: MessageInputProps) => {
           } else {
             await sendMessage({ localMessage, message, options: sendOptions });
           }
-          // if (messageComposer.config.text.publishTypingEvents)
-          if (messageComposer.config.text.publishTypingEvents) {
-            // safe no-op today; real SDK call tomorrow
-            await chatAPI.stopTyping();
-          }          
-        } catch (err) {
-          restoreComposerStateSnapshot();
-          addNotification(t('Send message request failed'), 'error');
         }
+
+        if (messageComposer.config.text.publishTypingEvents) {
+          // safe no-op today; real SDK call tomorrow
+          await chatAPI.stopTyping();
+        }
+      } catch (err) {
+        restoreComposerStateSnapshot();
+        addNotification(t('Send message request failed'), 'error');
       }
     },
     [
@@ -92,6 +102,7 @@ export const useSubmitHandler = (props: MessageInputProps) => {
       clearEditingState,
       editMessage,
       messageComposer,
+      submitViaTextComposer,
       overrideSubmitHandler,
       sendMessage,
       t,
