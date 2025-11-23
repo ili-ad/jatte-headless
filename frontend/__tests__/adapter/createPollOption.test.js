@@ -68,7 +68,7 @@ var originalFetch = global.fetch;
                         'Content-Type': 'application/json',
                         Authorization: 'Bearer jwt-test',
                     },
-                    body: JSON.stringify({ text: 'hi' }),
+                    body: JSON.stringify({ body: 'hi' }),
                 });
                 (0, vitest_1.expect)(res).toEqual({ poll_option: { id: 'opt1' } });
                 return [2 /*return*/];

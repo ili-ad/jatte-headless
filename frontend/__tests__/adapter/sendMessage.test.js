@@ -55,7 +55,7 @@ var originalFetch = global.fetch;
                 global.fetch.mockResolvedValue({
                     ok: true,
                     json: function () { return __awaiter(void 0, void 0, void 0, function () { return __generator(this, function (_a) {
-                        return [2 /*return*/, ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-06-15T00:00:00Z' })];
+                        return [2 /*return*/, ({ id: 'm1', body: 'hello', text: 'hello', user_id: 'u1', created_at: '2025-06-15T00:00:00Z' })];
                     }); }); },
                 });
                 client = new ChatClient_1.ChatClient('u1', 'jwt-test');
@@ -71,9 +71,10 @@ var originalFetch = global.fetch;
                         'Content-Type': 'application/json',
                         Authorization: 'Bearer jwt-test',
                     },
-                    body: JSON.stringify({ text: 'hello' }),
+                    body: JSON.stringify({ body: 'hello' }),
                 });
                 (0, vitest_1.expect)(eventSpy).toHaveBeenCalledTimes(1);
+                (0, vitest_1.expect)(eventSpy.mock.calls[0][0].message.body).toBe('hello');
                 (0, vitest_1.expect)(eventSpy.mock.calls[0][0].message.text).toBe('hello');
                 return [2 /*return*/];
         }

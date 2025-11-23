@@ -29,6 +29,6 @@ test('sendMessage includes reply_to when threadId is set', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hi', reply_to: 'p1' }),
+    body: JSON.stringify({ body: 'hi', reply_to: 'p1' }),
   });
 });

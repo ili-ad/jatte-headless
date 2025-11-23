@@ -34,7 +34,7 @@ test('updateMessage PUTs to backend and updates state', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'edited' }),
+    body: JSON.stringify({ body: 'edited' }),
   });
 
   expect(channel.state.messages[0].text).toBe('edited');
