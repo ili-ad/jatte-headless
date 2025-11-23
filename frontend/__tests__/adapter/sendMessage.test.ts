@@ -39,10 +39,14 @@ test('sendMessage posts message, updates state, and emits event', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ body: 'hello' }),
+    body: JSON.stringify({ body: 'hello', text: 'hello' }),
   });
 
   expect(eventSpy).toHaveBeenCalledTimes(1);
   expect(eventSpy.mock.calls[0][0].message.body).toBe('hello');
   expect(eventSpy.mock.calls[0][0].message.text).toBe('hello');
+
+  const { messages, latestMessages } = channel.state;
+  expect(messages[messages.length - 1]?.text).toBe('hello');
+  expect(latestMessages[latestMessages.length - 1]?.text).toBe('hello');
 });
