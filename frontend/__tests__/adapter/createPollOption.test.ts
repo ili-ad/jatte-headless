@@ -28,7 +28,7 @@ test('createPollOption posts option to API', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hi' }),
+    body: JSON.stringify({ body: 'hi' }),
   });
   expect(res).toEqual({ poll_option: { id: 'opt1' } });
 });

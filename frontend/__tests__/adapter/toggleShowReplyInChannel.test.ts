@@ -33,6 +33,6 @@ test('toggleShowReplyInChannel toggles state and affects sendMessage', async () 
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'hi', show_in_channel: true }),
+    body: JSON.stringify({ body: 'hi', show_in_channel: true }),
   });
 });

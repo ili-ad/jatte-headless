@@ -33,6 +33,6 @@ test('createDraft saves current text to localStorage and posts draft', () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ text: 'draft message' }),
+    body: JSON.stringify({ body: 'draft message' }),
   });
 });

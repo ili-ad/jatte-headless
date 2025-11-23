@@ -44,7 +44,7 @@ var originalFetch = global.fetch;
     global.fetch = vitest_1.vi.fn().mockResolvedValue({
         ok: true,
         json: function () { return __awaiter(void 0, void 0, void 0, function () { return __generator(this, function (_a) {
-            return [2 /*return*/, ({ id: 'm1', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' })];
+            return [2 /*return*/, ({ id: 'm1', body: 'hello', text: 'hello', user_id: 'u1', created_at: '2025-01-01T00:00:00Z' })];
         }); }); },
     });
     global.localStorage = { getItem: vitest_1.vi.fn(), setItem: vitest_1.vi.fn(), removeItem: vitest_1.vi.fn() };
@@ -73,10 +73,12 @@ var originalFetch = global.fetch;
                         'Content-Type': 'application/json',
                         Authorization: 'Bearer jwt-test',
                     },
-                    body: JSON.stringify({ text: 'hello' }),
+                    body: JSON.stringify({ body: 'hello' }),
                 });
                 (0, vitest_1.expect)(channel.messageComposer.textComposer.state.getSnapshot().text).toBe('');
                 (0, vitest_1.expect)(eventSpy).toHaveBeenCalled();
+                (0, vitest_1.expect)(eventSpy.mock.calls[0][0].message.body).toBe('hello');
+                (0, vitest_1.expect)(eventSpy.mock.calls[0][0].message.text).toBe('hello');
                 return [2 /*return*/];
         }
     });

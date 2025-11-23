@@ -30,6 +30,6 @@ var originalFetch = global.fetch;
             'Content-Type': 'application/json',
             Authorization: 'Bearer jwt-test',
         },
-        body: JSON.stringify({ text: 'draft message' }),
+        body: JSON.stringify({ body: 'draft message' }),
     });
 });
