@@ -7,7 +7,14 @@ export class MessageComposer {
   }
 
   state               = noopStore;
-  textComposer        = { state: noopStore };
+  textComposer        = {
+    state: noopStore,
+    submit: async () => {
+      const composition = await this.compose();
+      if (!composition || !composition.message) return;
+      this.clear();
+    },
+  };
   attachmentManager   = { state: noopStore };
   linkPreviewsManager = { state: noopStore };
   pollComposer        = { state: noopStore };
