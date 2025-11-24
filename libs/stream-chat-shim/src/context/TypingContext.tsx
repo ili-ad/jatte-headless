@@ -3,9 +3,11 @@ import type { PropsWithChildren } from 'react';
 
 import type { ChannelState as StreamChannelState } from 'chat-shim';
 import type { UnknownType } from '../types/types';
+import type { TypingUser } from './ChannelStateContext';
 
 export type TypingContextValue = {
   typing?: StreamChannelState['typing'];
+  typingUsers?: TypingUser[];
 };
 
 export const TypingContext = React.createContext<TypingContextValue | undefined>(

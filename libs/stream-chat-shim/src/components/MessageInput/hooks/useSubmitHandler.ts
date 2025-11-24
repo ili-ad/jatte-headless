@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useMessageComposer } from './useMessageComposer';
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useTranslationContext } from '../../../context/TranslationContext';
+import { useChannelStateContext } from '../../../context/ChannelStateContext';
 
 import type { MessageInputProps } from '../MessageInput';
 
@@ -15,6 +16,7 @@ export const useSubmitHandler = (props: MessageInputProps) => {
 
   const { addNotification } = useChannelActionContext('useSubmitHandler');
   const { t } = useTranslationContext('useSubmitHandler');
+  const { channel } = useChannelStateContext('useSubmitHandler');
   const messageComposer = useMessageComposer() as AnyMessageComposer;
 
   /**
@@ -45,6 +47,8 @@ export const useSubmitHandler = (props: MessageInputProps) => {
       try {
         const submitted = await submitViaTextComposer();
 
+        void channel?.stopTyping?.();
+
         // If submit didn't run, we treat it as a no-op; the adapter will not send.
         if (!submitted && process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
@@ -57,7 +61,7 @@ export const useSubmitHandler = (props: MessageInputProps) => {
         addNotification(t('Send message request failed'), 'error');
       }
     },
-    [addNotification, submitViaTextComposer, t],
+    [addNotification, channel, submitViaTextComposer, t],
   );
 
   return { handleSubmit };

@@ -42,30 +42,46 @@ const useJoinTypingUsers = (names: string[]) => {
 const UnMemoizedTypingIndicator = (props: TypingIndicatorProps) => {
   const { threadList } = props;
 
-  const { channelConfig, thread } = useChannelStateContext('TypingIndicator');
+  const { channelConfig, thread, typingUsers: typingUsersFromChannel } =
+    useChannelStateContext('TypingIndicator');
   const { client } = useChatContext('TypingIndicator');
-  const { typing = {} } = useTypingContext('TypingIndicator');
+  const { typing = {}, typingUsers: typingUsersFromContext } =
+    useTypingContext('TypingIndicator');
 
-  const typingInChannel = !threadList
-    ? Object.values(typing).filter(
-        ({ parent_id, user }) => user?.id !== client.user?.id && !parent_id,
-      )
-    : [];
+  const typingEntries: { id: string; name?: string; parent_id?: string }[] = (
+    typingUsersFromChannel?.length
+      ? typingUsersFromChannel
+      : typingUsersFromContext?.length
+        ? typingUsersFromContext
+      : Object.values(typing || {}).map(({ parent_id, user }) => ({
+          id: user?.id ?? '',
+          name: user?.name,
+          parent_id,
+        }))
+  ).filter((entry) => entry.id && entry.id !== client.user?.id);
 
-  const typingInThread = threadList
-    ? Object.values(typing).filter(
-        ({ parent_id, user }) => user?.id !== client.user?.id && parent_id === thread?.id,
-      )
-    : [];
+  const filteredEntries = (threadList
+    ? typingEntries.filter(({ parent_id }) => parent_id && parent_id === thread?.id)
+    : typingEntries.filter(({ parent_id }) => !parent_id)) as Array<{
+    id: string;
+    name?: string;
+    parent_id?: string;
+  }>;
 
-  const typingUserList = (threadList ? typingInThread : typingInChannel)
-    .map(({ user }) => user?.name || user?.id)
-    .filter(Boolean) as string[];
+  const typingUserList = Array.from(
+    new Set(
+      filteredEntries
+        .map(({ id, name }) => {
+          if (id.startsWith('ai-bot-')) return 'Agent';
+          return name || id;
+        })
+        .filter(Boolean) as string[],
+    ),
+  );
 
   const joinedTypingUsers = useJoinTypingUsers(typingUserList);
 
-  const isTypingActive =
-    (threadList && typingInThread.length) || (!threadList && typingInChannel.length);
+  const isTypingActive = filteredEntries.length > 0;
 
   if (channelConfig?.typing_events === false) {
     return null;

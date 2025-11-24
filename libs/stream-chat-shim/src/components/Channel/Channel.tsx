@@ -1242,9 +1242,23 @@ const ChannelInner = (
 
   const { typing, ...restState } = state;
 
+  const typingUsers = useMemo(
+    () =>
+      Object.values(typing || {})
+        .map(({ parent_id, user }) => ({
+          id: user?.id ?? '',
+          name: user?.name,
+          parent_id,
+          role: user?.role,
+        }))
+        .filter((entry) => entry.id && entry.id !== client.userID),
+    [client.userID, typing],
+  );
+
   const channelStateContextValue = useCreateChannelStateContext({
     ...restState,
     typing,
+    typingUsers,
     channel,
     channelCapabilitiesArray,
     channelConfig,
@@ -1437,6 +1451,7 @@ const ChannelInner = (
 
   const typingContextValue = useCreateTypingContext({
     typing,
+    typingUsers,
   });
 
   if (state.error) {
