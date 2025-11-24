@@ -25,6 +25,8 @@ export class Channel {
 
     private socket?: WebSocket;
     private emitter = mitt<ChatEvents>();
+    /** Track optimistic messages so we can reconcile server echoes */
+    private pendingMessages = new Map<string, true>();
 
     /* channel-local state object */
     private _state = {
@@ -256,41 +258,47 @@ export class Channel {
                     const userId = channelRef.client.user?.id ?? 'local-user';
                     if (!draft || !userId) return;
 
-                    // 🔸 optimistic echo
-                    const localMsg: Message = {
-                    id: `local-${Date.now()}`,
-                    text: draft,
-                    user_id: userId,
-                    created_at: new Date().toISOString(),
+                    // Upstream reference: stream-chat `MessageComposer.compose` and
+                    // stream-chat-react `Channel.sendMessage` generate a client
+                    // message id, mark the optimistic payload as `sending`, and
+                    // later replace it once the server echoes the message
+                    // (see stream-chat `messageComposer.ts#compose` and
+                    // stream-chat-react `Channel.tsx#doSendMessage`).
+                    const clientGeneratedId = `local-${Date.now()}`;
+
+                    const localMsg: Message & { status?: string; client_generated_id?: string } = {
+                        id: clientGeneratedId,
+                        client_generated_id: clientGeneratedId,
+                        text: draft,
+                        user_id: userId,
+                        created_at: new Date().toISOString(),
+                        status: 'sending',
                     };
 
-                    channelRef.bump({
-                    messages: [...channelRef.state.messages, localMsg],
-                    latestMessages: [
-                        ...channelRef.state.latestMessages.slice(-49),
-                        localMsg,
-                    ],
-                    });
+                    channelRef.pendingMessages.set(clientGeneratedId, true);
+                    channelRef.integrateIncomingMessage(localMsg, clientGeneratedId);
 
                     channelRef.emitter.emit(EVENTS.MESSAGE_NEW, {
-                    type: EVENTS.MESSAGE_NEW,
-                    message: localMsg,
+                        type: EVENTS.MESSAGE_NEW,
+                        message: localMsg,
                     });
 
                     // 🔸 fire real network request
-                    channelRef.sendMessage({ text: draft }).catch(console.error);
+                    channelRef
+                        .sendMessage({ text: draft, client_generated_id: clientGeneratedId })
+                        .catch(console.error);
 
                     // clear draft + saved localStorage copy, without relying on `this`
                     textStore._set({
-                    text: '',
-                    selection: { start: 0, end: 0 },
+                        text: '',
+                        selection: { start: 0, end: 0 },
                     });
                     logStateUpdateTimestamp();
 
                     try {
-                    localStorage.removeItem(getRoomKey());
+                        localStorage.removeItem(getRoomKey());
                     } catch {
-                    // non‑browser / quota issues – ignore
+                        // non‑browser / quota issues – ignore
                     }
                 },
                 }, // ← end of textComposer
@@ -348,11 +356,14 @@ export class Channel {
                     if (!userId || !text) return undefined;
 
                     const now = new Date().toISOString();
-                    const localMessage: Message = {
-                        id: `local-${Date.now()}`,
+                    const id = `local-${Date.now()}`;
+                    const localMessage: Message & { status?: string; client_generated_id?: string } = {
+                        id,
+                        client_generated_id: id,
                         text,
                         user_id: userId,
                         created_at: now,
+                        status: 'sending',
                     };
 
                     return { localMessage, message: localMessage, sendOptions: {} };
@@ -364,7 +375,10 @@ export class Channel {
                     _opts: unknown,
                 ) {
                     /* optimistic echo already done in textComposer.submit() */
-                    await channelRef.sendMessage({ text: message.text });
+                    await channelRef.sendMessage({
+                        text: message.text,
+                        client_generated_id: (message as any).client_generated_id,
+                    });
                 },
 
 
@@ -804,11 +818,11 @@ export class Channel {
                 const p = JSON.parse(ev.data);
                 switch (p.type) {
                     case 'message': {
-                        const msg = p.data as Message;
-                        this.bump({
-                            messages: [...this._state.messages, msg],
-                            latestMessages: [...this._state.latestMessages.slice(-49), msg], // keep last 50
-                        });
+                        const msg = p.data as Message & { client_generated_id?: string };
+                        this.integrateIncomingMessage(
+                            { ...msg, status: (msg as any).status ?? 'received' },
+                            msg.client_generated_id,
+                        );
                         this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
                         break;
                     }
@@ -910,11 +924,15 @@ export class Channel {
     // }
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
-    async sendMessage({ text }: { text: string }) {
+    async sendMessage({ text, client_generated_id }: { text: string; client_generated_id?: string }) {
         const custom = this.messageComposer.customDataManager.state.getSnapshot().customData;
         const poll = this.messageComposer.pollComposer.state.getSnapshot().poll;
         //const payload: any = { body: text };
         const payload: any = { body: text, text };   // send both
+        if (client_generated_id) {
+            payload.client_generated_id = client_generated_id;
+            payload.pending_message_metadata = { client_generated_id } as any;
+        }
         if (Object.keys(custom).length) payload.custom_data = custom;
         if (poll) payload.poll = poll;
         const threadId = this.messageComposer.threadId;
@@ -931,11 +949,14 @@ export class Channel {
             body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('sendMessage failed');
-        const msg = (await res.json()) as Message;
-        this.bump({
-            messages: [...this._state.messages, msg],
-            latestMessages: [...this._state.latestMessages.slice(-49), msg],
-        });
+        const msg = (await res.json()) as Message & { client_generated_id?: string };
+        if (client_generated_id) this.pendingMessages.delete(client_generated_id);
+
+        this.integrateIncomingMessage(
+            { ...msg, status: 'received', client_generated_id: msg.client_generated_id ?? client_generated_id },
+            client_generated_id,
+        );
+
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
         this.messageComposer.customDataManager.clear();
         this.messageComposer.pollComposer.state._set({ poll: undefined as any });
@@ -1183,10 +1204,10 @@ export class Channel {
         switch (event.type) {
             case EVENTS.MESSAGE_NEW:
                 if (event.message) {
-                    this.bump({
-                        messages: [...this._state.messages, event.message],
-                        latestMessages: [...this._state.latestMessages.slice(-49), event.message],
-                    });
+                    this.integrateIncomingMessage(
+                        event.message,
+                        (event.message as any).client_generated_id as string | undefined,
+                    );
                 }
                 this.emitter.emit(EVENTS.MESSAGE_NEW, event as any);
                 break;
@@ -1209,5 +1230,46 @@ export class Channel {
         this._state = { ...this._state, ...patch };
         this.stateStore.dispatch(patch);     // ← keep channel store current
         this.client.stateStore.dispatch({}); // ← nudge parent Chat to re-render
+    }
+
+    private integrateIncomingMessage(incoming: Message, matchId?: string) {
+        const matcher = (m: Message) =>
+            m.id === incoming.id ||
+            (!!matchId && (m.id === matchId || (m as any).client_generated_id === matchId));
+
+        let nextMessages = [...this._state.messages];
+        const existingIndex = nextMessages.findIndex(matcher);
+
+        if (existingIndex !== -1) {
+            const merged = { ...nextMessages[existingIndex], ...incoming } as Message;
+            merged.id = incoming.id ?? nextMessages[existingIndex].id;
+            nextMessages[existingIndex] = merged;
+        } else {
+            nextMessages.push(incoming);
+        }
+
+        if (matchId && incoming.id && incoming.id !== matchId) {
+            nextMessages = nextMessages.filter((msg, idx) => {
+                if (idx === existingIndex) return true;
+                return msg.id !== matchId;
+            });
+        }
+
+        const orderedMessages = this.sortAndDedupeMessages(nextMessages);
+        const latestMessages = orderedMessages.slice(-50);
+
+        this.bump({ messages: orderedMessages, latestMessages });
+    }
+
+    private sortAndDedupeMessages(list: Message[]) {
+        const map = new Map<string, Message>();
+        for (const msg of list) {
+            const prev = map.get(msg.id);
+            map.set(msg.id, prev ? { ...prev, ...msg } : msg);
+        }
+
+        return Array.from(map.values()).sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
     }
 }
