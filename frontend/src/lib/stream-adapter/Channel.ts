@@ -27,6 +27,9 @@ export class Channel {
     private emitter = mitt<ChatEvents>();
     /** Track optimistic messages so we can reconcile server echoes */
     private pendingMessages = new Map<string, true>();
+    /** Track timers for typing indicators */
+    private typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly typingTimeoutMs = 8000;
 
     /* channel-local state object */
     private _state = {
@@ -51,6 +54,11 @@ export class Channel {
             }
         >,
         members: {} as Record<string, { user: { id: string } }>,
+        typing: {} as Record<string, {
+            user: { id: string; role?: string; name?: string };
+            last_event_at: Date;
+            parent_id?: string;
+        }>,
 
         /* stub so <MessageInput> works */
         /* stub so <MessageInput> works */
@@ -828,7 +836,9 @@ export class Channel {
                     }
                     case 'typing.start':
                     case 'typing.stop':
-                        this.emitter.emit(p.type, { type: p.type, user_id: p.user_id } as any);
+                        this.applyTypingEvent({ type: p.type, user_id: p.user_id } as any);
+                        this.emitter.emit(p.type, { type: p.type, cid: this.cid, user_id: p.user_id } as any);
+                        this.client.emit(p.type as any, { type: p.type, cid: this.cid, user_id: p.user_id } as any);
                         break;
                 }
             } catch { console.error('bad WS', ev.data); }
@@ -873,6 +883,24 @@ export class Channel {
             const { [me]: _removed, ...rest } = this._state.read;
             this.bump({ read: rest });
         }
+    }
+
+    /** Notify the backend (and local state) that the user is typing */
+    async keystroke(): Promise<void> {
+        const userId = this.getCurrentUserId();
+        if (!userId) return;
+
+        // TODO backend-wire-up: when server supports typing, this dispatchEvent
+        // should result in a websocket broadcast to other members.
+        this.client.dispatchEvent({ type: 'typing.start', cid: this.cid, user_id: userId } as any);
+    }
+
+    /** Notify listeners that the user stopped typing */
+    async stopTyping(): Promise<void> {
+        const userId = this.getCurrentUserId();
+        if (!userId) return;
+
+        this.client.dispatchEvent({ type: 'typing.stop', cid: this.cid, user_id: userId } as any);
     }
 
 
@@ -1213,7 +1241,9 @@ export class Channel {
                 break;
             case 'typing.start':
             case 'typing.stop':
-                this.emitter.emit(event.type as any, event as any);
+                const payload = { cid: this.cid, ...event } as any;
+                this.applyTypingEvent(payload);
+                this.emitter.emit(event.type as any, payload);
                 break;
             default:
                 this.emitter.emit(event.type as any, event as any);
@@ -1232,7 +1262,67 @@ export class Channel {
         this.client.stateStore.dispatch({}); // ← nudge parent Chat to re-render
     }
 
+    private getCurrentUserId() {
+        return this.client.user?.id ?? (this.client as any)._user?.id ?? null;
+    }
+
+    private clearTypingUser(userId: string, emitEvent = false) {
+        const timer = this.typingTimers.get(userId);
+        if (timer) {
+            clearTimeout(timer);
+            this.typingTimers.delete(userId);
+        }
+
+        if (this._state.typing[userId]) {
+            const { [userId]: _removed, ...rest } = this._state.typing;
+            this.bump({ typing: rest });
+
+            if (emitEvent) {
+                const payload = { type: 'typing.stop', cid: this.cid, user_id: userId } as any;
+                this.emitter.emit('typing.stop' as any, payload);
+                this.client.emit('typing.stop' as any, payload);
+            }
+        }
+    }
+
+    private scheduleTypingExpiry(userId: string) {
+        const existingTimer = this.typingTimers.get(userId);
+        if (existingTimer) clearTimeout(existingTimer);
+
+        const timer = setTimeout(() => {
+            this.clearTypingUser(userId, true);
+        }, this.typingTimeoutMs);
+
+        this.typingTimers.set(userId, timer);
+    }
+
+    private applyTypingEvent(event: { type: 'typing.start' | 'typing.stop'; user?: { id?: string; role?: string; name?: string }; user_id?: string; parent_id?: string }) {
+        const userId = event.user?.id ?? event.user_id;
+        const currentUserId = this.getCurrentUserId();
+
+        if (!userId) return;
+
+        // ignore our own typing updates in the shared state
+        if (currentUserId && userId === currentUserId) {
+            if (event.type === 'typing.stop') this.clearTypingUser(userId);
+            return;
+        }
+
+        if (event.type === 'typing.stop') {
+            this.clearTypingUser(userId);
+            return;
+        }
+
+        const user = event.user ?? this._state.members[userId]?.user ?? { id: userId };
+        const typingEntry = { user: { id: user.id!, role: user.role, name: user.name }, last_event_at: new Date(), parent_id: event.parent_id };
+        this.bump({ typing: { ...this._state.typing, [userId]: typingEntry } });
+        this.scheduleTypingExpiry(userId);
+    }
+
     private integrateIncomingMessage(incoming: Message, matchId?: string) {
+        const authorId = (incoming as any).user?.id ?? (incoming as any).user_id;
+        if (authorId) this.clearTypingUser(authorId, true);
+
         const matcher = (m: Message) =>
             m.id === incoming.id ||
             (!!matchId && (m.id === matchId || (m as any).client_generated_id === matchId));
