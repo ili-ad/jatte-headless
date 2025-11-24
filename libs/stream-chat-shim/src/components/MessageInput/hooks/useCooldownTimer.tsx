@@ -33,7 +33,10 @@ export const useCooldownTimer = (): CooldownTimerState => {
 
     return messages
       .map((message) => ({ message, createdAt: toValidDate(message.created_at) }))
-      .filter(({ message, createdAt }) => message.user?.id === client.user?.id && createdAt)
+      .filter(
+        ({ message, createdAt }) =>
+          (message.user?.id ?? message.user_id) === client.user?.id && createdAt,
+      )
       .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
       .find(Boolean)?.createdAt as Date | undefined;
   }, [messages, client.user?.id, latestMessageDatesByChannels, channel.cid]);
