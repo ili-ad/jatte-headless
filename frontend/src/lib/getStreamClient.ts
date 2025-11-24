@@ -1,15 +1,16 @@
+// frontend/src/lib/getStreamClient.ts
 import { ChatClient } from '@/lib/stream-adapter';
-import { getLocalClient } from 'stream-chat';
 
-type AnyClient = ChatClient & Record<string, unknown>;
+// If you still want a generic alias, keep it here:
+export type AnyClient = ChatClient;
 
 let client: AnyClient | null = null;
 
-export const getStreamClient = (): AnyClient => {
-  if (!client) {
-    client = process.env.NEXT_PUBLIC_STREAM_KEY
-      ? new ChatClient()
-      : (getLocalClient() as AnyClient);
-  }
+export function getStreamClient(): AnyClient {
+  if (client) return client;
+
+  // ChatClient does not take an options object; just construct it.
+  client = new ChatClient();
+
   return client;
-};
+}
