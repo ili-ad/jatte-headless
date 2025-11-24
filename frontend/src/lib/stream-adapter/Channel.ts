@@ -1207,7 +1207,7 @@ export class Channel {
         console.log('[Channel.bump]', patch);
 
         this._state = { ...this._state, ...patch };
-        this.stateStore._set(patch);     // ← keep channel store current
-        this.client.stateStore._set({}); // ← nudge parent Chat to re-render
+        this.stateStore.dispatch(patch);     // ← keep channel store current
+        this.client.stateStore.dispatch({}); // ← nudge parent Chat to re-render
     }
 }
