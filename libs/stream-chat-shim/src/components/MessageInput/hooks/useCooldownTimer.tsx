@@ -4,6 +4,13 @@ import type { ChannelResponse } from 'chat-shim';
 
 import { useChannelStateContext, useChatContext } from '../../../context';
 
+const toValidDate = (input?: Date | string | number | null) => {
+  if (!input) return undefined;
+
+  const date = input instanceof Date ? input : new Date(input);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
 export type CooldownTimerState = {
   cooldownInterval: number;
   setCooldownRemaining: React.Dispatch<React.SetStateAction<number | undefined>>;
@@ -20,16 +27,16 @@ export const useCooldownTimer = (): CooldownTimerState => {
 
   const skipCooldown = own_capabilities?.includes('skip-slow-mode');
 
-  const ownLatestMessageDate = useMemo(
-    () =>
-      latestMessageDatesByChannels[channel.cid] ??
-      [...messages]
-        .sort(
-          (a, b) => (b.created_at as Date)?.getTime() - (a.created_at as Date)?.getTime(),
-        )
-        .find((v) => v.user?.id === client.user?.id)?.created_at,
-    [messages, client.user?.id, latestMessageDatesByChannels, channel.cid],
-  ) as Date;
+  const ownLatestMessageDate = useMemo(() => {
+    const channelLatest = toValidDate(latestMessageDatesByChannels[channel.cid]);
+    if (channelLatest) return channelLatest;
+
+    return messages
+      .map((message) => ({ message, createdAt: toValidDate(message.created_at) }))
+      .filter(({ message, createdAt }) => message.user?.id === client.user?.id && createdAt)
+      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0))
+      .find(Boolean)?.createdAt as Date | undefined;
+  }, [messages, client.user?.id, latestMessageDatesByChannels, channel.cid]);
 
   useEffect(() => {
     const timeSinceOwnLastMessage = ownLatestMessageDate
