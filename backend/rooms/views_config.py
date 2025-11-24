@@ -10,9 +10,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from chat.utils import canonical_cid
 
 from .serializers import RoomConfigStateSerializer
 from .utils import get_room_or_404, user_has_room_access
+
+try:  # pragma: no cover - optional agent addon
+    from chat_addons.agent.utils import agent_enabled_for_room, agent_user_id_for_room
+except Exception:  # pragma: no cover - defensive fallback
+    agent_enabled_for_room = None  # type: ignore[assignment]
+    agent_user_id_for_room = None  # type: ignore[assignment]
 
 _DEFAULT_COMPOSER_CONFIG = {
     "file_uploads": True,
@@ -32,6 +39,7 @@ class RoomConfigStateView(APIView):
         if not user_has_room_access(request.user, room):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        canonical = canonical_cid(room_uuid, room_uuid=room.uuid)
         composer = deepcopy(_DEFAULT_COMPOSER_CONFIG)
         room_data = room.data or {}
         room_composer = room_data.get("composer")
@@ -40,5 +48,29 @@ class RoomConfigStateView(APIView):
                 if key in composer and value is not None:
                     composer[key] = value
 
-        serializer = RoomConfigStateSerializer({"composer": composer})
+        ai_config = _build_ai_config(canonical, room, room_data)
+
+        serializer = RoomConfigStateSerializer(
+            {"config": {"composer": composer, "ai": ai_config}}
+        )
         return Response(serializer.data)
+
+
+def _build_ai_config(canonical: str, room, room_data: dict | None) -> dict:
+    enabled = bool(agent_enabled_for_room(canonical, room)) if agent_enabled_for_room else False
+    bot_user_id = (
+        agent_user_id_for_room(canonical)
+        if agent_user_id_for_room
+        else f"room:{room.uuid}:bot"
+    )
+    persona_summary = None
+    if isinstance(room_data, dict):
+        summary = room_data.get("personaSummary") or room_data.get("persona_summary")
+        persona_summary = summary if isinstance(summary, str) else None
+
+    return {
+        "enabled": enabled,
+        "botUserId": bot_user_id,
+        "displayName": "Assistant",
+        "personaSummary": persona_summary,
+    }

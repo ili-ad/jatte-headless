@@ -76,8 +76,9 @@ export const buildMessageComposer = (channelRef:any) => {
     createDraft(){ localStorage.setItem(roomKey,textComposer.state.getSnapshot().text); },
     discardDraft(){ localStorage.removeItem(roomKey); },
 
-    configState:new MiniStore({ attachments:{acceptedFiles:[],maxNumberOfFilesPerMessage:10},
-                                text:{enabled:true}, multipleUploads:true, isUploadEnabled:true }),
+    configState:new MiniStore({ composer:{attachments:{acceptedFiles:[],maxNumberOfFilesPerMessage:10},
+                                         text:{enabled:true}, multipleUploads:true, isUploadEnabled:true},
+                                ai:{enabled:false, botUserId:'', displayName:'Assistant', personaSummary:null as string|null} }),
     getInputValue(){ return textComposer.state.getSnapshot().text; },
     setInputValue(v:string){ textComposer.state._set({text:v}); },
     reset(){ textComposer.clear(); },
