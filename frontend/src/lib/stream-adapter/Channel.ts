@@ -29,7 +29,10 @@ export class Channel {
     private pendingMessages = new Map<string, true>();
     /** Track timers for typing indicators */
     private typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private typingStopTimer?: ReturnType<typeof setTimeout>;
+    private hasActiveKeystroke = false;
     private readonly typingTimeoutMs = 8000;
+    private readonly localTypingTimeoutMs = 5000;
 
     /* channel-local state object */
     private _state = {
@@ -890,9 +893,14 @@ export class Channel {
         const userId = this.getCurrentUserId();
         if (!userId) return;
 
-        // TODO backend-wire-up: when server supports typing, this dispatchEvent
-        // should result in a websocket broadcast to other members.
-        this.client.dispatchEvent({ type: 'typing.start', cid: this.cid, user_id: userId } as any);
+        if (!this.hasActiveKeystroke) {
+            // TODO backend-wire-up: when server supports typing, this dispatchEvent
+            // should result in a websocket broadcast to other members.
+            this.client.dispatchEvent({ type: 'typing.start', cid: this.cid, user_id: userId } as any);
+            this.hasActiveKeystroke = true;
+        }
+
+        this.scheduleLocalTypingStop();
     }
 
     /** Notify listeners that the user stopped typing */
@@ -900,7 +908,36 @@ export class Channel {
         const userId = this.getCurrentUserId();
         if (!userId) return;
 
+        if (this.typingStopTimer) {
+            clearTimeout(this.typingStopTimer);
+            this.typingStopTimer = undefined;
+        }
+
+        if (!this.hasActiveKeystroke) return;
+        this.hasActiveKeystroke = false;
+
         this.client.dispatchEvent({ type: 'typing.stop', cid: this.cid, user_id: userId } as any);
+    }
+
+    /** Simulate an external typing.start event (e.g. agent responses) */
+    simulateTypingStart(userId: string) {
+        const payload = {
+            type: 'typing.start',
+            cid: this.cid,
+            user: this.client.state.users[userId] ?? this._state.members[userId]?.user ?? { id: userId },
+            user_id: userId,
+        } as any;
+        this.applyTypingEvent(payload);
+        this.emitter.emit('typing.start' as any, payload);
+        this.client.emit('typing.start' as any, payload);
+    }
+
+    /** Simulate an external typing.stop event (e.g. agent responses) */
+    simulateTypingStop(userId: string) {
+        const payload = { type: 'typing.stop', cid: this.cid, user_id: userId } as any;
+        this.applyTypingEvent(payload);
+        this.emitter.emit('typing.stop' as any, payload);
+        this.client.emit('typing.stop' as any, payload);
     }
 
 
@@ -1317,6 +1354,14 @@ export class Channel {
         const typingEntry = { user: { id: user.id!, role: user.role, name: user.name }, last_event_at: new Date(), parent_id: event.parent_id };
         this.bump({ typing: { ...this._state.typing, [userId]: typingEntry } });
         this.scheduleTypingExpiry(userId);
+    }
+
+    private scheduleLocalTypingStop() {
+        if (this.typingStopTimer) clearTimeout(this.typingStopTimer);
+
+        this.typingStopTimer = setTimeout(() => {
+            void this.stopTyping();
+        }, this.localTypingTimeoutMs);
     }
 
     private integrateIncomingMessage(incoming: Message, matchId?: string) {
