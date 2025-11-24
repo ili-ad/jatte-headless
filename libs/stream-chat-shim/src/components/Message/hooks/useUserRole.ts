@@ -10,18 +10,23 @@ export const useUserRole = (
   const { channel, channelCapabilities = {} } = useChannelStateContext('useUserRole');
   const { client } = useChatContext('useUserRole');
 
+  const membership =
+    (channel?.state as { membership?: Record<string, unknown> } | undefined)?.membership ?? {};
+  const membershipRole = typeof (membership as { role?: unknown }).role === 'string'
+    ? (membership as { role: string }).role
+    : undefined;
+
   /**
    * @deprecated as it relies on `membership.role` check which is already deprecated and shouldn't be used anymore.
    * `isAdmin` will be removed in future release. See `channelCapabilities`.
    */
-  const isAdmin =
-    client.user?.role === 'admin' || channel.state.membership.role === 'admin';
+  const isAdmin = client.user?.role === 'admin' || membershipRole === 'admin';
 
   /**
    * @deprecated as it relies on `membership.role` check which is already deprecated and shouldn't be used anymore.
    * `isOwner` will be removed in future release. See `channelCapabilities`.
    */
-  const isOwner = channel.state.membership.role === 'owner';
+  const isOwner = membershipRole === 'owner';
 
   /**
    * @deprecated as it relies on `membership.role` check which is already deprecated and shouldn't be used anymore.
@@ -29,10 +34,10 @@ export const useUserRole = (
    */
   const isModerator =
     client.user?.role === 'channel_moderator' ||
-    channel.state.membership.role === 'channel_moderator' ||
-    channel.state.membership.role === 'moderator' ||
-    channel.state.membership.is_moderator === true ||
-    channel.state.membership.channel_role === 'channel_moderator';
+    membershipRole === 'channel_moderator' ||
+    membershipRole === 'moderator' ||
+    (membership as { is_moderator?: boolean }).is_moderator === true ||
+    (membership as { channel_role?: string }).channel_role === 'channel_moderator';
 
   const isMyMessage = client.userID === message.user?.id;
 
