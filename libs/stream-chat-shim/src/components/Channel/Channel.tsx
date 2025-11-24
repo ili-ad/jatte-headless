@@ -366,13 +366,17 @@ const ChannelInner = (
 
   const channelCapabilitiesArray = channel.data?.own_capabilities as string[];
 
-  const throttledCopyStateFromChannel = throttle(
-    () => dispatch({ channel, type: "copyStateFromChannelOnEvent" }),
-    500,
-    {
-      leading: true,
-      trailing: true,
-    },
+  const throttledCopyStateFromChannel = useMemo(
+    () =>
+      throttle(
+        () => dispatch({ channel, type: "copyStateFromChannelOnEvent" }),
+        500,
+        {
+          leading: true,
+          trailing: true,
+        },
+      ),
+    [channel],
   );
 
   const setChannelUnreadUiState = useMemo(
@@ -383,6 +387,17 @@ const ChannelInner = (
       }),
     [],
   );
+
+  useEffect(() => {
+    const store = channel?.stateStore;
+    if (!store || typeof store.subscribe !== "function") return;
+
+    const unsubscribe = store.subscribe(throttledCopyStateFromChannel);
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [channel?.stateStore, throttledCopyStateFromChannel]);
 
   const markRead = useMemo(
     () =>
