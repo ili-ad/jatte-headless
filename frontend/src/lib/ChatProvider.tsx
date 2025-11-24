@@ -8,15 +8,17 @@ import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
 import { useSession } from './SessionProvider';
+import { handleUserMessageWithAgent } from './chat-addons/agentApi';
 
 export const chatClient: ChatClient = getStreamClient();
 
 interface ChatContextValue {
   client: ChatClient | null;
   channel: ChannelType | null;
+  roomConfig: Record<string, any> | null;
 }
 
-const ChatContext = createContext<ChatContextValue>({ client: null, channel: null });
+const ChatContext = createContext<ChatContextValue>({ client: null, channel: null, roomConfig: null });
 
 export function useChat() {
   return useContext(ChatContext);
@@ -26,6 +28,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
   const [client] = useState<ChatClient>(() => chatClient);
   const [channel, setChannel] = useState<ChannelType | null>(null);
+  const [roomConfig, setRoomConfig] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -33,6 +36,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     // When the Supabase session is gone, tear down the channel and (optionally) disconnect.
     if (!session) {
       setChannel(null);
+      setRoomConfig(null);
       setAuthToken(null);
 
       const maybeDisconnect = (client as any).disconnectUser;
@@ -114,8 +118,53 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
   }, [channel]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!channel) return () => { cancelled = true; };
+
+    (async () => {
+      try {
+        const composer: any = (channel as any).messageComposer;
+        const configState = await composer?.getConfigState?.();
+        const snapshot = configState ?? composer?.configState?.getSnapshot?.();
+        if (!cancelled && snapshot) setRoomConfig(snapshot);
+      } catch (err) {
+        console.error('[ChatProvider] failed to load room config', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [channel]);
+
+  useEffect(() => {
+    if (!channel) return;
+    const aiEnabled = Boolean((roomConfig as any)?.ai_assistant?.enabled || (roomConfig as any)?.has_ai_assistant);
+    if (!aiEnabled) return;
+
+    const handler = (event: { message: any }) => {
+      if (!event?.message) return;
+      const roomId = (channel as any).uuid ?? (channel as any).roomUuid;
+      if (!roomId) return;
+      handleUserMessageWithAgent({
+        channel: channel as any,
+        roomId: String(roomId),
+        messages: (channel as any).messages ?? [],
+        userMessage: event.message,
+      }).catch((err) => {
+        console.error('[ChatProvider] agent pipeline failed', err);
+      });
+    };
+
+    channel.on('message.new', handler as any);
+    return () => {
+      channel.off('message.new', handler as any);
+    };
+  }, [channel, roomConfig]);
+
   return (
-    <ChatContext.Provider value={{ client, channel }}>
+    <ChatContext.Provider value={{ client, channel, roomConfig }}>
       {children}
     </ChatContext.Provider>
   );

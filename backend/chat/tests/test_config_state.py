@@ -20,6 +20,12 @@ class ConfigStateAPITests(APITestCase):
             "text": {"enabled": True},
             "multipleUploads": True,
             "isUploadEnabled": True,
+            "has_ai_assistant": False,
+            "ai_assistant": {
+                "enabled": False,
+                "user_id": f"ai-bot-{room.uuid}",
+                "display_name": "Assistant",
+            },
         })
 
     def test_requires_auth(self):

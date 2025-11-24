@@ -37,6 +37,7 @@ from .serializers import (
 from .tasks import run_agent_invocation
 from .services.agent_service import get_agent_service
 from .services.memory import MemoryService
+from .utils import agent_enabled_for_room, agent_user_id_for_room
 
 
 _MEMORY_SERVICE = MemoryService()
@@ -55,6 +56,16 @@ class AgentInvokeRequestSerializer(serializers.Serializer):
     )
 
 
+class AgentRagRequestSerializer(serializers.Serializer):
+    room_id = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    message = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    history = serializers.ListField(
+        child=serializers.DictField(child=serializers.JSONField()),
+        required=False,
+        default=list,
+    )
+
+
 class AgentStatusView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
@@ -64,9 +75,10 @@ class AgentStatusView(APIView):
     def get(self, request: Request, cid: str) -> Response:
         canonical, room = _resolve_room(cid)
         flag = RoomAgentFlag.objects.filter(room=room).first()
+        enabled = agent_enabled_for_room(canonical, room)
         payload = {
             "cid": canonical,
-            "agent_enabled": bool(flag.agent_enabled) if flag else False,
+            "agent_enabled": enabled,
             "updated_at": getattr(flag, "updated_at", None),
         }
         serializer = AgentToggleResponseSerializer(payload)
@@ -177,6 +189,45 @@ class AgentInvokeView(APIView):
         return Response(
             {"run_id": run_id, "status": "queued"},
             status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class AgentRagView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        serializer = AgentRagRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+
+        room_identifier = serializer.validated_data["room_id"]
+        canonical, room = _resolve_room(room_identifier)
+        if not agent_enabled_for_room(canonical, room):
+            return Response(
+                {"detail": "Agent disabled for this room."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        prompt = serializer.validated_data["message"]
+        history = serializer.validated_data.get("history") or []
+
+        service = get_agent_service()
+        reply = service.generate(
+            cid=canonical,
+            user_id=str(getattr(request.user, "id", "")) or None,
+            prompt=prompt,
+            meta={"history": history},
+        )
+
+        return Response(
+            {
+                "reply": reply.text,
+                "agent_user_id": agent_user_id_for_room(canonical),
+                "status": reply.reason,
+            },
+            status=status.HTTP_200_OK,
         )
 
 

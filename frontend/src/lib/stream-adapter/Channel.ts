@@ -495,7 +495,7 @@ export class Channel {
                 get config() { return this.configState.getLatestValue(); },
                 async getConfigState() {
                     const token = channelRef.client["jwt"];
-                    const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state`, {
+                    const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state/`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     if (!res.ok) throw new Error("getConfigState failed");
@@ -828,13 +828,16 @@ export class Channel {
             try {
                 const p = JSON.parse(ev.data);
                 switch (p.type) {
-                    case 'message': {
-                        const msg = p.data as Message & { client_generated_id?: string };
+                    case 'message':
+                    case 'message.new': {
+                        const msg = (p.data ?? (p as any).message ?? p.message) as Message & { client_generated_id?: string };
                         this.integrateIncomingMessage(
                             { ...msg, status: (msg as any).status ?? 'received' },
-                            msg.client_generated_id,
+                            msg?.client_generated_id,
                         );
-                        this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
+                        if (msg) {
+                            this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
+                        }
                         break;
                     }
                     case 'typing.start':
@@ -1365,25 +1368,29 @@ export class Channel {
     }
 
     private integrateIncomingMessage(incoming: Message, matchId?: string) {
-        const authorId = (incoming as any).user?.id ?? (incoming as any).user_id;
+        const normalized = { ...incoming } as any;
+        const authorId = normalized.user?.id ?? normalized.user_id ?? normalized.sent_by;
+        if (!normalized.user_id && authorId) normalized.user_id = authorId;
+        if (!normalized.user && authorId) normalized.user = { id: authorId };
+
         if (authorId) this.clearTypingUser(authorId, true);
 
         const matcher = (m: Message) =>
-            m.id === incoming.id ||
+            m.id === normalized.id ||
             (!!matchId && (m.id === matchId || (m as any).client_generated_id === matchId));
 
         let nextMessages = [...this._state.messages];
         const existingIndex = nextMessages.findIndex(matcher);
 
         if (existingIndex !== -1) {
-            const merged = { ...nextMessages[existingIndex], ...incoming } as Message;
-            merged.id = incoming.id ?? nextMessages[existingIndex].id;
+            const merged = { ...nextMessages[existingIndex], ...normalized } as Message;
+            merged.id = normalized.id ?? nextMessages[existingIndex].id;
             nextMessages[existingIndex] = merged;
         } else {
-            nextMessages.push(incoming);
+            nextMessages.push(normalized as Message);
         }
 
-        if (matchId && incoming.id && incoming.id !== matchId) {
+        if (matchId && normalized.id && normalized.id !== matchId) {
             nextMessages = nextMessages.filter((msg, idx) => {
                 if (idx === existingIndex) return true;
                 return msg.id !== matchId;

@@ -31,6 +31,7 @@ from chat.models import Message, Room
 from chat_addons.agent.models import AgentRun, RoomAgentFlag
 from chat_addons.agent.services.agent_service import AgentSimulationResult
 from chat_addons.agent.services.memory import MemoryService
+from chat_addons.agent.utils import agent_user_id_for_room
 
 
 class AgentViewsTests(APITestCase):
@@ -115,10 +116,35 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(payload["status"], "queued")
         self.assertIn("run_id", payload)
 
-        messages = Message.objects.filter(channel__uuid="invoke-room", sent_by="agent-bot")
+        messages = Message.objects.filter(
+            channel__uuid="invoke-room",
+            sent_by=agent_user_id_for_room("invoke-room"),
+        )
         self.assertEqual(messages.count(), 1)
         self.assertEqual(messages.first().body, "pong")
         mock_broadcast.assert_called()
+
+    def test_rag_invocation_persists_agent_reply(self) -> None:
+        room = Room.objects.create(uuid="rag-room", client="stream")
+        RoomAgentFlag.objects.create(room=room, agent_enabled=True)
+
+        url = reverse("agent-rag")
+        response = self.client.post(
+            url,
+            {"room_id": "messaging:rag-room", "message": "Hello", "history": []},
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("reply", payload)
+        self.assertEqual(payload["agent_user_id"], agent_user_id_for_room("rag-room"))
+
+        agent_messages = Message.objects.filter(
+            channel__uuid="rag-room", sent_by=agent_user_id_for_room("rag-room")
+        )
+        self.assertEqual(agent_messages.count(), 1)
 
     def test_list_runs_with_pagination(self) -> None:
         AgentRun.objects.create(
