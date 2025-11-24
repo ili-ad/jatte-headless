@@ -23,7 +23,19 @@ export class MessageComposer {
 
   clear() {}
   async compose() {
-    // minimal shape that <MessageInput /> expects
-    return { localMessage: { type: 'regular' }, message: {}, sendOptions: {} };
+    // Mirror stream-chat MessageComposer.compose: share a client-generated id
+    // between the optimistic and outgoing payload so the adapter can
+    // reconcile on the server echo.
+    const id = MessageComposer.generateId();
+    return {
+      localMessage: {
+        id,
+        client_generated_id: id,
+        status: 'sending',
+        type: 'regular',
+      },
+      message: { id, client_generated_id: id, type: 'regular' },
+      sendOptions: {},
+    } as any;
   }
 }
