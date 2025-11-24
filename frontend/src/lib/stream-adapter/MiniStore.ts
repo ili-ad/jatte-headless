@@ -45,6 +45,9 @@ export class MiniStore<T> {
         this.listeners.forEach(l => l());
     };
 
+    /** Stream-UI expects dispatch(partial) */
+    dispatch = (patch: Partial<T>) => this._set(patch);
+
   /** RxJS-compat – Stream-UI calls store.next(partial) */
-  next = this._set;          // ← 🆕 one-liner    
+  next = this._set;          // ← 🆕 one-liner
 }

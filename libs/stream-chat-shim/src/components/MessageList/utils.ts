@@ -6,6 +6,62 @@ import { isDate } from '../../i18n';
 
 import type { LocalMessage, MessageLabel, UserResponse } from 'chat-shim';
 
+const toDateBucket = (value: unknown): number | undefined => {
+  if (!value) return undefined;
+  const date = isDate(value) ? value : new Date(value as string | number | Date);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return Math.floor(date.getTime() / 1000);
+};
+
+const messageIdentityKey = (message: LocalMessage) => {
+  const text =
+    typeof message.text === "string"
+      ? message.text
+      : typeof (message as { body?: unknown }).body === "string"
+        ? (message as { body: string }).body
+        : "";
+  const userId =
+    (message.user as { id?: string })?.id || (message as { user_id?: string }).user_id || "";
+  const bucket = toDateBucket((message as { created_at?: unknown }).created_at);
+  if (!text && !userId && bucket === undefined) return undefined;
+  return `${userId}|${text}|${bucket ?? ""}`;
+};
+
+const preferIncomingMessage = (current: LocalMessage, incoming: LocalMessage) => {
+  const currentId = (current as { id?: unknown }).id;
+  const incomingId = (incoming as { id?: unknown }).id;
+  const currentStatus = (current as { status?: string }).status;
+  const incomingStatus = (incoming as { status?: string }).status;
+
+  const currentIsLocal = typeof currentId === "string" && currentId.startsWith("local-");
+  const incomingIsLocal = typeof incomingId === "string" && incomingId.startsWith("local-");
+
+  if (currentIsLocal && !incomingIsLocal) return true;
+  if (currentStatus === "sending" && incomingStatus && incomingStatus !== "sending")
+    return true;
+  return false;
+};
+
+const dedupeMessages = (messages: LocalMessage[]) => {
+  const unique = new Map<string, LocalMessage>();
+  const fallbacks: LocalMessage[] = [];
+
+  for (const message of messages) {
+    const key = messageIdentityKey(message);
+    if (!key) {
+      fallbacks.push(message);
+      continue;
+    }
+
+    const existing = unique.get(key);
+    if (!existing || preferIncomingMessage(existing, message)) {
+      unique.set(key, message);
+    }
+  }
+
+  return [...unique.values(), ...fallbacks];
+};
+
 type IntroMessage = {
   customType: typeof CUSTOM_MESSAGE_TYPE.intro;
   id: string;
@@ -70,6 +126,7 @@ export type ProcessMessagesParams = ProcessMessagesContext & {
  */
 export const processMessages = (params: ProcessMessagesParams) => {
   const { messages, reviewProcessedMessage, setGiphyPreviewMessage, ...context } = params;
+  const normalizedMessages = dedupeMessages(messages);
   const {
     enableDateSeparator,
     hideDeletedMessages,
@@ -83,8 +140,8 @@ export const processMessages = (params: ProcessMessagesParams) => {
   let lastDateSeparator;
   const newMessages: RenderedMessage[] = [];
 
-  for (let i = 0; i < messages.length; i += 1) {
-    const message = messages[i];
+  for (let i = 0; i < normalizedMessages.length; i += 1) {
+    const message = normalizedMessages[i];
 
     if (hideDeletedMessages && message.type === 'deleted') {
       continue;
@@ -106,7 +163,7 @@ export const processMessages = (params: ProcessMessagesParams) => {
         isDate(message.created_at) &&
         message.created_at.toDateString()) ||
       '';
-    const previousMessage = messages[i - 1];
+    const previousMessage = normalizedMessages[i - 1];
     let prevMessageDate = messageDate;
 
     if (
@@ -162,7 +219,7 @@ export const processMessages = (params: ProcessMessagesParams) => {
         changes,
         context,
         index: i,
-        messages,
+        messages: normalizedMessages,
         processedMessages: newMessages,
       }) || changes),
     );
