@@ -39,16 +39,19 @@ from chat.utils import canonical_cid
 
 from ..common_audit.models import MessageProvenance
 from .services.agent_service import get_agent_service
+from .utils import agent_user_id_for_room
 
 logger = logging.getLogger(__name__)
 
 
-def _agent_user_id() -> str:
-    return (
+def _agent_user_id(room_uuid: str) -> str:
+    prefix = (
         getattr(settings, "CHAT_AGENT_USER_ID", None)
         or os.environ.get("AGENT_USER_ID")
-        or "agent-bot"
     )
+    if prefix:
+        return f"{prefix}-{room_uuid}"
+    return agent_user_id_for_room(room_uuid)
 
 
 def _room_uuid(cid: str) -> str:
@@ -60,7 +63,7 @@ def _persist_message(*, cid: str, text: str) -> Message:
     serializer.is_valid(raise_exception=True)
 
     room_uuid = _room_uuid(cid)
-    agent_user = _agent_user_id()
+    agent_user = _agent_user_id(room_uuid)
 
     with transaction.atomic():
         channel, _ = Channel.objects.select_for_update().get_or_create(
@@ -75,6 +78,8 @@ def _persist_message(*, cid: str, text: str) -> Message:
         room.messages.add(serializer.instance)
 
     payload = MessageSerializer(serializer.instance).data
+    payload["user_id"] = agent_user
+    payload["user"] = {"id": agent_user, "name": "Assistant"}
     _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
     return serializer.instance
 
