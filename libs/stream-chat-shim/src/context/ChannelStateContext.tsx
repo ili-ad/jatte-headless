@@ -22,6 +22,13 @@ export type ChannelNotifications = Array<{
   type: 'success' | 'error';
 }>;
 
+export type TypingUser = {
+  id: string;
+  name?: string;
+  role?: string;
+  parent_id?: string;
+};
+
 export type ChannelState = {
   suppressAutoscroll: boolean;
   error?: Error | null;
@@ -41,6 +48,7 @@ export type ChannelState = {
   threadMessages?: LocalMessage[];
   threadSuppressAutoscroll?: boolean;
   typing?: StreamChannelState['typing'];
+  typingUsers?: TypingUser[];
   watcherCount?: number;
   watchers?: StreamChannelState['watchers'];
 };
@@ -57,6 +65,7 @@ export type ChannelStateContextValue = ChannelState & {
   giphyVersion?: GiphyVersions;
   mutes?: Array<Mute>;
   watcher_count?: number;
+  typingUsers?: TypingUser[];
 };
 
 export const ChannelStateContext = React.createContext<
