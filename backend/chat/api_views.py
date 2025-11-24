@@ -30,6 +30,12 @@ from common.throttling import (
     ReactionSustainedRateThrottle,
 )
 
+try:
+    from chat_addons.agent.utils import agent_enabled_for_room, agent_user_id_for_room
+except Exception:  # pragma: no cover - optional dependency in certain test envs
+    agent_enabled_for_room = None  # type: ignore[assignment]
+    agent_user_id_for_room = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
@@ -1202,13 +1208,26 @@ class RoomConfigStateView(RoomFromCIDMixin, APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, room_uuid):
-        self.get_room(room_uuid)
+        room = self.get_room(room_uuid)
+        canonical = canonical_cid(room_uuid, room_uuid=room.uuid)
+        ai_enabled = (
+            bool(agent_enabled_for_room(canonical, room))
+            if agent_enabled_for_room
+            else False
+        )
+        ai_user_id = agent_user_id_for_room(canonical) if agent_user_id_for_room else None
         return Response(
             {
                 "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
                 "text": {"enabled": True},
                 "multipleUploads": True,
                 "isUploadEnabled": True,
+                "has_ai_assistant": ai_enabled,
+                "ai_assistant": {
+                    "enabled": ai_enabled,
+                    "user_id": ai_user_id,
+                    "display_name": "Assistant",
+                },
             }
         )
 

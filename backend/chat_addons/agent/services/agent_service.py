@@ -24,7 +24,6 @@ from ..config import (
     AGENT_MAX_TOKENS,
     AGENT_MODEL,
     AGENT_TIMEOUT_SEC,
-    AGENT_USER_ID,
 )
 from ..models import AgentRoomPolicy, AgentRun
 from ..registry import enabled_for_room
@@ -39,6 +38,7 @@ from ..skills import ConversationCtx, Skill
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
+from ..utils import agent_user_id_for_room
 from .metrics import estimate_prompt_tokens
 
 logger = logging.getLogger(__name__)
@@ -499,7 +499,7 @@ class AgentService:
         serializer.is_valid(raise_exception=True)
 
         room_uuid = cid.split(":", 1)[1] if ":" in cid else cid
-        agent_user = AGENT_USER_ID
+        agent_user = agent_user_id_for_room(room_uuid)
 
         with transaction.atomic():
             channel, _ = Channel.objects.select_for_update().get_or_create(
@@ -514,6 +514,8 @@ class AgentService:
             room.messages.add(serializer.instance)
 
         payload = MessageSerializer(serializer.instance).data
+        payload["user_id"] = agent_user
+        payload["user"] = {"id": agent_user, "name": "Assistant"}
         _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
         return serializer.instance
 
