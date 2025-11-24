@@ -54,11 +54,14 @@ class RoomConfigStateTests(APITestCase):
         self.assertEqual(response.status_code, 200)
 
         payload = response.data
-        self.assertIn("composer", payload)
-        composer = payload["composer"]
+        self.assertIn("config", payload)
+        composer = payload["config"]["composer"]
         self.assertEqual(composer["file_uploads"], False)
         self.assertEqual(composer["max_length"], 9000)
         self.assertEqual(composer["cooldown_seconds"], 0)
+        ai_config = payload["config"]["ai"]
+        self.assertIn("enabled", ai_config)
+        self.assertEqual(ai_config["displayName"], "Assistant")
 
     def test_requires_authentication(self) -> None:
         """Unauthenticated requests should be rejected."""

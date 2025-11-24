@@ -27,7 +27,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
-from chat.models import Message, Room
+from chat.models import Channel, Message, Room
 from chat_addons.agent.models import AgentRun, RoomAgentFlag
 from chat_addons.agent.services.agent_service import AgentSimulationResult
 from chat_addons.agent.services.memory import MemoryService
@@ -126,20 +126,28 @@ class AgentViewsTests(APITestCase):
 
     def test_rag_invocation_persists_agent_reply(self) -> None:
         room = Room.objects.create(uuid="rag-room", client="stream")
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
         RoomAgentFlag.objects.create(room=room, agent_enabled=True)
+
+        user_message = Message.objects.create(channel=channel, body="Hello", sent_by="u-1")
 
         url = reverse("agent-rag")
         response = self.client.post(
             url,
-            {"room_id": "messaging:rag-room", "message": "Hello", "history": []},
+            {
+                "room_uuid": "messaging:rag-room",
+                "last_human_message_id": user_message.id,
+            },
             format="json",
             **self.auth_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
-        self.assertIn("reply", payload)
-        self.assertEqual(payload["agent_user_id"], agent_user_id_for_room("rag-room"))
+        self.assertIn("messages", payload)
+        messages = payload["messages"]
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["user_id"], agent_user_id_for_room("rag-room"))
 
         agent_messages = Message.objects.filter(
             channel__uuid="rag-room", sent_by=agent_user_id_for_room("rag-room")

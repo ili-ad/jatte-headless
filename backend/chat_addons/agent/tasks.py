@@ -97,17 +97,17 @@ def run_agent_invocation(
     service = get_agent_service()
 
     try:
-        response_text = service.generate(cid=canonical, prompt=prompt, meta=meta or {})
+        reply = service.generate(cid=canonical, prompt=prompt, meta=meta or {})
     except Exception:  # pragma: no cover - defensive logging
         logger.exception("Agent service failed for run %s", run_id)
         return
 
-    if response_text is None:
+    if reply is None or not getattr(reply, "text", None):
         logger.info("Agent service returned no content for run %s", run_id)
         return
 
     try:
-        message = _persist_message(cid=canonical, text=str(response_text))
+        message = _persist_message(cid=canonical, text=str(reply.text))
         MessageProvenance.objects.get_or_create(
             message=message,
             defaults={"source": MessageProvenance.Source.AGENT},

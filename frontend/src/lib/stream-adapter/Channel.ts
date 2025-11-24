@@ -7,6 +7,7 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
+import { extractRoomAgentConfig, requestAgentReply, type RoomAgentConfig } from '../chat-addons/agentApi';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -29,10 +30,12 @@ export class Channel {
     private pendingMessages = new Map<string, true>();
     /** Track timers for typing indicators */
     private typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private agentTypingTimers = new Map<string, ReturnType<typeof setTimeout>>();
     private typingStopTimer?: ReturnType<typeof setTimeout>;
     private hasActiveKeystroke = false;
     private readonly typingTimeoutMs = 8000;
     private readonly localTypingTimeoutMs = 5000;
+    private agentConfig?: RoomAgentConfig;
 
     /* channel-local state object */
     private _state = {
@@ -484,13 +487,21 @@ export class Channel {
                 // },                
                 /* ——— config flags ——— */
                 configState: new MiniStore({
-                    attachments: {
-                        acceptedFiles: [] as File[],
-                        maxNumberOfFilesPerMessage: 10,
+                    composer: {
+                        attachments: {
+                            acceptedFiles: [] as File[],
+                            maxNumberOfFilesPerMessage: 10,
+                        },
+                        text: { enabled: true },
+                        multipleUploads: true,
+                        isUploadEnabled: true,
                     },
-                    text: { enabled: true },
-                    multipleUploads: true,
-                    isUploadEnabled: true,
+                    ai: {
+                        enabled: false,
+                        botUserId: '',
+                        displayName: 'Assistant',
+                        personaSummary: null as string | null,
+                    },
                 }),
                 get config() { return this.configState.getLatestValue(); },
                 async getConfigState() {
@@ -500,7 +511,17 @@ export class Channel {
                     });
                     if (!res.ok) throw new Error("getConfigState failed");
                     const data = await res.json().catch(() => ({}));
-                    this.configState._set(data);
+                    const snapshot = this.configState.getSnapshot();
+                    const aiConfig = extractRoomAgentConfig(data) ?? snapshot.ai;
+                    if (aiConfig) channelRef.agentConfig = aiConfig;
+
+                    const configPayload = (data as any)?.config ?? data ?? {};
+                    const composerConfig = configPayload.composer ?? configPayload;
+                    const merged = {
+                        composer: { ...snapshot.composer, ...(composerConfig ?? {}) },
+                        ai: aiConfig ?? snapshot.ai,
+                    };
+                    this.configState._set(merged);
                     return this.configState.getLatestValue();
                 },
 
@@ -923,7 +944,7 @@ export class Channel {
     }
 
     /** Simulate an external typing.start event (e.g. agent responses) */
-    simulateTypingStart(userId: string) {
+    simulateTypingStart(userId: string, timeoutMs?: number) {
         const payload = {
             type: 'typing.start',
             cid: this.cid,
@@ -931,6 +952,12 @@ export class Channel {
             user_id: userId,
         } as any;
         this.applyTypingEvent(payload);
+        if (timeoutMs) {
+            const existing = this.typingTimers.get(userId);
+            if (existing) clearTimeout(existing);
+            const timer = setTimeout(() => this.clearTypingUser(userId, true), timeoutMs);
+            this.typingTimers.set(userId, timer);
+        }
         this.emitter.emit('typing.start' as any, payload);
         this.client.emit('typing.start' as any, payload);
     }
@@ -941,6 +968,25 @@ export class Channel {
         this.applyTypingEvent(payload);
         this.emitter.emit('typing.stop' as any, payload);
         this.client.emit('typing.stop' as any, payload);
+    }
+
+    private clearAgentTypingTimer(userId: string) {
+        const timer = this.agentTypingTimers.get(userId);
+        if (timer) clearTimeout(timer);
+        this.agentTypingTimers.delete(userId);
+    }
+
+    private startAgentTyping(botUserId: string) {
+        if (!botUserId) return;
+        this.clearAgentTypingTimer(botUserId);
+        this.simulateTypingStart(botUserId, 30000);
+        const timer = setTimeout(() => this.stopAgentTyping(botUserId), 30000);
+        this.agentTypingTimers.set(botUserId, timer);
+    }
+
+    private stopAgentTyping(botUserId: string) {
+        this.clearAgentTypingTimer(botUserId);
+        this.simulateTypingStop(botUserId);
     }
 
 
@@ -1028,7 +1074,33 @@ export class Channel {
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
         this.messageComposer.customDataManager.clear();
         this.messageComposer.pollComposer.state._set({ poll: undefined as any });
+        void this.triggerAgentReplyIfEnabled(msg, client_generated_id);
         return msg;
+    }
+
+    private async triggerAgentReplyIfEnabled(
+        message: Message & { client_generated_id?: string },
+        client_generated_id?: string,
+    ) {
+        const aiConfig = this.agentConfig ?? extractRoomAgentConfig(this.messageComposer.configState.getSnapshot());
+        if (!aiConfig?.enabled) return;
+
+        const botUserId = aiConfig.botUserId;
+        const authorId = (message as any).user_id ?? (message as any).sent_by ?? (message as any).user?.id;
+        if (!botUserId || !message.id || authorId === botUserId) return;
+
+        this.startAgentTyping(botUserId);
+
+        try {
+            await requestAgentReply({
+                roomUUID: this.uuid,
+                lastHumanMessageId: String(message.id),
+                clientGeneratedId: client_generated_id ?? message.client_generated_id,
+            });
+        } catch (err) {
+            console.error('[agent] failed to request reply', err);
+            this.stopAgentTyping(botUserId);
+        }
     }
 
 
@@ -1373,6 +1445,7 @@ export class Channel {
         if (!normalized.user_id && authorId) normalized.user_id = authorId;
         if (!normalized.user && authorId) normalized.user = { id: authorId };
 
+        if (authorId) this.clearAgentTypingTimer(authorId);
         if (authorId) this.clearTypingUser(authorId, true);
 
         const matcher = (m: Message) =>

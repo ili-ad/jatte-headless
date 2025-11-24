@@ -15,7 +15,12 @@ afterEach(() => {
 test('getConfigState fetches config and updates store', async () => {
   (global.fetch as any).mockResolvedValue({
     ok: true,
-    json: async () => ({ text: { enabled: false } }),
+    json: async () => ({
+      config: {
+        composer: { text: { enabled: false } },
+        ai: { enabled: true, botUserId: 'room:room1:bot', displayName: 'TestBot', personaSummary: null },
+      },
+    }),
   });
   const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
@@ -23,6 +28,7 @@ test('getConfigState fetches config and updates store', async () => {
   expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/config-state/', {
     headers: { Authorization: 'Bearer jwt-test' },
   });
-  expect(cfg.text.enabled).toBe(false);
-  expect(channel.messageComposer.configState.getSnapshot().text.enabled).toBe(false);
+  expect(cfg.composer.text.enabled).toBe(false);
+  expect(cfg.ai.enabled).toBe(true);
+  expect(channel.messageComposer.configState.getSnapshot().composer.text.enabled).toBe(false);
 });

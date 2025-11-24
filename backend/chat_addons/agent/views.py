@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts_supabase.authentication import DevTokenOrJWTAuthentication
-from chat.models import Room
+from chat.models import Message, Room
 from chat.utils import canonical_cid
 
 from ..common_audit.decorators import audit_action
@@ -25,6 +25,7 @@ from ..common_audit.throttling import (
 from . import registry
 from .models import AgentRoomPolicy, AgentRun, RoomAgentFlag
 from .serializers import (
+    AgentInvocationSerializer,
     AgentMemoryListQuerySerializer,
     AgentMemoryListSerializer,
     AgentRoomPolicySerializer,
@@ -53,16 +54,6 @@ class AgentInvokeRequestSerializer(serializers.Serializer):
     prompt = serializers.CharField(allow_blank=False, trim_whitespace=True)
     meta = serializers.DictField(
         child=serializers.JSONField(), required=False, default=dict
-    )
-
-
-class AgentRagRequestSerializer(serializers.Serializer):
-    room_id = serializers.CharField(allow_blank=False, trim_whitespace=True)
-    message = serializers.CharField(allow_blank=False, trim_whitespace=True)
-    history = serializers.ListField(
-        child=serializers.DictField(child=serializers.JSONField()),
-        required=False,
-        default=list,
     )
 
 
@@ -199,10 +190,10 @@ class AgentRagView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
-        serializer = AgentRagRequestSerializer(data=request.data or {})
+        serializer = AgentInvocationSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
-        room_identifier = serializer.validated_data["room_id"]
+        room_identifier = serializer.validated_data["room_uuid"]
         canonical, room = _resolve_room(room_identifier)
         if not agent_enabled_for_room(canonical, room):
             return Response(
@@ -210,22 +201,53 @@ class AgentRagView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        prompt = serializer.validated_data["message"]
-        history = serializer.validated_data.get("history") or []
+        message_id = serializer.validated_data["last_human_message_id"]
+        message = Message.objects.filter(channel__uuid=room.uuid, id=message_id).first()
+        if not message:
+            return Response(
+                {"detail": "Message not found for this room."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        bot_user_id = agent_user_id_for_room(canonical)
+        if message.sent_by == bot_user_id:
+            return Response(
+                {"detail": "Agent replies cannot be chained."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        meta = {
+            "last_human_message_id": message_id,
+            "client_generated_id": serializer.validated_data.get("client_generated_id"),
+            "trace_id": serializer.validated_data.get("trace_id"),
+        }
 
         service = get_agent_service()
         reply = service.generate(
             cid=canonical,
             user_id=str(getattr(request.user, "id", "")) or None,
-            prompt=prompt,
-            meta={"history": history},
+            text=message.body,
+            meta={k: v for k, v in meta.items() if v is not None},
+            request_id=serializer.validated_data.get("trace_id"),
         )
+
+        messages = [
+            {
+                "id": str(msg.id),
+                "room_uuid": msg.channel.uuid,
+                "user_id": msg.sent_by,
+                "role": "assistant",
+                "text": msg.body,
+                "created_at": msg.created_at,
+                "custom_data": msg.custom_data or {},
+            }
+            for msg in reply.messages or []
+        ]
 
         return Response(
             {
-                "reply": reply.text,
-                "agent_user_id": agent_user_id_for_room(canonical),
-                "status": reply.reason,
+                "messages": messages,
+                "reason": reply.reason,
             },
             status=status.HTTP_200_OK,
         )

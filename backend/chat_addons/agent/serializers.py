@@ -95,3 +95,10 @@ class AgentSimulateRequestSerializer(serializers.Serializer):
     meta = serializers.DictField(
         child=serializers.JSONField(), required=False, default=dict
     )
+
+
+class AgentInvocationSerializer(serializers.Serializer):
+    room_uuid = serializers.CharField()
+    last_human_message_id = serializers.IntegerField()
+    client_generated_id = serializers.CharField(required=False, allow_blank=True)
+    trace_id = serializers.CharField(required=False, allow_blank=True)
