@@ -47,21 +47,6 @@ ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
 
 
 @dataclass
-class AgentReply:
-    """Normalized agent reply payload."""
-
-    text: str
-    tokens_used: int
-    latency_ms: int
-    model: str
-    cost_usd: Decimal
-    reason: str = "ok"
-
-    def __str__(self) -> str:  # pragma: no cover - convenience
-        return self.text
-
-
-@dataclass
 class AgentOrchestrationResult:
     """Internal representation of an orchestration cycle."""
 
@@ -75,6 +60,20 @@ class AgentOrchestrationResult:
     cost_usd: Decimal
     reason: str
     handoff_triggered: bool
+    message: Message | None = None
+
+
+@dataclass
+class AgentReply:
+    """Normalized agent reply payload."""
+
+    text: str
+    tokens_used: int
+    latency_ms: int
+    model: str
+    cost_usd: Decimal
+    reason: str = "ok"
+    messages: list[Message] | None = None
 
 
 @dataclass
@@ -134,6 +133,7 @@ class AgentService:
             model=AGENT_MODEL,
             cost_usd=result.cost_usd,
             reason=result.status,
+            messages=[result.message] if result.message else None,
         )
 
         log_reason = result.reason if result.status == AgentRun.STATUS_ERROR else result.status
@@ -330,10 +330,14 @@ class AgentService:
         tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
         if persist:
-            message = self._persist_reply(cid=cid, text=reply_text, handoff=handoff_triggered)
+            message = self._persist_reply(
+                cid=cid, text=reply_text, handoff=handoff_triggered
+            )
             self._mark_provenance(message)
             if handoff_triggered:
                 self._notify_handoff(cid)
+        else:
+            message = None
 
         if record_run:
             self._record_run(
@@ -359,6 +363,7 @@ class AgentService:
             cost_usd=total_cost,
             reason=reason,
             handoff_triggered=handoff_triggered,
+            message=message,
         )
 
     # ------------------------------------------------------------------

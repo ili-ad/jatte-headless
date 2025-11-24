@@ -1210,26 +1210,44 @@ class RoomConfigStateView(RoomFromCIDMixin, APIView):
     def get(self, request, room_uuid):
         room = self.get_room(room_uuid)
         canonical = canonical_cid(room_uuid, room_uuid=room.uuid)
-        ai_enabled = (
-            bool(agent_enabled_for_room(canonical, room))
-            if agent_enabled_for_room
-            else False
-        )
-        ai_user_id = agent_user_id_for_room(canonical) if agent_user_id_for_room else None
+        composer = {
+            "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
+            "text": {"enabled": True},
+            "multipleUploads": True,
+            "isUploadEnabled": True,
+        }
+        ai_config = _ai_config_payload(canonical, room)
         return Response(
             {
-                "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
-                "text": {"enabled": True},
-                "multipleUploads": True,
-                "isUploadEnabled": True,
-                "has_ai_assistant": ai_enabled,
-                "ai_assistant": {
-                    "enabled": ai_enabled,
-                    "user_id": ai_user_id,
-                    "display_name": "Assistant",
-                },
+                "config": {
+                    "composer": composer,
+                    "ai": ai_config,
+                }
             }
         )
+
+
+def _ai_config_payload(canonical: str, room: Room) -> dict:
+    room_data = room.data if isinstance(room.data, dict) else {}
+    enabled = bool(agent_enabled_for_room(canonical, room)) if agent_enabled_for_room else False
+    bot_user_id = (
+        agent_user_id_for_room(canonical)
+        if agent_user_id_for_room
+        else f"room:{room.uuid}:bot"
+    )
+    persona_summary = None
+    summary = None
+    if isinstance(room_data, dict):
+        summary = room_data.get("personaSummary") or room_data.get("persona_summary")
+    if isinstance(summary, str):
+        persona_summary = summary
+
+    return {
+        "enabled": enabled,
+        "botUserId": bot_user_id,
+        "displayName": "Assistant",
+        "personaSummary": persona_summary,
+    }
 
 
 class RoomArchiveView(RoomFromCIDMixin, APIView):

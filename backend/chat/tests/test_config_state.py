@@ -15,18 +15,28 @@ class ConfigStateAPITests(APITestCase):
         url = reverse("room-config-state", kwargs={"room_uuid": room.uuid})
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.data, {
-            "attachments": {"acceptedFiles": [], "maxNumberOfFilesPerMessage": 10},
-            "text": {"enabled": True},
-            "multipleUploads": True,
-            "isUploadEnabled": True,
-            "has_ai_assistant": False,
-            "ai_assistant": {
-                "enabled": False,
-                "user_id": f"ai-bot-{room.uuid}",
-                "display_name": "Assistant",
+        self.assertEqual(
+            res.data,
+            {
+                "config": {
+                    "composer": {
+                        "attachments": {
+                            "acceptedFiles": [],
+                            "maxNumberOfFilesPerMessage": 10,
+                        },
+                        "text": {"enabled": True},
+                        "multipleUploads": True,
+                        "isUploadEnabled": True,
+                    },
+                    "ai": {
+                        "enabled": False,
+                        "botUserId": f"room:{room.uuid}:bot",
+                        "displayName": "Assistant",
+                        "personaSummary": None,
+                    },
+                }
             },
-        })
+        )
 
     def test_requires_auth(self):
         room = Room.objects.create(uuid="r1", client="c1")

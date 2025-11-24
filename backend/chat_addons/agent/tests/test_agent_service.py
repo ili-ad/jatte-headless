@@ -69,6 +69,9 @@ def test_agent_service_generate_returns_canned_reply() -> None:
     assert isinstance(reply, AgentReply)
     assert reply.text == "Let me connect you with a teammate."
     assert reply.reason == "handoff"
+    assert reply.messages is not None
+    assert len(reply.messages) == 1
+    assert reply.messages[0].body == "Let me connect you with a teammate."
 
 
 def test_llm_client_enforces_timeout() -> None:
