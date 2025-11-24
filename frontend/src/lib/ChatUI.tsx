@@ -5,6 +5,7 @@ import {
   Channel,
   Window,
   MessageList,
+  TypingIndicator,
   MessageInput,
 } from '@iliad/stream-chat-shim';
 
@@ -45,6 +46,7 @@ export default function ChatUI() {
         <Channel channel={channel as any}>
           <Window>
             <MessageList />
+            <TypingIndicator />
             <MessageInput />
 
             {/* Temporary debug control */}
