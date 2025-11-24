@@ -8,7 +8,6 @@ import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
 import { useSession } from './SessionProvider';
-import { handleUserMessageWithAgent } from './chat-addons/agentApi';
 
 export const chatClient: ChatClient = getStreamClient();
 
@@ -137,31 +136,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [channel]);
-
-  useEffect(() => {
-    if (!channel) return;
-    const aiEnabled = Boolean((roomConfig as any)?.ai_assistant?.enabled || (roomConfig as any)?.has_ai_assistant);
-    if (!aiEnabled) return;
-
-    const handler = (event: { message: any }) => {
-      if (!event?.message) return;
-      const roomId = (channel as any).uuid ?? (channel as any).roomUuid;
-      if (!roomId) return;
-      handleUserMessageWithAgent({
-        channel: channel as any,
-        roomId: String(roomId),
-        messages: (channel as any).messages ?? [],
-        userMessage: event.message,
-      }).catch((err) => {
-        console.error('[ChatProvider] agent pipeline failed', err);
-      });
-    };
-
-    channel.on('message.new', handler as any);
-    return () => {
-      channel.off('message.new', handler as any);
-    };
-  }, [channel, roomConfig]);
 
   return (
     <ChatContext.Provider value={{ client, channel, roomConfig }}>

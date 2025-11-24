@@ -34,7 +34,23 @@ class ComposerConfigSerializer(serializers.Serializer):
     cooldown_seconds = serializers.IntegerField(required=False)
 
 
-class RoomConfigStateSerializer(serializers.Serializer):
-    """Wrap the composer configuration inside the expected envelope."""
+class AIConfigSerializer(serializers.Serializer):
+    """Expose AI assistant settings for the current room."""
+
+    enabled = serializers.BooleanField()
+    botUserId = serializers.CharField()
+    displayName = serializers.CharField()
+    personaSummary = serializers.CharField(required=False, allow_null=True)
+
+
+class RoomConfigSerializer(serializers.Serializer):
+    """Top-level room config payload."""
 
     composer = ComposerConfigSerializer()
+    ai = AIConfigSerializer()
+
+
+class RoomConfigStateSerializer(serializers.Serializer):
+    """Wrap the room config inside the expected envelope."""
+
+    config = RoomConfigSerializer()

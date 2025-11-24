@@ -1,4 +1,4 @@
-import type { Channel, Message } from '@/lib/stream-adapter';
+import type { Channel } from '@/lib/stream-adapter';
 import { apiFetch } from '../api';
 
 export interface AgentToggleResponse {
@@ -17,26 +17,39 @@ export interface AgentInvokePayload {
   meta?: Record<string, unknown>;
 }
 
-export interface AgentRagPayload {
-  roomId: string;
-  message: string;
-  history?: Record<string, unknown>[];
-}
-
-export interface AgentRagResponse {
-  reply: string;
-  agent_user_id: string;
-  status: string;
-}
-
 export interface AgentContext {
   channel: Channel;
   roomId: string;
-  messages: Message[];
-  userMessage: Message;
 }
 
-const AGENT_DISPLAY_NAME = 'Assistant';
+export interface AgentInvocation {
+  roomUUID: string;
+  lastHumanMessageId: string;
+  clientGeneratedId?: string;
+  traceId?: string;
+}
+
+export type AgentMessage = {
+  id: string;
+  room_uuid: string;
+  user_id: string;
+  role: 'assistant';
+  text: string;
+  created_at: string;
+  custom_data?: Record<string, unknown>;
+};
+
+export interface AgentReply {
+  messages: AgentMessage[];
+  reason?: string;
+}
+
+export interface RoomAgentConfig {
+  enabled: boolean;
+  botUserId: string;
+  displayName: string;
+  personaSummary?: string | null;
+}
 
 function encodeCid(cid: string): string {
   return encodeURIComponent(cid);
@@ -86,86 +99,39 @@ export async function invokeAgent(
   return (await res.json()) as AgentInvokeResponse;
 }
 
-export const agentUserId = (roomId: string) => `ai-bot-${roomId}`;
+export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null {
+  const aiConfig = configState?.config?.ai ?? configState?.ai ?? configState?.ai_assistant;
+  if (!aiConfig || typeof aiConfig !== 'object') return null;
 
-function getAuthorId(message: Message): string | undefined {
-  return (
-    (message as any).user?.id ||
-    (message as any).user_id ||
-    (message as any).sent_by
-  );
+  const botUserId = aiConfig.botUserId ?? aiConfig.user_id;
+  if (!botUserId || typeof botUserId !== 'string') return null;
+
+  return {
+    enabled: Boolean(aiConfig.enabled),
+    botUserId,
+    displayName: typeof aiConfig.displayName === 'string' ? aiConfig.displayName : 'Assistant',
+    personaSummary: aiConfig.personaSummary ?? aiConfig.persona_summary ?? null,
+  };
 }
 
-function ensureAgentUser(channel: Channel, agentId: string) {
-  const client: any = channel as any;
-  const userMap = client?.client?.state?.users;
-  if (userMap && !userMap[agentId]) {
-    userMap[agentId] = { id: agentId, name: AGENT_DISPLAY_NAME, role: 'ai' } as any;
-  }
-}
-
-export async function invokeAgentRag(
-  payload: AgentRagPayload,
-): Promise<AgentRagResponse> {
+export async function requestAgentReply(args: AgentInvocation): Promise<AgentReply> {
   const res = await apiFetch('/chat/agent/rag/', {
     method: 'POST',
     body: JSON.stringify({
-      room_id: payload.roomId,
-      message: payload.message,
-      history: payload.history ?? [],
+      room_uuid: args.roomUUID,
+      last_human_message_id: args.lastHumanMessageId,
+      client_generated_id: args.clientGeneratedId,
+      trace_id: args.traceId,
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to run agent RAG (${res.status})`);
+    throw new Error(`Failed to request agent reply (${res.status})`);
   }
 
-  return (await res.json()) as AgentRagResponse;
-}
-
-export async function handleUserMessageWithAgent(ctx: AgentContext): Promise<void> {
-  const agentId = agentUserId(ctx.roomId);
-  const authorId = getAuthorId(ctx.userMessage);
-  if (!authorId || authorId === agentId) return;
-
-  const recentHistory = ctx.messages
-    .slice(-20)
-    .map((msg) => ({
-      text: (msg as any).text ?? (msg as any).body ?? '',
-      user_id: getAuthorId(msg),
-    }))
-    .filter((entry) => entry.text);
-
-  ensureAgentUser(ctx.channel, agentId);
-  ctx.channel.simulateTypingStart(agentId);
-
-  const stopTyping = () => ctx.channel.simulateTypingStop(agentId);
-  const handleAgentEcho = (event: { message: Message }) => {
-    if (event?.message && getAuthorId(event.message) === agentId) {
-      stopTyping();
-      (ctx.channel as any).off('message.new', handleAgentEcho as any);
-      clearTimeout(fallbackTimer);
-    }
+  const payload = (await res.json()) as AgentReply;
+  return {
+    messages: payload?.messages ?? [],
+    reason: payload?.reason,
   };
-
-  (ctx.channel as any).on('message.new', handleAgentEcho as any);
-  const fallbackTimer = setTimeout(() => {
-    stopTyping();
-    (ctx.channel as any).off('message.new', handleAgentEcho as any);
-  }, 15000);
-
-  try {
-    const messageText = (ctx.userMessage as any).text ?? (ctx.userMessage as any).body ?? '';
-    await invokeAgentRag({
-      roomId: ctx.roomId,
-      message: messageText,
-      history: recentHistory,
-    });
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[agent] failed to invoke RAG agent', err);
-    stopTyping();
-    (ctx.channel as any).off('message.new', handleAgentEcho as any);
-    clearTimeout(fallbackTimer);
-  }
 }
