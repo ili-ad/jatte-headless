@@ -30,6 +30,7 @@ export const useCreateChannelStateContext = (
     notifications,
     pinnedMessages,
     read = {},
+    typing = {},
     shouldGenerateVideoThumbnail,
     skipMessageDataMemoization,
     suppressAutoscroll,
@@ -54,6 +55,7 @@ export const useCreateChannelStateContext = (
     .map(({ last_read }) => last_read.toISOString())
     .join();
   const threadMessagesLength = threadMessages?.length;
+  const typingUsers = Object.keys(typing || {}).join();
 
   const channelCapabilities: Record<string, boolean> = {};
 
@@ -117,6 +119,7 @@ export const useCreateChannelStateContext = (
       notifications,
       pinnedMessages,
       read,
+      typing,
       shouldGenerateVideoThumbnail,
       suppressAutoscroll,
       thread,
@@ -153,6 +156,7 @@ export const useCreateChannelStateContext = (
       threadHasMore,
       threadLoadingMore,
       threadMessagesLength,
+      typingUsers,
       watcherCount,
     ],
   );

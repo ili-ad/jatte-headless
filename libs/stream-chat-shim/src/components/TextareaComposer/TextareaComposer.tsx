@@ -2,6 +2,7 @@ import debounce from 'lodash.debounce';
 import clsx from 'clsx';
 import type {
   ChangeEventHandler,
+  FocusEventHandler,
   SyntheticEvent,
   TextareaHTMLAttributes,
   UIEventHandler,
@@ -19,6 +20,7 @@ import {
   useComponentContext,
   useMessageInputContext,
   useTranslationContext,
+  useChatContext,
 } from '../../context';
 import { useStateStore } from '../../store';
 import { SuggestionList as DefaultSuggestionList } from './SuggestionList';
@@ -94,6 +96,7 @@ export const TextareaComposer = ({
   const shouldSubmit = shouldSubmitProp ?? shouldSubmitContext ?? defaultShouldSubmit;
 
   const messageComposer = useMessageComposer();
+  const { channel } = useChatContext('TextareaComposer');
   // const { textComposer } = messageComposer;
  /* ----------------------------------------------------------
      If the shim never created a TextComposer, seed a stub now
@@ -239,6 +242,7 @@ export const TextareaComposer = ({
 
   const changeHandler: ChangeEventHandler<HTMLTextAreaElement> = useCallback(
     (e) => {
+      void channel?.keystroke?.();
       if (onChange) {
         onChange(e);
         return;
@@ -252,7 +256,17 @@ export const TextareaComposer = ({
         text: e.target.value,
       });
     },
-    [onChange, textComposer, textareaRef],
+    [channel, onChange, textComposer, textareaRef],
+  );
+
+  const blurHandler: FocusEventHandler<HTMLTextAreaElement> = useCallback(
+    (e) => {
+      if (onBlur) {
+        onBlur(e);
+      }
+      void channel?.stopTyping?.();
+    },
+    [channel, onBlur],
   );
 
   const onCompositionEnd = useCallback(() => {
@@ -363,6 +377,10 @@ export const TextareaComposer = ({
     }
   }, [text, textareaRef, selection.start, selection.end, isComposing]);
 
+  useEffect(() => () => {
+    void channel?.stopTyping?.();
+  }, [channel]);
+
   useEffect(() => {
     if (textComposer.suggestions) {
       setFocusedItemIndex(0);
@@ -393,7 +411,7 @@ export const TextareaComposer = ({
         disabled={!enabled || !!cooldownRemaining}
         maxRows={maxRows}
         minRows={minRows}
-        onBlur={onBlur}
+        onBlur={blurHandler}
         onChange={changeHandler}
         onCompositionEnd={onCompositionEnd}
         onCompositionStart={onCompositionStart}
