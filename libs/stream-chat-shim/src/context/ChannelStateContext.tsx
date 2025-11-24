@@ -45,7 +45,7 @@ export type ChannelState = {
   watchers?: StreamChannelState['watchers'];
 };
 
-export type ChannelStateContextValue = Omit<ChannelState, 'typing'> & {
+export type ChannelStateContextValue = ChannelState & {
   channel: Channel;
   channelCapabilities: Record<string, boolean>;
   channelConfig: ChannelConfigWithInfo | undefined;

@@ -1244,6 +1244,7 @@ const ChannelInner = (
 
   const channelStateContextValue = useCreateChannelStateContext({
     ...restState,
+    typing,
     channel,
     channelCapabilitiesArray,
     channelConfig,
