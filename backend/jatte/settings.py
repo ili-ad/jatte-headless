@@ -16,9 +16,17 @@ from pathlib import Path
 from datetime import timedelta
 import os
 
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent  # this is already there
+print(BASE_DIR)
+#load_dotenv(BASE_DIR.parent / ".env")  # adjust path if your .env lives elsewhere
+load_dotenv(BASE_DIR / ".env")
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 #BASE_DIR = Path(__file__).resolve().parent.parent.parent
-BASE_DIR = Path(__file__).resolve().parent.parent  # only two parents
+#BASE_DIR = Path(__file__).resolve().parent.parent  # only two parents
 
 
 # Quick-start development settings - unsuitable for production
@@ -148,7 +156,7 @@ INSTALLED_APPS = [
     'core',
     'state',
     'polls',
-    'backend.chat_addons',
+    'chat_addons',
 ]
 
 # REST framework configuration
@@ -231,8 +239,12 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-#SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL")
-SUPABASE_JWKS_URL = "https://sdworjgexjuxhpzvkwht.supabase.co/auth/v1/keys"
+# Allow explicit override from SUPABASE_JWKS_URL env; otherwise use the URL
+# derived from NEXT_PUBLIC_SUPABASE_URL near the top of this file.
+_env_jwks = os.environ.get("SUPABASE_JWKS_URL")
+if _env_jwks:
+    SUPABASE_JWKS_URL = _env_jwks
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators

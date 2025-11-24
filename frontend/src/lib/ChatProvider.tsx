@@ -28,33 +28,82 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [channel, setChannel] = useState<ChannelType | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    // When the Supabase session is gone, tear down the channel and (optionally) disconnect.
     if (!session) {
       setChannel(null);
-      client.disconnectUser();
       setAuthToken(null);
-      return;
+
+      const maybeDisconnect = (client as any).disconnectUser;
+      if (typeof maybeDisconnect === 'function') {
+        try {
+          maybeDisconnect.call(client);
+        } catch (err) {
+          console.error('[ChatProvider] disconnectUser failed', err);
+        }
+      }
+
+      return () => {
+        mounted = false;
+      };
     }
-    let mounted = true;
+
     (async () => {
-      const { userID, userToken } = await getChatCreds();
-      setAuthToken(userToken);
-      await client.connectUser({ id: String(userID) }, userToken);
-      (client as any)['jwt'] = userToken;
-      const chan = client.channel('messaging', 'general');
-      await chan.watch();
-      console.info('[ChatProvider] channel created', {
-        isAdapterChannel: chan instanceof AdapterChannel,
-        channelClass: chan.constructor?.name,
-        clientClass: client.constructor?.name,
-      });
-      if (!mounted) return;
-      setChannel(chan);
+      try {
+        const { userID, userToken } = await getChatCreds();
+        setAuthToken(userToken);
+
+        // Try to use the adapter’s connectUser if it exists.
+        const maybeConnect = (client as any).connectUser;
+        if (typeof maybeConnect === 'function') {
+          await maybeConnect.call(client, { id: String(userID) }, userToken);
+        } else {
+          // Fallback: at least tag the user on the client so the adapter
+          // and channel have something to work with.
+          (client as any).user = { id: String(userID) };
+        }
+
+        // The adapter’s Channel uses client['jwt'] when hitting your backend & ws.
+        (client as any).jwt = userToken;
+
+        // Guard against client.channel being missing, to avoid hard crashes.
+        const channelFactory = (client as any).channel;
+        if (typeof channelFactory !== 'function') {
+          console.error('[ChatProvider] client.channel is not a function', { client });
+          return;
+        }
+
+        const chan = channelFactory.call(client, 'messaging', 'general') as AdapterChannel;
+        await chan.watch();
+
+        console.info('[ChatProvider] channel created', {
+          isAdapterChannel: chan instanceof AdapterChannel,
+          channelClass: chan.constructor?.name,
+          clientClass: client.constructor?.name,
+        });
+
+        if (!mounted) return;
+        setChannel(chan);
+      } catch (err) {
+        console.error('[ChatProvider] failed to initialize chat client/channel', err);
+      }
     })();
+
     return () => {
       mounted = false;
-      client.disconnectUser();
+      const maybeDisconnect = (client as any).disconnectUser;
+      if (typeof maybeDisconnect === 'function') {
+        try {
+          maybeDisconnect.call(client);
+        } catch (err) {
+          console.error('[ChatProvider] disconnectUser failed on cleanup', err);
+        }
+      }
     };
   }, [client, session]);
+
+
 
   useEffect(() => {
     if (!channel) return;

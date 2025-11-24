@@ -13,6 +13,7 @@ export class MessageComposer {
       const composition = await this.compose();
       if (!composition || !composition.message) return;
       this.clear();
+      console.log("this.clear() fired from MessageComposer.ts")
     },
   };
   attachmentManager   = { state: noopStore };

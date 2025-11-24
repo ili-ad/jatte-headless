@@ -42,7 +42,7 @@ export class Channel {
         read: {} as Record<
             string,
             {
-                last_read: string;
+                last_read: Date;
                 last_read_message_id?: string;
                 unread_messages: number;
                 user?: { id: string };
@@ -199,56 +199,102 @@ export class Channel {
 
                 /* ------------- text‑composer impl ------------------- */
                 textComposer: {
-                    state: textStore,
+                state: textStore,
 
-                    /* update helpers React calls */
-                    setText(text: string) { textStore._set({ text }); logStateUpdateTimestamp(); },
-                    setSelection(sel: { start: number; end: number }) { textStore._set({ selection: sel }); },
-                    clear() { textStore._set({ text: '', selection: { start: 0, end: 0 } }); logStateUpdateTimestamp(); },
+                insertText({ text }: { text: string }) {
+                    const snap = textStore.getSnapshot();
+                    const cur = snap.text ?? '';
+                    const sel = snap.selection ?? { start: cur.length, end: cur.length };
 
-                    handleChange({ text, selection }: { text: string; selection: { start: number; end: number } }) {
-                        textStore._set({ text, selection });
-                        logStateUpdateTimestamp();
-                    },
-                    handleKeyEvent(evt: KeyboardEvent) {
-                        if (evt.key === 'Enter' && !evt.shiftKey) {
-                            evt.preventDefault();
-                            this.submit();
-                        }
-                    },
+                    const start = Math.max(0, Math.min(cur.length, sel.start));
+                    const end   = Math.max(0, Math.min(cur.length, sel.end));
 
-                    /** ⇢ ACTUAL send logic */
-                    async submit() {
-                        // const draft = textStore.getSnapshot().text.trim();
-                        // const userId = channelRef.client.user?.id;
-                        // if (!draft || !userId) return;
-                        const draft = textStore.getSnapshot().text.trim();
-                        const userId = channelRef.client.user?.id ?? 'local-user';
-                        
-                        if (!draft || !userId) return;
+                    const next = cur.slice(0, start) + text + cur.slice(end);
+                    const pos  = start + text.length;
 
-                        /* 🔸 optimistic echo so the list updates immediately */
-                        const localMsg: Message = {
-                            id: `local-${Date.now()}`,
-                            text: draft,
-                            user_id: userId,
-                            created_at: new Date().toISOString(),
-                        };
-                        channelRef.bump({
-                            messages: [...channelRef.state.messages, localMsg],
-                            latestMessages: [...channelRef.state.latestMessages.slice(-49), localMsg],
-                        });
-                        channelRef.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: localMsg });
+                    textStore._set({ text: next, selection: { start: pos, end: pos } });
+                    logStateUpdateTimestamp();
+                },
 
-                        /* 🔸 fire the real network request (no await needed for UX) */
-                        channelRef.sendMessage({ text: draft })
-                            .catch(console.error);
+                /* update helpers React calls */
+                setText(text: string) {
+                    textStore._set({ text });
+                    logStateUpdateTimestamp();
+                },
 
-                        /* clear draft + saved localStorage copy */
-                        this.clear();
-                        localStorage.removeItem(getRoomKey());
-                    },
-                },  /* ← end of textComposer */
+                setSelection(sel: { start: number; end: number }) {
+                    textStore._set({ selection: sel });
+                },
+
+                clear() {
+                    textStore._set({ text: '', selection: { start: 0, end: 0 } });
+                    logStateUpdateTimestamp();
+                },
+
+                handleChange({
+                    text,
+                    selection,
+                }: {
+                    text: string;
+                    selection: { start: number; end: number };
+                }) {
+                    textStore._set({ text, selection });
+                    logStateUpdateTimestamp();
+                },
+
+                handleKeyEvent(evt: KeyboardEvent) {
+                    if (evt.key === 'Enter' && !evt.shiftKey) {
+                    evt.preventDefault();
+                    this.submit();
+                    }
+                },
+
+                /** ⇢ ACTUAL send logic */
+                async submit() {
+                    const snapshot = textStore.getSnapshot();
+                    const draft = (snapshot.text ?? '').trim();
+                    const userId = channelRef.client.user?.id ?? 'local-user';
+                    if (!draft || !userId) return;
+
+                    // 🔸 optimistic echo
+                    const localMsg: Message = {
+                    id: `local-${Date.now()}`,
+                    text: draft,
+                    user_id: userId,
+                    created_at: new Date().toISOString(),
+                    };
+
+                    channelRef.bump({
+                    messages: [...channelRef.state.messages, localMsg],
+                    latestMessages: [
+                        ...channelRef.state.latestMessages.slice(-49),
+                        localMsg,
+                    ],
+                    });
+
+                    channelRef.emitter.emit(EVENTS.MESSAGE_NEW, {
+                    type: EVENTS.MESSAGE_NEW,
+                    message: localMsg,
+                    });
+
+                    // 🔸 fire real network request
+                    channelRef.sendMessage({ text: draft }).catch(console.error);
+
+                    // clear draft + saved localStorage copy, without relying on `this`
+                    textStore._set({
+                    text: '',
+                    selection: { start: 0, end: 0 },
+                    });
+                    logStateUpdateTimestamp();
+
+                    try {
+                    localStorage.removeItem(getRoomKey());
+                    } catch {
+                    // non‑browser / quota issues – ignore
+                    }
+                },
+                }, // ← end of textComposer
+
 
 
                 /* -----  place INSIDE  messageComposer: { … }  ----- */
@@ -561,14 +607,54 @@ export class Channel {
 
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
-    async getConfig() {
-        const res = await apiFetch(`${API.ROOMS}${this.uuid}/config/`, {
-            headers: { Authorization: `Bearer ${this.client['jwt']}` },
-        });
-        if (res.status === 403) throw new AuthError('Unauthenticated');
-        if (!res.ok) throw new Error('getConfig failed');
-        return await res.json();
+
+    // at top of file you already have: import { API, apiFetch } from '@/lib/api';
+
+    /**
+     * Config stub for the Stream UI.
+     *
+     * Upstream components call `channel.getConfig()` to decide what inputs
+     * are enabled. Our Django `/rooms/<uuid>/config` endpoint isn't really
+     * wired up yet (it's returning 400s), and we don’t need dynamic config
+     * to send messages.
+     *
+     * So:
+     *   - we never throw
+     *   - we prefer any config already hanging off the messageComposer
+     *   - otherwise we return a small static “everything enabled” config
+     */
+    // async getConfig(): Promise<any> {
+    //     // If the composer exposes a config object, use that first.
+    //     const composer: any = (this as any).messageComposer;
+    //     if (composer && composer.config) {
+    //         return composer.config;
+    //     }
+
+    //     // Minimal hard‑coded config that keeps Stream UI happy.
+    //     return {
+    //         text: { enabled: true },
+    //         multipleUploads: true,
+    //         isUploadEnabled: true,
+    //         attachments: {
+    //             maxNumberOfFilesPerMessage: 10,
+    //             // you can add more flags here later if the UI starts reading them
+    //         },
+    //     };
+    // }
+    async getConfig(): Promise<any> {
+    try {
+        // go through the composer-level store you defined
+        return await this.messageComposer.getConfigState();
+    } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Channel.getConfig] falling back to empty config', err);
+        }
+        return {}; // never throw; Stream UI only needs a shape
     }
+    }
+
+
+
 
     countUnread() {
         const userId = this.client.user?.id;
@@ -585,26 +671,35 @@ export class Channel {
 
     /** Fetch read states for this channel */
     async read() {
-        const res = await apiFetch(`/rooms/${this.uuid}/read`, {
-            headers: { Authorization: `Bearer ${this.client['jwt']}` },
-        });
-        if (!res.ok) throw new Error('read failed');
-        const list = (await res.json()) as {
-            user: string;
-            last_read: string;
-            unread_messages: number;
-        }[];
-        const map: Record<string, { last_read: string; unread_messages: number; user: { id: string } }> = {};
-        for (const item of list) {
-            map[item.user] = {
-                last_read: item.last_read,
-                unread_messages: item.unread_messages,
-                user: { id: item.user },
-            };
-        }
-        this.bump({ read: map });
-        return map;
+    const res = await apiFetch(`/rooms/${this.uuid}/read`, {
+        headers: { Authorization: `Bearer ${this.client['jwt']}` },
+    });
+    if (!res.ok) throw new Error('read failed');
+
+    // Backend returns strings here.
+    const list = (await res.json()) as {
+        user: string;
+        last_read: string;
+        unread_messages: number;
+    }[];
+
+    const map: Record<
+        string,
+        { last_read: Date; unread_messages: number; user: { id: string } }
+    > = {};
+
+    for (const item of list) {
+        map[item.user] = {
+        last_read: new Date(item.last_read),  // <-- convert string → Date
+        unread_messages: item.unread_messages,
+        user: { id: item.user },
+        };
     }
+
+    this.bump({ read: map });
+    return map;
+    }
+
 
     /* ─── main lifecycle ─── */
     /** Fetch initial state without opening a websocket */
@@ -623,7 +718,7 @@ export class Channel {
                         read: {
                             ...this._state.read,
                             [me]: {
-                                last_read: new Date().toISOString(),
+                                last_read: new Date(),
                                 last_read_message_id: first.at(-1)?.id,
                                 unread_messages: 0,
                             },
@@ -668,7 +763,7 @@ export class Channel {
                     read: {
                         ...this._state.read,
                         [me]: {
-                            last_read: new Date().toISOString(),
+                            last_read: new Date(),
                             last_read_message_id: first.at(-1)?.id,
                             unread_messages: 0
                         }
@@ -742,7 +837,7 @@ export class Channel {
                 read: {
                     ...this._state.read,
                     [me]: {
-                        last_read: new Date().toISOString(),
+                        last_read: new Date(),
                         last_read_message_id: lastId,
                         unread_messages: 0,
                     },
@@ -1107,6 +1202,10 @@ export class Channel {
     /* internal: mutate + notify React */
     /* tiny helper that mutates state *and* notifies both stores */
     private bump(patch: Partial<typeof this._state>) {
+        // debug
+        // eslint-disable-next-line no-console
+        console.log('[Channel.bump]', patch);
+
         this._state = { ...this._state, ...patch };
         this.stateStore._set(patch);     // ← keep channel store current
         this.client.stateStore._set({}); // ← nudge parent Chat to re-render
