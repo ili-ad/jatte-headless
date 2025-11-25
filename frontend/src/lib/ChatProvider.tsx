@@ -23,7 +23,12 @@ export function useChat() {
   return useContext(ChatContext);
 }
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+interface ChatProviderProps {
+  children: ReactNode;
+  roomSlug?: string;
+}
+
+export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderProps) {
   const { session } = useSession();
   const [client] = useState<ChatClient>(() => chatClient);
   const [channel, setChannel] = useState<ChannelType | null>(null);
@@ -77,7 +82,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const chan = channelFactory.call(client, 'messaging', 'general') as AdapterChannel;
+        const chan = channelFactory.call(client, 'messaging', roomSlug) as AdapterChannel;
         await chan.watch();
 
         console.info('[ChatProvider] channel created', {
@@ -104,7 +109,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-  }, [client, session]);
+  }, [client, session, roomSlug]);
 
 
 
