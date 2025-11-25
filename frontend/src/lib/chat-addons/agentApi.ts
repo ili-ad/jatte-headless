@@ -100,17 +100,36 @@ export async function invokeAgent(
 }
 
 export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null {
-  const aiConfig = configState?.config?.ai ?? configState?.ai ?? configState?.ai_assistant;
-  if (!aiConfig || typeof aiConfig !== 'object') return null;
+  const aiConfig = configState?.config?.ai ?? configState?.ai ?? null;
+  const aiAssistant = configState?.ai_assistant ?? null;
+  const candidateConfig = aiAssistant && typeof aiAssistant === 'object' ? { ...aiAssistant, ...aiConfig } : aiConfig;
+  if (!candidateConfig || typeof candidateConfig !== 'object') return null;
 
-  const botUserId = aiConfig.botUserId ?? aiConfig.user_id;
+  const botUserId =
+    candidateConfig.botUserId ??
+    candidateConfig.user_id ??
+    (typeof aiAssistant?.user_id === 'string' ? aiAssistant.user_id : undefined);
   if (!botUserId || typeof botUserId !== 'string') return null;
 
+  const enabledFlag =
+    typeof configState?.has_ai_assistant === 'boolean'
+      ? configState.has_ai_assistant
+      : candidateConfig.enabled;
+
   return {
-    enabled: Boolean(aiConfig.enabled),
+    enabled: Boolean(enabledFlag),
     botUserId,
-    displayName: typeof aiConfig.displayName === 'string' ? aiConfig.displayName : 'Assistant',
-    personaSummary: aiConfig.personaSummary ?? aiConfig.persona_summary ?? null,
+    displayName:
+      typeof candidateConfig.displayName === 'string'
+        ? candidateConfig.displayName
+        : typeof aiAssistant?.display_name === 'string'
+          ? aiAssistant.display_name
+          : 'Assistant',
+    personaSummary:
+      candidateConfig.personaSummary ??
+      candidateConfig.persona_summary ??
+      aiAssistant?.persona_summary ??
+      null,
   };
 }
 
