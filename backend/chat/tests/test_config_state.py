@@ -34,7 +34,13 @@ class ConfigStateAPITests(APITestCase):
                         "displayName": "Assistant",
                         "personaSummary": None,
                     },
-                }
+                },
+                "has_ai_assistant": False,
+                "ai_assistant": {
+                    "user_id": f"room:{room.uuid}:bot",
+                    "display_name": "Assistant",
+                    "persona_summary": None,
+                },
             },
         )
 

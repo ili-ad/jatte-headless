@@ -1222,7 +1222,9 @@ class RoomConfigStateView(RoomFromCIDMixin, APIView):
                 "config": {
                     "composer": composer,
                     "ai": ai_config,
-                }
+                },
+                "has_ai_assistant": bool(ai_config.get("enabled")) if ai_config else False,
+                "ai_assistant": _ai_assistant_payload(ai_config),
             }
         )
 
@@ -1247,6 +1249,21 @@ def _ai_config_payload(canonical: str, room: Room) -> dict:
         "botUserId": bot_user_id,
         "displayName": "Assistant",
         "personaSummary": persona_summary,
+    }
+
+
+def _ai_assistant_payload(ai_config: dict | None) -> dict | None:
+    if not ai_config:
+        return None
+
+    bot_user_id = ai_config.get("botUserId") or ai_config.get("user_id")
+    if not bot_user_id:
+        return None
+
+    return {
+        "user_id": bot_user_id,
+        "display_name": ai_config.get("displayName") or "Assistant",
+        "persona_summary": ai_config.get("personaSummary"),
     }
 
 
