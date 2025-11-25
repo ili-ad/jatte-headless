@@ -7,7 +7,7 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
-import { extractRoomAgentConfig, requestAgentReply, type RoomAgentConfig } from '../chat-addons/agentApi';
+import { extractRoomAgentConfig, invokeAgent, type RoomAgentConfig } from '../chat-addons/agentApi';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -502,6 +502,12 @@ export class Channel {
                         displayName: 'Assistant',
                         personaSummary: null as string | null,
                     },
+                    has_ai_assistant: false,
+                    ai_assistant: null as null | {
+                        user_id: string;
+                        display_name?: string;
+                        persona_summary?: string | null;
+                    },
                 }),
                 get config() { return this.configState.getLatestValue(); },
                 async getConfigState() {
@@ -517,9 +523,14 @@ export class Channel {
 
                     const configPayload = (data as any)?.config ?? data ?? {};
                     const composerConfig = configPayload.composer ?? configPayload;
+                    const aiAssistant = (data as any)?.ai_assistant ?? snapshot.ai_assistant ?? null;
                     const merged = {
                         composer: { ...snapshot.composer, ...(composerConfig ?? {}) },
                         ai: aiConfig ?? snapshot.ai,
+                        has_ai_assistant: typeof (data as any)?.has_ai_assistant === 'boolean'
+                            ? (data as any).has_ai_assistant
+                            : snapshot.has_ai_assistant,
+                        ai_assistant: aiAssistant,
                     };
                     this.configState._set(merged);
                     return this.configState.getLatestValue();
@@ -1082,8 +1093,12 @@ export class Channel {
         message: Message & { client_generated_id?: string },
         client_generated_id?: string,
     ) {
-        const aiConfig = this.agentConfig ?? extractRoomAgentConfig(this.messageComposer.configState.getSnapshot());
-        if (!aiConfig?.enabled) return;
+        const snapshot = this.messageComposer.configState.getSnapshot();
+        const aiConfig = this.agentConfig ?? extractRoomAgentConfig(snapshot);
+        const hasAssistant = typeof snapshot.has_ai_assistant === 'boolean'
+            ? snapshot.has_ai_assistant
+            : aiConfig?.enabled;
+        if (!aiConfig || !hasAssistant) return;
 
         const botUserId = aiConfig.botUserId;
         const authorId = (message as any).user_id ?? (message as any).sent_by ?? (message as any).user?.id;
@@ -1092,10 +1107,17 @@ export class Channel {
         this.startAgentTyping(botUserId);
 
         try {
-            await requestAgentReply({
-                roomUUID: this.uuid,
-                lastHumanMessageId: String(message.id),
-                clientGeneratedId: client_generated_id ?? message.client_generated_id,
+            const prompt = (message as any).body ?? (message as any).text ?? '';
+            const metaPayload: Record<string, unknown> = {
+                last_human_message_id: message.id ? String(message.id) : undefined,
+                client_generated_id: client_generated_id ?? message.client_generated_id,
+            };
+            Object.keys(metaPayload).forEach(key => {
+                if (metaPayload[key] === undefined) delete metaPayload[key];
+            });
+            await invokeAgent(this.cid, {
+                prompt: String(prompt ?? ''),
+                meta: metaPayload,
             });
         } catch (err) {
             console.error('[agent] failed to request reply', err);
