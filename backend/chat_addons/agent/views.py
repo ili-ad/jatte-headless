@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any, Sequence
 
 from django.db import transaction
@@ -35,7 +34,8 @@ from .serializers import (
     RoomSkillListSerializer,
     RoomSkillPolicySerializer,
 )
-from .tasks import run_agent_invocation
+from ..common_audit.models import MessageProvenance
+from .tasks import _persist_message
 from .services.agent_service import get_agent_service
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
@@ -159,28 +159,71 @@ class AgentInvokeView(APIView):
 
     @audit_action(action=AuditTrail.Action.AGENT_INVOKE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        serializer = AgentInvokeRequestSerializer(data=request.data or {})
-        serializer.is_valid(raise_exception=True)
-
         canonical, room = _resolve_room(cid)
         RoomAgentFlag.objects.get_or_create(room=room)
         request._audit_context = {"cid": canonical}
+        data = request.data or {}
+        serializer = AgentInvocationSerializer(data=data)
+        echo_text: str
 
-        prompt: str = serializer.validated_data["prompt"]
-        meta: dict[str, Any] = serializer.validated_data.get("meta", {})
+        if serializer.is_valid():
+            room_uuid = serializer.validated_data["room_uuid"]
+            if room_uuid and room_uuid != room.uuid:
+                return Response(
+                    {"detail": "Room does not match invocation payload."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        run_id = str(uuid.uuid4())
-        run_agent_invocation.delay(run_id, canonical, prompt, meta)
-        request._audit_context = {
-            "cid": canonical,
-            "target_id": run_id,
-            "meta": {"meta_keys": sorted(meta.keys())},
+            message_id = serializer.validated_data["last_human_message_id"]
+            message = Message.objects.filter(channel__uuid=room.uuid, id=message_id).first()
+            if not message:
+                return Response(
+                    {"detail": "Message not found for this room."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            bot_user_id = agent_user_id_for_room(canonical)
+            if message.sent_by == bot_user_id:
+                return Response(
+                    {"detail": "Agent replies cannot be chained."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            echo_text = message.body or ""
+        elif "prompt" in data:
+            fallback_serializer = AgentInvokeRequestSerializer(data=data)
+            fallback_serializer.is_valid(raise_exception=True)
+            echo_text = fallback_serializer.validated_data["prompt"]
+        else:
+            raise serializers.ValidationError(serializer.errors or {})
+        agent_message = _persist_message(cid=canonical, text=f"Echo: {echo_text}")
+        MessageProvenance.objects.get_or_create(
+            message=agent_message,
+            defaults={"source": MessageProvenance.Source.AGENT},
+        )
+
+        payload = {
+            "messages": [
+                {
+                    "id": str(agent_message.id),
+                    "room_uuid": agent_message.channel.uuid,
+                    "user_id": agent_message.sent_by,
+                    "role": "assistant",
+                    "text": agent_message.body,
+                    "created_at": agent_message.created_at,
+                    "custom_data": agent_message.custom_data or {},
+                }
+            ],
+            "reason": "echo",
         }
 
-        return Response(
-            {"run_id": run_id, "status": "queued"},
-            status=status.HTTP_202_ACCEPTED,
-        )
+        request._audit_context = {
+            "cid": canonical,
+            "target_id": str(agent_message.id),
+            "meta": {"reason": "echo"},
+        }
+
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class AgentRagView(APIView):
