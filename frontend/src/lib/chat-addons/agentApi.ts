@@ -7,16 +7,6 @@ export interface AgentToggleResponse {
   updated_at: string | null;
 }
 
-export interface AgentInvokeResponse {
-  run_id: string;
-  status: 'queued';
-}
-
-export interface AgentInvokePayload {
-  prompt: string;
-  meta?: Record<string, unknown>;
-}
-
 export interface AgentContext {
   channel: Channel;
   roomId: string;
@@ -24,9 +14,14 @@ export interface AgentContext {
 
 export interface AgentInvocation {
   roomUUID: string;
-  lastHumanMessageId: string;
+  lastHumanMessageId: string | number;
   clientGeneratedId?: string;
   traceId?: string;
+}
+
+export interface AgentInvokePromptPayload {
+  prompt: string;
+  meta?: Record<string, unknown>;
 }
 
 export type AgentMessage = {
@@ -87,16 +82,34 @@ export async function disableAgent(cid: string): Promise<AgentToggleResponse> {
 
 export async function invokeAgent(
   cid: string,
-  payload: AgentInvokePayload,
-): Promise<AgentInvokeResponse> {
+  payload: AgentInvocation | AgentInvokePromptPayload,
+): Promise<AgentReply> {
+  const isInvocationPayload =
+    'roomUUID' in payload || 'lastHumanMessageId' in payload;
+  const body = isInvocationPayload
+    ? {
+        room_uuid: (payload as AgentInvocation).roomUUID,
+        last_human_message_id: Number((payload as AgentInvocation).lastHumanMessageId),
+        client_generated_id: (payload as AgentInvocation).clientGeneratedId,
+        trace_id: (payload as AgentInvocation).traceId,
+      }
+    : {
+        prompt: (payload as AgentInvokePromptPayload).prompt,
+        meta: (payload as AgentInvokePromptPayload).meta,
+      };
+
   const res = await apiFetch(`/chat/agent/${encodeCid(cid)}/invoke/`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(`Failed to invoke agent (${res.status})`);
   }
-  return (await res.json()) as AgentInvokeResponse;
+  const reply = (await res.json()) as AgentReply;
+  return {
+    messages: reply?.messages ?? [],
+    reason: reply?.reason,
+  };
 }
 
 export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null {
