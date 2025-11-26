@@ -1107,18 +1107,18 @@ export class Channel {
         this.startAgentTyping(botUserId);
 
         try {
-            const prompt = (message as any).body ?? (message as any).text ?? '';
-            const metaPayload: Record<string, unknown> = {
-                last_human_message_id: message.id ? String(message.id) : undefined,
-                client_generated_id: client_generated_id ?? message.client_generated_id,
-            };
-            Object.keys(metaPayload).forEach(key => {
-                if (metaPayload[key] === undefined) delete metaPayload[key];
+            const reply = await invokeAgent(this.cid, {
+                roomUUID: this.uuid,
+                lastHumanMessageId: String(message.id),
+                clientGeneratedId: client_generated_id ?? message.client_generated_id,
             });
-            await invokeAgent(this.cid, {
-                prompt: String(prompt ?? ''),
-                meta: metaPayload,
+            (reply.messages ?? []).forEach(agentMessage => {
+                this.integrateIncomingMessage(
+                    { ...agentMessage, status: 'received' },
+                    agentMessage.id,
+                );
             });
+            this.stopAgentTyping(botUserId);
         } catch (err) {
             console.error('[agent] failed to request reply', err);
             this.stopAgentTyping(botUserId);
