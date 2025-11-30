@@ -9,7 +9,7 @@ export default function AuthBootstrap() {
 
     (async () => {
       try {
-        const res = await fetch('/api/token', { credentials: 'same-origin' });
+        const res = await fetch('/api/token/', { credentials: 'same-origin' });
         const json = await res.json();
         if (!cancelled && json?.token) {
           setAuthToken(json.token);
