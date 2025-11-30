@@ -1,3 +1,5 @@
+#backend/chat/urls.py
+
 from django.urls import path, re_path
 from rest_framework.routers import DefaultRouter
 from .api_views import (
@@ -77,6 +79,10 @@ from .views import RoomMembersCIDView
 from .views_threads import MessageRepliesView, ThreadListView
 from .views_auth import WebsocketAuthView
 from .views_quoted import QuotedMessageView
+
+# existing imports…
+from chat_addons.agent.views import AgentInvokeView, AgentRagView
+
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
@@ -338,6 +344,21 @@ urlpatterns = [
     path("api/register-subscriptions/", RegisterSubscriptionsView.as_view(), name="register-subscriptions"),
     path("api/test/", AxiosTestView.as_view(), name="axios-test"),
     path("api/connection-id/", ConnectionIDView.as_view(), name="connection-id"),
+
+    # Synchronous agent invoke for /agent page
+    re_path(
+        r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
+        AgentInvokeView.as_view(),
+        name="agent-invoke",
+    ),
+
+    # RAG endpoint (used later, but wiring it now keeps things consistent)
+    path(
+        "api/chat/agent/rag/",
+        AgentRagView.as_view(),
+        name="agent-rag",
+    ),
+
     path("api/ws-auth/", LegacyWsAuthView.as_view(), name="ws-auth"),
     path("ws-auth/", WebsocketAuthView.as_view(), name="ws-auth-live"),
     re_path(r"^ws-auth/?$", WebsocketAuthView.as_view()),

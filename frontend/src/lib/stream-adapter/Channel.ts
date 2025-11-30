@@ -486,55 +486,166 @@ export class Channel {
                 // addData() {/* noop for MVP */},
                 // },                
                 /* ——— config flags ——— */
+
+
+
+
+
+
+
+
+
+
+
+
+                /* ---------- config flags ---------- */
                 configState: new MiniStore({
-                    composer: {
-                        attachments: {
-                            acceptedFiles: [] as File[],
-                            maxNumberOfFilesPerMessage: 10,
-                        },
-                        text: { enabled: true },
-                        multipleUploads: true,
-                        isUploadEnabled: true,
+                    attachments: {
+                        acceptedFiles: [] as File[],
+                        maxNumberOfFilesPerMessage: 10,
                     },
-                    ai: {
-                        enabled: false,
-                        botUserId: '',
-                        displayName: 'Assistant',
-                        personaSummary: null as string | null,
+                    text: {
+                        enabled: true,
                     },
-                    has_ai_assistant: false,
-                    ai_assistant: null as null | {
-                        user_id: string;
-                        display_name?: string;
-                        persona_summary?: string | null;
-                    },
+                    multipleUploads: false,
+                    isUploadEnabled: true,
                 }),
-                get config() { return this.configState.getLatestValue(); },
+
+                get config() {
+                    return this.configState.getLatestValue();
+                },
+
                 async getConfigState() {
-                    const token = channelRef.client["jwt"];
+                    // 1) get the token from the ChatClient
+                    const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
+                    const token: string | null =
+                        typeof client.getToken === 'function'
+                        ? client.getToken()
+                        : client.jwt ?? null; // fall back to the private field at runtime
+
+                    if (!token) {
+                        throw new Error('getConfigState: missing JWT token');
+                    }
+
+                    // 2) use the channel’s UUID from the adapter, not `this`
                     const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state/`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
-                    if (!res.ok) throw new Error("getConfigState failed");
-                    const data = await res.json().catch(() => ({}));
-                    const snapshot = this.configState.getSnapshot();
-                    const aiConfig = extractRoomAgentConfig(data) ?? snapshot.ai;
-                    if (aiConfig) channelRef.agentConfig = aiConfig;
 
-                    const configPayload = (data as any)?.config ?? data ?? {};
-                    const composerConfig = configPayload.composer ?? configPayload;
-                    const aiAssistant = (data as any)?.ai_assistant ?? snapshot.ai_assistant ?? null;
-                    const merged = {
-                        composer: { ...snapshot.composer, ...(composerConfig ?? {}) },
-                        ai: aiConfig ?? snapshot.ai,
-                        has_ai_assistant: typeof (data as any)?.has_ai_assistant === 'boolean'
-                            ? (data as any).has_ai_assistant
-                            : snapshot.has_ai_assistant,
-                        ai_assistant: aiAssistant,
+                    if (!res.ok) {
+                        throw new Error('getConfigState failed');
+                    }
+
+                    const data = await res.json().catch(() => ({} as any));
+
+                    // Backend shape: { composer: { file_uploads, max_length, cooldown_seconds } }
+                    const raw = (await res.json().catch(() => ({}))) as any;
+                    const snapshot = this.configState.getSnapshot();
+
+                    const composer = (raw && (raw.composer ?? raw)) || {};
+
+                    // File uploads flag from the backend, fallback to whatever we had
+                    const isUploadEnabled =
+                        typeof composer.file_uploads === 'boolean'
+                            ? composer.file_uploads
+                            : snapshot.isUploadEnabled;
+
+                    // Optional: reflect cooldown in the channel’s state if present
+                    if (typeof composer.cooldown_seconds === 'number') {
+                        channelRef.state.cooldownSecs = composer.cooldown_seconds;
+                    }
+
+                    const mergedConfig = {
+                        ...snapshot,
+                        isUploadEnabled,
+                        // attachments, text, multipleUploads stay as‑is from snapshot
                     };
-                    this.configState._set(merged);
+
+                    this.configState._set(mergedConfig);
                     return this.configState.getLatestValue();
                 },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+                // get config() { return this.configState.getLatestValue(); },
+                // async getConfigState() {
+                //     const token = this.client['jwt'];
+                //     const res = await apiFetch(`/rooms/${this.uuid}/config-state/`, {
+                //         headers: { Authorization: `Bearer ${token}` },
+                //     });
+
+                //     if (!res.ok) {
+                //         throw new Error('getConfigState failed');
+                //     }
+
+                //     const data = await res.json().catch(() => ({} as any));
+
+                //     // Current snapshot – this defines the shape we have to preserve
+                //     const snapshot = this.configState.getSnapshot();
+
+                //     // ----- composer config -----
+                //     const configPayload = (data as any)?.config ?? data ?? {};
+                //     const composerConfig = configPayload.composer ?? configPayload;
+
+                //     // ----- AI config -----
+                //     const rawAiConfig = extractRoomAgentConfig(data);
+
+                //     // Normalize personaSummary so it is never undefined
+                //     const aiConfig: RoomAgentConfig | null =
+                //         rawAiConfig
+                //             ? {
+                //                 ...snapshot.ai,
+                //                 ...rawAiConfig,
+                //                 personaSummary:
+                //                     rawAiConfig.personaSummary ??
+                //                     (snapshot.ai ? snapshot.ai.personaSummary : null),
+                //             }
+                //             : snapshot.ai ?? null;
+
+                //     if (aiConfig) {
+                //         this.agentConfig = aiConfig;
+                //     }
+
+                //     const aiAssistant =
+                //         (data as any)?.ai_assistant ?? snapshot.ai_assistant ?? null;
+
+                //     // ----- merged payload -----
+                //     const merged = {
+                //         // IMPORTANT: merge into the existing composer config so
+                //         // attachments/text/multipleUploads stay defined
+                //         composer: {
+                //             ...snapshot.composer,
+                //             ...(composerConfig ?? {}),
+                //         },
+
+                //         aiZ: aiConfig,
+
+                //         has_ai_assistant:
+                //             typeof (data as any)?.has_ai_assistant === 'boolean'
+                //                 ? (data as any).has_ai_assistant
+                //                 : snapshot.has_ai_assistant,
+
+                //         ai_assistant: aiAssistant,
+                //     };
+
+                //     // Re-type as a partial snapshot to satisfy the MiniStore
+                //     this.configState._set(merged as Partial<typeof snapshot>);
+
+                //     return this.configState.getLatestValue();
+                // },
+
 
                 /* ——— simple passthrough helpers ——— */
                 getInputValue() { return textStore.getSnapshot().text; },
@@ -1089,41 +1200,84 @@ export class Channel {
         return msg;
     }
 
+
     private async triggerAgentReplyIfEnabled(
         message: Message & { client_generated_id?: string },
         client_generated_id?: string,
     ) {
+        // Human sender id
+        const authorId =
+            (message as any).user_id ??
+            (message as any).sent_by ??
+            (message as any).user?.id;
+
+        const isAgentLab =
+            this.uuid === 'agent-lab' || this.cid === 'messaging:agent-lab';
+
+        // We only auto‑reply in the dedicated dev room for now
+        if (!isAgentLab) {
+            return;
+        }
+
+        // Don’t chain agent replies back into the agent
         const snapshot = this.messageComposer.configState.getSnapshot();
         const aiConfig = this.agentConfig ?? extractRoomAgentConfig(snapshot);
-        const hasAssistant = typeof snapshot.has_ai_assistant === 'boolean'
-            ? snapshot.has_ai_assistant
-            : aiConfig?.enabled;
-        if (!aiConfig || !hasAssistant) return;
+        const botUserId = aiConfig?.botUserId;
+        if (botUserId && authorId === botUserId) {
+            console.log('[agent] bail: message from bot user, not echoing');
+            return;
+        }
 
-        const botUserId = aiConfig.botUserId;
-        const authorId = (message as any).user_id ?? (message as any).sent_by ?? (message as any).user?.id;
-        if (!botUserId || !message.id || authorId === botUserId) return;
+        if (!message.id) {
+            console.log('[agent] bail: missing message id');
+            return;
+        }
 
-        this.startAgentTyping(botUserId);
+        console.log('[agent] trigger echo', {
+            cid: this.cid,
+            uuid: this.uuid,
+            authorId,
+            botUserId,
+            messageId: message.id,
+        });
+
+        const typingUserId = botUserId ?? authorId;
+        this.startAgentTyping(typingUserId);
 
         try {
             const reply = await invokeAgent(this.cid, {
                 roomUUID: this.uuid,
                 lastHumanMessageId: String(message.id),
-                clientGeneratedId: client_generated_id ?? message.client_generated_id,
+                clientGeneratedId:
+                    client_generated_id ?? (message as any).client_generated_id,
             });
+
             (reply.messages ?? []).forEach(agentMessage => {
-                this.integrateIncomingMessage(
-                    { ...agentMessage, status: 'received' },
-                    agentMessage.id,
-                );
+            const normalized = {
+                // backend sends id as string, other code often uses number
+                id: Number(agentMessage.id) || agentMessage.id,
+                room_uuid: agentMessage.room_uuid,
+                user_id: agentMessage.user_id,
+                user: { id: agentMessage.user_id } as any,
+                text: agentMessage.text,
+                body: agentMessage.text,
+                created_at: agentMessage.created_at,
+                custom_data: agentMessage.custom_data ?? {},
+                status: 'received' as const,
+            };
+
+            this.integrateIncomingMessage(normalized as any, normalized.id as any);
             });
-            this.stopAgentTyping(botUserId);
+
+            console.log('[agent] echo reply integrated', reply);
+
         } catch (err) {
             console.error('[agent] failed to request reply', err);
-            this.stopAgentTyping(botUserId);
+        } finally {
+            this.stopAgentTyping(typingUserId);
         }
     }
+
 
 
 

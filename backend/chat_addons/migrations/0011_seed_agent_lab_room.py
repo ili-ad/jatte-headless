@@ -48,10 +48,11 @@ class Migration(migrations.Migration):
     dependencies = [
         (
             "chat_addons",
-            "0010_rename_chat_addons_last_154576_idx_chat_addons_last_se_56d70a_idx",
+            "0010_rename_chat_addons_last_154576_idx_chat_addons_last_se_56d70a_idx_and_more",
         ),
         ("chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
     ]
+
 
     operations = [
         migrations.RunPython(seed_agent_lab_room, remove_agent_lab_room),

@@ -86,10 +86,13 @@ export async function invokeAgent(
 ): Promise<AgentReply> {
   const isInvocationPayload =
     'roomUUID' in payload || 'lastHumanMessageId' in payload;
+
   const body = isInvocationPayload
     ? {
         room_uuid: (payload as AgentInvocation).roomUUID,
-        last_human_message_id: Number((payload as AgentInvocation).lastHumanMessageId),
+        last_human_message_id: Number(
+          (payload as AgentInvocation).lastHumanMessageId,
+        ),
         client_generated_id: (payload as AgentInvocation).clientGeneratedId,
         trace_id: (payload as AgentInvocation).traceId,
       }
@@ -98,19 +101,31 @@ export async function invokeAgent(
         meta: (payload as AgentInvokePromptPayload).meta,
       };
 
+  console.log('[agent] invokeAgent request', { cid, body });
+
   const res = await apiFetch(`/chat/agent/${encodeCid(cid)}/invoke/`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
+
+  console.log('[agent] invokeAgent response status', res.status);
+
   if (!res.ok) {
+    // This will show up in the Channel catch block too.
+    const text = await res.text().catch(() => '');
+    console.error('[agent] invokeAgent error response', res.status, text);
     throw new Error(`Failed to invoke agent (${res.status})`);
   }
+
   const reply = (await res.json()) as AgentReply;
+  console.log('[agent] invokeAgent parsed reply', reply);
+
   return {
     messages: reply?.messages ?? [],
     reason: reply?.reason,
   };
 }
+
 
 export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null {
   const aiConfig = configState?.config?.ai ?? configState?.ai ?? null;
