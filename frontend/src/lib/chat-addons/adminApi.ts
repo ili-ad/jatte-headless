@@ -32,7 +32,8 @@ function buildQueuePath(status: AdminQueueStatus, limit?: number, cursor?: strin
     params.set('cursor', cursor);
   }
   const suffix = params.toString();
-  return `/chat/admin/queue/${suffix ? `?${suffix}` : ''}`;
+  const base = '/chat/admin/queue/';
+  return `${base}${suffix ? `?${suffix}` : ''}`;
 }
 
 export async function listAdminQueue(
