@@ -31,7 +31,8 @@
   },
   "scripts": {
     "test": "turbo run test && jest",
-    "unstub": "tsx scripts/unstub-stream-ui.ts"
+    "unstub": "tsx scripts/unstub-stream-ui.ts",
+    "survey:api-calls-v2": "tsx scripts/survey_api_calls_v2.ts"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
