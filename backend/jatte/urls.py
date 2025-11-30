@@ -8,7 +8,7 @@ from chat.api_views import (
     RoomConfigView,
     RoomMessageListCreateView,
 )
-
+from chat_addons.agent.views import AgentInvokeView
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
@@ -29,6 +29,15 @@ urlpatterns = [
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.
     path("api/token/", TokenView.as_view(), name="token-obtain"),
     re_path(r"^api/token/?$", TokenView.as_view()),
+
+    # --- Agent invoke (echo) API ---
+    # Matches: /api/chat/agent/messaging:agent-lab/invoke
+    path(
+        "api/chat/agent/<path:cid>/invoke/",
+        AgentInvokeView.as_view(),
+        name="agent-invoke",
+    ),
+
 ]
 
 urlpatterns += [

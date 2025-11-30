@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Sequence
 
 from django.db import transaction
@@ -40,6 +41,7 @@ from .services.agent_service import get_agent_service
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
 
+logger = logging.getLogger(__name__)
 
 _MEMORY_SERVICE = MemoryService()
 
@@ -197,6 +199,14 @@ class AgentInvokeView(APIView):
         else:
             raise serializers.ValidationError(serializer.errors or {})
         agent_message = _persist_message(cid=canonical, text=f"Echo: {echo_text}")
+
+        logger.info(
+            "AgentInvokeView created agent message id=%s cid=%s text=%r",
+            agent_message.id,
+            canonical,
+            agent_message.body,
+        )
+
         MessageProvenance.objects.get_or_create(
             message=agent_message,
             defaults={"source": MessageProvenance.Source.AGENT},
