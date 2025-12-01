@@ -105,6 +105,9 @@ export async function invokeAgent(
 
   const res = await apiFetch(`/chat/agent/${encodeCid(cid)}/invoke/`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(body),
   });
 
@@ -125,6 +128,7 @@ export async function invokeAgent(
     reason: reply?.reason,
   };
 }
+
 
 
 export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null {
@@ -164,9 +168,12 @@ export function extractRoomAgentConfig(configState: any): RoomAgentConfig | null
 export async function requestAgentReply(args: AgentInvocation): Promise<AgentReply> {
   const res = await apiFetch('/chat/agent/rag/', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       room_uuid: args.roomUUID,
-      last_human_message_id: args.lastHumanMessageId,
+      last_human_message_id: Number(args.lastHumanMessageId),
       client_generated_id: args.clientGeneratedId,
       trace_id: args.traceId,
     }),
@@ -182,3 +189,4 @@ export async function requestAgentReply(args: AgentInvocation): Promise<AgentRep
     reason: payload?.reason,
   };
 }
+

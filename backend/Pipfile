@@ -30,6 +30,7 @@ typing-extensions = "==4.5.0"
 "zope.interface" = "==6.0"
 djangorestframework = "==3.14.0"
 pyjwt = "==2.8.0"
+dotenv = "*"
 
 [dev-packages]
 
