@@ -2,13 +2,15 @@
 from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
+from chat_addons import urls as chat_addons_urls
+
 from chat.views import TokenView  # real view
 from chat.views_quoted import QuotedMessageView
 from chat.api_views import (
     RoomConfigView,
     RoomMessageListCreateView,
 )
-from chat_addons.agent.views import AgentInvokeView
+#from chat_addons.agent.views import AgentInvokeView
 # from chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
@@ -26,17 +28,18 @@ urlpatterns = [
     path("", include("chat_addons.urls")),
     path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
+
     # Canonical API paths keep the trailing slash. Regex entries allow the old form.
     path("api/token/", TokenView.as_view(), name="token-obtain"),
     re_path(r"^api/token/?$", TokenView.as_view()),
 
     # --- Agent invoke (echo) API ---
-    # Matches: /api/chat/agent/messaging:agent-lab/invoke
-    path(
-        "api/chat/agent/<path:cid>/invoke/",
-        AgentInvokeView.as_view(),
-        name="agent-invoke",
-    ),
+    # Agent invoke (echo) API — tolerate trailing slash or not
+    # re_path(
+    #     r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
+    #     AgentInvokeView.as_view(),
+    #     name="agent-invoke",
+    # ),
 
 ]
 

@@ -18,6 +18,8 @@ import os
 
 from dotenv import load_dotenv
 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+
 BASE_DIR = Path(__file__).resolve().parent.parent  # this is already there
 print(BASE_DIR)
 #load_dotenv(BASE_DIR.parent / ".env")  # adjust path if your .env lives elsewhere

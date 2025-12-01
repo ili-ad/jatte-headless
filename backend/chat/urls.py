@@ -81,13 +81,18 @@ from .views_auth import WebsocketAuthView
 from .views_quoted import QuotedMessageView
 
 # existing imports…
-from chat_addons.agent.views import AgentInvokeView, AgentRagView
+from chat_addons.agent.views import AgentInvokeView, AgentLLMInvokeView, AgentRagView
 
 
 router = DefaultRouter()
 # Router is not used here but left for extensibility
 
 urlpatterns = [
+    re_path(
+        r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
+        AgentInvokeView.as_view(),
+        name="agent-invoke",
+    ),
     path("search/messages/", SearchMessagesView.as_view(), name="search-messages"),
     path("api/rooms/", RoomListCreateView.as_view(), name="room-list"),
     path("api/rooms/active/", ActiveRoomListView.as_view(), name="active-rooms"),
@@ -102,11 +107,11 @@ urlpatterns = [
         RoomMessageDetailView.as_view(),
         name="room-message-delete",
     ),
-    path(
-        "api/rooms/<str:room_uuid>/mark_read/",
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/mark_read/?$",
         RoomMarkReadView.as_view(),
         name="room-mark-read",
-    ),
+    ),    
     path(
         "api/rooms/<str:room_uuid>/mark_unread/",
         RoomMarkUnreadView.as_view(),
@@ -346,9 +351,16 @@ urlpatterns = [
     path("api/connection-id/", ConnectionIDView.as_view(), name="connection-id"),
 
     # Synchronous agent invoke for /agent page
+    # Directs to echo
+    # re_path(
+    #     r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
+    #     AgentInvokeView.as_view(),
+    #     name="agent-invoke",
+    # ),
+    # Directs to LLM-based invoke
     re_path(
         r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
-        AgentInvokeView.as_view(),
+        AgentLLMInvokeView.as_view(),
         name="agent-invoke",
     ),
 
