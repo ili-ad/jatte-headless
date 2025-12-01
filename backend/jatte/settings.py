@@ -17,6 +17,8 @@ from datetime import timedelta
 import os
 
 from dotenv import load_dotenv
+import dj_database_url
+
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
@@ -148,6 +150,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "pgvector.django",
     'accounts_supabase',
     'chat',
     'mutes',
@@ -235,12 +238,43 @@ ASGI_APPLICATION = 'jatte.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+# DATABASES = {
+#     "default": dj_database_url.parse(
+#         os.environ["DATABASE_URL"],
+#         conn_max_age=600,
+#         ssl_require=True,
+#     )
+# }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'NAME': 'postgres',
+#         'USER': 'postgres.fzjjnflfsruvjcdpbyfh',
+#         'PASSWORD': '***REMOVED***',
+#         'HOST': 'aws-0-us-east-1.pooler.supabase.com',
+#         'PORT': '5432',
+#         'OPTIONS': {
+#             'sslmode': 'require',  # Supabase typically requires SSL.
+#         },        
+#     }
+# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": dj_database_url.parse(
+        os.environ["DATABASE_URL"],
+        conn_max_age=0,
+        ssl_require=True,  # ensures sslmode=require in OPTIONS
+    )
 }
+
+
 # Allow explicit override from SUPABASE_JWKS_URL env; otherwise use the URL
 # derived from NEXT_PUBLIC_SUPABASE_URL near the top of this file.
 _env_jwks = os.environ.get("SUPABASE_JWKS_URL")

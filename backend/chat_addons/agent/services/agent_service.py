@@ -20,6 +20,9 @@ from chat.api_views import _broadcast_to_cid
 from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 
+from .vector_memory import embed_query, search_similar
+from .metrics import estimate_prompt_tokens
+
 from ..config import (
     AGENT_MAX_TOKENS,
     AGENT_MODEL,
@@ -39,7 +42,7 @@ from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
 from ..utils import agent_user_id_for_room
-from .metrics import estimate_prompt_tokens
+
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +245,58 @@ class AgentService:
         turn = 0
         fallback_attempted = False
 
+
+        # Optional RAG enrichment: only when requested via meta["use_rag"]
+        meta_payload = dict(meta or {})
+        rag_enabled = bool(meta_payload.get("use_rag"))
+
+        if rag_enabled:
+            # For now, default to Florida; can be generalized later.
+            state = meta_payload.get("state") or "FL"
+            topic = meta_payload.get("rag_topic")  # optional narrowing
+
+            try:
+                query_emb = embed_query(message_text)
+                chunks = search_similar(
+                    state=state,
+                    query_embedding=query_emb,
+                    k=int(meta_payload.get("rag_k", 5)),
+                    topic=topic,
+                )
+            except Exception:
+                # If RAG fails, we fall back silently to non-RAG behavior.
+                chunks = []
+
+            if chunks:
+                context_pieces: list[str] = []
+                for chunk in chunks:
+                    if chunk.heading:
+                        context_pieces.append(f"## {chunk.heading}\n{chunk.text}")
+                    else:
+                        context_pieces.append(chunk.text)
+
+                context_block = "\n\n---\n\n".join(context_pieces)
+
+                rag_system = (
+                    "You are a Florida construction lien assistant. "
+                    "Use the following context excerpts from my internal notes and "
+                    "caselaw summaries to answer. If the context does not address "
+                    "the question, say so and answer based on your general knowledge of "
+                    "Florida lien law, but prefer the context where there's any tension.\n\n"
+                    "=== CONTEXT START ===\n"
+                    f"{context_block}\n"
+                    "=== CONTEXT END ==="
+                )
+
+                meta_payload["rag_context"] = rag_system
+                # Optional: track which chunks were used
+                meta_payload["rag_chunk_ids"] = [c.id for c in chunks]
+
+        # From here on, use meta_payload instead of the original `meta`
+        meta = meta_payload
+
+
+
         try:
             if not policy.agent_enabled:
                 reply_text = handoff_message
@@ -395,14 +450,23 @@ class AgentService:
         *,
         meta: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
+        meta = meta or {}
         messages: list[dict[str, Any]] = []
-        history = (meta or {}).get("history")
+
+        # RAG context: if present, prepend as a system message
+        rag_context = meta.get("rag_context")
+        if rag_context:
+            messages.append({"role": "system", "content": str(rag_context)})
+
+        # Existing history handling
+        history = meta.get("history")
         if isinstance(history, list):
             for message in history:
                 if isinstance(message, dict) and {"role", "content"}.issubset(message):
                     messages.append(
                         {"role": message["role"], "content": str(message["content"])}
                     )
+
         messages.append({"role": "user", "content": user_text})
         return messages
 

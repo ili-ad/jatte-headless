@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
-from chat_addons import urls as chat_addons_urls
+from chat_addons.agent.views import AgentLLMInvokeView
 
 from chat.views import TokenView  # real view
 from chat.views_quoted import QuotedMessageView
@@ -40,7 +40,11 @@ urlpatterns = [
     #     AgentInvokeView.as_view(),
     #     name="agent-invoke",
     # ),
-
+    # re_path(
+    #     r"^api/chat/agent/(?P<cid>.+)/invoke/?$",
+    #     AgentLLMInvokeView.as_view(),
+    #     name="agent-invoke",
+    # ),
 ]
 
 urlpatterns += [

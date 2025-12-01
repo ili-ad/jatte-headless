@@ -1,16 +1,20 @@
 """LLM client abstraction for chat agent invocations."""
+
 from __future__ import annotations
 
 import logging
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Iterable, Protocol
+from typing import Any, Iterable, Optional, Protocol
 
 from django.core.cache import caches
 from django.utils import timezone
+
+from django.conf import settings
 
 from ..config import (
     AGENT_DAILY_BUDGET_USD,
@@ -120,7 +124,28 @@ class LLMClient:
         default_max_tokens: int | None = None,
         cost_guard: CostGuard | None = None,
     ) -> None:
-        self.provider = provider or CannedProvider()
+        if provider is not None:
+            # Explicitly injected provider (used by tests/overrides).
+            self.provider = provider
+        else:
+            # Choose provider based on settings / environment.
+            provider_key = getattr(
+                settings,
+                "AGENT_LLM_PROVIDER",
+                os.getenv("AGENT_LLM_PROVIDER", "canned"),
+            )
+            provider_key = str(provider_key).lower()
+
+            if provider_key == "openai":
+                self.provider = OpenAIProvider()
+            elif provider_key in ("canned", "", None):
+                self.provider = CannedProvider()
+            else:
+                raise RuntimeError(
+                    f"Unknown AGENT_LLM_PROVIDER {provider_key!r}; "
+                    "expected 'canned' or 'openai'."
+                )
+        
         self.default_model = default_model or AGENT_MODEL
         self.default_timeout = default_timeout or AGENT_TIMEOUT_SEC
         self.default_max_tokens = default_max_tokens or AGENT_MAX_TOKENS
@@ -221,4 +246,121 @@ class CannedProvider:
             "content": self.text,
             "tokens_used": min(32, max_tokens),
             "cost_usd": Decimal("0.000160"),
+        }
+
+
+class OpenAIProvider(LLMProvider):
+    """
+    OpenAI-backed provider that plugs into LLMClient.
+
+    - Expects OPENAI_API_KEY to be set (in Django settings or env).
+    - Ignores tools for now (no function-calling), so the agent behaves
+      as a plain chat completion model.
+    - Returns a payload with 'content' and 'tokens_used'; LLMClient
+      will estimate cost if 'cost_usd' is absent.
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout_s: float = 30.0,
+    ) -> None:
+        # Resolve API key from explicit arg, Django settings, or env.
+        key = api_key or getattr(settings, "OPENAI_API_KEY", None) or os.getenv(
+            "OPENAI_API_KEY"
+        )
+        if not key:
+            raise RuntimeError(
+                "OPENAI_API_KEY must be set (in Django settings or environment) "
+                "to use OpenAIProvider"
+            )
+
+        # Optional custom base URL (for proxies, etc).
+        resolved_base_url = (
+            base_url
+            or getattr(settings, "OPENAI_API_BASE_URL", None)
+            or os.getenv("OPENAI_API_BASE_URL")
+        )
+
+        self.api_key = key
+        self.base_url = resolved_base_url
+        self.timeout_s = float(timeout_s)
+
+        # Lazily created OpenAI client so import/instantiation only happen
+        # if this provider is actually used.
+        self._client = None
+
+    # Lazily import and instantiate the OpenAI client.
+    def _get_client(self):
+        if self._client is None:
+            try:
+                from openai import OpenAI
+            except ImportError as exc:
+                raise RuntimeError(
+                    "The 'openai' Python package is not installed. "
+                    "Install it with `pip install openai`."
+                ) from exc
+
+            if self.base_url:
+                self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            else:
+                self._client = OpenAI(api_key=self.api_key)
+        return self._client
+
+    def run(
+        self,
+        *,
+        messages: Iterable[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        max_tokens: int,
+    ) -> dict[str, Any]:
+        """
+        Call OpenAI's chat completions API and return a normalized result dict.
+
+        For now, we ignore `tools` and just return plain text.
+        """
+        client = self._get_client()
+        message_list = list(messages)
+
+        # You can add logging here if you want extra visibility.
+        logger.info(
+            "OpenAIProvider.run model=%s max_tokens=%s num_messages=%s",
+            model,
+            max_tokens,
+            len(message_list),
+        )
+
+        # Minimal, non-streaming chat completion call.
+        resp = client.chat.completions.create(
+            model=model,
+            messages=message_list,
+            max_tokens=max_tokens,
+            timeout=self.timeout_s,
+            # TODO(later): pass tools / tool_choice once you wire up tool-calling.
+        )
+
+        choice = resp.choices[0]
+        text = getattr(choice.message, "content", "") or ""
+
+        usage = getattr(resp, "usage", None)
+        total_tokens: int = 0
+        if usage is not None:
+            # Newer SDKs usually expose total_tokens; fall back to summing pieces.
+            total_tokens = (
+                getattr(usage, "total_tokens", None)
+                or (
+                    (getattr(usage, "prompt_tokens", 0) or 0)
+                    + (getattr(usage, "completion_tokens", 0) or 0)
+                )
+                or 0
+            )
+
+        return {
+            "content": text,
+            "tokens_used": int(total_tokens),
+            # No 'cost_usd' here — LLMClient._estimate_cost will fill it in using
+            # TOKEN_RATE_USD if configured.
         }

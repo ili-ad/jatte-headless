@@ -5,6 +5,11 @@ from decimal import Decimal
 from django.db import models
 
 
+
+
+
+from pgvector.django import VectorField
+
 class RoomAgentFlag(models.Model):
     """Toggle state for the chat agent on a per-room basis."""
 
@@ -127,3 +132,73 @@ class AgentMemoryEntry(models.Model):
     def __str__(self) -> str:  # pragma: no cover - debug helper
         preview = (self.text[:30] + "…") if len(self.text) > 30 else self.text
         return f"{self.cid}:{self.role}:{preview}"
+
+
+
+
+
+
+class DocumentChunk(models.Model):
+    """
+    A single retrievable chunk of a source document used for RAG.
+
+    For now we assume all chunks are Florida lien-law text, but we keep
+    `state` and `topic` to future-proof for other jurisdictions and domains.
+    """
+
+    # High-level context
+    state = models.CharField(max_length=8, db_index=True)  # e.g. "FL"
+    topic = models.CharField(
+        max_length=128,
+        db_index=True,
+        help_text="Short slug for the pillar/topic, e.g. 'noc_compliance', 'lien_waiver'.",
+    )
+
+    # Document identity
+    doc_name = models.CharField(
+        max_length=256,
+        help_text="Source document name, e.g. 'florida_noc_compliance.md'.",
+    )
+    chunk_index = models.PositiveIntegerField(
+        help_text="Zero-based index for this chunk within its document."
+    )
+
+    # Content
+    heading = models.TextField(
+        blank=True,
+        help_text="Section heading(s) associated with this chunk.",
+    )
+    text = models.TextField(
+        help_text="The full text of this chunk that will be retrieved & shown to the LLM.",
+    )
+
+    # Simple metadata for debugging / analysis
+    tokens_estimated = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Approximate token count for this chunk (heuristic).",
+    )
+    metadata = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Optional extra metadata (statute refs, phase, etc.).",
+    )
+
+    # Embedding to be filled later by a separate command.
+    # text-embedding-3-small is 1536-dim, so we pick 1536 here.
+    embedding = VectorField(
+        dimensions=1536,
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("state", "doc_name", "chunk_index")
+        indexes = [
+            models.Index(fields=["state", "topic"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.state}:{self.topic} [{self.doc_name} #{self.chunk_index}]"

@@ -301,6 +301,15 @@ class AgentLLMInvokeView(APIView):
         # -----------------------------
         trace_id = serializer.validated_data.get("trace_id")
 
+        # meta: dict[str, Any] = {
+        #     "source": "AgentLLMInvokeView",
+        #     "invocation": "llm_invoke",
+        #     "cid": canonical,
+        #     "room_uuid": str(room.uuid),
+        #     "room_name": getattr(room, "name", None),
+        #     "request_id": trace_id,
+        # }
+
         meta: dict[str, Any] = {
             "source": "AgentLLMInvokeView",
             "invocation": "llm_invoke",
@@ -308,7 +317,12 @@ class AgentLLMInvokeView(APIView):
             "room_uuid": str(room.uuid),
             "room_name": getattr(room, "name", None),
             "request_id": trace_id,
+            # 🔹 RAG flags:
+            "use_rag": True,
+            "state": "FL",
+            # optionally: "rag_topic": "noc_compliance" or whatever
         }
+        
 
         service = get_agent_service()
         reply = service.generate(
@@ -405,6 +419,10 @@ class AgentRagView(APIView):
             "last_human_message_id": message_id,
             "client_generated_id": serializer.validated_data.get("client_generated_id"),
             "trace_id": serializer.validated_data.get("trace_id"),
+            # RAG flags:
+            "use_rag": True,
+            "state": "FL",
+            # Optionally: "rag_topic": "noc_compliance" or similar, if you want.            
         }
 
         service = get_agent_service()
