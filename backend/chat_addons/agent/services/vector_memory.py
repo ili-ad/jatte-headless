@@ -9,8 +9,10 @@ from django.db.models.expressions import RawSQL
 
 from openai import OpenAI
 from pgvector import Vector
+from pgvector.django import CosineDistance #Vector
 
 from chat_addons.agent.models import DocumentChunk
+
 
 
 
@@ -24,24 +26,45 @@ def search_similar(
     """
     Return the top-k DocumentChunk rows most similar to `query_embedding`
     using pgvector cosine distance.
-
-    - `state` lets us scope by jurisdiction (e.g. "FL").
-    - `topic` (optional) lets us narrow to a specific pillar
-      (e.g. "noc_compliance", "lien_waiver_caselaw").
     """
-
     qs = DocumentChunk.objects.filter(state=state)
     if topic:
         qs = qs.filter(topic=topic)
 
-    # pgvector uses the <#> operator for cosine distance.
-    # The Vector(...) wrapper ensures psycopg2 knows how to adapt the value.
-    vec = Vector(query_embedding)
-    ordering = RawSQL("embedding <#> %s", [vec])
+    # pgvector.django's CosineDistance builds a proper ORM expression that
+    # knows how to adapt a Python list[float] to the VectorField.
+    distance_expr = CosineDistance("embedding", list(query_embedding))
+    return list(qs.order_by(distance_expr)[:k])
 
-    # Smaller distance = more similar, so we order ascending
-    chunks = list(qs.order_by(ordering)[:k])
-    return chunks
+
+# def search_similar(
+#     *,
+#     state: str,
+#     query_embedding: Sequence[float],
+#     k: int = 5,
+#     topic: str | None = None,
+# ) -> List[DocumentChunk]:
+#     """
+#     Return the top-k DocumentChunk rows most similar to `query_embedding`
+#     using pgvector cosine distance.
+
+#     - `state` lets us scope by jurisdiction (e.g. "FL").
+#     - `topic` (optional) lets us narrow to a specific pillar
+#       (e.g. "noc_compliance", "lien_waiver_caselaw").
+#     """
+
+#     qs = DocumentChunk.objects.filter(state=state)
+#     if topic:
+#         qs = qs.filter(topic=topic)
+
+#     # pgvector uses the <#> operator for cosine distance.
+#     # The Vector(...) wrapper ensures psycopg2 knows how to adapt the value.
+#     vec = Vector(query_embedding)
+#     ordering = RawSQL("embedding <#> %s", [vec])
+
+#     # Smaller distance = more similar, so we order ascending
+#     chunks = list(qs.order_by(ordering)[:k])
+#     return chunks
 
 
 _client: OpenAI | None = None
@@ -66,21 +89,3 @@ def embed_query(text: str, model: str = "text-embedding-3-small") -> List[float]
     return resp.data[0].embedding
 
 
-def search_similar(
-    *,
-    state: str,
-    query_embedding: Sequence[float],
-    k: int = 5,
-    topic: str | None = None,
-) -> List[DocumentChunk]:
-    """
-    Return the top-k DocumentChunk rows most similar to `query_embedding`
-    using pgvector cosine distance.
-    """
-    qs = DocumentChunk.objects.filter(state=state)
-    if topic:
-        qs = qs.filter(topic=topic)
-
-    vec = Vector(query_embedding)
-    ordering = RawSQL("embedding <#> %s", [vec])
-    return list(qs.order_by(ordering)[:k])
