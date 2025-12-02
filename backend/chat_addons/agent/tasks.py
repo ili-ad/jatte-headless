@@ -58,8 +58,14 @@ def _room_uuid(cid: str) -> str:
     return cid.split(":", 1)[1] if ":" in cid else cid
 
 
-def _persist_message(*, cid: str, text: str) -> Message:
-    serializer = MessageSerializer(data={"text": text})
+def _persist_message(
+    *, cid: str, text: str, custom_data: dict[str, Any] | None = None
+) -> Message:
+    payload: dict[str, Any] = {"text": text}
+    if custom_data is not None:
+        payload["custom_data"] = custom_data
+
+    serializer = MessageSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
 
     room_uuid = _room_uuid(cid)
