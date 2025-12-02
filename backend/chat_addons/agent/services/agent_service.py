@@ -28,6 +28,7 @@ from .metrics import estimate_prompt_tokens
 from ..config import (
     AGENT_MAX_TOKENS,
     AGENT_MODEL,
+    AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
 from ..models import AgentRoomPolicy, AgentRun
@@ -247,11 +248,11 @@ class AgentService:
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
         rag_enabled = bool(meta_payload.get("use_rag"))
-        llm_timeout = (
-            meta_payload.get("timeout")
-            or getattr(self.llm_client, "default_timeout", None)
-            or AGENT_TIMEOUT_SEC
-        )
+            llm_timeout = (
+                meta_payload.get("timeout")
+                or getattr(self.llm_client, "default_timeout", None)
+                or AGENT_TIMEOUT_SEC
+            )
 
         if rag_enabled:
             # For now, default to Florida; can be generalized later.
@@ -376,6 +377,7 @@ class AgentService:
                             tool_schemas,
                             meta,
                             stream_target=ai_message,
+                            handoff_message=handoff_message,
                         )
                     except Exception as exc:  # pragma: no cover - defensive log
                         llm_outcome = exc.__class__.__name__
@@ -395,6 +397,13 @@ class AgentService:
                         )
                     tokens_out += llm_result.tokens_used
                     total_cost += llm_result.cost_usd
+
+                    if getattr(llm_result, "reason", "ok") != "ok":
+                        reason = llm_result.reason
+                        run_status = AgentRun.STATUS_ERROR
+                        handoff_triggered = True
+                        reply_text = llm_result.content
+                        break
 
                     tool_calls, potential_text = parse_tool_instructions(llm_result.content)
 
@@ -457,7 +466,7 @@ class AgentService:
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
         except TimeoutError:
-            reason = "error"
+            reason = "timeout"
             reply_text = handoff_message
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
@@ -473,13 +482,13 @@ class AgentService:
 
         if persist:
             if ai_message is not None:
-                final_state = (
-                    "AI_STATE_ERROR"
-                    if run_status == AgentRun.STATUS_ERROR
-                    else "AI_STATE_IDLE"
-                )
+                final_state = "AI_STATE_IDLE"
                 custom_data = {**(ai_message.custom_data or {})}
+                if run_status == AgentRun.STATUS_ERROR and reason != "timeout":
+                    final_state = "AI_STATE_ERROR"
                 custom_data["ai_state"] = final_state
+                if reason == "timeout":
+                    custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
                     custom_data["agent"] = {"handoff": True}
                 self._update_message(ai_message, text=reply_text, custom_data=custom_data)
@@ -594,17 +603,22 @@ class AgentService:
         meta: dict[str, Any] | None,
         *,
         stream_target: Message | None = None,
+        handoff_message: str | None = None,
     ) -> LLMResult:
         timeout = (meta or {}).get("timeout")
-        fallback_timeout = getattr(self.llm_client, "default_timeout", None)
-
+        streaming_timeout = (
+            timeout
+            or getattr(self.llm_client, "default_streaming_timeout", None)
+            or AGENT_STREAMING_TIMEOUT_SEC
+        )
+        
         if stream_target is None or not hasattr(self.llm_client.provider, "run_streaming"):
             return self.llm_client.run(
                 messages,
                 tools=tools or None,
                 model=AGENT_MODEL,
                 max_tokens=AGENT_MAX_TOKENS,
-                timeout=timeout if timeout is not None else fallback_timeout,
+                timeout=timeout if timeout is not None else streaming_timeout,
             )
 
         custom_data = {**(stream_target.custom_data or {})}
@@ -617,15 +631,62 @@ class AgentService:
             self._update_message(
                 stream_target, text=buffer, custom_data=stream_custom_data
             )
+            logger.info(
+                "agent.llm.streaming.chunk",
+                extra={"cid": cid, "trace_id": trace_id, "length": len(buffer)},
+            )
 
+        trace_id = (meta or {}).get("trace_id") or (meta or {}).get("request_id")
+        cid = (meta or {}).get("cid")
+        logger.info(
+            "agent.llm.streaming.start",
+            extra={
+                "cid": cid,
+                "trace_id": trace_id,
+                "timeout_sec": streaming_timeout,
+            },
+        )
+
+        start = time.perf_counter()
         try:
-            return self.llm_client.run_streaming(
+            result = self.llm_client.run_streaming(
                 messages,
                 tools=tools or None,
                 model=AGENT_MODEL,
                 max_tokens=AGENT_MAX_TOKENS,
-                timeout=timeout or AGENT_TIMEOUT_SEC,
+                timeout=streaming_timeout,
                 on_update=on_update,
+            )
+            logger.info(
+                "agent.llm.streaming.success",
+                extra={
+                    "cid": cid,
+                    "trace_id": trace_id,
+                    "latency_ms": int((time.perf_counter() - start) * 1000),
+                },
+            )
+            return result
+        except TimeoutError:
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            logger.warning(
+                "agent.llm.streaming_timeout",
+                extra={"cid": cid, "trace_id": trace_id, "latency_ms": elapsed_ms},
+            )
+            fallback_text = handoff_message or self.canned_text
+            timeout_custom_data = {**(stream_target.custom_data or {})}
+            timeout_custom_data["ai_generated"] = True
+            timeout_custom_data["ai_state"] = "AI_STATE_IDLE"
+            timeout_custom_data["error_reason"] = "timeout"
+            self._update_message(
+                stream_target, text=fallback_text, custom_data=timeout_custom_data
+            )
+            return LLMResult(
+                content=fallback_text,
+                tokens_used=0,
+                model=AGENT_MODEL,
+                latency_ms=elapsed_ms,
+                cost_usd=Decimal("0"),
+                reason="timeout",
             )
         except Exception:
             # Log and fall back to non-streaming so we don't regress to 500s

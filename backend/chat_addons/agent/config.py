@@ -43,6 +43,7 @@ def _clamp(value: int, lower: int, upper: int) -> int:
 
 AGENT_MODEL: str = _get_env_str("AGENT_MODEL", "gpt-5-mini")
 AGENT_TIMEOUT_SEC: int = _get_env_int("AGENT_TIMEOUT_SEC", 25)
+AGENT_STREAMING_TIMEOUT_SEC: int = _get_env_int("AGENT_STREAMING_TIMEOUT_SEC", 60)
 AGENT_MAX_TOKENS: int = _get_env_int("AGENT_MAX_TOKENS", 6000)
 AGENT_DAILY_BUDGET_USD: Decimal = _get_env_decimal("AGENT_DAILY_BUDGET_USD", "0.50")
 AGENT_USER_ID: str = _get_env_str("AGENT_USER_ID", "ai-bot")
