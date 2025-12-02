@@ -100,6 +100,10 @@ class AgentService:
     """Service responsible for producing agent replies via skill orchestration."""
 
     canned_text = "Let me connect you with a teammate."
+    streaming_timeout_text = (
+        "I'm sorry — my model took too long to respond and I had to stop this attempt. "
+        "You can try again, or rephrase the question to be shorter."
+    )
 
     def __init__(self, *, llm_client: LLMClient | None = None) -> None:
         self.llm_client = llm_client or LLMClient()
@@ -467,7 +471,7 @@ class AgentService:
             handoff_triggered = True
         except TimeoutError:
             reason = "timeout"
-            reply_text = handoff_message
+            reply_text = self.streaming_timeout_text
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
         except Exception:  # pragma: no cover - defensive log
@@ -672,7 +676,7 @@ class AgentService:
                 "agent.llm.streaming_timeout",
                 extra={"cid": cid, "trace_id": trace_id, "latency_ms": elapsed_ms},
             )
-            fallback_text = handoff_message or self.canned_text
+            fallback_text = self.streaming_timeout_text
             if stream_target is not None:
                 timeout_custom_data = {**(stream_target.custom_data or {})}
                 timeout_custom_data["ai_generated"] = True
