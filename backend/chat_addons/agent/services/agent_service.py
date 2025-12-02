@@ -673,13 +673,14 @@ class AgentService:
                 extra={"cid": cid, "trace_id": trace_id, "latency_ms": elapsed_ms},
             )
             fallback_text = handoff_message or self.canned_text
-            timeout_custom_data = {**(stream_target.custom_data or {})}
-            timeout_custom_data["ai_generated"] = True
-            timeout_custom_data["ai_state"] = "AI_STATE_IDLE"
-            timeout_custom_data["error_reason"] = "timeout"
-            self._update_message(
-                stream_target, text=fallback_text, custom_data=timeout_custom_data
-            )
+            if stream_target is not None:
+                timeout_custom_data = {**(stream_target.custom_data or {})}
+                timeout_custom_data["ai_generated"] = True
+                timeout_custom_data["ai_state"] = "AI_STATE_IDLE"
+                timeout_custom_data["error_reason"] = "timeout"
+                self._update_message(
+                    stream_target, text=fallback_text, custom_data=timeout_custom_data
+                )
             return LLMResult(
                 content=fallback_text,
                 tokens_used=0,

@@ -254,7 +254,7 @@ class LLMClient:
                 return future.result(timeout=timeout)
             except FuturesTimeoutError as exc:
                 future.cancel()
-                raise TimeoutError("LLM provider call exceeded timeout") from exc
+                raise TimeoutError("LLM provider timed out") from exc
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
 
@@ -331,19 +331,19 @@ class LLMClient:
         call_max_tokens = min(
             max_tokens or self.default_max_tokens, self.default_max_tokens
         )
-        call_timeout = min(
-            timeout or self.default_streaming_timeout, self.default_streaming_timeout
-        )
+        call_timeout = timeout if timeout is not None else self.default_streaming_timeout
         guard = cost_guard or self.cost_guard
 
         projected_cost = self._estimate_cost(call_max_tokens)
         guard.ensure_within_budget(projected_cost)
 
+        message_list = list(messages)
+
         start = time.perf_counter()
         try:
             payload = self._execute_with_timeout(
                 lambda: self.provider.run_streaming(
-                    messages=list(messages),
+                    messages=message_list,
                     tools=tools,
                     model=call_model,
                     max_tokens=call_max_tokens,
