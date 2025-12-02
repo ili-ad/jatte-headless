@@ -326,6 +326,7 @@ class LLMClient:
         timeout: int | None = None,
         cost_guard: CostGuard | None = None,
         on_update: Callable[[str], None] | None = None,
+        context: dict[str, Any] | None = None,
     ) -> LLMResult:
         call_model = model or self.default_model
         call_max_tokens = min(
@@ -339,10 +340,13 @@ class LLMClient:
 
         message_list = list(messages)
 
-        logger.info(
-            "agent.llm.streaming.run_start",
-            extra={"model": call_model, "timeout": call_timeout},
-        )
+        log_context = {"model": call_model, "timeout": call_timeout}
+        if context:
+            log_context.update(
+                {k: v for k, v in context.items() if k in {"cid", "trace_id", "job_id"}}
+            )
+
+        logger.info("agent.llm.streaming.run_start", extra=log_context)
 
         start = time.perf_counter()
 
@@ -370,9 +374,11 @@ class LLMClient:
                 raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
         except (APITimeoutError, TimeoutError) as exc:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
+            timeout_extra = {"model": call_model, "timeout": call_timeout, "latency_ms": elapsed_ms}
+            timeout_extra.update({k: v for k, v in (context or {}).items() if k in {"cid", "trace_id", "job_id"}})
             logger.warning(
                 "agent.llm.streaming_timeout",
-                extra={"model": call_model, "timeout": call_timeout, "latency_ms": elapsed_ms},
+                extra=timeout_extra,
             )
             raise TimeoutError("LLM provider timed out") from exc
         finally:
