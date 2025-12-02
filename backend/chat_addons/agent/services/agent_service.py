@@ -109,6 +109,15 @@ class AgentService:
 
     def __init__(self, *, llm_client: LLMClient | None = None) -> None:
         self.llm_client = llm_client or LLMClient()
+        logger.info(
+            "agent.llm.config",
+            extra={
+                "provider": self.llm_client.provider.__class__.__name__,
+                "model": self.llm_client.default_model,
+                "timeout_sec": self.llm_client.default_streaming_timeout,
+                "max_tokens": self.llm_client.default_max_tokens,
+            },
+        )
 
     # ------------------------------------------------------------------
     # High level orchestration
@@ -784,6 +793,10 @@ class AgentService:
                 timeout_custom_data["error_reason"] = "timeout"
                 self._update_message(
                     stream_target, text=fallback_text, custom_data=timeout_custom_data
+                )
+                logger.info(
+                    "agent.llm.streaming_timeout.fallback",
+                    extra={"cid": cid, "trace_id": trace_id, "fallback_text": fallback_text},
                 )
             return LLMResult(
                 content=fallback_text,

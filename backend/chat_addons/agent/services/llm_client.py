@@ -349,11 +349,20 @@ class LLMClient:
         logger.info("agent.llm.streaming.run_start", extra=log_context)
 
         start = time.perf_counter()
+        first_update_at: float | None = None
 
-        def _guarded_on_update(buffer: str) -> None:
-            elapsed = time.perf_counter() - start
-            if call_timeout is not None and elapsed > float(call_timeout):
-                raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
+        def _wrapped_on_update(buffer: str) -> None:
+            nonlocal first_update_at
+            if first_update_at is None:
+                first_update_at = time.perf_counter()
+                logger.info(
+                    "agent.llm.streaming.first_update",
+                    extra={
+                        **log_context,
+                        "latency_ms": int((first_update_at - start) * 1000),
+                        "length": len(buffer),
+                    },
+                )
             if on_update:
                 on_update(buffer)
 
@@ -364,14 +373,12 @@ class LLMClient:
                     tools=tools,
                     model=call_model,
                     max_tokens=call_max_tokens,
-                    timeout=float(call_timeout) if call_timeout is not None else None,
-                    on_update=_guarded_on_update,
+                    timeout=None,
+                    on_update=_wrapped_on_update,
                 ),
                 timeout=float(call_timeout) if call_timeout is not None else None,
             )
             elapsed = time.perf_counter() - start
-            if call_timeout is not None and elapsed > float(call_timeout):
-                raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
         except (APITimeoutError, TimeoutError) as exc:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             timeout_extra = {"model": call_model, "timeout": call_timeout, "latency_ms": elapsed_ms}
@@ -658,6 +665,16 @@ class OpenAIProvider(LLMProvider):
         tokens_used = 0
 
         stream = client.chat.completions.create(**kwargs)
+        logger.info(
+            "OpenAIProvider.run_streaming.stream_open",
+            extra={
+                "model": call_model,
+                "max_tokens": call_max_tokens,
+                "num_messages": len(message_list),
+            },
+        )
+
+        saw_first_chunk = False
         for event in stream:
             delta = event.choices[0].delta
             delta_text = getattr(delta, "content", None) or ""
@@ -665,8 +682,28 @@ class OpenAIProvider(LLMProvider):
                 buffer += delta_text
                 if on_update:
                     on_update(buffer)
+                if not saw_first_chunk:
+                    logger.info(
+                        "OpenAIProvider.run_streaming.first_chunk",
+                        extra={
+                            "model": call_model,
+                            "length": len(delta_text),
+                            "buffer_length": len(buffer),
+                        },
+                    )
+                    saw_first_chunk = True
 
             if getattr(event, "usage", None) is not None:
                 tokens_used = event.usage.total_tokens or tokens_used
+
+        if not saw_first_chunk:
+            logger.warning(
+                "OpenAIProvider.run_streaming.no_chunks",
+                extra={
+                    "model": call_model,
+                    "max_tokens": call_max_tokens,
+                    "num_messages": len(message_list),
+                },
+            )
 
         return {"content": buffer, "tokens_used": tokens_used, "model": call_model}
