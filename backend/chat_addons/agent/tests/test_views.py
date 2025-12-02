@@ -29,13 +29,8 @@ from rest_framework.test import APITestCase
 
 from accounts_supabase.models import CustomUser
 from chat.models import Channel, Message, Room
-from chat_addons.agent.models import AgentRoomPolicy, AgentRun, RoomAgentFlag
-from chat_addons.agent.services.agent_service import (
-    AgentReply,
-    AgentService,
-    AgentSimulationResult,
-)
-from chat_addons.agent.services.llm_client import LLMClient
+from chat_addons.agent.models import AgentRun, RoomAgentFlag
+from chat_addons.agent.services.agent_service import AgentSimulationResult
 from chat_addons.agent.services.memory import MemoryService
 from chat_addons.agent.utils import agent_user_id_for_room
 
@@ -161,7 +156,7 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(agent_messages.count(), 1)
 
     @mock.patch("chat_addons.agent.views.get_agent_service")
-    def test_llm_invoke_marks_agent_reply_ai_generated(
+    def test_llm_invoke_enqueues_job_and_returns_queued_status(
         self, mock_get_service: mock.MagicMock
     ) -> None:
         room = Room.objects.create(uuid="llm-room", client="stream")
@@ -172,22 +167,8 @@ class AgentViewsTests(APITestCase):
             channel=channel, body="Hello", sent_by="user-1"
         )
 
-        agent_message = Message.objects.create(
-            channel=channel,
-            body="Hi there",
-            sent_by=agent_user_id_for_room(room.uuid),
-            custom_data={"foo": "bar"},
-        )
-
         service = mock.Mock()
-        service.generate.return_value = AgentReply(
-            text=agent_message.body,
-            tokens_used=42,
-            latency_ms=99,
-            model="test-model",
-            cost_usd=Decimal("0.02"),
-            messages=[agent_message],
-        )
+        service.enqueue_generate.return_value = "job-123"
         mock_get_service.return_value = service
 
         response = self.client.post(
@@ -195,17 +176,29 @@ class AgentViewsTests(APITestCase):
             {
                 "room_uuid": room.uuid,
                 "last_human_message_id": user_message.id,
+                "trace_id": "trace-1",
             },
             format="json",
             **self.auth_headers(),
         )
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         payload = response.json()
-        self.assertTrue(payload["messages"][0]["custom_data"]["ai_generated"])
+        self.assertEqual(payload["status"], "queued")
+        self.assertEqual(payload["job_id"], "job-123")
+        self.assertEqual(payload["trace_id"], "trace-1")
+
+        service.enqueue_generate.assert_called_once()
+        _, kwargs = service.enqueue_generate.call_args
+        self.assertEqual(kwargs["cid"], f"messaging:{room.uuid}")
+        self.assertEqual(kwargs["user_id"], str(self.operator.id))
+        self.assertEqual(kwargs["text"], user_message.body)
+        self.assertEqual(kwargs["request_id"], "trace-1")
+        self.assertEqual(kwargs["meta"].get("job_request_id"), "trace-1")
+        self.assertEqual(kwargs["meta"].get("job_id"), "job-123")
 
     @mock.patch("chat_addons.agent.views.get_agent_service")
-    def test_llm_invoke_timeout_returns_504(
+    def test_llm_invoke_returns_500_when_enqueue_fails(
         self, mock_get_service: mock.MagicMock
     ) -> None:
         room = Room.objects.create(uuid="llm-timeout", client="stream")
@@ -217,7 +210,7 @@ class AgentViewsTests(APITestCase):
         )
 
         service = mock.Mock()
-        service.generate.side_effect = TimeoutError("streaming timeout")
+        service.enqueue_generate.side_effect = RuntimeError("enqueue failed")
         mock_get_service.return_value = service
 
         response = self.client.post(
@@ -230,84 +223,9 @@ class AgentViewsTests(APITestCase):
             **self.auth_headers(),
         )
 
-        self.assertEqual(response.status_code, status.HTTP_504_GATEWAY_TIMEOUT)
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         payload = response.json()
-        self.assertEqual(payload["detail"], "Agent timed out while generating a reply.")
-        self.assertEqual(payload["reason"], "timeout")
-
-    @mock.patch("chat_addons.agent.views.get_agent_service")
-    def test_llm_invoke_streaming_timeout_returns_fallback(
-        self, mock_get_service: mock.MagicMock
-    ) -> None:
-        room = Room.objects.create(uuid="llm-stream-timeout", client="stream")
-        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
-        RoomAgentFlag.objects.create(room=room, agent_enabled=True)
-        AgentRoomPolicy.objects.create(cid=f"messaging:{room.uuid}", agent_enabled=True)
-
-        user_message = Message.objects.create(
-            channel=channel, body="Hello", sent_by="user-1"
-        )
-
-        class _SlowStreamProvider:
-            def run(self, *, messages, tools, model, max_tokens, timeout=None):
-                _ = (messages, tools, model, max_tokens, timeout)
-                return {
-                    "content": "late",
-                    "tokens_used": 1,
-                    "cost_usd": Decimal("0.00001"),
-                }
-
-            def run_streaming(
-                self,
-                *,
-                messages,
-                tools,
-                model,
-                max_tokens,
-                timeout=None,
-                on_update=None,
-            ):
-                _ = (messages, tools, model, max_tokens, timeout)
-                time.sleep(0.2)
-                if on_update:
-                    on_update("partial")
-                return {
-                    "content": "late",
-                    "tokens_used": 1,
-                    "cost_usd": Decimal("0.00001"),
-                }
-
-        llm_client = LLMClient(
-            provider=_SlowStreamProvider(),
-            default_timeout=1,
-            default_streaming_timeout=0.05,
-        )
-        service = AgentService(llm_client=llm_client)
-        mock_get_service.return_value = service
-
-        response = self.client.post(
-            reverse("agent-invoke", kwargs={"cid": f"messaging:{room.uuid}"}),
-            {
-                "room_uuid": room.uuid,
-                "last_human_message_id": user_message.id,
-            },
-            format="json",
-            **self.auth_headers(),
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertIn(payload["reason"], [AgentRun.STATUS_ERROR, "timeout"])
-        message_payload = payload["messages"][0]
-        self.assertEqual(message_payload["text"], service.streaming_timeout_text)
-        custom_data = message_payload["custom_data"]
-        self.assertTrue(custom_data.get("ai_generated"))
-        self.assertEqual(custom_data.get("ai_state"), "AI_STATE_IDLE")
-        self.assertEqual(custom_data.get("error_reason"), "timeout")
-
-        stored = Message.objects.get(id=message_payload["id"])
-        self.assertEqual(stored.body, service.streaming_timeout_text)
-        self.assertEqual(stored.custom_data.get("ai_state"), "AI_STATE_IDLE")
+        self.assertIn("Agent invocation failed", payload["detail"])
 
     def test_list_runs_with_pagination(self) -> None:
         AgentRun.objects.create(
