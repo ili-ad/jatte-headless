@@ -1,20 +1,25 @@
-"""LLM client abstraction for chat agent invocations."""
+"""LLM client abstraction for chat agent invocations.
+
+This version removes the internal ThreadPool-based timeout and instead
+relies on the OpenAI Python client's own timeout handling, so that
+AGENT_TIMEOUT_SEC behaves as the *real* wall-clock limit for calls.
+"""
 
 from __future__ import annotations
 
 import logging
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Iterable, Optional, Protocol
+from typing import Any, Iterable, Protocol
 
 from django.core.cache import caches
 from django.utils import timezone
-
 from django.conf import settings
+
+from openai import OpenAI, APITimeoutError
 
 from ..config import (
     AGENT_DAILY_BUDGET_USD,
@@ -24,6 +29,11 @@ from ..config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Public result type
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -37,8 +47,13 @@ class LLMResult:
     cost_usd: Decimal
 
 
+# ---------------------------------------------------------------------------
+# Provider protocol + budget guard
+# ---------------------------------------------------------------------------
+
+
 class LLMProvider(Protocol):
-    """Protocol describing the minimal provider surface."""
+    """Protocol describing the minimal provider surface used by :class:`LLMClient`."""
 
     def run(
         self,
@@ -47,8 +62,9 @@ class LLMProvider(Protocol):
         tools: list[dict[str, Any]] | None,
         model: str,
         max_tokens: int,
+        timeout: float | None = None,
     ) -> LLMResult | dict[str, Any]:  # pragma: no cover - protocol definition
-        """Execute the call and return either an :class:`LLMResult` or mapping."""
+        """Execute the call and return either an :class:`LLMResult` or a plain mapping."""
 
 
 class BudgetExceeded(Exception):
@@ -85,7 +101,9 @@ class DailyCostGuard(CostGuard):
 
     def _ttl_until_tomorrow(self) -> int:
         now = timezone.now()
-        tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         delta = tomorrow - now
         return max(int(delta.total_seconds()), 1)
 
@@ -107,12 +125,22 @@ class DailyCostGuard(CostGuard):
 
     def record_cost(self, cost: Decimal) -> None:
         spend = self._get_spend() + Decimal(cost)
-        self.cache.set(self._today_key(), str(spend), timeout=self._ttl_until_tomorrow())
+        self.cache.set(
+            self._today_key(),
+            str(spend),
+            timeout=self._ttl_until_tomorrow(),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Main LLM client wrapper
+# ---------------------------------------------------------------------------
 
 
 class LLMClient:
     """Execute LLM calls with guardrails for latency and spend."""
 
+    # Very conservative flat token rate, purely for budgeting purposes.
     TOKEN_RATE_USD = Decimal("0.000005")
 
     def __init__(
@@ -145,11 +173,13 @@ class LLMClient:
                     f"Unknown AGENT_LLM_PROVIDER {provider_key!r}; "
                     "expected 'canned' or 'openai'."
                 )
-        
+
         self.default_model = default_model or AGENT_MODEL
         self.default_timeout = default_timeout or AGENT_TIMEOUT_SEC
         self.default_max_tokens = default_max_tokens or AGENT_MAX_TOKENS
         self.cost_guard = cost_guard or DailyCostGuard()
+
+    # ---- internal helpers -------------------------------------------------
 
     def _coerce_result(
         self,
@@ -164,7 +194,11 @@ class LLMClient:
         content = str(payload.get("content", ""))
         tokens_used = int(payload.get("tokens_used", 0))
         raw_cost = payload.get("cost_usd")
-        cost = Decimal(str(raw_cost)) if raw_cost is not None else self._estimate_cost(tokens_used)
+        cost = (
+            Decimal(str(raw_cost))
+            if raw_cost is not None
+            else self._estimate_cost(tokens_used)
+        )
         return LLMResult(
             content=content,
             tokens_used=tokens_used,
@@ -176,7 +210,11 @@ class LLMClient:
     def _estimate_cost(self, tokens: int) -> Decimal:
         if tokens <= 0:
             tokens = self.default_max_tokens
-        return (Decimal(tokens) * self.TOKEN_RATE_USD).quantize(Decimal("0.000001"))
+        return (Decimal(tokens) * self.TOKEN_RATE_USD).quantize(
+            Decimal("0.000001")
+        )
+
+    # ---- public entrypoint ------------------------------------------------
 
     def run(
         self,
@@ -189,7 +227,9 @@ class LLMClient:
         cost_guard: CostGuard | None = None,
     ) -> LLMResult:
         call_model = model or self.default_model
-        call_max_tokens = min(max_tokens or self.default_max_tokens, self.default_max_tokens)
+        call_max_tokens = min(
+            max_tokens or self.default_max_tokens, self.default_max_tokens
+        )
         call_timeout = min(timeout or self.default_timeout, self.default_timeout)
         guard = cost_guard or self.cost_guard
 
@@ -198,17 +238,20 @@ class LLMClient:
 
         start = time.perf_counter()
         try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    self.provider.run,
-                    messages=messages,
-                    tools=tools,
-                    model=call_model,
-                    max_tokens=call_max_tokens,
-                )
-                payload = future.result(timeout=call_timeout)
-        except FuturesTimeout as exc:
-            logger.warning("agent.llm.timeout", extra={"model": call_model, "timeout": call_timeout})
+            payload = self.provider.run(
+                messages=list(messages),
+                tools=tools,
+                model=call_model,
+                max_tokens=call_max_tokens,
+                timeout=float(call_timeout),
+            )
+        except APITimeoutError as exc:
+            # Let the orchestration layer know this was a timeout, so it can
+            # surface the handoff text ("Let me connect you with a teammate.")
+            logger.warning(
+                "agent.llm.timeout",
+                extra={"model": call_model, "timeout": call_timeout},
+            )
             raise TimeoutError("LLM provider timed out") from exc
         finally:
             latency_ms = int((time.perf_counter() - start) * 1000)
@@ -227,6 +270,11 @@ class LLMClient:
         return result
 
 
+# ---------------------------------------------------------------------------
+# Simple canned provider (for tests / dev)
+# ---------------------------------------------------------------------------
+
+
 class CannedProvider:
     """Simple provider that returns a canned response."""
 
@@ -240,8 +288,9 @@ class CannedProvider:
         tools: list[dict[str, Any]] | None,
         model: str,
         max_tokens: int,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
-        _ = (messages, tools, model, max_tokens)
+        _ = (messages, tools, model, max_tokens, timeout)
         return {
             "content": self.text,
             "tokens_used": min(32, max_tokens),
@@ -249,65 +298,75 @@ class CannedProvider:
         }
 
 
+# ---------------------------------------------------------------------------
+# OpenAI-backed provider
+# ---------------------------------------------------------------------------
+
+
+@dataclass
 class OpenAIProvider(LLMProvider):
-    """
-    OpenAI-backed provider that plugs into LLMClient.
+    """OpenAI-backed provider that plugs into :class:`LLMClient`.
 
-    - Expects OPENAI_API_KEY to be set (in Django settings or env).
-    - Ignores tools for now (no function-calling), so the agent behaves
-      as a plain chat completion model.
-    - Returns a payload with 'content' and 'tokens_used'; LLMClient
-      will estimate cost if 'cost_usd' is absent.
+    It handles both:
+
+    * classic chat models (gpt-4o, gpt-4o-mini, etc.) which use ``max_tokens``
+    * GPT‑5 family (``gpt-5``, ``gpt-5-mini`` and their dated aliases) which use
+      ``max_completion_tokens`` and optional ``reasoning_effort``.
+
+    The goal is to mirror *exactly* what works in your REPL proof‑of‑concept,
+    where you call::
+
+        client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[...],
+            max_completion_tokens=128,
+            reasoning_effort="minimal",
+        )
     """
 
-    def __init__(
-        self,
-        *,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        timeout_s: float = 30.0,
-    ) -> None:
-        # Resolve API key from explicit arg, Django settings, or env.
-        key = api_key or getattr(settings, "OPENAI_API_KEY", None) or os.getenv(
-            "OPENAI_API_KEY"
+    # Defaults; stay in sync with your agent config by default.
+    api_key: str | None = None
+    base_url: str | None = None
+    default_model: str = AGENT_MODEL
+    default_max_tokens: int = AGENT_MAX_TOKENS
+    temperature: float = 0.2
+
+    _client: OpenAI | None = None
+
+    # ---- internal helpers -------------------------------------------------
+
+    def _resolve_api_key(self) -> str:
+        key = (
+            self.api_key
+            or getattr(settings, "OPENAI_API_KEY", None)
+            or os.getenv("OPENAI_API_KEY")
         )
         if not key:
             raise RuntimeError(
                 "OPENAI_API_KEY must be set (in Django settings or environment) "
                 "to use OpenAIProvider"
             )
+        return key
 
-        # Optional custom base URL (for proxies, etc).
-        resolved_base_url = (
-            base_url
+    def _resolve_base_url(self) -> str | None:
+        return (
+            self.base_url
             or getattr(settings, "OPENAI_API_BASE_URL", None)
             or os.getenv("OPENAI_API_BASE_URL")
         )
 
-        self.api_key = key
-        self.base_url = resolved_base_url
-        self.timeout_s = float(timeout_s)
-
-        # Lazily created OpenAI client so import/instantiation only happen
-        # if this provider is actually used.
-        self._client = None
-
-    # Lazily import and instantiate the OpenAI client.
-    def _get_client(self):
+    def _get_client(self) -> OpenAI:
         if self._client is None:
-            try:
-                from openai import OpenAI
-            except ImportError as exc:
-                raise RuntimeError(
-                    "The 'openai' Python package is not installed. "
-                    "Install it with `pip install openai`."
-                ) from exc
-
-            if self.base_url:
-                self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
-            else:
-                self._client = OpenAI(api_key=self.api_key)
+            # Disable retries here so that AGENT_TIMEOUT_SEC behaves as the
+            # actual wall-clock limit instead of per-attempt.
+            self._client = OpenAI(
+                api_key=self._resolve_api_key(),
+                base_url=self._resolve_base_url(),
+                max_retries=0,
+            )
         return self._client
+
+    # ---- main entrypoint used by LLMClient --------------------------------
 
     def run(
         self,
@@ -316,51 +375,93 @@ class OpenAIProvider(LLMProvider):
         tools: list[dict[str, Any]] | None,
         model: str,
         max_tokens: int,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
-        """
-        Call OpenAI's chat completions API and return a normalized result dict.
-
-        For now, we ignore `tools` and just return plain text.
-        """
+        """Call ``chat.completions.create`` for either classic or GPT‑5 models."""
         client = self._get_client()
         message_list = list(messages)
 
-        # You can add logging here if you want extra visibility.
+        call_model = model or self.default_model
+        call_max_tokens = max_tokens or self.default_max_tokens
+
         logger.info(
             "OpenAIProvider.run model=%s max_tokens=%s num_messages=%s",
-            model,
-            max_tokens,
+            call_model,
+            call_max_tokens,
             len(message_list),
         )
 
-        # Minimal, non-streaming chat completion call.
-        resp = client.chat.completions.create(
-            model=model,
-            messages=message_list,
-            max_tokens=max_tokens,
-            timeout=self.timeout_s,
-            # TODO(later): pass tools / tool_choice once you wire up tool-calling.
-        )
+        # Base kwargs shared by all chat models.
+        kwargs: dict[str, Any] = {
+            "model": call_model,
+            "messages": message_list,
+        }
+        if tools:
+            kwargs["tools"] = tools
 
-        choice = resp.choices[0]
-        text = getattr(choice.message, "content", "") or ""
+        # GPT‑5 family:
+        #   * uses max_completion_tokens (NOT max_tokens)
+        #   * we *always* set reasoning_effort="minimal" to avoid the
+        #     "all tokens went to hidden reasoning, no surface text" failure
+        #     mode you saw in the REPL.
+        #
+        # Classic chat models:
+        #   * use max_tokens + temperature.
+        if call_model.startswith("gpt-5"):
+            kwargs["max_completion_tokens"] = call_max_tokens
+            kwargs["reasoning_effort"] = "minimal"
+            # We intentionally do NOT pass temperature for GPT‑5.
+        else:
+            kwargs["max_tokens"] = call_max_tokens
+            kwargs["temperature"] = self.temperature
 
-        usage = getattr(resp, "usage", None)
-        total_tokens: int = 0
-        if usage is not None:
-            # Newer SDKs usually expose total_tokens; fall back to summing pieces.
-            total_tokens = (
-                getattr(usage, "total_tokens", None)
-                or (
-                    (getattr(usage, "prompt_tokens", 0) or 0)
-                    + (getattr(usage, "completion_tokens", 0) or 0)
-                )
-                or 0
+        # Use per-request timeout if provided; otherwise the client's default
+        # (10 minutes) will apply.
+        if timeout is not None:
+            client = client.with_options(timeout=timeout)
+
+        # Actual OpenAI call; APITimeoutError is propagated up to LLMClient.
+        resp = client.chat.completions.create(**kwargs)
+
+        choice = resp.choices[0].message
+        content = choice.content or ""
+
+        # Convert response into the payload shape LLMClient expects.
+        messages_out: list[dict[str, Any]] = []
+
+        # If the model emitted tool calls, preserve them for the agent tooling layer.
+        tool_calls = getattr(choice, "tool_calls", None)
+        if tool_calls:
+            messages_out.append(
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                        for tc in tool_calls
+                    ],
+                }
             )
 
+        if content:
+            messages_out.append({"role": "assistant", "content": content})
+
+        tokens_used = 0
+        if getattr(resp, "usage", None) is not None:
+            # For GPT‑5, this is prompt + reasoning + output tokens.
+            tokens_used = resp.usage.total_tokens or 0
+
         return {
-            "content": text,
-            "tokens_used": int(total_tokens),
-            # No 'cost_usd' here — LLMClient._estimate_cost will fill it in using
-            # TOKEN_RATE_USD if configured.
+            "content": content,
+            "messages": messages_out,
+            "tokens_used": tokens_used,
+            "model": resp.model,
+            # No explicit "cost_usd" here — LLMClient._estimate_cost will fill it in
+            # using TOKEN_RATE_USD if nothing else is provided.
         }
