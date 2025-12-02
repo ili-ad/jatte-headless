@@ -6,6 +6,7 @@ import logging
 import os
 import time
 import uuid
+import threading
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -13,6 +14,7 @@ from typing import Any, Callable, Sequence
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import close_old_connections
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -163,6 +165,94 @@ class AgentService:
         )
 
         return reply
+
+    def enqueue_generate(
+        self,
+        *,
+        cid: str,
+        user_id: str | None = None,
+        text: str | None = None,
+        meta: dict[str, Any] | None = None,
+        request_id: str | None = None,
+    ) -> str:
+        """Fire-and-forget scheduling of :py:meth:`generate` in a background thread."""
+
+        job_id = str(uuid.uuid4())
+        meta_payload = dict(meta or {})
+        meta_payload.setdefault("cid", cid)
+        meta_payload["job_id"] = job_id
+
+        logger.info(
+            "agent.generate.job.enqueued",
+            extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+        )
+
+        thread = threading.Thread(
+            target=self._run_generate_job,
+            kwargs={
+                "job_id": job_id,
+                "cid": cid,
+                "user_id": user_id,
+                "text": text,
+                "meta": meta_payload,
+                "request_id": request_id,
+            },
+            daemon=True,
+        )
+        thread.start()
+
+        return job_id
+
+    def _run_generate_job(
+        self,
+        *,
+        job_id: str,
+        cid: str,
+        user_id: str | None,
+        text: str | None,
+        meta: dict[str, Any],
+        request_id: str | None,
+    ) -> None:
+        close_old_connections()
+        job_status = "ok"
+        job_reason = "ok"
+        start = time.perf_counter()
+
+        logger.info(
+            "agent.generate.job.start",
+            extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+        )
+
+        try:
+            reply = self.generate(
+                cid=cid,
+                user_id=user_id,
+                text=text,
+                meta=meta,
+                request_id=request_id,
+            )
+            job_reason = reply.reason
+            self._finalize_generated_messages(reply, meta)
+        except Exception:
+            job_status = "error"
+            job_reason = "exception"
+            logger.exception(
+                "agent.generate.job.failure",
+                extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+            )
+        finally:
+            logger.info(
+                "agent.generate.job.complete",
+                extra={
+                    "cid": cid,
+                    "job_id": job_id,
+                    "trace_id": request_id,
+                    "status": job_status,
+                    "reason": job_reason,
+                    "latency_ms": int((time.perf_counter() - start) * 1000),
+                },
+            )
+            close_old_connections()
 
     def simulate(
         self,
@@ -660,6 +750,11 @@ class AgentService:
                 max_tokens=AGENT_MAX_TOKENS,
                 timeout=streaming_timeout,
                 on_update=on_update,
+                context={
+                    "cid": cid,
+                    "trace_id": trace_id,
+                    "job_id": (meta or {}).get("job_id"),
+                },
             )
             logger.info(
                 "agent.llm.streaming.success",
@@ -674,7 +769,12 @@ class AgentService:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             logger.warning(
                 "agent.llm.streaming_timeout",
-                extra={"cid": cid, "trace_id": trace_id, "latency_ms": elapsed_ms},
+                extra={
+                    "cid": cid,
+                    "trace_id": trace_id,
+                    "latency_ms": elapsed_ms,
+                    "timeout_sec": streaming_timeout,
+                },
             )
             fallback_text = self.streaming_timeout_text
             if stream_target is not None:
@@ -703,6 +803,27 @@ class AgentService:
             result = self._call_llm(messages, tools, meta)
             self._update_message(stream_target, text=result.content)
             return result
+
+    def _finalize_generated_messages(self, reply: AgentReply, meta: dict[str, Any]) -> None:
+        messages = reply.messages or []
+        if not messages:
+            logger.warning(
+                "agent.generate.job.no_messages",
+                extra={"cid": meta.get("cid"), "trace_id": meta.get("trace_id")},
+            )
+            return
+
+        agent_message = messages[0]
+        custom_data = dict(agent_message.custom_data or {})
+        if not custom_data.get("ai_generated"):
+            custom_data["ai_generated"] = True
+            agent_message.custom_data = custom_data
+            agent_message.save(update_fields=["custom_data", "updated_at"])
+
+        MessageProvenance.objects.get_or_create(
+            message=agent_message,
+            defaults={"source": MessageProvenance.Source.AGENT},
+        )
 
     def _execute_tool_calls(
         self,
