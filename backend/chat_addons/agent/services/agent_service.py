@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 import uuid
 from dataclasses import dataclass
@@ -97,7 +98,7 @@ class AgentSimulationResult:
 class AgentService:
     """Service responsible for producing agent replies via skill orchestration."""
 
-    canned_text = "Thanks — an agent will follow up shortly."
+    canned_text = "Let me connect you with a teammate."
 
     def __init__(self, *, llm_client: LLMClient | None = None) -> None:
         self.llm_client = llm_client or LLMClient()
@@ -246,6 +247,11 @@ class AgentService:
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
         rag_enabled = bool(meta_payload.get("use_rag"))
+        llm_timeout = (
+            meta_payload.get("timeout")
+            or getattr(self.llm_client, "default_timeout", None)
+            or AGENT_TIMEOUT_SEC
+        )
 
         if rag_enabled:
             # For now, default to Florida; can be generalized later.
@@ -354,12 +360,39 @@ class AgentService:
             else:
                 while turn < turn_cap:
                     turn += 1
-                    llm_result = self._call_llm_streaming(
-                        messages,
-                        tool_schemas,
-                        meta,
-                        stream_target=ai_message,
+                    llm_start = time.perf_counter()
+                    logger.info(
+                        "agent.orchestrate.llm.start",
+                        extra={
+                            "cid": cid,
+                            "turn": turn,
+                            "timeout_sec": llm_timeout,
+                        },
                     )
+                    llm_outcome = "ok"
+                    try:
+                        llm_result = self._call_llm_streaming(
+                            messages,
+                            tool_schemas,
+                            meta,
+                            stream_target=ai_message,
+                        )
+                    except Exception as exc:  # pragma: no cover - defensive log
+                        llm_outcome = exc.__class__.__name__
+                        raise
+                    finally:
+                        logger.info(
+                            "agent.orchestrate.llm.complete",
+                            extra={
+                                "cid": cid,
+                                "turn": turn,
+                                "timeout_sec": llm_timeout,
+                                "latency_ms": int(
+                                    (time.perf_counter() - llm_start) * 1000
+                                ),
+                                "outcome": llm_outcome,
+                            },
+                        )
                     tokens_out += llm_result.tokens_used
                     total_cost += llm_result.cost_usd
 
@@ -424,7 +457,7 @@ class AgentService:
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
         except TimeoutError:
-            reason = "timeout"
+            reason = "error"
             reply_text = handoff_message
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
@@ -545,12 +578,13 @@ class AgentService:
         meta: dict[str, Any] | None,
     ) -> LLMResult:
         timeout = (meta or {}).get("timeout")
+        fallback_timeout = getattr(self.llm_client, "default_timeout", None)
         return self.llm_client.run(
             messages,
             tools=tools or None,
             model=AGENT_MODEL,
             max_tokens=AGENT_MAX_TOKENS,
-            timeout=timeout or AGENT_TIMEOUT_SEC,
+            timeout=timeout if timeout is not None else fallback_timeout,
         )
 
     def _call_llm_streaming(
@@ -562,8 +596,16 @@ class AgentService:
         stream_target: Message | None = None,
     ) -> LLMResult:
         timeout = (meta or {}).get("timeout")
-        if stream_target is None:
-            return self._call_llm(messages, tools, meta)
+        fallback_timeout = getattr(self.llm_client, "default_timeout", None)
+
+        if stream_target is None or not hasattr(self.llm_client.provider, "run_streaming"):
+            return self.llm_client.run(
+                messages,
+                tools=tools or None,
+                model=AGENT_MODEL,
+                max_tokens=AGENT_MAX_TOKENS,
+                timeout=timeout if timeout is not None else fallback_timeout,
+            )
 
         custom_data = {**(stream_target.custom_data or {})}
         custom_data["ai_state"] = "AI_STATE_GENERATING"
@@ -723,7 +765,20 @@ class AgentService:
             update_fields.append("custom_data")
         message.updated_at = timezone.now()
         message.save(update_fields=update_fields)
-        broadcast_message_update(message)
+        if os.environ.get("DISABLE_AGENT_BROADCAST"):
+            return
+        try:
+            broadcast_message_update(message)
+        except RuntimeError:
+            logger.debug(
+                "agent.message.broadcast_skipped",
+                extra={"message_id": getattr(message, "id", None)},
+            )
+        except Exception:
+            logger.exception(
+                "agent.message.broadcast_failed",
+                extra={"message_id": getattr(message, "id", None)},
+            )
 
     def _mark_provenance(self, message) -> None:
         MessageProvenance.objects.get_or_create(

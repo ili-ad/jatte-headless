@@ -266,11 +266,13 @@ ASGI_APPLICATION = 'jatte.asgi.application'
 #         },        
 #     }
 # }
+_db_ssl_required = str(os.environ.get("DATABASE_SSL_REQUIRE", "true")).lower() == "true"
+
 DATABASES = {
     "default": dj_database_url.parse(
         os.environ["DATABASE_URL"],
         conn_max_age=0,
-        ssl_require=True,  # ensures sslmode=require in OPTIONS
+        ssl_require=_db_ssl_required,  # ensures sslmode=require in OPTIONS
     )
 }
 
