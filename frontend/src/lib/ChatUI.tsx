@@ -7,7 +7,10 @@ import {
   MessageList,
   TypingIndicator,
   MessageInput,
+  AIStateIndicator,
 } from '@iliad/stream-chat-shim';
+
+import type { LocalMessage } from 'chat-shim';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
@@ -16,6 +19,10 @@ export default function ChatUI() {
   const { client, channel } = useChat();
 
   if (!client || !channel) return null;
+
+  const isMessageAIGenerated = (message: LocalMessage) =>
+    !!(message as any).ai_generated ||
+    message.user?.id === 'ai-bot-agent-lab';  
 
   const handleDebugSend = async () => {
     const ch: any = channel as any;
@@ -47,6 +54,7 @@ export default function ChatUI() {
           <Window>
             <MessageList />
             <TypingIndicator />
+            <AIStateIndicator />
             <MessageInput />
 
             {/* Temporary debug control */}
