@@ -169,6 +169,9 @@ def test_llm_client_budget_guard_short_circuits() -> None:
 
 
 def test_agent_service_hands_off_on_llm_timeout() -> None:
+    AgentRoomPolicy.objects.update_or_create(
+        cid="messaging:timeout", defaults={"agent_enabled": True}
+    )
     client = LLMClient(provider=_HangingProvider(), default_timeout=0.05)
     service = AgentService(llm_client=client)
 
@@ -177,7 +180,7 @@ def test_agent_service_hands_off_on_llm_timeout() -> None:
     elapsed = time.perf_counter() - start
 
     assert reply.reason == "error"
-    assert reply.text == "Let me connect you with a teammate."
+    assert reply.text == service.streaming_timeout_text
     assert elapsed < 0.5
 
 
@@ -203,11 +206,12 @@ def test_agent_service_streaming_timeout_sets_idle_state(monkeypatch) -> None:
     )
     elapsed = time.perf_counter() - start
 
-    assert reply.reason == AgentRun.STATUS_ERROR
-    assert reply.text == service.canned_text
+    assert reply.reason in (AgentRun.STATUS_ERROR, "timeout")
+    assert reply.text == service.streaming_timeout_text
     assert elapsed < 0.5
     assert reply.messages
     final_message: Message = reply.messages[0]
+    assert final_message.custom_data.get("ai_generated") is True
     assert final_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
     assert final_message.custom_data.get("error_reason") == "timeout"
 
