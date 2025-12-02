@@ -576,14 +576,25 @@ class AgentService:
                 stream_target, text=buffer, custom_data=stream_custom_data
             )
 
-        return self.llm_client.run_streaming(
-            messages,
-            tools=tools or None,
-            model=AGENT_MODEL,
-            max_tokens=AGENT_MAX_TOKENS,
-            timeout=timeout or AGENT_TIMEOUT_SEC,
-            on_update=on_update,
-        )
+        try:
+            return self.llm_client.run_streaming(
+                messages,
+                tools=tools or None,
+                model=AGENT_MODEL,
+                max_tokens=AGENT_MAX_TOKENS,
+                timeout=timeout or AGENT_TIMEOUT_SEC,
+                on_update=on_update,
+            )
+        except Exception:
+            # Log and fall back to non-streaming so we don't regress to 500s
+            logger.exception(
+                "agent.llm.streaming_failure",
+                extra={"cid": messages[0].get("cid", None)},
+            )
+            # As a fallback, do a single-shot call and just update the message once
+            result = self._call_llm(messages, tools, meta)
+            self._update_message(stream_target, text=result.content)
+            return result
 
     def _execute_tool_calls(
         self,

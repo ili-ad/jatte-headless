@@ -254,139 +254,150 @@ class AgentLLMInvokeView(APIView):
 
     @audit_action(action=AuditTrail.Action.AGENT_INVOKE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        # Normalize CID + room and mark that this room has ever used an agent
-        canonical, room = _resolve_room(cid)
-        RoomAgentFlag.objects.get_or_create(room=room)
-        request._audit_context = {"cid": canonical}
+        logger.info("agent.llm.invoke.start", extra={"cid": cid})
 
-        data = request.data or {}
-        serializer = AgentInvocationSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            # Normalize CID + room and mark that this room has ever used an agent
+            canonical, room = _resolve_room(cid)
+            RoomAgentFlag.objects.get_or_create(room=room)
+            request._audit_context = {"cid": canonical}
 
-        room_uuid = serializer.validated_data.get("room_uuid")
-        if room_uuid and room_uuid != room.uuid:
-            return Response(
-                {"detail": "Room does not match invocation payload."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            data = request.data or {}
+            serializer = AgentInvocationSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
 
-        # Respect per-room agent enablement
-        if not agent_enabled_for_room(canonical, room):
-            return Response(
-                {"detail": "Agent is disabled for this room."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            room_uuid = serializer.validated_data.get("room_uuid")
+            if room_uuid and room_uuid != room.uuid:
+                return Response(
+                    {"detail": "Room does not match invocation payload."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # Look up the last human message we are supposed to respond to
-        message_id = serializer.validated_data["last_human_message_id"]
-        message = Message.objects.filter(
-            channel__uuid=room.uuid, id=message_id
-        ).first()
-        if not message:
-            return Response(
-                {"detail": "Message not found for this room."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            # Respect per-room agent enablement
+            if not agent_enabled_for_room(canonical, room):
+                return Response(
+                    {"detail": "Agent is disabled for this room."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # Don't chain replies back into the agent
-        bot_user_id = agent_user_id_for_room(canonical)
-        if message.sent_by == bot_user_id:
-            return Response(
-                {"detail": "Agent replies cannot be chained."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            # Look up the last human message we are supposed to respond to
+            message_id = serializer.validated_data["last_human_message_id"]
+            message = Message.objects.filter(
+                channel__uuid=room.uuid, id=message_id
+            ).first()
+            if not message:
+                return Response(
+                    {"detail": "Message not found for this room."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
-        # -----------------------------
-        # Call into the AgentService / LLM
-        # -----------------------------
-        trace_id = serializer.validated_data.get("trace_id")
+            # Don't chain replies back into the agent
+            bot_user_id = agent_user_id_for_room(canonical)
+            if message.sent_by == bot_user_id:
+                return Response(
+                    {"detail": "Agent replies cannot be chained."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # meta: dict[str, Any] = {
-        #     "source": "AgentLLMInvokeView",
-        #     "invocation": "llm_invoke",
-        #     "cid": canonical,
-        #     "room_uuid": str(room.uuid),
-        #     "room_name": getattr(room, "name", None),
-        #     "request_id": trace_id,
-        # }
+            # -----------------------------
+            # Call into the AgentService / LLM
+            # -----------------------------
+            trace_id = serializer.validated_data.get("trace_id")
 
-        meta: dict[str, Any] = {
-            "source": "AgentLLMInvokeView",
-            "invocation": "llm_invoke",
-            "cid": canonical,
-            "room_uuid": str(room.uuid),
-            "room_name": getattr(room, "name", None),
-            "request_id": trace_id,
-            # 🔹 RAG flags:
-            "use_rag": True,
-            "state": "FL",
-            # optionally: "rag_topic": "noc_compliance" or whatever
-        }
-        
-
-        service = get_agent_service()
-        reply = service.generate(
-            cid=canonical,
-            user_id=str(getattr(request.user, "id", "")) or None,
-            text=message.body or "",
-            meta=meta,
-            request_id=trace_id,
-        )
-
-        # generate() should persist at least one agent Message and
-        # return it in reply.messages.
-        messages = reply.messages or []
-        if not messages:
-            # Hard failure: orchestration ran but produced no persisted reply
-            return Response(
-                {"detail": "Agent failed to generate a reply."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        agent_message = messages[0]
-
-        # If generate() ever returns multiple assistant messages, make sure
-        # each one is tagged at creation time.
-        custom_data = dict(agent_message.custom_data or {})
-        if not custom_data.get("ai_generated"):
-            custom_data["ai_generated"] = True
-            agent_message.custom_data = custom_data
-            agent_message.save(update_fields=["custom_data", "updated_at"])
-
-        # Tag provenance so you can distinguish agent vs human when querying
-        MessageProvenance.objects.get_or_create(
-            message=agent_message,
-            defaults={"source": MessageProvenance.Source.AGENT},
-        )
-
-        payload = {
-            "messages": [
-                {
-                    "id": str(agent_message.id),
-                    "room_uuid": agent_message.channel.uuid,
-                    "user_id": agent_message.sent_by,
-                    "role": "assistant",
-                    "text": agent_message.body,
-                    "created_at": agent_message.created_at,
-                    "custom_data": agent_message.custom_data or {},
-                }
-            ],
-            # Mirror AgentRagView metrics so the plumbing is future‑proof
-            "reason": reply.reason,
-            "tokens_used": reply.tokens_used,
-            "latency_ms": reply.latency_ms,
-            "model": reply.model,
-            "cost_usd": float(reply.cost_usd),
-        }
-
-        if agent_message:
-            request._audit_context = {
+            meta: dict[str, Any] = {
+                "source": "AgentLLMInvokeView",
+                "invocation": "llm_invoke",
                 "cid": canonical,
-                "target_id": str(agent_message.id),
-                "meta": meta,
+                "room_uuid": str(room.uuid),
+                "room_name": getattr(room, "name", None),
+                "request_id": trace_id,
+                # 🔹 current hard-coded RAG flags
+                "use_rag": True,
+                "state": "FL",
+                # optionally: "rag_topic": "noc_compliance" or whatever
             }
 
-        return Response(payload, status=status.HTTP_200_OK)
+            service = get_agent_service()
+            reply = service.generate(
+                cid=canonical,
+                user_id=str(getattr(request.user, "id", "")) or None,
+                text=message.body or "",
+                meta=meta,
+                request_id=trace_id,
+            )
+
+            # generate() should persist at least one agent Message and
+            # return it in reply.messages.
+            messages = reply.messages or []
+            if not messages:
+                # Hard failure: orchestration ran but produced no persisted reply
+                return Response(
+                    {"detail": "Agent failed to generate a reply."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            agent_message = messages[0]
+
+            # If generate() ever returns multiple assistant messages, make sure
+            # each one is tagged at creation time in the agent service.
+            custom_data = dict(agent_message.custom_data or {})
+            if not custom_data.get("ai_generated"):
+                custom_data["ai_generated"] = True
+                agent_message.custom_data = custom_data
+                agent_message.save(update_fields=["custom_data", "updated_at"])
+
+            # Tag provenance so you can distinguish agent vs human when querying
+            MessageProvenance.objects.get_or_create(
+                message=agent_message,
+                defaults={"source": MessageProvenance.Source.AGENT},
+            )
+
+            payload = {
+                "messages": [
+                    {
+                        "id": str(agent_message.id),
+                        "room_uuid": agent_message.channel.uuid,
+                        "user_id": agent_message.sent_by,
+                        "role": "assistant",
+                        "text": agent_message.body,
+                        "created_at": agent_message.created_at,
+                        "custom_data": agent_message.custom_data or {},
+                    }
+                ],
+                # Mirror AgentRagView metrics so the plumbing is future-proof
+                "reason": reply.reason,
+                "tokens_used": reply.tokens_used,
+                "latency_ms": reply.latency_ms,
+                "model": reply.model,
+                "cost_usd": float(reply.cost_usd),
+            }
+
+            if agent_message:
+                request._audit_context = {
+                    "cid": canonical,
+                    "target_id": str(agent_message.id),
+                    "meta": meta,
+                }
+
+            logger.info(
+                "agent.llm.invoke.success",
+                extra={
+                    "cid": canonical,
+                    "reason": reply.reason,
+                    "latency_ms": reply.latency_ms,
+                    "tokens_used": reply.tokens_used,
+                },
+            )
+            return Response(payload, status=status.HTTP_200_OK)
+
+        except Exception:
+            # This is the safety net we were missing: log the full stack trace.
+            logger.exception("agent.llm.invoke.unhandled_error", extra={"cid": cid})
+            return Response(
+                {"detail": "Agent invocation failed unexpectedly."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
 
 
 
