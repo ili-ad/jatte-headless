@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Sequence
 
 from django.db import transaction
@@ -318,12 +319,21 @@ class AgentLLMInvokeView(APIView):
             }
 
             service = get_agent_service()
+            generate_start = time.perf_counter()
             reply = service.generate(
                 cid=canonical,
                 user_id=str(getattr(request.user, "id", "")) or None,
                 text=message.body or "",
                 meta=meta,
                 request_id=trace_id,
+            )
+            logger.info(
+                "agent.llm.invoke.latency",
+                extra={
+                    "cid": canonical,
+                    "reason": reply.reason,
+                    "total_ms": int((time.perf_counter() - generate_start) * 1000),
+                },
             )
 
             # generate() should persist at least one agent Message and
