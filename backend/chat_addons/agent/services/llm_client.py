@@ -1,8 +1,9 @@
 """LLM client abstraction for chat agent invocations.
 
-This version removes the internal ThreadPool-based timeout and instead
-relies on the OpenAI Python client's own timeout handling, so that
-AGENT_TIMEOUT_SEC behaves as the *real* wall-clock limit for calls.
+Ensures agent LLM calls are forcibly bounded in wall-clock time by
+wrapping provider calls in a short-lived thread with ``future.result``
+timeouts. This prevents request handlers from hanging indefinitely when
+the upstream SDK fails to respect its own timeout configuration.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -226,6 +228,27 @@ class LLMClient:
             Decimal("0.000001")
         )
 
+    def _execute_with_timeout(
+        self, func: Callable[[], Any], *, timeout: float | None
+    ) -> Any:
+        """Execute ``func`` with a hard timeout.
+
+        The provider is still given the requested ``timeout`` value, but we
+        also enforce the limit here so that a misbehaving SDK cannot hang the
+        request thread.
+        """
+
+        if timeout is None:
+            return func()
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func)
+            try:
+                return future.result(timeout=timeout)
+            except FuturesTimeoutError as exc:
+                future.cancel()
+                raise TimeoutError("LLM provider call exceeded timeout") from exc
+
     # ---- public entrypoint ------------------------------------------------
 
     def run(
@@ -250,14 +273,17 @@ class LLMClient:
 
         start = time.perf_counter()
         try:
-            payload = self.provider.run(
-                messages=list(messages),
-                tools=tools,
-                model=call_model,
-                max_tokens=call_max_tokens,
+            payload = self._execute_with_timeout(
+                lambda: self.provider.run(
+                    messages=list(messages),
+                    tools=tools,
+                    model=call_model,
+                    max_tokens=call_max_tokens,
+                    timeout=float(call_timeout),
+                ),
                 timeout=float(call_timeout),
             )
-        except APITimeoutError as exc:
+        except (APITimeoutError, TimeoutError) as exc:
             # Let the orchestration layer know this was a timeout, so it can
             # surface the handoff text ("Let me connect you with a teammate.")
             logger.warning(
@@ -304,15 +330,18 @@ class LLMClient:
 
         start = time.perf_counter()
         try:
-            payload = self.provider.run_streaming(
-                messages=list(messages),
-                tools=tools,
-                model=call_model,
-                max_tokens=call_max_tokens,
+            payload = self._execute_with_timeout(
+                lambda: self.provider.run_streaming(
+                    messages=list(messages),
+                    tools=tools,
+                    model=call_model,
+                    max_tokens=call_max_tokens,
+                    timeout=float(call_timeout),
+                    on_update=on_update,
+                ),
                 timeout=float(call_timeout),
-                on_update=on_update,
             )
-        except APITimeoutError as exc:
+        except (APITimeoutError, TimeoutError) as exc:
             logger.warning(
                 "agent.llm.timeout",
                 extra={"model": call_model, "timeout": call_timeout},

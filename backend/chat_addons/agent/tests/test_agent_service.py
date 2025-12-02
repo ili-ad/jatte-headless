@@ -32,8 +32,8 @@ class _ImmediateProvider:
         self.text = text
         self.latency_ms = latency_ms
 
-    def run(self, *, messages, tools, model, max_tokens):
-        _ = (messages, tools, model, max_tokens)
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
         return {
             "content": self.text,
             "tokens_used": 12,
@@ -50,13 +50,24 @@ class _RejectingGuard(CostGuard):
 
 
 class _SlowProvider:
-    def run(self, *, messages, tools, model, max_tokens):
-        _ = (messages, tools, model, max_tokens)
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
         time.sleep(0.2)
         return {
             "content": "slow",
             "tokens_used": 10,
             "cost_usd": Decimal("0.00005"),
+        }
+
+
+class _HangingProvider(_SlowProvider):
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
+        time.sleep(1)
+        return {
+            "content": "never reached",
+            "tokens_used": 1,
+            "cost_usd": Decimal("0.00001"),
         }
 
 
@@ -86,3 +97,16 @@ def test_llm_client_budget_guard_short_circuits() -> None:
 
     with pytest.raises(BudgetExceeded):
         client.run([{"role": "user", "content": "budget"}])
+
+
+def test_agent_service_hands_off_on_llm_timeout() -> None:
+    client = LLMClient(provider=_HangingProvider(), default_timeout=0.05)
+    service = AgentService(llm_client=client)
+
+    start = time.perf_counter()
+    reply = service.generate(cid="messaging:timeout", user_id="user-2", text="hello")
+    elapsed = time.perf_counter() - start
+
+    assert reply.reason == "error"
+    assert reply.text == "Let me connect you with a teammate."
+    assert elapsed < 0.5
