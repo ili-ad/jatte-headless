@@ -41,3 +41,6 @@ the frontend.
   fallback handoff text.
 * Guarded `AgentLLMInvokeView` with explicit timeout handling (HTTP 502 + JSON
   body) to avoid uncaught exceptions bubbling into 500/ECONNRESET responses.
+* Tightened `LLMClient.run_streaming` to scope the wall-clock timeout strictly
+  around the provider call and harmonized the raised `TimeoutError` so it is
+  handled gracefully by the agent service and view layer.

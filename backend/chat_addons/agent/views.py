@@ -329,12 +329,12 @@ class AgentLLMInvokeView(APIView):
                     request_id=trace_id,
                 )
             except TimeoutError:
-                logger.exception(
+                logger.warning(
                     "agent.llm.invoke.timeout",
                     extra={"cid": canonical, "trace_id": trace_id},
                 )
                 return Response(
-                    {"detail": "Agent timed out while generating a reply."},
+                    {"detail": "Agent LLM timed out."},
                     status=status.HTTP_502_BAD_GATEWAY,
                 )
             except Exception:
