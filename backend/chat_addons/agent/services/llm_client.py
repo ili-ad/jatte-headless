@@ -339,7 +339,20 @@ class LLMClient:
 
         message_list = list(messages)
 
+        logger.info(
+            "agent.llm.streaming.run_start",
+            extra={"model": call_model, "timeout": call_timeout},
+        )
+
         start = time.perf_counter()
+
+        def _guarded_on_update(buffer: str) -> None:
+            elapsed = time.perf_counter() - start
+            if call_timeout is not None and elapsed > float(call_timeout):
+                raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
+            if on_update:
+                on_update(buffer)
+
         try:
             payload = self._execute_with_timeout(
                 lambda: self.provider.run_streaming(
@@ -347,15 +360,19 @@ class LLMClient:
                     tools=tools,
                     model=call_model,
                     max_tokens=call_max_tokens,
-                    timeout=float(call_timeout),
-                    on_update=on_update,
+                    timeout=float(call_timeout) if call_timeout is not None else None,
+                    on_update=_guarded_on_update,
                 ),
-                timeout=float(call_timeout),
+                timeout=float(call_timeout) if call_timeout is not None else None,
             )
+            elapsed = time.perf_counter() - start
+            if call_timeout is not None and elapsed > float(call_timeout):
+                raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
         except (APITimeoutError, TimeoutError) as exc:
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
             logger.warning(
                 "agent.llm.streaming_timeout",
-                extra={"model": call_model, "timeout": call_timeout},
+                extra={"model": call_model, "timeout": call_timeout, "latency_ms": elapsed_ms},
             )
             raise TimeoutError("LLM provider timed out") from exc
         finally:
