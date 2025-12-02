@@ -241,13 +241,16 @@ class LLMClient:
         if timeout is None:
             return func()
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
+        executor = ThreadPoolExecutor(max_workers=1)
+        try:
             future = executor.submit(func)
             try:
                 return future.result(timeout=timeout)
             except FuturesTimeoutError as exc:
                 future.cancel()
                 raise TimeoutError("LLM provider call exceeded timeout") from exc
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     # ---- public entrypoint ------------------------------------------------
 
@@ -373,7 +376,7 @@ class CannedProvider:
     """Simple provider that returns a canned response."""
 
     def __init__(self, *, text: str | None = None) -> None:
-        self.text = text or "Thanks — an agent will follow up shortly."
+        self.text = text or "Let me connect you with a teammate."
 
     def run(
         self,
