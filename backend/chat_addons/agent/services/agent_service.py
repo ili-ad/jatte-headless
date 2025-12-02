@@ -248,11 +248,11 @@ class AgentService:
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
         rag_enabled = bool(meta_payload.get("use_rag"))
-            llm_timeout = (
-                meta_payload.get("timeout")
-                or getattr(self.llm_client, "default_timeout", None)
-                or AGENT_TIMEOUT_SEC
-            )
+        llm_timeout = (
+            meta_payload.get("timeout")
+            or getattr(self.llm_client, "default_timeout", None)
+            or AGENT_TIMEOUT_SEC
+        )
 
         if rag_enabled:
             # For now, default to Florida; can be generalized later.
