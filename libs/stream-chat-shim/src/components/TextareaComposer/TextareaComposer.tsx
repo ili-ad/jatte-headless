@@ -180,6 +180,12 @@ export const TextareaComposer = ({
 
   const { textComposer } = messageComposer;
 
+  /* ── normalize textComposer: ensure closeSuggestions exists ── */
+  if (textComposer && typeof textComposer.closeSuggestions !== 'function') {
+    // @ts-ignore – we’re patching the runtime shim object
+    textComposer.closeSuggestions = () => {};
+  }
+
   /* ── if it exists but still lacks a store, seed it (rare) ── */
   if (!textComposer.state?.getLatestValue) {
     const frozenSnapshot = Object.freeze({
@@ -343,7 +349,7 @@ export const TextareaComposer = ({
     (event) => {
       if (onScroll) {
         onScroll(event);
-      } else {
+      } else if (typeof textComposer?.closeSuggestions === 'function') {
         textComposer.closeSuggestions();
       }
     },
