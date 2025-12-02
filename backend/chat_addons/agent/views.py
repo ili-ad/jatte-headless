@@ -334,8 +334,11 @@ class AgentLLMInvokeView(APIView):
                     extra={"cid": canonical, "trace_id": trace_id},
                 )
                 return Response(
-                    {"detail": "Agent LLM timed out."},
-                    status=status.HTTP_502_BAD_GATEWAY,
+                    {
+                        "detail": "Agent timed out while generating a reply.",
+                        "reason": "timeout",
+                    },
+                    status=status.HTTP_504_GATEWAY_TIMEOUT,
                 )
             except Exception:
                 logger.exception(
@@ -361,7 +364,10 @@ class AgentLLMInvokeView(APIView):
             if not messages:
                 # Hard failure: orchestration ran but produced no persisted reply
                 return Response(
-                    {"detail": "Agent failed to generate a reply."},
+                    {
+                        "detail": "Agent failed to generate a reply.",
+                        "reason": reply.reason,
+                    },
                     status=status.HTTP_502_BAD_GATEWAY,
                 )
 
