@@ -25,6 +25,8 @@ from chat_addons.agent.services.llm_client import (
     CostGuard,
     LLMClient,
 )
+from chat_addons.agent.models import AgentRoomPolicy, AgentRun
+from chat.models import Message
 
 
 class _ImmediateProvider:
@@ -71,6 +73,73 @@ class _HangingProvider(_SlowProvider):
         }
 
 
+class _StreamingSleeper:
+    def __init__(self, delay: float = 0.2) -> None:
+        self.delay = delay
+
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
+        return {
+            "content": "fallback",
+            "tokens_used": 1,
+            "cost_usd": Decimal("0.00001"),
+        }
+
+    def run_streaming(
+        self,
+        *,
+        messages,
+        tools,
+        model,
+        max_tokens,
+        timeout=None,
+        on_update=None,
+    ):
+        _ = (messages, tools, model, max_tokens, timeout, on_update)
+        time.sleep(self.delay)
+        return {
+            "content": "fallback",
+            "tokens_used": 1,
+            "cost_usd": Decimal("0.00001"),
+        }
+
+
+class _StreamingChunkProvider:
+    def __init__(self, chunks: list[str] | None = None) -> None:
+        self.chunks = chunks or ["Hello", " world", "!"]
+
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
+        text = "".join(self.chunks)
+        return {
+            "content": text,
+            "tokens_used": len(text),
+            "cost_usd": Decimal("0.0005"),
+        }
+
+    def run_streaming(
+        self,
+        *,
+        messages,
+        tools,
+        model,
+        max_tokens,
+        timeout=None,
+        on_update=None,
+    ):
+        _ = (messages, tools, model, max_tokens, timeout)
+        buffer = ""
+        for chunk in self.chunks:
+            buffer += chunk
+            if on_update:
+                on_update(buffer)
+        return {
+            "content": buffer,
+            "tokens_used": len(buffer),
+            "cost_usd": Decimal("0.0005"),
+        }
+
+
 def test_agent_service_generate_returns_canned_reply() -> None:
     client = LLMClient(provider=CannedProvider())
     service = AgentService(llm_client=client)
@@ -110,3 +179,43 @@ def test_agent_service_hands_off_on_llm_timeout() -> None:
     assert reply.reason == "error"
     assert reply.text == "Let me connect you with a teammate."
     assert elapsed < 0.5
+
+
+def test_agent_service_streaming_timeout_sets_idle_state() -> None:
+    AgentRoomPolicy.objects.update_or_create(
+        cid="messaging:stream-timeout", defaults={"agent_enabled": True}
+    )
+    client = LLMClient(
+        provider=_StreamingSleeper(),
+        default_timeout=1,
+        default_streaming_timeout=0.05,
+    )
+    service = AgentService(llm_client=client)
+
+    start = time.perf_counter()
+    reply = service.generate(
+        cid="messaging:stream-timeout", user_id="user-3", text="hello"
+    )
+    elapsed = time.perf_counter() - start
+
+    assert reply.reason == AgentRun.STATUS_ERROR
+    assert reply.text == service.canned_text
+    assert elapsed < 0.5
+    assert reply.messages
+    final_message: Message = reply.messages[0]
+    assert final_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
+    assert final_message.custom_data.get("error_reason") == "timeout"
+
+
+def test_llm_client_streaming_emits_incremental_updates() -> None:
+    updates: list[str] = []
+    provider = _StreamingChunkProvider()
+    client = LLMClient(provider=provider, default_streaming_timeout=1)
+
+    result = client.run_streaming(
+        [{"role": "user", "content": "hi"}], on_update=updates.append
+    )
+
+    assert updates == ["Hello", "Hello world", "Hello world!"]
+    assert result.content == "Hello world!"
+    assert result.reason == "ok"
