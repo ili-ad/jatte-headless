@@ -55,7 +55,7 @@ export default function ChatUI() {
             <MessageList />
             <TypingIndicator />
             <AIStateIndicator />
-            <MessageInput />
+            <MessageInput maxRows={6} minRows={1} />
 
             {/* Temporary debug control */}
             <div style={{ marginTop: '0.5rem' }}>
