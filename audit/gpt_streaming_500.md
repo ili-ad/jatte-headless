@@ -29,3 +29,15 @@ the frontend.
 * Standardized the canned handoff text across `AgentService` and the canned
   provider and ensured timeouts surface `reason="error"` with the handoff
   reply.
+
+## 2025-02-08 streaming timeout handling
+
+* Split streaming vs. non-streaming timeouts (`AGENT_STREAMING_TIMEOUT_SEC`),
+  routing streaming calls through the longer budget while keeping strict
+  protection on classic calls.
+* `_call_llm_streaming` now catches `TimeoutError`, logs
+  `agent.llm.streaming_timeout` with `cid`/`trace_id`, and persists a final AI
+  message marked `ai_state=AI_STATE_IDLE` with `error_reason="timeout"` and the
+  fallback handoff text.
+* Guarded `AgentLLMInvokeView` with explicit timeout handling (HTTP 502 + JSON
+  body) to avoid uncaught exceptions bubbling into 500/ECONNRESET responses.

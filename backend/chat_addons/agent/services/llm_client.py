@@ -27,6 +27,7 @@ from ..config import (
     AGENT_DAILY_BUDGET_USD,
     AGENT_MAX_TOKENS,
     AGENT_MODEL,
+    AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
 
@@ -47,6 +48,7 @@ class LLMResult:
     model: str
     latency_ms: int
     cost_usd: Decimal
+    reason: str = "ok"
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +165,7 @@ class LLMClient:
         provider: LLMProvider | None = None,
         default_model: str | None = None,
         default_timeout: int | None = None,
+        default_streaming_timeout: int | None = None,
         default_max_tokens: int | None = None,
         cost_guard: CostGuard | None = None,
     ) -> None:
@@ -190,6 +193,9 @@ class LLMClient:
 
         self.default_model = default_model or AGENT_MODEL
         self.default_timeout = default_timeout or AGENT_TIMEOUT_SEC
+        self.default_streaming_timeout = (
+            default_streaming_timeout or AGENT_STREAMING_TIMEOUT_SEC
+        )
         self.default_max_tokens = default_max_tokens or AGENT_MAX_TOKENS
         self.cost_guard = cost_guard or DailyCostGuard()
 
@@ -325,7 +331,9 @@ class LLMClient:
         call_max_tokens = min(
             max_tokens or self.default_max_tokens, self.default_max_tokens
         )
-        call_timeout = min(timeout or self.default_timeout, self.default_timeout)
+        call_timeout = min(
+            timeout or self.default_streaming_timeout, self.default_streaming_timeout
+        )
         guard = cost_guard or self.cost_guard
 
         projected_cost = self._estimate_cost(call_max_tokens)
@@ -346,7 +354,7 @@ class LLMClient:
             )
         except (APITimeoutError, TimeoutError) as exc:
             logger.warning(
-                "agent.llm.timeout",
+                "agent.llm.streaming_timeout",
                 extra={"model": call_model, "timeout": call_timeout},
             )
             raise TimeoutError("LLM provider timed out") from exc
