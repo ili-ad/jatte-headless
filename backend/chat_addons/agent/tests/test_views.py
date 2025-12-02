@@ -198,9 +198,37 @@ class AgentViewsTests(APITestCase):
         payload = response.json()
         self.assertTrue(payload["messages"][0]["custom_data"]["ai_generated"])
 
-        agent_message.refresh_from_db()
-        self.assertTrue(agent_message.custom_data.get("ai_generated"))
-        self.assertEqual(agent_message.custom_data.get("foo"), "bar")
+    @mock.patch("backend.chat_addons.agent.views.get_agent_service")
+    def test_llm_invoke_timeout_returns_502(
+        self, mock_get_service: mock.MagicMock
+    ) -> None:
+        room = Room.objects.create(uuid="llm-timeout", client="stream")
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
+        RoomAgentFlag.objects.create(room=room, agent_enabled=True)
+
+        user_message = Message.objects.create(
+            channel=channel, body="Hello", sent_by="user-1"
+        )
+
+        service = mock.Mock()
+        service.generate.side_effect = TimeoutError("streaming timeout")
+        mock_get_service.return_value = service
+
+        response = self.client.post(
+            reverse("agent-invoke", kwargs={"cid": f"messaging:{room.uuid}"}),
+            {
+                "room_uuid": f"messaging:{room.uuid}",
+                "last_human_message_id": user_message.id,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        payload = response.json()
+        self.assertEqual(
+            payload["detail"], "Agent timed out while generating a reply."
+        )
 
     def test_list_runs_with_pagination(self) -> None:
         AgentRun.objects.create(

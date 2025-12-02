@@ -320,13 +320,32 @@ class AgentLLMInvokeView(APIView):
 
             service = get_agent_service()
             generate_start = time.perf_counter()
-            reply = service.generate(
-                cid=canonical,
-                user_id=str(getattr(request.user, "id", "")) or None,
-                text=message.body or "",
-                meta=meta,
-                request_id=trace_id,
-            )
+            try:
+                reply = service.generate(
+                    cid=canonical,
+                    user_id=str(getattr(request.user, "id", "")) or None,
+                    text=message.body or "",
+                    meta=meta,
+                    request_id=trace_id,
+                )
+            except TimeoutError:
+                logger.exception(
+                    "agent.llm.invoke.timeout",
+                    extra={"cid": canonical, "trace_id": trace_id},
+                )
+                return Response(
+                    {"detail": "Agent timed out while generating a reply."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+            except Exception:
+                logger.exception(
+                    "agent.llm.invoke.unexpected_error",
+                    extra={"cid": canonical, "trace_id": trace_id},
+                )
+                return Response(
+                    {"detail": "Agent invocation failed unexpectedly."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             logger.info(
                 "agent.llm.invoke.latency",
                 extra={
