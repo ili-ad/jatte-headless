@@ -41,7 +41,7 @@ def _clamp(value: int, lower: int, upper: int) -> int:
     return max(lower, min(upper, value))
 
 
-AGENT_MODEL: str = _get_env_str("AGENT_MODEL", "gpt-4o-mini")
+AGENT_MODEL: str = _get_env_str("AGENT_MODEL", "gpt-5-mini-2025-08-07")
 AGENT_TIMEOUT_SEC: int = _get_env_int("AGENT_TIMEOUT_SEC", 8)
 AGENT_MAX_TOKENS: int = _get_env_int("AGENT_MAX_TOKENS", 300)
 AGENT_DAILY_BUDGET_USD: Decimal = _get_env_decimal("AGENT_DAILY_BUDGET_USD", "0.50")

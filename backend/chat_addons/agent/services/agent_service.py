@@ -238,13 +238,9 @@ class AgentService:
         tool_schemas = build_tool_schemas(skills) if skills else []
         skill_lookup = {skill.name: skill for skill in skills}
 
-        messages = self._compose_messages(message_text, meta=meta)
-        ctx = self._conversation_ctx(cid=cid, user_id=user_id, meta=meta)
-
         tool_hops = 0
         turn = 0
         fallback_attempted = False
-
 
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
@@ -289,11 +285,32 @@ class AgentService:
                 )
 
                 meta_payload["rag_context"] = rag_system
-                # Optional: track which chunks were used
                 meta_payload["rag_chunk_ids"] = [c.id for c in chunks]
+
+                # after building rag_system and rag_chunk_ids
+                logger.info(
+                    "agent.rag.context",
+                    extra={
+                        "cid": cid,
+                        "rag_enabled": rag_enabled,
+                        "state": state,
+                        "topic": topic,
+                        "rag_chunk_ids": [c.id for c in chunks],
+                    },
+                )
+
+        if not rag_enabled:
+            logger.info("agent.rag.disabled", extra={"cid": cid})
+        elif not meta_payload.get("rag_context"):
+            logger.info("agent.rag.no_chunks", extra={"cid": cid, "state": state, "topic": topic})
 
         # From here on, use meta_payload instead of the original `meta`
         meta = meta_payload
+
+        # Now that meta may contain rag_context, compose messages and ctx
+        messages = self._compose_messages(message_text, meta=meta)
+        ctx = self._conversation_ctx(cid=cid, user_id=user_id, meta=meta)
+
 
 
 
