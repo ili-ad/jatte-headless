@@ -345,6 +345,14 @@ class AgentLLMInvokeView(APIView):
 
         agent_message = messages[0]
 
+        # If generate() ever returns multiple assistant messages, make sure
+        # each one is tagged at creation time.
+        custom_data = dict(agent_message.custom_data or {})
+        if not custom_data.get("ai_generated"):
+            custom_data["ai_generated"] = True
+            agent_message.custom_data = custom_data
+            agent_message.save(update_fields=["custom_data", "updated_at"])
+
         # Tag provenance so you can distinguish agent vs human when querying
         MessageProvenance.objects.get_or_create(
             message=agent_message,
