@@ -29,7 +29,7 @@ from rest_framework.test import APITestCase
 from accounts_supabase.models import CustomUser
 from chat.models import Channel, Message, Room
 from chat_addons.agent.models import AgentRun, RoomAgentFlag
-from chat_addons.agent.services.agent_service import AgentSimulationResult
+from chat_addons.agent.services.agent_service import AgentReply, AgentSimulationResult
 from chat_addons.agent.services.memory import MemoryService
 from chat_addons.agent.utils import agent_user_id_for_room
 
@@ -153,6 +153,54 @@ class AgentViewsTests(APITestCase):
             channel__uuid="rag-room", sent_by=agent_user_id_for_room("rag-room")
         )
         self.assertEqual(agent_messages.count(), 1)
+
+    @mock.patch("backend.chat_addons.agent.views.get_agent_service")
+    def test_llm_invoke_marks_agent_reply_ai_generated(
+        self, mock_get_service: mock.MagicMock
+    ) -> None:
+        room = Room.objects.create(uuid="llm-room", client="stream")
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
+        RoomAgentFlag.objects.create(room=room, agent_enabled=True)
+
+        user_message = Message.objects.create(
+            channel=channel, body="Hello", sent_by="user-1"
+        )
+
+        agent_message = Message.objects.create(
+            channel=channel,
+            body="Hi there",
+            sent_by=agent_user_id_for_room(room.uuid),
+            custom_data={"foo": "bar"},
+        )
+
+        service = mock.Mock()
+        service.generate.return_value = AgentReply(
+            text=agent_message.body,
+            tokens_used=42,
+            latency_ms=99,
+            model="test-model",
+            cost_usd=Decimal("0.02"),
+            messages=[agent_message],
+        )
+        mock_get_service.return_value = service
+
+        response = self.client.post(
+            reverse("agent-invoke", kwargs={"cid": f"messaging:{room.uuid}"}),
+            {
+                "room_uuid": f"messaging:{room.uuid}",
+                "last_human_message_id": user_message.id,
+            },
+            format="json",
+            **self.auth_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertTrue(payload["messages"][0]["custom_data"]["ai_generated"])
+
+        agent_message.refresh_from_db()
+        self.assertTrue(agent_message.custom_data.get("ai_generated"))
+        self.assertEqual(agent_message.custom_data.get("foo"), "bar")
 
     def test_list_runs_with_pagination(self) -> None:
         AgentRun.objects.create(
