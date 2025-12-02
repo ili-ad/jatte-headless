@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol
 
 from django.core.cache import caches
 from django.utils import timezone
@@ -65,6 +65,18 @@ class LLMProvider(Protocol):
         timeout: float | None = None,
     ) -> LLMResult | dict[str, Any]:  # pragma: no cover - protocol definition
         """Execute the call and return either an :class:`LLMResult` or a plain mapping."""
+
+    def run_streaming(
+        self,
+        *,
+        messages: Iterable[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        max_tokens: int,
+        timeout: float | None = None,
+        on_update: Callable[[str], None] | None = None,
+    ) -> LLMResult | dict[str, Any]:  # pragma: no cover - protocol definition
+        """Execute a streaming call and surface partial text via the callback."""
 
 
 class BudgetExceeded(Exception):
@@ -269,6 +281,59 @@ class LLMClient:
         )
         return result
 
+    def run_streaming(
+        self,
+        messages: Iterable[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
+        max_tokens: int | None = None,
+        timeout: int | None = None,
+        cost_guard: CostGuard | None = None,
+        on_update: Callable[[str], None] | None = None,
+    ) -> LLMResult:
+        call_model = model or self.default_model
+        call_max_tokens = min(
+            max_tokens or self.default_max_tokens, self.default_max_tokens
+        )
+        call_timeout = min(timeout or self.default_timeout, self.default_timeout)
+        guard = cost_guard or self.cost_guard
+
+        projected_cost = self._estimate_cost(call_max_tokens)
+        guard.ensure_within_budget(projected_cost)
+
+        start = time.perf_counter()
+        try:
+            payload = self.provider.run_streaming(
+                messages=list(messages),
+                tools=tools,
+                model=call_model,
+                max_tokens=call_max_tokens,
+                timeout=float(call_timeout),
+                on_update=on_update,
+            )
+        except APITimeoutError as exc:
+            logger.warning(
+                "agent.llm.timeout",
+                extra={"model": call_model, "timeout": call_timeout},
+            )
+            raise TimeoutError("LLM provider timed out") from exc
+        finally:
+            latency_ms = int((time.perf_counter() - start) * 1000)
+
+        result = self._coerce_result(payload, model=call_model, latency_ms=latency_ms)
+        guard.record_cost(result.cost_usd)
+        logger.info(
+            "agent.llm.success.streaming",
+            extra={
+                "model": call_model,
+                "latency_ms": result.latency_ms,
+                "tokens_used": result.tokens_used,
+                "cost_usd": float(result.cost_usd),
+            },
+        )
+        return result
+
 
 # ---------------------------------------------------------------------------
 # Simple canned provider (for tests / dev)
@@ -291,6 +356,25 @@ class CannedProvider:
         timeout: float | None = None,
     ) -> dict[str, Any]:
         _ = (messages, tools, model, max_tokens, timeout)
+        return {
+            "content": self.text,
+            "tokens_used": min(32, max_tokens),
+            "cost_usd": Decimal("0.000160"),
+        }
+
+    def run_streaming(
+        self,
+        *,
+        messages: Iterable[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        max_tokens: int,
+        timeout: float | None = None,
+        on_update: Callable[[str], None] | None = None,
+    ) -> dict[str, Any]:
+        _ = (messages, tools, model, max_tokens, timeout)
+        if on_update:
+            on_update(self.text)
         return {
             "content": self.text,
             "tokens_used": min(32, max_tokens),
@@ -465,3 +549,61 @@ class OpenAIProvider(LLMProvider):
             # No explicit "cost_usd" here — LLMClient._estimate_cost will fill it in
             # using TOKEN_RATE_USD if nothing else is provided.
         }
+
+    def run_streaming(
+        self,
+        *,
+        messages: Iterable[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        max_tokens: int,
+        timeout: float | None = None,
+        on_update: Callable[[str], None] | None = None,
+    ) -> dict[str, Any]:
+        client = self._get_client()
+        message_list = list(messages)
+
+        call_model = model or self.default_model
+        call_max_tokens = max_tokens or self.default_max_tokens
+
+        logger.info(
+            "OpenAIProvider.run_streaming model=%s max_tokens=%s num_messages=%s",
+            call_model,
+            call_max_tokens,
+            len(message_list),
+        )
+
+        kwargs: dict[str, Any] = {
+            "model": call_model,
+            "messages": message_list,
+            "stream": True,
+        }
+        if tools:
+            kwargs["tools"] = tools
+
+        if call_model.startswith("gpt-5"):
+            kwargs["max_completion_tokens"] = call_max_tokens
+            kwargs["reasoning_effort"] = "minimal"
+        else:
+            kwargs["max_tokens"] = call_max_tokens
+            kwargs["temperature"] = self.temperature
+
+        if timeout is not None:
+            client = client.with_options(timeout=timeout)
+
+        buffer = ""
+        tokens_used = 0
+
+        stream = client.chat.completions.create(**kwargs)
+        for event in stream:
+            delta = event.choices[0].delta
+            delta_text = getattr(delta, "content", None) or ""
+            if delta_text:
+                buffer += delta_text
+                if on_update:
+                    on_update(buffer)
+
+            if getattr(event, "usage", None) is not None:
+                tokens_used = event.usage.total_tokens or tokens_used
+
+        return {"content": buffer, "tokens_used": tokens_used, "model": call_model}

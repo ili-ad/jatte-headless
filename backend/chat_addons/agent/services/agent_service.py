@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,6 +17,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from chat.api_views import _broadcast_to_cid
+from chat.consumers import broadcast_message_update
 from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 
@@ -333,6 +334,18 @@ class AgentService:
 
 
 
+        ai_message: Message | None = None
+
+        if persist and policy.agent_enabled:
+            ai_message = self._persist_message(
+                cid=cid,
+                text="",
+                custom_data={
+                    "ai_generated": True,
+                    "ai_state": "AI_STATE_THINKING",
+                },
+            )
+
         try:
             if not policy.agent_enabled:
                 reply_text = handoff_message
@@ -341,7 +354,12 @@ class AgentService:
             else:
                 while turn < turn_cap:
                     turn += 1
-                    llm_result = self._call_llm(messages, tool_schemas, meta)
+                    llm_result = self._call_llm_streaming(
+                        messages,
+                        tool_schemas,
+                        meta,
+                        stream_target=ai_message,
+                    )
                     tokens_out += llm_result.tokens_used
                     total_cost += llm_result.cost_usd
 
@@ -421,9 +439,23 @@ class AgentService:
         tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
         if persist:
-            message = self._persist_reply(
-                cid=cid, text=reply_text, handoff=handoff_triggered
-            )
+            if ai_message is not None:
+                final_state = (
+                    "AI_STATE_ERROR"
+                    if run_status == AgentRun.STATUS_ERROR
+                    else "AI_STATE_IDLE"
+                )
+                custom_data = {**(ai_message.custom_data or {})}
+                custom_data["ai_state"] = final_state
+                if handoff_triggered:
+                    custom_data["agent"] = {"handoff": True}
+                self._update_message(ai_message, text=reply_text, custom_data=custom_data)
+                message = ai_message
+            else:
+                message = self._persist_reply(
+                    cid=cid, text=reply_text, handoff=handoff_triggered
+                )
+
             self._mark_provenance(message)
             if handoff_triggered:
                 self._notify_handoff(cid)
@@ -521,6 +553,38 @@ class AgentService:
             timeout=timeout or AGENT_TIMEOUT_SEC,
         )
 
+    def _call_llm_streaming(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        meta: dict[str, Any] | None,
+        *,
+        stream_target: Message | None = None,
+    ) -> LLMResult:
+        timeout = (meta or {}).get("timeout")
+        if stream_target is None:
+            return self._call_llm(messages, tools, meta)
+
+        custom_data = {**(stream_target.custom_data or {})}
+        custom_data["ai_state"] = "AI_STATE_GENERATING"
+        self._update_message(stream_target, custom_data=custom_data)
+
+        def on_update(buffer: str) -> None:
+            stream_custom_data = {**(stream_target.custom_data or {})}
+            stream_custom_data["ai_state"] = "AI_STATE_GENERATING"
+            self._update_message(
+                stream_target, text=buffer, custom_data=stream_custom_data
+            )
+
+        return self.llm_client.run_streaming(
+            messages,
+            tools=tools or None,
+            model=AGENT_MODEL,
+            max_tokens=AGENT_MAX_TOKENS,
+            timeout=timeout or AGENT_TIMEOUT_SEC,
+            on_update=on_update,
+        )
+
     def _execute_tool_calls(
         self,
         calls: Sequence[ToolCall],
@@ -597,10 +661,14 @@ class AgentService:
         except TypeError:  # pragma: no cover - defensive
             return json.dumps({"result": str(payload)})
 
-    def _persist_reply(self, *, cid: str, text: str, handoff: bool) -> Message:
-        serializer = MessageSerializer(
-            data={"text": text, "custom_data": {"agent": {"handoff": handoff}}}
-        )
+    def _persist_message(
+        self, *, cid: str, text: str, custom_data: dict[str, Any] | None = None
+    ) -> Message:
+        payload: dict[str, Any] = {"text": text}
+        if custom_data is not None:
+            payload["custom_data"] = custom_data
+
+        serializer = MessageSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
 
         room_uuid = cid.split(":", 1)[1] if ":" in cid else cid
@@ -623,6 +691,28 @@ class AgentService:
         payload["user"] = {"id": agent_user, "name": "Assistant"}
         _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
         return serializer.instance
+
+    def _persist_reply(self, *, cid: str, text: str, handoff: bool) -> Message:
+        custom_data = {"agent": {"handoff": handoff}, "ai_generated": True}
+        return self._persist_message(cid=cid, text=text, custom_data=custom_data)
+
+    def _update_message(
+        self,
+        message: Message,
+        *,
+        text: str | None = None,
+        custom_data: dict[str, Any] | None = None,
+    ) -> None:
+        update_fields = ["updated_at"]
+        if text is not None:
+            message.body = text
+            update_fields.append("body")
+        if custom_data is not None:
+            message.custom_data = custom_data
+            update_fields.append("custom_data")
+        message.updated_at = timezone.now()
+        message.save(update_fields=update_fields)
+        broadcast_message_update(message)
 
     def _mark_provenance(self, message) -> None:
         MessageProvenance.objects.get_or_create(
