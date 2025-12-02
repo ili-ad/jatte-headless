@@ -181,14 +181,19 @@ def test_agent_service_hands_off_on_llm_timeout() -> None:
     assert elapsed < 0.5
 
 
-def test_agent_service_streaming_timeout_sets_idle_state() -> None:
+def test_agent_service_streaming_timeout_sets_idle_state(monkeypatch) -> None:
     AgentRoomPolicy.objects.update_or_create(
         cid="messaging:stream-timeout", defaults={"agent_enabled": True}
     )
+    monkeypatch.setattr(
+        "chat_addons.agent.services.agent_service.AGENT_STREAMING_TIMEOUT_SEC", 0.05
+    )
+    monkeypatch.setattr(
+        "chat_addons.agent.services.llm_client.AGENT_STREAMING_TIMEOUT_SEC", 0.05
+    )
     client = LLMClient(
-        provider=_StreamingSleeper(),
+        provider=_StreamingSleeper(delay=0.2),
         default_timeout=1,
-        default_streaming_timeout=0.05,
     )
     service = AgentService(llm_client=client)
 

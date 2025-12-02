@@ -226,9 +226,7 @@ class AgentViewsTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
         payload = response.json()
-        self.assertEqual(
-            payload["detail"], "Agent timed out while generating a reply."
-        )
+        self.assertEqual(payload["detail"], "Agent LLM timed out.")
 
     def test_list_runs_with_pagination(self) -> None:
         AgentRun.objects.create(
