@@ -162,6 +162,7 @@ INSTALLED_APPS = [
     'state',
     'polls',
     'chat_addons',
+    "chat_addons.agent",
 ]
 
 # REST framework configuration
