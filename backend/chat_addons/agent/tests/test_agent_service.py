@@ -216,7 +216,8 @@ def test_agent_service_streaming_timeout_sets_idle_state(monkeypatch) -> None:
     assert final_message.custom_data.get("ai_generated") is True
     assert final_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
     assert final_message.body == "partial response…"
-    assert final_message.custom_data.get("error_reason") is None
+    assert final_message.custom_data.get("error_reason") == "timeout"
+    assert final_message.custom_data.get("agent", {}).get("handoff") is True
 
     timeout_messages = Message.objects.filter(body=service.streaming_timeout_text)
     assert timeout_messages.exists()
