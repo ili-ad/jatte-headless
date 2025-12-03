@@ -26,7 +26,7 @@ export default function ChatUI() {
     const logSnapshot = () => {
       try {
         const snapshot = store?.getSnapshot?.();
-        if (snapshot) {
+        if (snapshot && process.env.NODE_ENV !== 'production') {
           // eslint-disable-next-line no-console
           console.log('[agent/ui] messages snapshot', snapshot.messages);
 
@@ -38,6 +38,15 @@ export default function ChatUI() {
 
           // eslint-disable-next-line no-console
           console.log('[agent/ui] ai messages snapshot', aiMessages);
+
+          // eslint-disable-next-line no-console
+          console.log(
+            '[agent/ui] ai rag summary',
+            aiMessages.map((m: any) => ({
+              id: m.id,
+              rag: m.custom_data?.rag ?? null,
+            })),
+          );
         }
       } catch (err) {
         // eslint-disable-next-line no-console
