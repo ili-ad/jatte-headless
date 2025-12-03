@@ -741,11 +741,24 @@ class AgentService:
 
         trace_id = (meta or {}).get("trace_id") or (meta or {}).get("request_id")
         cid = (meta or {}).get("cid")
+        job_id = (meta or {}).get("job_id")
         logger.info(
             "agent.llm.streaming.start",
             extra={
                 "cid": cid,
                 "trace_id": trace_id,
+                "timeout_sec": streaming_timeout,
+            },
+        )
+
+        logger.info(
+            "agent.llm.streaming.call",
+            extra={
+                "cid": cid,
+                "trace_id": trace_id,
+                "job_id": job_id,
+                "model": AGENT_MODEL,
+                "max_tokens": AGENT_MAX_TOKENS,
                 "timeout_sec": streaming_timeout,
             },
         )
@@ -796,7 +809,11 @@ class AgentService:
                 )
                 logger.info(
                     "agent.llm.streaming_timeout.fallback",
-                    extra={"cid": cid, "trace_id": trace_id, "fallback_text": fallback_text},
+                    extra={
+                        "cid": cid,
+                        "trace_id": trace_id,
+                        "fallback_text": fallback_text[:80],
+                    },
                 )
             return LLMResult(
                 content=fallback_text,
