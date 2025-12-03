@@ -6,6 +6,7 @@ import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
+import { AIStates } from '@iliad/stream-chat-shim';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
 import {
     extractRoomAgentConfig,
@@ -1071,6 +1072,24 @@ export class Channel {
                             });
                         }
 
+                        const userId = (msg as any).user_id ?? msg.user?.id;
+                        if (userId === 'ai-bot-agent-lab') {
+                            this.client?.setAIState?.(AIStates.Generating, this.cid);
+
+                            if (type === 'message.updated') {
+                                const aiState = (msg as any).custom_data?.ai_state;
+                                const errorReason = (msg as any).custom_data?.error_reason;
+
+                                if (aiState === AIStates.Idle && !errorReason) {
+                                    this.client?.setAIState?.(AIStates.Idle, this.cid);
+                                } else if (aiState === AIStates.Idle && errorReason === 'timeout') {
+                                    this.client?.setAIState?.(AIStates.Error, this.cid);
+                                } else if (aiState === AIStates.Error) {
+                                    this.client?.setAIState?.(AIStates.Error, this.cid);
+                                }
+                            }
+                        }
+
                         this.integrateIncomingMessage(
                             { ...msg, status: (msg as any).status ?? 'received' },
                             (msg as any).client_generated_id,
@@ -1366,6 +1385,7 @@ export class Channel {
         this.startAgentTyping(typingUserId);
 
         try {
+            this.client?.setAIState?.(AIStates.Thinking, this.cid);
             const reply = await invokeAgent(this.cid, {
                 roomUUID: this.uuid,
                 lastHumanMessageId: String(message.id),
@@ -1375,8 +1395,11 @@ export class Channel {
 
             if ('status' in reply && reply.status === 'queued') {
                 console.log('[agent] agent job queued', reply);
+                this.client?.setAIState?.(AIStates.Generating, this.cid);
                 return;
             }
+
+            this.client?.setAIState?.(AIStates.Generating, this.cid);
 
             (reply.messages ?? []).forEach(agentMessage => {
                 const normalized = {
@@ -1399,6 +1422,7 @@ export class Channel {
 
         } catch (err) {
             console.error('[agent] failed to request reply', err);
+            this.client?.setAIState?.(AIStates.Error, this.cid);
         } finally {
             this.stopAgentTyping(typingUserId);
         }

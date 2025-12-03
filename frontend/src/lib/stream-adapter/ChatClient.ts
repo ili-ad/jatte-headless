@@ -247,6 +247,36 @@ export class ChatClient {
         this.emit(event.type as any, event as any);
     }
 
+    private findChannelByCid(cid?: string) {
+        if (!cid) return undefined;
+
+        return (
+            this.activeChannels[cid] ??
+            this.stateStore.getSnapshot().channels.find((channel) => channel?.cid === cid)
+        );
+    }
+
+    setAIState(state: string, cid?: string) {
+        const channel = this.findChannelByCid(cid);
+        if (!channel || typeof (channel as any).dispatchEvent !== 'function') return;
+
+        (channel as any).dispatchEvent({
+            type: 'ai_indicator.update',
+            cid: channel.cid,
+            ai_state: state,
+        });
+    }
+
+    clearAIState(cid?: string) {
+        const channel = this.findChannelByCid(cid);
+        if (!channel || typeof (channel as any).dispatchEvent !== 'function') return;
+
+        (channel as any).dispatchEvent({
+            type: 'ai_indicator.clear',
+            cid: channel.cid,
+        });
+    }
+
     private buildHeaders(extra: Record<string, string> = {}) {
         return this.authToken ? { Authorization: `Bearer ${this.authToken}`, ...extra } : extra;
     }
