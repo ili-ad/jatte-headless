@@ -37,7 +37,7 @@ From the `backend/` directory:
 
    ```bash
    NEXT_PUBLIC_API_URL=http://localhost:8000
-   NEXT_PUBLIC_WS_URL=ws://localhost:8000
+   NEXT_PUBLIC_WS_URL=ws://127.0.0.1:8000
    ```
 
 2. Start the dev server on port 3000:

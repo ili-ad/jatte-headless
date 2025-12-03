@@ -42,17 +42,14 @@ const resolveWsBase = (): string => {
     return trimTrailingSlash(envValue);
   }
 
-  if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
-    const { protocol, hostname, port } = window.location;
-    const secure = protocol === 'https:';
-    const scheme = secure ? 'wss' : 'ws';
-    const host = formatHost(hostname);
-    const resolvedPort = port || DEV_PORT;
-    const portSegment = resolvedPort ? `:${resolvedPort}` : '';
-    return `${scheme}://${host}${portSegment}`;
-  }
+  const isBrowser = typeof window !== 'undefined' && typeof window.location !== 'undefined';
+  const secure = isBrowser ? window.location.protocol === 'https:' : false;
+  const scheme = secure ? 'wss' : 'ws';
+  const hostname = isBrowser ? window.location.hostname : '127.0.0.1';
+  const host = formatHost(hostname || '127.0.0.1');
+  const portSegment = DEV_PORT ? `:${DEV_PORT}` : '';
 
-  return DEV_WS_FALLBACK;
+  return `${scheme}://${host}${portSegment}`;
 };
 
 export type ChatAuthMode = 'strict' | 'open';
