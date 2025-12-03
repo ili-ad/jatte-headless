@@ -119,15 +119,32 @@ export async function invokeAgent(
 
   console.log('[agent] invokeAgent response status', res.status);
 
+  const rawText = await res.text().catch(() => '');
+  console.log('[agent] invokeAgent raw response', rawText);
+
   if (!res.ok) {
     // This will show up in the Channel catch block too.
-    const text = await res.text().catch(() => '');
-    console.error('[agent] invokeAgent error response', res.status, text);
+    console.error('[agent] invokeAgent error response', res.status, rawText);
     throw new Error(`Failed to invoke agent (${res.status})`);
   }
 
-  const reply = await res.json();
+  let reply: AgentReply | AgentInvokeQueuedResponse | Record<string, unknown> = {};
+  try {
+    reply = rawText ? (JSON.parse(rawText) as any) : {};
+  } catch (err) {
+    console.error('[agent] invokeAgent parse error', err);
+    throw err;
+  }
+
+  const replyKind = (reply as AgentInvokeQueuedResponse)?.status === 'queued' ? 'queued' : 'messages';
+
   console.log('[agent] invokeAgent parsed reply', reply);
+  console.log('[agent] invokeAgent reply kind', replyKind, {
+    job_id: (reply as AgentInvokeQueuedResponse).job_id,
+    message_count: Array.isArray((reply as AgentReply).messages)
+      ? (reply as AgentReply).messages.length
+      : undefined,
+  });
 
   return reply as AgentReply | AgentInvokeQueuedResponse;
 }
