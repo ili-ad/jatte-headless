@@ -39,6 +39,12 @@ export interface AgentReply {
   reason?: string;
 }
 
+export type AgentInvokeQueuedResponse = {
+  status: 'queued';
+  job_id: string;
+  trace_id: string | null;
+};
+
 export interface RoomAgentConfig {
   enabled: boolean;
   botUserId: string;
@@ -83,7 +89,7 @@ export async function disableAgent(cid: string): Promise<AgentToggleResponse> {
 export async function invokeAgent(
   cid: string,
   payload: AgentInvocation | AgentInvokePromptPayload,
-): Promise<AgentReply> {
+): Promise<AgentReply | AgentInvokeQueuedResponse> {
   const isInvocationPayload =
     'roomUUID' in payload || 'lastHumanMessageId' in payload;
 
@@ -120,13 +126,10 @@ export async function invokeAgent(
     throw new Error(`Failed to invoke agent (${res.status})`);
   }
 
-  const reply = (await res.json()) as AgentReply;
+  const reply = await res.json();
   console.log('[agent] invokeAgent parsed reply', reply);
 
-  return {
-    messages: reply?.messages ?? [],
-    reason: reply?.reason,
-  };
+  return reply as AgentReply | AgentInvokeQueuedResponse;
 }
 
 
