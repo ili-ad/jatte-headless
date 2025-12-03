@@ -7,7 +7,11 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
-import { extractRoomAgentConfig, invokeAgent, type RoomAgentConfig } from '../chat-addons/agentApi';
+import {
+    extractRoomAgentConfig,
+    invokeAgent,
+    type RoomAgentConfig,
+} from '../chat-addons/agentApi';
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -972,13 +976,15 @@ export class Channel {
                 const p = JSON.parse(ev.data);
                 switch (p.type) {
                     case 'message':
-                    case 'message.new': {
-                        const msg = (p.data ?? (p as any).message ?? p.message) as Message & { client_generated_id?: string };
-                        this.integrateIncomingMessage(
-                            { ...msg, status: (msg as any).status ?? 'received' },
-                            msg?.client_generated_id,
-                        );
+                    case 'message.new':
+                    case 'message.updated': {
+                        const msg = (p.message ?? p.data ?? (p as any).message ?? p.data?.message) as Message &
+                            { client_generated_id?: string };
                         if (msg) {
+                            this.integrateIncomingMessage(
+                                { ...msg, status: (msg as any).status ?? 'received' },
+                                msg?.client_generated_id,
+                            );
                             this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
                         }
                         break;
@@ -1252,21 +1258,26 @@ export class Channel {
                     client_generated_id ?? (message as any).client_generated_id,
             });
 
-            (reply.messages ?? []).forEach(agentMessage => {
-            const normalized = {
-                // backend sends id as string, other code often uses number
-                id: Number(agentMessage.id) || agentMessage.id,
-                room_uuid: agentMessage.room_uuid,
-                user_id: agentMessage.user_id,
-                user: { id: agentMessage.user_id } as any,
-                text: agentMessage.text,
-                body: agentMessage.text,
-                created_at: agentMessage.created_at,
-                custom_data: agentMessage.custom_data ?? {},
-                status: 'received' as const,
-            };
+            if ('status' in reply && reply.status === 'queued') {
+                console.log('[agent] agent job queued', reply);
+                return;
+            }
 
-            this.integrateIncomingMessage(normalized as any, normalized.id as any);
+            (reply.messages ?? []).forEach(agentMessage => {
+                const normalized = {
+                    // backend sends id as string, other code often uses number
+                    id: Number(agentMessage.id) || agentMessage.id,
+                    room_uuid: agentMessage.room_uuid,
+                    user_id: agentMessage.user_id,
+                    user: { id: agentMessage.user_id } as any,
+                    text: agentMessage.text,
+                    body: agentMessage.text,
+                    created_at: agentMessage.created_at,
+                    custom_data: agentMessage.custom_data ?? {},
+                    status: 'received' as const,
+                };
+
+                this.integrateIncomingMessage(normalized as any, normalized.id as any);
             });
 
             console.log('[agent] echo reply integrated', reply);
