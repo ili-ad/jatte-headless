@@ -351,6 +351,10 @@ class AgentService:
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
         rag_enabled = bool(meta_payload.get("use_rag"))
+        rag_used = False
+        rag_k = 0
+        top_score = None
+        top_ids: list[Any] = []
         meta_payload.setdefault("cid", cid)
         llm_timeout = (
             meta_payload.get("timeout")
@@ -374,6 +378,34 @@ class AgentService:
             except Exception:
                 # If RAG fails, we fall back silently to non-RAG behavior.
                 chunks = []
+
+            rag_used = bool(chunks)
+            rag_k = len(chunks)
+            raw_top_score = None
+            if chunks:
+                raw_top_score = getattr(chunks[0], "score", None)
+                if raw_top_score is None:
+                    raw_top_score = getattr(chunks[0], "distance", None)
+                if raw_top_score is None:
+                    raw_top_score = getattr(chunks[0], "similarity", None)
+                top_ids = [getattr(c, "id", None) for c in chunks[:3]]
+
+            try:
+                top_score = float(raw_top_score) if raw_top_score is not None else None
+            except (TypeError, ValueError):
+                top_score = None
+
+            logger.info(
+                "agent.rag.result",
+                extra={
+                    "cid": cid,
+                    "trace_id": request_id,
+                    "rag_used": rag_used,
+                    "rag_k": rag_k,
+                    "top_score": top_score,
+                    "top_ids": top_ids,
+                },
+            )
 
             if chunks:
                 context_pieces: list[str] = []
@@ -595,6 +627,9 @@ class AgentService:
                     custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
                     custom_data["agent"] = {"handoff": True}
+                if rag_enabled:
+                    custom_data.setdefault("rag", {})
+                    custom_data["rag"].update({"used": rag_used, "k": rag_k})
 
                 # For timeouts, do not overwrite the partial streaming text saved
                 # earlier. Only update metadata.
