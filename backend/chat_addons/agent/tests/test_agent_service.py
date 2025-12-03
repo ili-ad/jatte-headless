@@ -96,6 +96,8 @@ class _StreamingSleeper:
         on_update=None,
     ):
         _ = (messages, tools, model, max_tokens, timeout, on_update)
+        if on_update:
+            on_update("partial response")
         time.sleep(self.delay)
         return {
             "content": "fallback",
@@ -213,7 +215,16 @@ def test_agent_service_streaming_timeout_sets_idle_state(monkeypatch) -> None:
     final_message: Message = reply.messages[0]
     assert final_message.custom_data.get("ai_generated") is True
     assert final_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
-    assert final_message.custom_data.get("error_reason") == "timeout"
+    assert final_message.body == "partial response…"
+    assert final_message.custom_data.get("error_reason") is None
+
+    timeout_messages = Message.objects.filter(body=service.streaming_timeout_text)
+    assert timeout_messages.exists()
+    timeout_message = timeout_messages.first()
+    assert timeout_message
+    assert timeout_message.custom_data.get("ai_generated") is True
+    assert timeout_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
+    assert timeout_message.custom_data.get("error_reason") == "timeout"
 
 
 def test_llm_client_streaming_emits_incremental_updates() -> None:

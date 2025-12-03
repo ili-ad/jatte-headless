@@ -103,8 +103,8 @@ class AgentService:
 
     canned_text = "Let me connect you with a teammate."
     streaming_timeout_text = (
-        "I'm sorry — my model took too long to respond and I had to stop this attempt. "
-        "You can try again, or rephrase the question to be shorter."
+        "I had to stop because I hit the 60-second budget. If you'd like, "
+        "try resubmitting with a shorter prompt."
     )
 
     def __init__(self, *, llm_client: LLMClient | None = None) -> None:
@@ -798,14 +798,18 @@ class AgentService:
                     "timeout_sec": streaming_timeout,
                 },
             )
-            fallback_text = self.streaming_timeout_text
+            fallback_text = handoff_message or self.streaming_timeout_text
             if stream_target is not None:
+                partial_text = stream_target.body or getattr(stream_target, "text", "") or ""
+                if partial_text and not partial_text.endswith(("…", ".", "!", "?")):
+                    partial_text = partial_text.rstrip() + "…"
+
                 timeout_custom_data = {**(stream_target.custom_data or {})}
                 timeout_custom_data["ai_generated"] = True
                 timeout_custom_data["ai_state"] = "AI_STATE_IDLE"
-                timeout_custom_data["error_reason"] = "timeout"
+
                 self._update_message(
-                    stream_target, text=fallback_text, custom_data=timeout_custom_data
+                    stream_target, text=partial_text, custom_data=timeout_custom_data
                 )
                 logger.info(
                     "agent.llm.streaming_timeout.fallback",
@@ -813,6 +817,27 @@ class AgentService:
                         "cid": cid,
                         "trace_id": trace_id,
                         "fallback_text": fallback_text[:80],
+                    },
+                )
+                timeout_custom_data_2 = {
+                    "ai_generated": True,
+                    "ai_state": "AI_STATE_IDLE",
+                    "error_reason": "timeout",
+                }
+
+                from ..tasks import _persist_message
+
+                timeout_msg = _persist_message(
+                    cid=cid,
+                    text=fallback_text,
+                    custom_data=timeout_custom_data_2,
+                )
+                logger.info(
+                    "agent.llm.streaming_timeout.secondary_message",
+                    extra={
+                        "cid": cid,
+                        "trace_id": trace_id,
+                        "timeout_message_id": str(timeout_msg.id),
                     },
                 )
             return LLMResult(
