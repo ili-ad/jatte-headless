@@ -1695,13 +1695,69 @@ export class Channel {
         // eslint-disable-next-line no-console
         console.log('[Channel.bump]', patch);
 
-        this._state = { ...this._state, ...patch };
-        this.stateStore.dispatch(patch);     // ← keep channel store current
+        const normalizedPatch: Partial<typeof this._state> = { ...patch };
+
+        if (patch.messages) normalizedPatch.messages = this.normalizeMessagesWithDisplayName(patch.messages);
+        if (patch.latestMessages)
+            normalizedPatch.latestMessages = this.normalizeMessagesWithDisplayName(patch.latestMessages);
+        if (patch.pinnedMessages)
+            normalizedPatch.pinnedMessages = this.normalizeMessagesWithDisplayName(patch.pinnedMessages);
+
+        this._state = { ...this._state, ...normalizedPatch };
+        this.stateStore.dispatch(normalizedPatch);     // ← keep channel store current
         this.client.stateStore.dispatch({}); // ← nudge parent Chat to re-render
     }
 
     private getCurrentUserId() {
         return this.client.user?.id ?? (this.client as any)._user?.id ?? null;
+    }
+
+    private getBotUserId() {
+        const snapshot = this.messageComposer?.configState?.getSnapshot?.();
+        const aiConfig = snapshot ? this.agentConfig ?? extractRoomAgentConfig(snapshot) : this.agentConfig;
+        return aiConfig?.botUserId ?? 'ai-bot-agent-lab';
+    }
+
+    private resolveDisplayName(message: Message) {
+        const user = (message as any).user ?? {};
+        const authorId = user.id ?? (message as any).user_id ?? (message as any).sent_by;
+        const botUserId = this.getBotUserId();
+        const currentUserId = this.getCurrentUserId();
+
+        if (authorId && botUserId && authorId === botUserId) {
+            return 'AI assistant';
+        }
+
+        if (currentUserId && authorId === currentUserId) {
+            return 'You';
+        }
+
+        if (user.name) {
+            return user.name;
+        }
+
+        const rawId = String(authorId ?? '');
+        const shortId = rawId.slice(0, 4).toUpperCase() || '????';
+        return `Guest ${shortId}`;
+    }
+
+    private withDisplayName(message: Message): Message {
+        const user = { ...(message as any).user } as { id?: string; name?: string };
+        const authorId = user.id ?? (message as any).user_id ?? (message as any).sent_by;
+        const displayName = this.resolveDisplayName({ ...message, user });
+        const normalizedUser = authorId ? { ...user, id: authorId, name: displayName } : { ...user, name: displayName };
+
+        const normalizedMessage = {
+            ...message,
+            user_id: (message as any).user_id ?? authorId,
+            user: normalizedUser,
+        } as Message;
+
+        return normalizedMessage;
+    }
+
+    private normalizeMessagesWithDisplayName(messages: Message[]) {
+        return messages.map((msg) => this.withDisplayName(msg));
     }
 
     private clearTypingUser(userId: string, emitEvent = false) {
@@ -1784,22 +1840,24 @@ export class Channel {
         if (!normalized.user_id && authorId) normalized.user_id = authorId;
         if (!normalized.user && authorId) normalized.user = { id: authorId };
 
+        const messageWithDisplayName = this.withDisplayName(normalized as Message);
+
         if (authorId) this.clearAgentTypingTimer(authorId);
         if (authorId) this.clearTypingUser(authorId, true);
 
         const matcher = (m: Message) =>
-            m.id === normalized.id ||
+            m.id === messageWithDisplayName.id ||
             (!!matchId && (m.id === matchId || (m as any).client_generated_id === matchId));
 
         let nextMessages = [...this._state.messages];
         const existingIndex = nextMessages.findIndex(matcher);
 
         if (existingIndex !== -1) {
-            const merged = { ...nextMessages[existingIndex], ...normalized } as Message;
-            merged.id = normalized.id ?? nextMessages[existingIndex].id;
+            const merged = { ...nextMessages[existingIndex], ...messageWithDisplayName } as Message;
+            merged.id = messageWithDisplayName.id ?? nextMessages[existingIndex].id;
             nextMessages[existingIndex] = merged;
         } else {
-            nextMessages.push(normalized as Message);
+            nextMessages.push(messageWithDisplayName as Message);
         }
 
         if (matchId && normalized.id && normalized.id !== matchId) {
