@@ -1077,14 +1077,31 @@ export class Channel {
                             this.client?.setAIState?.(AIStates.Generating, this.cid);
 
                             if (type === 'message.updated') {
-                                const aiState = (msg as any).custom_data?.ai_state;
-                                const errorReason = (msg as any).custom_data?.error_reason;
+                                const rawState = (msg as any).custom_data?.ai_state as string | undefined;
+                                const errorReason = (msg as any).custom_data?.error_reason as string | undefined;
 
-                                if (aiState === AIStates.Idle && !errorReason) {
+                                let normalizedState: string | undefined;
+                                switch (rawState) {
+                                    case 'AI_STATE_IDLE':
+                                        normalizedState = AIStates.Idle;
+                                        break;
+                                    case 'AI_STATE_ERROR':
+                                        normalizedState = AIStates.Error;
+                                        break;
+                                    case 'AI_STATE_GENERATING':
+                                        normalizedState = AIStates.Generating;
+                                        break;
+                                    default:
+                                        normalizedState = rawState;
+                                        break;
+                                }
+
+                                if (normalizedState === AIStates.Idle && !errorReason) {
                                     this.client?.setAIState?.(AIStates.Idle, this.cid);
-                                } else if (aiState === AIStates.Idle && errorReason === 'timeout') {
+                                    this.client?.clearAIState?.(this.cid);
+                                } else if (normalizedState === AIStates.Idle && errorReason === 'timeout') {
                                     this.client?.setAIState?.(AIStates.Error, this.cid);
-                                } else if (aiState === AIStates.Error) {
+                                } else if (normalizedState === AIStates.Error) {
                                     this.client?.setAIState?.(AIStates.Error, this.cid);
                                 }
                             }
