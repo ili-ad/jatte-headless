@@ -12,6 +12,7 @@ import {
 import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
+import { AgentMessage } from '@/app/agent/AgentMessage';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
@@ -96,7 +97,12 @@ export default function ChatUI() {
   return (
     <Chat client={client as any} theme="messaging light">
       <ErrorBoundary>
-        <Channel channel={channel as any}>
+        <Channel
+          channel={channel as any}
+          Message={(props: any) => (
+            <AgentMessage {...props} currentUserId={(client as any)?.user?.id} />
+          )}
+        >
           <Window>
             <MessageList />
             <TypingIndicator />
