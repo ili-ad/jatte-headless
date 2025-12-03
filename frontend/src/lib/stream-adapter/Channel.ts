@@ -982,11 +982,31 @@ export class Channel {
         this.socket = new WebSocket(wsUrl);
 
         this.socket.onopen = () => {
-            if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
-                console.log('[agent/ws] open', { cid: this.cid, uuid: this.uuid });
-            }
+        const frame = {
+            type: 'channel.watch',
+            cid: this.cid,
+            // you can add extra metadata here if the consumer ever needs it
+            // data: { user_id: this.client.user?.id },
         };
+
+        if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('[agent/ws] open', {
+            cid: this.cid,
+            uuid: this.uuid,
+            });
+            // eslint-disable-next-line no-console
+            console.log('[agent/ws] sending watch', frame);
+        }
+
+        try {
+            this.socket?.send(JSON.stringify(frame));
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[agent/ws] failed to send watch', err);
+        }
+        };
+
 
         this.socket.onerror = (event) => {
             if (process.env.NODE_ENV !== 'production') {
