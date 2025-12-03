@@ -351,6 +351,7 @@ class AgentService:
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
         rag_enabled = bool(meta_payload.get("use_rag"))
+        meta_payload.setdefault("cid", cid)
         llm_timeout = (
             meta_payload.get("timeout")
             or getattr(self.llm_client, "default_timeout", None)
@@ -594,7 +595,15 @@ class AgentService:
                     custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
                     custom_data["agent"] = {"handoff": True}
-                self._update_message(ai_message, text=reply_text, custom_data=custom_data)
+
+                # For timeouts, do not overwrite the partial streaming text saved
+                # earlier. Only update metadata.
+                if reason == "timeout":
+                    self._update_message(ai_message, text=None, custom_data=custom_data)
+                else:
+                    self._update_message(
+                        ai_message, text=reply_text, custom_data=custom_data
+                    )
                 message = ai_message
             else:
                 message = self._persist_reply(
@@ -798,7 +807,9 @@ class AgentService:
                     "timeout_sec": streaming_timeout,
                 },
             )
-            fallback_text = handoff_message or self.streaming_timeout_text
+            # For streaming timeouts, always use the explicit timeout text. Handoff
+            # behavior is handled later in the orchestration flow.
+            fallback_text = self.streaming_timeout_text
             if stream_target is not None:
                 partial_text = stream_target.body or getattr(stream_target, "text", "") or ""
                 if partial_text and not partial_text.endswith(("…", ".", "!", "?")):
