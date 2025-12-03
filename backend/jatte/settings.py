@@ -333,19 +333,47 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "handlers": {
+#         "console": {
+#             "class": "logging.StreamHandler",
+#         }
+#     },
+#     "loggers": {
+#         "chat": {
+#             "handlers": ["console"],
+#             "level": os.environ.get("CHAT_LOG_LEVEL", "INFO"),
+#             "propagate": True,
+#         }
+#     },
+# }
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-        }
+        },
     },
     "loggers": {
+        # keep existing django loggers...
         "chat": {
             "handlers": ["console"],
             "level": os.environ.get("CHAT_LOG_LEVEL", "INFO"),
             "propagate": True,
-        }
+        },
+        # Add this:
+        "chat_addons.agent": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "chat_addons.agent.services": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
