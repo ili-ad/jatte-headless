@@ -97,14 +97,16 @@ export default function ChatUI() {
   return (
     <Chat client={client as any} theme="messaging light">
       <ErrorBoundary>
-        <Channel
-          channel={channel as any}
-          Message={(props: any) => (
-            <AgentMessage {...props} currentUserId={(client as any)?.user?.id} />
-          )}
-        >
+        <Channel channel={channel as any}>
           <Window>
-            <MessageList />
+            <MessageList
+              Message={(props: any) => (
+                <AgentMessage
+                  {...props}
+                  currentUserId={(client as any)?.user?.id}
+                />
+              )}
+            />
             <TypingIndicator />
             <AIStateIndicator />
             <MessageInput maxRows={6} minRows={1} />
