@@ -9,6 +9,7 @@ import {
   MessageInput,
   AIStateIndicator,
 } from '@iliad/stream-chat-shim';
+import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
 
@@ -17,6 +18,33 @@ import ErrorBoundary from './ErrorBoundary';
 
 export default function ChatUI() {
   const { client, channel } = useChat();
+
+  useEffect(() => {
+    if (!channel) return undefined;
+
+    const store: any = (channel as any).stateStore;
+    const logSnapshot = () => {
+      try {
+        const snapshot = store?.getSnapshot?.();
+        if (snapshot) {
+          // eslint-disable-next-line no-console
+          console.log('[agent/ui] messages snapshot', snapshot.messages);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[agent/ui] failed to log messages snapshot', err);
+      }
+    };
+
+    logSnapshot();
+    const unsub =
+      store?.subscribeWithSelector?.((state: any) => state?.messages, logSnapshot) ??
+      store?.subscribe?.(logSnapshot);
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [channel]);
 
   if (!client || !channel) return null;
 

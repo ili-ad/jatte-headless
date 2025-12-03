@@ -974,6 +974,7 @@ export class Channel {
         this.socket.onmessage = (ev) => {
             try {
                 const p = JSON.parse(ev.data);
+                console.log('[agent/ws] raw event', p);
                 switch (p.type) {
                     case 'message':
                     case 'message.new':
@@ -1627,6 +1628,7 @@ export class Channel {
     }
 
     private integrateIncomingMessage(incoming: Message, matchId?: string) {
+        console.log('[agent/channel] integrateIncomingMessage', { incoming, matchId });
         const normalized = { ...incoming } as any;
         const authorId = normalized.user?.id ?? normalized.user_id ?? normalized.sent_by;
         if (!normalized.user_id && authorId) normalized.user_id = authorId;
