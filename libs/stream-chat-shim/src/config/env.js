@@ -40,16 +40,13 @@ var resolveWsBase = function () {
     if (envValue) {
         return trimTrailingSlash(envValue);
     }
-    if (typeof window !== 'undefined' && typeof window.location !== 'undefined') {
-        var _a = window.location, protocol = _a.protocol, hostname = _a.hostname, port = _a.port;
-        var secure = protocol === 'https:';
-        var scheme = secure ? 'wss' : 'ws';
-        var host = formatHost(hostname);
-        var resolvedPort = port || DEV_PORT;
-        var portSegment = resolvedPort ? ":".concat(resolvedPort) : '';
-        return "".concat(scheme, "://").concat(host).concat(portSegment);
-    }
-    return DEV_WS_FALLBACK;
+    var isBrowser = typeof window !== 'undefined' && typeof window.location !== 'undefined';
+    var secure = isBrowser ? window.location.protocol === 'https:' : false;
+    var scheme = secure ? 'wss' : 'ws';
+    var hostname = isBrowser ? window.location.hostname : '127.0.0.1';
+    var host = formatHost(hostname || '127.0.0.1');
+    var portSegment = DEV_PORT ? ":".concat(DEV_PORT) : '';
+    return "".concat(scheme, "://").concat(host).concat(portSegment);
 };
 var resolveChatAuthMode = function () {
     var envValue = (readEnv('NEXT_PUBLIC_CHAT_AUTH_MODE') || '').toLowerCase();
