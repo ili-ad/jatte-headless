@@ -396,15 +396,15 @@ class AgentService:
                 top_score = None
 
             logger.info(
-                "agent.rag.result",
-                extra={
-                    "cid": cid,
-                    "trace_id": request_id,
-                    "rag_used": rag_used,
-                    "rag_k": rag_k,
-                    "top_score": top_score,
-                    "top_ids": top_ids,
-                },
+                "agent.rag.result cid=%s trace_id=%s state=%s topic=%s used=%s k=%s top_score=%s top_ids=%s",
+                cid,
+                request_id,
+                state,
+                topic,
+                rag_used,
+                rag_k,
+                top_score,
+                top_ids,
             )
 
             if chunks:
