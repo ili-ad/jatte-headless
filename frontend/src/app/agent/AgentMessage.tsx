@@ -4,6 +4,7 @@ import React from 'react';
 import type { LocalMessage } from '@iliad/stream-chat-shim';
 
 function getAuthorId(message: any): string | undefined {
+  if (!message) return undefined;
   return message.user?.id ?? message.user_id ?? message.sent_by;
 }
 
@@ -13,7 +14,7 @@ function getDisplayName(message: any, currentUserId?: string) {
   if (uid === 'ai-bot-agent-lab') return 'AI assistant';
   if (currentUserId && uid === currentUserId) return 'You';
 
-  const name = message.user?.name;
+  const name = message?.user?.name;
   if (name) return name;
 
   const raw = String(uid ?? '');
@@ -22,12 +23,23 @@ function getDisplayName(message: any, currentUserId?: string) {
 }
 
 export type AgentMessageProps = {
-  message: LocalMessage;
+  message?: LocalMessage;
   currentUserId?: string;
 } & Record<string, unknown>;
 
 export function AgentMessage(props: AgentMessageProps) {
-  const { message, currentUserId } = props;
+  const { currentUserId, message: rawMessage } = props as any;
+
+  const message = rawMessage ?? (props as any).message ?? null;
+
+  if (!message) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.warn('[AgentMessage] rendered without message prop', props);
+    }
+    return null;
+  }
+
   const authorId = getAuthorId(message);
   const isAgent =
     authorId === 'ai-bot-agent-lab' || Boolean((message as any).custom_data?.ai_generated);
