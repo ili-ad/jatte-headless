@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { LocalMessage } from '@iliad/stream-chat-shim';
+import type { MessageProps } from '@iliad/stream-chat-shim';
 
 function getAuthorId(message: any): string | undefined {
   if (!message) return undefined;
@@ -22,15 +22,12 @@ function getDisplayName(message: any, currentUserId?: string) {
   return `Guest ${short}`;
 }
 
-export type AgentMessageProps = {
-  message?: LocalMessage;
+export type AgentMessageProps = Partial<MessageProps> & {
   currentUserId?: string;
-} & Record<string, unknown>;
+};
 
 export function AgentMessage(props: AgentMessageProps) {
-  const { currentUserId, message: rawMessage } = props as any;
-
-  const message = rawMessage ?? (props as any).message ?? null;
+  const { currentUserId, message } = props;
 
   if (!message) {
     if (process.env.NODE_ENV !== 'production') {
@@ -38,6 +35,15 @@ export function AgentMessage(props: AgentMessageProps) {
       console.warn('[AgentMessage] rendered without message prop', props);
     }
     return null;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log('[AgentMessage] render message', {
+      id: (message as any).id,
+      user_id: (message as any).user_id ?? message.user?.id,
+      text: message.text,
+    });
   }
 
   const authorId = getAuthorId(message);
