@@ -349,20 +349,31 @@ class LLMClient:
         logger.info("agent.llm.streaming.run_start", extra=log_context)
 
         start = time.perf_counter()
-        first_update_at: float | None = None
+        first_chunk = {"seen": False}
 
         def _wrapped_on_update(buffer: str) -> None:
-            nonlocal first_update_at
-            if first_update_at is None:
-                first_update_at = time.perf_counter()
+            elapsed = time.perf_counter() - start
+            if call_timeout is not None and elapsed > float(call_timeout):
+                raise TimeoutError("LLM provider timed out (streaming budget exceeded)")
+
+            if not first_chunk["seen"]:
+                first_chunk["seen"] = True
                 logger.info(
-                    "agent.llm.streaming.first_update",
+                    "agent.llm.streaming.first_chunk",
                     extra={
-                        **log_context,
-                        "latency_ms": int((first_update_at - start) * 1000),
-                        "length": len(buffer),
+                        "model": call_model,
+                        "timeout": call_timeout,
+                        "elapsed_ms": int(elapsed * 1000),
+                        **(
+                            {
+                                k: v
+                                for k, v in (context or {}).items()
+                                if k in {"cid", "trace_id", "job_id"}
+                            }
+                        ),
                     },
                 )
+
             if on_update:
                 on_update(buffer)
 
