@@ -1,5 +1,6 @@
 'use client';
 
+import type { MessageProps } from '@iliad/stream-chat-shim';
 import {
   Chat,
   Channel,
@@ -100,7 +101,7 @@ export default function ChatUI() {
         <Channel channel={channel as any}>
           <Window>
             <MessageList
-              Message={(props: any) => (
+              Message={(props: MessageProps) => (
                 <AgentMessage
                   {...props}
                   currentUserId={(client as any)?.user?.id}
