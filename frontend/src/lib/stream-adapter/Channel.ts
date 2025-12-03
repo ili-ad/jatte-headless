@@ -966,38 +966,132 @@ export class Channel {
         //     `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
         // );
 
-        this.socket = new WebSocket(
-            `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(this.client['jwt'] ?? '')}`
-        );
+        const wsUrl = `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(
+            this.client['jwt'] ?? '',
+        )}`;
 
+        if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('[agent/ws] opening socket', {
+                cid: this.cid,
+                uuid: this.uuid,
+                url: wsUrl,
+            });
+        }
+
+        this.socket = new WebSocket(wsUrl);
+
+        this.socket.onopen = () => {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.log('[agent/ws] open', { cid: this.cid, uuid: this.uuid });
+            }
+        };
+
+        this.socket.onerror = (event) => {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.error('[agent/ws] error', {
+                    cid: this.cid,
+                    uuid: this.uuid,
+                    event,
+                });
+            }
+        };
+
+        this.socket.onclose = (event) => {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.log('[agent/ws] close', {
+                    cid: this.cid,
+                    uuid: this.uuid,
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean,
+                });
+            }
+        };
 
         this.socket.onmessage = (ev) => {
             try {
                 const p = JSON.parse(ev.data);
-                console.log('[agent/ws] raw event', p);
-                switch (p.type) {
+
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
+                    console.log('[agent/ws] raw event', p);
+                }
+
+                const { type } = p as { type?: string };
+
+                switch (type) {
                     case 'message':
                     case 'message.new':
                     case 'message.updated': {
-                        const msg = (p.message ?? p.data ?? (p as any).message ?? p.data?.message) as Message &
-                            { client_generated_id?: string };
-                        if (msg) {
-                            this.integrateIncomingMessage(
-                                { ...msg, status: (msg as any).status ?? 'received' },
-                                msg?.client_generated_id,
-                            );
-                            this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
+                        const msg = (p.message ?? p.data ?? (p as any).message ?? p.data?.message) as Message & {
+                            client_generated_id?: string;
+                        };
+
+                        if (!msg) {
+                            if (process.env.NODE_ENV !== 'production') {
+                                // eslint-disable-next-line no-console
+                                console.warn('[agent/ws] message event without payload', p);
+                            }
+                            break;
                         }
+
+                        if (process.env.NODE_ENV !== 'production') {
+                            // eslint-disable-next-line no-console
+                            console.log('[agent/ws] message event', {
+                                cid: this.cid,
+                                uuid: this.uuid,
+                                id: msg.id,
+                                user_id: (msg as any).user_id,
+                                client_generated_id: (msg as any).client_generated_id,
+                                ai_generated: (msg as any).ai_generated,
+                            });
+                        }
+
+                        this.integrateIncomingMessage(
+                            { ...msg, status: (msg as any).status ?? 'received' },
+                            (msg as any).client_generated_id,
+                        );
+                        this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
                         break;
                     }
+
                     case 'typing.start':
-                    case 'typing.stop':
-                        this.applyTypingEvent({ type: p.type, user_id: p.user_id } as any);
-                        this.emitter.emit(p.type, { type: p.type, cid: this.cid, user_id: p.user_id } as any);
-                        this.client.emit(p.type as any, { type: p.type, cid: this.cid, user_id: p.user_id } as any);
+                    case 'typing.stop': {
+                        if (process.env.NODE_ENV !== 'production') {
+                            // eslint-disable-next-line no-console
+                            console.log('[agent/ws] typing event', {
+                                cid: this.cid,
+                                uuid: this.uuid,
+                                type,
+                                user_id: (p as any).user_id,
+                            });
+                        }
+
+                        this.applyTypingEvent({ type: type as any, user_id: (p as any).user_id } as any);
+                        this.emitter.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
+                        this.client.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
                         break;
+                    }
+
+                    default: {
+                        if (process.env.NODE_ENV !== 'production') {
+                            // eslint-disable-next-line no-console
+                            console.log('[agent/ws] unhandled event type', {
+                                cid: this.cid,
+                                uuid: this.uuid,
+                                event: p,
+                            });
+                        }
+                    }
                 }
-            } catch { console.error('bad WS', ev.data); }
+            } catch (err) {
+                // eslint-disable-next-line no-console
+                console.error('[agent/ws] bad payload', ev.data, err);
+            }
         };
     }
 
@@ -1628,9 +1722,21 @@ export class Channel {
     }
 
     private integrateIncomingMessage(incoming: Message, matchId?: string) {
-        console.log('[agent/channel] integrateIncomingMessage', { incoming, matchId });
         const normalized = { ...incoming } as any;
         const authorId = normalized.user?.id ?? normalized.user_id ?? normalized.sent_by;
+
+        if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('[agent/channel] integrateIncomingMessage', {
+                cid: this.cid,
+                uuid: this.uuid,
+                id: normalized.id,
+                matchId,
+                authorId,
+                ai_generated: (normalized as any).ai_generated,
+            });
+        }
+
         if (!normalized.user_id && authorId) normalized.user_id = authorId;
         if (!normalized.user && authorId) normalized.user = { id: authorId };
 
