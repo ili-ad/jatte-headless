@@ -29,6 +29,15 @@ export default function ChatUI() {
         if (snapshot) {
           // eslint-disable-next-line no-console
           console.log('[agent/ui] messages snapshot', snapshot.messages);
+
+          const messages: any[] = snapshot.messages ?? [];
+          const aiMessages = messages.filter((m) => {
+            const uid = m?.user?.id ?? m?.user_id;
+            return uid === 'ai-bot-agent-lab' || Boolean((m as any).ai_generated);
+          });
+
+          // eslint-disable-next-line no-console
+          console.log('[agent/ui] ai messages snapshot', aiMessages);
         }
       } catch (err) {
         // eslint-disable-next-line no-console
