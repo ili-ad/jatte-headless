@@ -56,6 +56,50 @@ logger = logging.getLogger(__name__)
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
 
 
+class CancelledError(Exception):
+    """Raised when an in-flight agent run has been cancelled."""
+
+
+def mark_agent_state(
+    room: Room,
+    ai_message: Message,
+    ai_state: str,
+    *,
+    error_reason: str | None = None,
+) -> None:
+    """Keep message ``ai_state`` and ``room.agent_busy`` in sync."""
+
+    custom_data = dict(ai_message.custom_data or {})
+    custom_data["ai_state"] = ai_state
+    if error_reason:
+        custom_data["error_reason"] = error_reason
+
+    ai_message.custom_data = custom_data
+    ai_message.updated_at = timezone.now()
+    ai_message.save(update_fields=["custom_data", "updated_at"])
+
+    if not os.environ.get("DISABLE_AGENT_BROADCAST"):
+        try:
+            broadcast_message_update(ai_message)
+        except RuntimeError:
+            logger.debug(
+                "agent.state.broadcast_skipped",
+                extra={"message_id": getattr(ai_message, "id", None)},
+            )
+        except Exception:
+            logger.exception(
+                "agent.state.broadcast_failed",
+                extra={"message_id": getattr(ai_message, "id", None)},
+            )
+
+    if ai_state in ("AI_STATE_THINKING", "AI_STATE_GENERATING"):
+        room.agent_busy = True
+    else:
+        room.agent_busy = False
+        room.active_agent_run_id = None
+    room.save(update_fields=["agent_busy", "active_agent_run_id"])
+
+
 def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
     """
     Build the sidecar section appended to the RAG system prompt.
@@ -162,6 +206,40 @@ class AgentService:
                 "max_tokens": self.llm_client.default_max_tokens,
             },
         )
+
+    def _get_room_for_cid(self, cid: str) -> Room | None:
+        room_uuid = cid.split(":", 1)[1] if ":" in cid else cid
+        room, _ = Room.objects.get_or_create(
+            uuid=room_uuid, defaults={"client": "stream"}
+        )
+        return room
+
+    def _start_agent_run(
+        self, *, room: Room, cid: str, run_id: str, user_id: str | None
+    ) -> None:
+        room.agent_busy = True
+        room.active_agent_run_id = run_id
+        room.save(update_fields=["agent_busy", "active_agent_run_id"])
+
+        AgentRun.objects.update_or_create(
+            run_id=run_id,
+            defaults={
+                "cid": cid,
+                "user_id": user_id or "",
+                "tools_used": [],
+                "status": AgentRun.STATUS_RUNNING,
+                "latency_ms": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+            },
+        )
+
+    def _is_run_cancelled(self, run_id: str | None) -> bool:
+        if not run_id:
+            return False
+        return AgentRun.objects.filter(
+            run_id=run_id, status=AgentRun.STATUS_CANCELLED
+        ).exists()
 
     # ------------------------------------------------------------------
     # High level orchestration
@@ -286,6 +364,13 @@ class AgentService:
             )
             job_reason = reply.reason
             self._finalize_generated_messages(reply, meta)
+        except CancelledError:
+            job_status = AgentRun.STATUS_CANCELLED
+            job_reason = "cancelled"
+            logger.info(
+                "agent.generate.job.cancelled",
+                extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+            )
         except Exception:
             job_status = "error"
             job_reason = "exception"
@@ -378,6 +463,8 @@ class AgentService:
         reply_text = ""
         reason = "ok"
         handoff_triggered = False
+
+        room = self._get_room_for_cid(cid)
 
         policy = self._get_policy(cid)
         tool_hop_cap = max(int(policy.tool_hop_cap), 0)
@@ -528,6 +615,13 @@ class AgentService:
         ai_message: Message | None = None
 
         if persist and policy.agent_enabled:
+            if room is not None:
+                self._start_agent_run(
+                    room=room,
+                    cid=cid,
+                    run_id=effective_request_id,
+                    user_id=user_id,
+                )
             ai_message = self._persist_message(
                 cid=cid,
                 text="",
@@ -536,6 +630,8 @@ class AgentService:
                     "ai_state": "AI_STATE_THINKING",
                 },
             )
+            if room is not None:
+                mark_agent_state(room, ai_message, "AI_STATE_THINKING")
 
         try:
             if not policy.agent_enabled:
@@ -562,6 +658,8 @@ class AgentService:
                             meta,
                             stream_target=ai_message,
                             handoff_message=handoff_message,
+                            room=room,
+                            run_id=effective_request_id,
                         )
                     except Exception as exc:  # pragma: no cover - defensive log
                         llm_outcome = exc.__class__.__name__
@@ -644,6 +742,11 @@ class AgentService:
                         run_status = AgentRun.STATUS_HANDOFF
                     handoff_triggered = True
 
+        except CancelledError:
+            reason = "cancelled"
+            run_status = AgentRun.STATUS_CANCELLED
+            if ai_message is not None:
+                reply_text = ai_message.body or reply_text
         except BudgetExceeded:
             reason = "budget_exceeded"
             reply_text = handoff_message
@@ -674,9 +777,17 @@ class AgentService:
                 custom_data = {**(ai_message.custom_data or {})}
                 if run_status == AgentRun.STATUS_ERROR and reason != "timeout":
                     final_state = "AI_STATE_ERROR"
-                custom_data["ai_state"] = final_state
+                if run_status == AgentRun.STATUS_CANCELLED:
+                    final_state = "AI_STATE_ERROR"
+                error_reason = None
+                if reason == "timeout":
+                    error_reason = "timeout"
+                elif run_status == AgentRun.STATUS_CANCELLED:
+                    error_reason = "cancelled"
                 if reason == "timeout":
                     custom_data["error_reason"] = "timeout"
+                elif run_status == AgentRun.STATUS_CANCELLED:
+                    custom_data["error_reason"] = "cancelled"
                 if handoff_triggered:
                     custom_data["agent"] = {"handoff": True}
                 if rag_enabled:
@@ -694,6 +805,10 @@ class AgentService:
                 else:
                     self._update_message(
                         ai_message, text=reply_text, custom_data=custom_data
+                    )
+                if room is not None:
+                    mark_agent_state(
+                        room, ai_message, final_state, error_reason=error_reason
                     )
                 message = ai_message
             else:
@@ -812,6 +927,8 @@ class AgentService:
         *,
         stream_target: Message | None = None,
         handoff_message: str | None = None,
+        room: Room | None = None,
+        run_id: str | None = None,
     ) -> LLMResult:
         timeout = (meta or {}).get("timeout")
         streaming_timeout = (
@@ -829,11 +946,16 @@ class AgentService:
                 timeout=timeout if timeout is not None else streaming_timeout,
             )
 
-        custom_data = {**(stream_target.custom_data or {})}
-        custom_data["ai_state"] = "AI_STATE_GENERATING"
-        self._update_message(stream_target, custom_data=custom_data)
+        if room is not None:
+            mark_agent_state(room, stream_target, "AI_STATE_GENERATING")
+        else:
+            custom_data = {**(stream_target.custom_data or {})}
+            custom_data["ai_state"] = "AI_STATE_GENERATING"
+            self._update_message(stream_target, custom_data=custom_data)
 
         def on_update(buffer: str) -> None:
+            if run_id and self._is_run_cancelled(run_id):
+                raise CancelledError("Agent run cancelled")
             stream_custom_data = {**(stream_target.custom_data or {})}
             stream_custom_data["ai_state"] = "AI_STATE_GENERATING"
             self._update_message(
@@ -918,6 +1040,8 @@ class AgentService:
                 self._update_message(
                     stream_target, text=partial_text, custom_data=timeout_custom_data
                 )
+                if room is not None:
+                    mark_agent_state(room, stream_target, "AI_STATE_IDLE")
                 logger.info(
                     "agent.llm.streaming_timeout.fallback",
                     extra={
@@ -939,6 +1063,10 @@ class AgentService:
                     text=fallback_text,
                     custom_data=timeout_custom_data_2,
                 )
+                if room is not None:
+                    mark_agent_state(
+                        room, timeout_msg, "AI_STATE_IDLE", error_reason="timeout"
+                    )
                 logger.info(
                     "agent.llm.streaming_timeout.secondary_message",
                     extra={
@@ -955,6 +1083,12 @@ class AgentService:
                 cost_usd=Decimal("0"),
                 reason="timeout",
             )
+        except CancelledError:
+            logger.info(
+                "agent.llm.streaming.cancelled",
+                extra={"cid": cid, "trace_id": trace_id},
+            )
+            raise
         except Exception:
             # Log and fall back to non-streaming so we don't regress to 500s
             logger.exception(

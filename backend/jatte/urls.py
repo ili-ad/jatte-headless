@@ -2,7 +2,7 @@
 from django.contrib import admin
 from django.urls import re_path, include, path
 from chat import api
-from chat_addons.agent.views import AgentLLMInvokeView
+from chat_addons.agent.views import AgentCancelView, AgentLLMInvokeView
 
 from chat.views import TokenView  # real view
 from chat.views_quoted import QuotedMessageView
@@ -70,6 +70,12 @@ urlpatterns += [
     re_path(r"^api/rooms/(?P<cid>.+)/messages/?$", RoomMessageListCreateView.as_view()),
     path("api/rooms/<path:cid>/config/", RoomConfigView.as_view(), name="room-config"),
     re_path(r"^api/rooms/(?P<cid>.+)/config/?$", RoomConfigView.as_view()),
+    path(
+        "api/rooms/<path:cid>/agent/cancel/",
+        AgentCancelView.as_view(),
+        name="agent-cancel",
+    ),
+    re_path(r"^api/rooms/(?P<cid>.+)/agent/cancel/?$", AgentCancelView.as_view()),
 ]
 
 # If you want the DEV stub only in DEBUG:

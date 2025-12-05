@@ -72,15 +72,19 @@ class AgentRoomPolicy(models.Model):
 class AgentRun(models.Model):
     """Audit record for an agent invocation."""
 
+    STATUS_RUNNING = "running"
     STATUS_OK = "ok"
     STATUS_CAPPED = "capped"
     STATUS_HANDOFF = "handoff"
     STATUS_ERROR = "error"
+    STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = [
+        (STATUS_RUNNING, "Running"),
         (STATUS_OK, "Ok"),
         (STATUS_CAPPED, "Capped"),
         (STATUS_HANDOFF, "Handoff"),
         (STATUS_ERROR, "Error"),
+        (STATUS_CANCELLED, "Cancelled"),
     ]
 
     run_id = models.CharField(max_length=255, unique=True)
