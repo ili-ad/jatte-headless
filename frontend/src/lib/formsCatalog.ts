@@ -46,3 +46,8 @@ export const FORM_DEFS: FormDef[] = [
 export function getFormDefById(id: string): FormDef | undefined {
   return FORM_DEFS.find((form) => form.id === id);
 }
+
+export function friendlyLabelForFormId(id: string): string {
+  const def = getFormDefById(id);
+  return def?.shortLabel || def?.label || id;
+}
