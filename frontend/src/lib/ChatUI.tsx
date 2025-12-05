@@ -1,27 +1,18 @@
 'use client';
 
 import type { MessageProps } from '@iliad/stream-chat-shim';
-import {
-  Chat,
-  Channel,
-  Window,
-  MessageList,
-  TypingIndicator,
-  MessageInput,
-  AIStateIndicator,
-  useAIState,
-} from '@iliad/stream-chat-shim';
+import { Chat, Channel, Window, MessageList, TypingIndicator, MessageInput } from '@iliad/stream-chat-shim';
 import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
 import { AgentMessage } from '@/app/agent/AgentMessage';
+import { AgentAIStateBanner } from '@/app/agent/AgentAIStateBanner';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 
 export default function ChatUI() {
   const { client, channel } = useChat();
-  const { aiState } = useAIState(channel as any);
 
   useEffect(() => {
     if (!channel) return undefined;
@@ -68,18 +59,6 @@ export default function ChatUI() {
     };
   }, [channel]);
 
-  useEffect(() => {
-    if (!channel) return;
-
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log('[agent/ui] ai state', {
-        cid: channel.cid,
-        aiState,
-      });
-    }
-  }, [aiState, channel]);
-
   if (!client || !channel) return null;
 
   const isMessageAIGenerated = (message: LocalMessage) =>
@@ -123,7 +102,7 @@ export default function ChatUI() {
               )}
             />
             <TypingIndicator />
-            <AIStateIndicator />
+            <AgentAIStateBanner channel={channel as any} />
             <MessageInput maxRows={6} minRows={1} />
 
             {/* Temporary debug control */}
