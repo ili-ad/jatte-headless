@@ -1,7 +1,16 @@
 'use client';
 
 import type { MessageProps } from '@iliad/stream-chat-shim';
-import { Chat, Channel, Window, MessageList, TypingIndicator, MessageInput } from '@iliad/stream-chat-shim';
+import {
+  Chat,
+  Channel,
+  Window,
+  MessageList,
+  TypingIndicator,
+  MessageInput,
+  AIStates,
+  useAIState,
+} from '@iliad/stream-chat-shim';
 import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
@@ -59,11 +68,15 @@ export default function ChatUI() {
     };
   }, [channel]);
 
+  const { aiState } = useAIState(channel as any);
+
+  const isAgentBusy = aiState === AIStates.Thinking || aiState === AIStates.Generating;
+
   if (!client || !channel) return null;
 
   const isMessageAIGenerated = (message: LocalMessage) =>
     !!(message as any).ai_generated ||
-    message.user?.id === 'ai-bot-agent-lab';  
+    message.user?.id === 'ai-bot-agent-lab';
 
   const handleDebugSend = async () => {
     const ch: any = channel as any;
@@ -103,7 +116,21 @@ export default function ChatUI() {
             />
             <TypingIndicator />
             <AgentAIStateBanner channel={channel as any} />
-            <MessageInput maxRows={6} minRows={1} />
+            <MessageInput
+              maxRows={6}
+              minRows={1}
+              hideSendButton={isAgentBusy}
+              additionalTextareaProps={{
+                disabled: isAgentBusy,
+              }}
+              overrideSubmitHandler={
+                isAgentBusy
+                  ? () => {
+                      return;
+                    }
+                  : undefined
+              }
+            />
           </Window>
         </Channel>
       </ErrorBoundary>
