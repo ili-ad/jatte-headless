@@ -6,30 +6,12 @@ import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
-import { AIStates } from '@iliad/stream-chat-shim';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
 import {
     extractRoomAgentConfig,
     invokeAgent,
     type RoomAgentConfig,
 } from '../chat-addons/agentApi';
-
-type AIState = (typeof AIStates)[keyof typeof AIStates];
-
-const normalizeAiState = (raw?: string | null): AIState | undefined => {
-    switch (raw) {
-        case 'AI_STATE_THINKING':
-            return AIStates.Thinking;
-        case 'AI_STATE_GENERATING':
-            return AIStates.Generating;
-        case 'AI_STATE_IDLE':
-            return AIStates.Idle;
-        case 'AI_STATE_ERROR':
-            return AIStates.Error;
-        default:
-            return undefined;
-    }
-};
 
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
@@ -58,8 +40,6 @@ export class Channel {
     private readonly typingTimeoutMs = 8000;
     private readonly localTypingTimeoutMs = 5000;
     private agentConfig?: RoomAgentConfig;
-    private aiState: AIState = AIStates.Idle;
-    private activeAgentJobId?: string | null;
 
     /* channel-local state object */
     private _state = {
@@ -778,101 +758,6 @@ export class Channel {
         this.data = { name: roomName, ...extraData };
     }
 
-    private setAIStateForChannel(state: AIState, reason?: string, payload?: Record<string, unknown>) {
-        if (!this.client?.setAIState) return;
-
-        if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.log('[agent/channel] ai state', {
-                cid: this.cid,
-                prev: this.aiState,
-                next: state,
-                reason,
-                payload,
-            });
-        }
-
-        this.aiState = state;
-        this.client.setAIState(state, this.cid, reason, payload);
-    }
-
-    private clearAIStateForChannel(reason?: string, payload?: Record<string, unknown>) {
-        if (!this.client?.clearAIState) return;
-
-        if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.log('[agent/channel] ai state clear', {
-                cid: this.cid,
-                prev: this.aiState,
-                reason,
-                payload,
-            });
-        }
-
-        this.aiState = AIStates.Idle;
-        this.client.clearAIState(this.cid, reason, payload);
-    }
-
-    private handleAgentAIState({
-        rawState,
-        errorReason,
-        jobId,
-        message,
-    }: {
-        rawState?: string | null;
-        errorReason?: string | null;
-        jobId?: string | null;
-        message?: Message | null;
-    }) {
-        const aiState = normalizeAiState(rawState ?? undefined);
-        if (!aiState && !errorReason) return;
-
-        const isAiAssistantMessage = (maybeMessage?: Message | null) => {
-            if (!maybeMessage) return false;
-            const userId = (maybeMessage as any).user_id ?? maybeMessage.user?.id;
-            const sentBy = (maybeMessage as any).sent_by;
-
-            return userId === 'ai-bot-agent-lab' || sentBy === 'ai-bot-agent-lab';
-        };
-
-        if (!isAiAssistantMessage(message)) return;
-
-        const payload = { jobId: jobId ?? undefined, rawState: rawState ?? undefined, messageId: message?.id };
-
-        if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
-            this.activeAgentJobId = jobId ?? this.activeAgentJobId ?? null;
-            this.setAIStateForChannel(aiState, 'message-custom-data', payload);
-            return;
-        }
-
-        if (aiState === AIStates.Idle && errorReason) {
-            this.activeAgentJobId = null;
-            this.setAIStateForChannel(AIStates.Error, errorReason, payload);
-            this.clearAIStateForChannel('idle-with-error', payload);
-            return;
-        }
-
-        if (aiState === AIStates.Error) {
-            this.activeAgentJobId = null;
-            this.setAIStateForChannel(AIStates.Error, errorReason ?? 'error', payload);
-            this.clearAIStateForChannel('explicit-error', payload);
-            return;
-        }
-
-        if (aiState === AIStates.Idle) {
-            this.activeAgentJobId = null;
-            this.setAIStateForChannel(AIStates.Idle, 'message-idle', payload);
-            this.clearAIStateForChannel('message-idle', payload);
-        }
-    }
-
-    private shouldHandleAgentEvent(eventCid?: string | null, eventJobId?: string | null) {
-        if (eventCid && eventCid !== this.cid) return false;
-        if (this.activeAgentJobId && eventJobId && this.activeAgentJobId !== eventJobId) return false;
-
-        return true;
-    }
-
     /* ─── getters Stream-UI expects ─── */
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
@@ -1125,12 +1010,15 @@ export class Channel {
 
         this.socket.onerror = (event) => {
             if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
-                console.error('[agent/ws] error', {
-                    cid: this.cid,
-                    uuid: this.uuid,
-                    event,
-                });
+                const isErrorEvent = typeof ErrorEvent !== 'undefined' && event instanceof ErrorEvent;
+                if (isErrorEvent) {
+                    // eslint-disable-next-line no-console
+                    console.error('[agent/ws] error', {
+                        cid: this.cid,
+                        uuid: this.uuid,
+                        message: event.message,
+                    });
+                }
             }
         };
 
@@ -1190,19 +1078,6 @@ export class Channel {
                             { ...msg, status: (msg as any).status ?? 'received' },
                             (msg as any).client_generated_id,
                         );
-                        const userId = (msg as any).user_id ?? msg.user?.id;
-                        const sentBy = (msg as any).sent_by;
-                        if (userId === 'ai-bot-agent-lab' || sentBy === 'ai-bot-agent-lab') {
-                            const customData = (msg as any).custom_data ?? {};
-                            const rawState = (customData as any).ai_state;
-                            const errorReason = (customData as any).error_reason;
-                            const jobId =
-                                (customData as any).job_id ??
-                                (customData as any).ai_job_id ??
-                                null;
-
-                            this.handleAgentAIState({ rawState, errorReason, jobId, message: msg });
-                        }
                         this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
                         break;
                     }
@@ -1222,56 +1097,6 @@ export class Channel {
                         this.applyTypingEvent({ type: type as any, user_id: (p as any).user_id } as any);
                         this.emitter.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
                         this.client.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
-                        break;
-                    }
-
-                    case 'agent.generate.job.enqueued': {
-                        const { cid, job_id: jobId } = p as any;
-                        if (!this.shouldHandleAgentEvent(cid, jobId)) break;
-
-                        this.activeAgentJobId = jobId;
-                        this.setAIStateForChannel(AIStates.Thinking, 'job-enqueued', {
-                            jobId,
-                            eventType: (p as any).type,
-                        });
-                        break;
-                    }
-
-                    case 'agent.llm.streaming.start':
-                    case 'agent.llm.streaming.call':
-                    case 'agent.llm.streaming.run_start':
-                    case 'agent.llm.streaming.first_chunk': {
-                        const { cid, job_id: jobId } = p as any;
-                        if (!this.shouldHandleAgentEvent(cid, jobId)) break;
-
-                        if (!this.activeAgentJobId && jobId) {
-                            this.activeAgentJobId = jobId;
-                        }
-
-                        if (this.aiState === AIStates.Thinking || this.activeAgentJobId) {
-                            this.setAIStateForChannel(AIStates.Generating, 'llm-streaming', {
-                                jobId: jobId ?? this.activeAgentJobId ?? undefined,
-                                eventType: (p as any).type,
-                            });
-                        }
-                        break;
-                    }
-
-                    case 'agent.llm.streaming.success':
-                    case 'agent.generate.job.complete':
-                    case 'agent.llm.streaming_timeout':
-                    case 'agent.llm.streaming_timeout.fallback':
-                    case 'agent.handoff.escalate':
-                    case 'agent.llm.error':
-                    case 'agent.llm.streaming_failure': {
-                        const { cid, job_id: jobId } = p as any;
-                        if (!this.shouldHandleAgentEvent(cid, jobId)) break;
-
-                        this.activeAgentJobId = null;
-                        this.clearAIStateForChannel('job-complete', {
-                            jobId,
-                            eventType: (p as any).type,
-                        });
                         break;
                     }
 
@@ -1551,9 +1376,6 @@ export class Channel {
                     client_generated_id ?? (message as any).client_generated_id,
             });
 
-            this.setAIStateForChannel(AIStates.Thinking);
-            this.activeAgentJobId = reply.job_id;
-
             if ('status' in reply && reply.status === 'queued') {
                 console.log('[agent] agent job queued', reply);
                 return;
@@ -1578,14 +1400,8 @@ export class Channel {
 
             console.log('[agent] echo reply integrated', reply);
 
-            this.activeAgentJobId = undefined;
-            this.clearAIStateForChannel();
-
         } catch (err) {
             console.error('[agent] failed to request reply', err);
-            const errorReason = err instanceof Error ? err.message : String(err);
-            this.setAIStateForChannel(AIStates.Error, errorReason);
-            this.activeAgentJobId = undefined;
         } finally {
             this.stopAgentTyping(typingUserId);
         }
