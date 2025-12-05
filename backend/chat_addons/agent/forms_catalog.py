@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 
 @dataclass
@@ -77,3 +79,32 @@ def format_forms_prompt(forms: Sequence[FormDef]) -> str | None:
     )
 
     return "\n".join(lines)
+
+
+FORMS_RE = re.compile(r"FORMS_JSON:\s*(\[.*\])\s*$", re.DOTALL)
+
+
+def extract_forms_metadata(text: str) -> Tuple[str, list[dict[str, str]]]:
+    """Strip the FORMS_JSON line from the reply and return parsed metadata."""
+
+    match = FORMS_RE.search(text or "")
+    if not match:
+        return text, []
+
+    json_str = match.group(1)
+    try:
+        raw = json.loads(json_str)
+    except json.JSONDecodeError:
+        return text.replace(match.group(0), "").rstrip(), []
+
+    allowed_ids = {form.id for form in FORM_DEFS}
+    cleaned: list[dict[str, str]] = []
+    for item in raw if isinstance(raw, list) else []:
+        form_id = item.get("id") if isinstance(item, dict) else None
+        reason = item.get("reason", "") if isinstance(item, dict) else ""
+        if not form_id or form_id not in allowed_ids:
+            continue
+        cleaned.append({"id": form_id, "reason": reason})
+
+    new_text = text.replace(match.group(0), "").rstrip()
+    return new_text, cleaned
