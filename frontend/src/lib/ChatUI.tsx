@@ -104,17 +104,6 @@ export default function ChatUI() {
             <TypingIndicator />
             <AgentAIStateBanner channel={channel as any} />
             <MessageInput maxRows={6} minRows={1} />
-
-            {/* Temporary debug control */}
-            <div style={{ marginTop: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={handleDebugSend}
-                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
-              >
-                Debug send
-              </button>
-            </div>
           </Window>
         </Channel>
       </ErrorBoundary>
