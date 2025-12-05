@@ -6,6 +6,7 @@ from typing import Any, Sequence
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -38,7 +39,7 @@ from .serializers import (
 )
 from ..common_audit.models import MessageProvenance
 from .tasks import _persist_message
-from .services.agent_service import get_agent_service
+from .services.agent_service import get_agent_service, mark_agent_state
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
 
@@ -320,6 +321,14 @@ class AgentLLMInvokeView(APIView):
                     )
                 )
 
+            if room.agent_busy:
+                return _log_http_end(
+                    Response(
+                        {"detail": "Agent is already processing a request."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                )
+
             # -----------------------------
             # Call into the AgentService / LLM
             # -----------------------------
@@ -371,6 +380,63 @@ class AgentLLMInvokeView(APIView):
 
 
 
+
+
+class AgentCancelView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, cid: str) -> Response:
+        canonical, room = _resolve_room(cid)
+
+        if not room.agent_busy:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        run: AgentRun | None = None
+        if room.active_agent_run_id:
+            run = AgentRun.objects.filter(
+                run_id=str(room.active_agent_run_id), cid=canonical
+            ).first()
+
+        if run is None:
+            run = (
+                AgentRun.objects.filter(
+                    cid=canonical, status=AgentRun.STATUS_RUNNING
+                )
+                .order_by("-created_at", "-id")
+                .first()
+            )
+
+        ai_message = (
+            Message.objects.filter(
+                channel__uuid=room.uuid,
+                custom_data__ai_generated=True,
+                custom_data__ai_state__in=[
+                    "AI_STATE_THINKING",
+                    "AI_STATE_GENERATING",
+                ],
+            )
+            .order_by("-created_at", "-id")
+            .first()
+        )
+
+        if run and run.status != AgentRun.STATUS_CANCELLED:
+            run.status = AgentRun.STATUS_CANCELLED
+            run.updated_at = timezone.now()
+            run.save(update_fields=["status", "updated_at"])
+
+        if ai_message is not None:
+            mark_agent_state(
+                room, ai_message, "AI_STATE_ERROR", error_reason="cancelled"
+            )
+        else:
+            room.agent_busy = False
+            room.active_agent_run_id = None
+            room.save(update_fields=["agent_busy", "active_agent_run_id"])
+
+        return Response(status=status.HTTP_200_OK)
 
 class AgentRagView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [

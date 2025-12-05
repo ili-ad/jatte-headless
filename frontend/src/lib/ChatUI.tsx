@@ -103,11 +103,37 @@ export default function ChatUI() {
     }
   };
 
-  const handleStopAgent = () => {
-    // Future: call backend cancel endpoint.
-    // For now, just log so we can see it’s wired correctly.
-    // eslint-disable-next-line no-console
-    console.log('[agent/ui] stop AI generation clicked', { cid: channel?.cid });
+  const handleStopAgent = async () => {
+    if (!channel) return;
+
+    const cid = (channel as any).cid as string | undefined;
+    if (!cid) return;
+
+    try {
+      const response = await fetch(
+        `/api/rooms/${encodeURIComponent(cid)}/agent/cancel/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (!response.ok && response.status !== 204) {
+        // eslint-disable-next-line no-console
+        console.error('[agent/ui] failed to cancel agent run', {
+          cid,
+          status: response.status,
+        });
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('[agent/ui] agent cancel requested', { cid });
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[agent/ui] error while cancelling agent run', err);
+    }
   };
 
   return (
