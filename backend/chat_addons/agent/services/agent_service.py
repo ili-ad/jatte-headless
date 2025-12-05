@@ -43,6 +43,11 @@ from ..services.tooling import (
     parse_tool_instructions,
 )
 from ..skills import ConversationCtx, Skill
+from ..forms_catalog import (
+    extract_forms_metadata,
+    format_forms_prompt,
+    forms_for_state,
+)
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
@@ -332,6 +337,7 @@ class AgentService:
         tokens_out = 0
         total_cost = Decimal("0")
         reply_text = ""
+        forms_metadata: list[dict[str, str]] = []
         reason = "ok"
         handoff_triggered = False
 
@@ -356,15 +362,19 @@ class AgentService:
         top_score = None
         top_ids: list[Any] = []
         meta_payload.setdefault("cid", cid)
+        state = (meta_payload.get("state") or "FL").upper()
+        meta_payload["state"] = state
         llm_timeout = (
             meta_payload.get("timeout")
             or getattr(self.llm_client, "default_timeout", None)
             or AGENT_TIMEOUT_SEC
         )
 
+        forms_prompt = format_forms_prompt(forms_for_state(state))
+        if forms_prompt:
+            meta_payload["forms_prompt"] = forms_prompt
+
         if rag_enabled:
-            # For now, default to Florida; can be generalized later.
-            state = meta_payload.get("state") or "FL"
             topic = meta_payload.get("rag_topic")  # optional narrowing
 
             try:
@@ -613,6 +623,8 @@ class AgentService:
             handoff_triggered = True
             logger.exception("agent.generate.failure", extra={"cid": cid})
 
+        reply_text, forms_metadata = extract_forms_metadata(reply_text)
+
         latency_ms = int((time.perf_counter() - start) * 1000)
         tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
@@ -623,6 +635,7 @@ class AgentService:
                 if run_status == AgentRun.STATUS_ERROR and reason != "timeout":
                     final_state = "AI_STATE_ERROR"
                 custom_data["ai_state"] = final_state
+                custom_data["forms"] = forms_metadata
                 if reason == "timeout":
                     custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
@@ -642,7 +655,10 @@ class AgentService:
                 message = ai_message
             else:
                 message = self._persist_reply(
-                    cid=cid, text=reply_text, handoff=handoff_triggered
+                    cid=cid,
+                    text=reply_text,
+                    handoff=handoff_triggered,
+                    forms=forms_metadata,
                 )
 
             self._mark_provenance(message)
@@ -714,6 +730,10 @@ class AgentService:
         rag_context = meta.get("rag_context")
         if rag_context:
             messages.append({"role": "system", "content": str(rag_context)})
+
+        forms_prompt = meta.get("forms_prompt")
+        if forms_prompt:
+            messages.append({"role": "system", "content": str(forms_prompt)})
 
         # Existing history handling
         history = meta.get("history")
@@ -1033,8 +1053,17 @@ class AgentService:
         _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
         return serializer.instance
 
-    def _persist_reply(self, *, cid: str, text: str, handoff: bool) -> Message:
+    def _persist_reply(
+        self,
+        *,
+        cid: str,
+        text: str,
+        handoff: bool,
+        forms: list[dict[str, str]] | None = None,
+    ) -> Message:
         custom_data = {"agent": {"handoff": handoff}, "ai_generated": True}
+        if forms is not None:
+            custom_data["forms"] = forms
         return self._persist_message(cid=cid, text=text, custom_data=custom_data)
 
     def _update_message(
