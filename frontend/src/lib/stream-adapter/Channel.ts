@@ -778,10 +778,19 @@ export class Channel {
         this.data = { name: roomName, ...extraData };
     }
 
-    private setAIStateForChannel(state: AIState, { clear }: { clear?: boolean } = {}) {
+    private setAIStateForChannel(
+        state: AIState,
+        { clear, errorReason }: { clear?: boolean; errorReason?: string } = {},
+    ) {
         if (!this.client?.setAIState) return;
 
         if (this.aiState !== state) {
+            console.log('[agent/channel] ai state', {
+                cid: this.cid,
+                prev: this.aiState,
+                next: state,
+                errorReason,
+            });
             this.aiState = state;
             this.client.setAIState(state, this.cid);
         }
@@ -1113,18 +1122,36 @@ export class Channel {
 
                         const userId = (msg as any).user_id ?? msg.user?.id;
                         if (userId === 'ai-bot-agent-lab') {
-                            const rawState = (msg as any).custom_data?.ai_state as string | undefined;
-                            const errorReason = (msg as any).custom_data?.error_reason as string | undefined;
-                            const aiState = normalizeAiState(rawState);
+                            const customData = (msg as any).custom_data ?? {};
+                            const rawState =
+                                (customData as any).ai_state ??
+                                (customData as any).agent_run?.ai_state ??
+                                (msg as any).agent_run?.ai_state;
+                            const errorReason =
+                                (customData as any).error_reason ??
+                                (customData as any).agent_run?.error_reason ??
+                                (msg as any).agent_run?.error_reason ??
+                                (msg as any).error_reason;
+                            const aiState = normalizeAiState(rawState) ?? (errorReason ? AIStates.Error : undefined);
+                            const jobId =
+                                (customData as any).agent_run?.job_id ??
+                                (msg as any).agent_run?.job_id ??
+                                (customData as any).job_id ??
+                                (msg as any).job_id;
 
-                            if (!this.client?.setAIState) {
+                            if (!this.client?.setAIState || (!aiState && !errorReason)) {
                                 /* noop – older clients may not support AI state */
+                            } else if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
+                                if (jobId) {
+                                    this.activeAgentJobId = jobId;
+                                }
+                                this.setAIStateForChannel(aiState);
                             } else if (aiState === AIStates.Idle && !errorReason) {
+                                this.activeAgentJobId = undefined;
                                 this.setAIStateForChannel(AIStates.Idle, { clear: true });
-                                this.activeAgentJobId = undefined;
                             } else if (aiState === AIStates.Error || (aiState === AIStates.Idle && errorReason)) {
-                                this.setAIStateForChannel(AIStates.Error, { clear: true });
                                 this.activeAgentJobId = undefined;
+                                this.setAIStateForChannel(AIStates.Error, { clear: true, errorReason });
                             }
                         }
 
@@ -1463,7 +1490,7 @@ export class Channel {
             });
 
             this.setAIStateForChannel(AIStates.Thinking);
-            this.activeAgentJobId = 'status' in reply && reply.status === 'queued' ? reply.job_id : undefined;
+            this.activeAgentJobId = reply.job_id;
 
             if ('status' in reply && reply.status === 'queued') {
                 console.log('[agent] agent job queued', reply);
@@ -1494,7 +1521,8 @@ export class Channel {
 
         } catch (err) {
             console.error('[agent] failed to request reply', err);
-            this.setAIStateForChannel(AIStates.Error, { clear: true });
+            const errorReason = err instanceof Error ? err.message : String(err);
+            this.setAIStateForChannel(AIStates.Error, { clear: true, errorReason });
             this.activeAgentJobId = undefined;
         } finally {
             this.stopAgentTyping(typingUserId);
