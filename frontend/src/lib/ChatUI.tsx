@@ -8,10 +8,12 @@ import {
   MessageList,
   TypingIndicator,
   MessageInput,
+  AIStateIndicator,
   AIStates,
   useAIState,
 } from '@iliad/stream-chat-shim';
 import { useEffect } from 'react';
+import { StopAIGenerationButton } from '@iliad/stream-chat-shim/src/components/MessageInput/StopAIGenerationButton';
 
 import type { LocalMessage } from 'chat-shim';
 import { AgentMessage } from '@/app/agent/AgentMessage';
@@ -101,6 +103,13 @@ export default function ChatUI() {
     }
   };
 
+  const handleStopAgent = () => {
+    // Future: call backend cancel endpoint.
+    // For now, just log so we can see it’s wired correctly.
+    // eslint-disable-next-line no-console
+    console.log('[agent/ui] stop AI generation clicked', { cid: channel?.cid });
+  };
+
   return (
     <Chat client={client as any} theme="messaging light">
       <ErrorBoundary>
@@ -116,6 +125,19 @@ export default function ChatUI() {
             />
             <TypingIndicator />
             <AgentAIStateBanner channel={channel as any} />
+            <div
+              className="chat-footer-status-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '0 16px',
+                minHeight: 28,
+              }}
+            >
+              {isAgentBusy && <StopAIGenerationButton onClick={handleStopAgent} />}
+              <AIStateIndicator />
+            </div>
             <MessageInput
               maxRows={6}
               minRows={1}
