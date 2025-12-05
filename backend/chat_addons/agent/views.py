@@ -38,7 +38,7 @@ from .serializers import (
 )
 from ..common_audit.models import MessageProvenance
 from .tasks import _persist_message
-from .services.agent_service import get_agent_service
+from .services.agent_service import get_agent_service, resolve_state_for_room
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
 
@@ -325,6 +325,8 @@ class AgentLLMInvokeView(APIView):
             # -----------------------------
             trace_id = serializer.validated_data.get("trace_id")
 
+            state = resolve_state_for_room(room)
+
             meta: dict[str, Any] = {
                 "source": "AgentLLMInvokeView",
                 "invocation": "llm_invoke",
@@ -334,9 +336,11 @@ class AgentLLMInvokeView(APIView):
                 "request_id": trace_id,
                 # 🔹 current hard-coded RAG flags
                 "use_rag": True,
-                "state": "FL",
                 # optionally: "rag_topic": "noc_compliance" or whatever
             }
+
+            if state:
+                meta["state"] = state
 
             service = get_agent_service()
             meta["job_request_id"] = trace_id
@@ -405,15 +409,19 @@ class AgentRagView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        meta = {
+        state = resolve_state_for_room(room)
+
+        meta: dict[str, Any] = {
             "last_human_message_id": message_id,
             "client_generated_id": serializer.validated_data.get("client_generated_id"),
             "trace_id": serializer.validated_data.get("trace_id"),
             # RAG flags:
             "use_rag": True,
-            "state": "FL",
-            # Optionally: "rag_topic": "noc_compliance" or similar, if you want.            
+            # Optionally: "rag_topic": "noc_compliance" or similar, if you want.
         }
+
+        if state:
+            meta["state"] = state
 
         service = get_agent_service()
         reply = service.generate(
