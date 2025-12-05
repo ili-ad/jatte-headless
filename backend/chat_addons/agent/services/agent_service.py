@@ -51,30 +51,12 @@ from ..forms_catalog import (
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
-from ..utils import agent_user_id_for_room, room_uuid_from_identifier
+from ..utils import agent_user_id_for_room
 
 
 logger = logging.getLogger(__name__)
 
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
-
-
-def resolve_state_for_room(room: Room | None) -> str | None:
-    """Best-effort resolution of a 2-letter state code for a room."""
-
-    state = getattr(room, "state", None)
-
-    data = getattr(room, "data", None)
-    if not state and isinstance(data, dict):
-        for key in ("state", "lien_state", "lienState"):
-            candidate = data.get(key)
-            if candidate:
-                state = candidate
-                break
-
-    if state:
-        return str(state).upper()
-    return None
 
 
 @dataclass
@@ -380,30 +362,19 @@ class AgentService:
         top_score = None
         top_ids: list[Any] = []
         meta_payload.setdefault("cid", cid)
-
-        room_uuid = room_uuid_from_identifier(cid)
-        room = Room.objects.filter(uuid=room_uuid).first()
-        meta_payload.setdefault("room_uuid", room_uuid)
-
-        state = meta_payload.get("state") or resolve_state_for_room(room)
-        state = str(state).upper() if state else None
-        if state:
-            meta_payload["state"] = state
-        else:
-            meta_payload.pop("state", None)
+        state = (meta_payload.get("state") or "FL").upper()
+        meta_payload["state"] = state
         llm_timeout = (
             meta_payload.get("timeout")
             or getattr(self.llm_client, "default_timeout", None)
             or AGENT_TIMEOUT_SEC
         )
 
-        forms_prompt = format_forms_prompt(forms_for_state(state) if state else [])
-        meta_payload["forms_prompt"] = forms_prompt
+        forms_prompt = format_forms_prompt(forms_for_state(state))
+        if forms_prompt:
+            meta_payload["forms_prompt"] = forms_prompt
 
-        if rag_enabled and not state:
-            rag_enabled = False
-
-        if rag_enabled and state:
+        if rag_enabled:
             topic = meta_payload.get("rag_topic")  # optional narrowing
 
             try:
@@ -486,10 +457,7 @@ class AgentService:
                     "=== CONTEXT END ==="
                 )
 
-                rag_system = f"{rag_system}\n\n{forms_prompt}"
-
                 meta_payload["rag_context"] = rag_system
-                meta_payload["forms_prompt_included"] = True
                 meta_payload["rag_chunk_ids"] = [c.id for c in chunks]
 
                 # after building rag_system and rag_chunk_ids
@@ -764,8 +732,7 @@ class AgentService:
             messages.append({"role": "system", "content": str(rag_context)})
 
         forms_prompt = meta.get("forms_prompt")
-        forms_prompt_included = bool(meta.get("forms_prompt_included"))
-        if forms_prompt and not forms_prompt_included:
+        if forms_prompt:
             messages.append({"role": "system", "content": str(forms_prompt)})
 
         # Existing history handling
