@@ -778,25 +778,65 @@ export class Channel {
         this.data = { name: roomName, ...extraData };
     }
 
-    private setAIStateForChannel(
-        state: AIState,
-        { clear, errorReason }: { clear?: boolean; errorReason?: string } = {},
-    ) {
+    private setAIStateForChannel(state: AIState, errorReason?: string) {
         if (!this.client?.setAIState) return;
 
-        if (this.aiState !== state) {
+        if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
             console.log('[agent/channel] ai state', {
                 cid: this.cid,
                 prev: this.aiState,
                 next: state,
                 errorReason,
             });
-            this.aiState = state;
-            this.client.setAIState(state, this.cid);
         }
 
-        if (state === AIStates.Idle || state === AIStates.Error || clear) {
-            this.client.clearAIState?.(this.cid);
+        this.aiState = state;
+        this.client.setAIState(state, this.cid, errorReason);
+    }
+
+    private clearAIStateForChannel() {
+        if (!this.client?.clearAIState) return;
+
+        if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('[agent/channel] ai state clear', {
+                cid: this.cid,
+                prev: this.aiState,
+            });
+        }
+
+        this.aiState = AIStates.Idle;
+        this.client.clearAIState(this.cid);
+    }
+
+    private handleAgentAIState({
+        rawState,
+        errorReason,
+        jobId,
+    }: {
+        rawState?: string | null;
+        errorReason?: string | null;
+        jobId?: string | null;
+    }) {
+        const aiState = normalizeAiState(rawState ?? undefined) ?? (errorReason ? AIStates.Error : undefined);
+
+        if (!this.client?.setAIState || (!aiState && !errorReason)) {
+            /* noop – older clients may not support AI state */
+            return;
+        }
+
+        if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
+            if (jobId) {
+                this.activeAgentJobId = jobId;
+            }
+            this.setAIStateForChannel(aiState, errorReason ?? undefined);
+        } else if (aiState === AIStates.Idle && !errorReason) {
+            this.activeAgentJobId = undefined;
+            this.clearAIStateForChannel();
+        } else if (aiState === AIStates.Error || errorReason) {
+            this.activeAgentJobId = undefined;
+            this.setAIStateForChannel(AIStates.Error, errorReason ?? undefined);
         }
     }
 
@@ -1132,27 +1172,13 @@ export class Channel {
                                 (customData as any).agent_run?.error_reason ??
                                 (msg as any).agent_run?.error_reason ??
                                 (msg as any).error_reason;
-                            const aiState = normalizeAiState(rawState) ?? (errorReason ? AIStates.Error : undefined);
                             const jobId =
                                 (customData as any).agent_run?.job_id ??
                                 (msg as any).agent_run?.job_id ??
                                 (customData as any).job_id ??
                                 (msg as any).job_id;
 
-                            if (!this.client?.setAIState || (!aiState && !errorReason)) {
-                                /* noop – older clients may not support AI state */
-                            } else if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
-                                if (jobId) {
-                                    this.activeAgentJobId = jobId;
-                                }
-                                this.setAIStateForChannel(aiState);
-                            } else if (aiState === AIStates.Idle && !errorReason) {
-                                this.activeAgentJobId = undefined;
-                                this.setAIStateForChannel(AIStates.Idle, { clear: true });
-                            } else if (aiState === AIStates.Error || (aiState === AIStates.Idle && errorReason)) {
-                                this.activeAgentJobId = undefined;
-                                this.setAIStateForChannel(AIStates.Error, { clear: true, errorReason });
-                            }
+                            this.handleAgentAIState({ rawState, errorReason, jobId });
                         }
 
                         this.integrateIncomingMessage(
@@ -1209,7 +1235,7 @@ export class Channel {
                         if (!this.shouldHandleAgentEvent(cid, jobId)) break;
 
                         this.activeAgentJobId = undefined;
-                        this.setAIStateForChannel(AIStates.Idle, { clear: true });
+                        this.clearAIStateForChannel();
                         break;
                     }
 
@@ -1517,12 +1543,12 @@ export class Channel {
             console.log('[agent] echo reply integrated', reply);
 
             this.activeAgentJobId = undefined;
-            this.setAIStateForChannel(AIStates.Idle, { clear: true });
+            this.clearAIStateForChannel();
 
         } catch (err) {
             console.error('[agent] failed to request reply', err);
             const errorReason = err instanceof Error ? err.message : String(err);
-            this.setAIStateForChannel(AIStates.Error, { clear: true, errorReason });
+            this.setAIStateForChannel(AIStates.Error, errorReason);
             this.activeAgentJobId = undefined;
         } finally {
             this.stopAgentTyping(typingUserId);
