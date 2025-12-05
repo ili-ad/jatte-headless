@@ -256,7 +256,7 @@ export class ChatClient {
         );
     }
 
-    setAIState(state: string, cid?: string) {
+    setAIState(state: string, cid?: string, reason?: string, payload?: Record<string, unknown>) {
         const channel = this.findChannelByCid(cid);
         if (!channel || typeof (channel as any).dispatchEvent !== 'function') return;
 
@@ -264,16 +264,20 @@ export class ChatClient {
             type: 'ai_indicator.update',
             cid: channel.cid,
             ai_state: state,
+            reason,
+            payload,
         });
     }
 
-    clearAIState(cid?: string) {
+    clearAIState(cid?: string, reason?: string, payload?: Record<string, unknown>) {
         const channel = this.findChannelByCid(cid);
         if (!channel || typeof (channel as any).dispatchEvent !== 'function') return;
 
         (channel as any).dispatchEvent({
             type: 'ai_indicator.clear',
             cid: channel.cid,
+            reason,
+            payload,
         });
     }
 
