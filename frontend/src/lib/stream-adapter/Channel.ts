@@ -58,6 +58,8 @@ export class Channel {
     private readonly typingTimeoutMs = 8000;
     private readonly localTypingTimeoutMs = 5000;
     private agentConfig?: RoomAgentConfig;
+    private aiState: AIState = AIStates.Idle;
+    private activeAgentJobId?: string | null;
 
     /* channel-local state object */
     private _state = {
@@ -776,6 +778,26 @@ export class Channel {
         this.data = { name: roomName, ...extraData };
     }
 
+    private setAIStateForChannel(state: AIState, { clear }: { clear?: boolean } = {}) {
+        if (!this.client?.setAIState) return;
+
+        if (this.aiState !== state) {
+            this.aiState = state;
+            this.client.setAIState(state, this.cid);
+        }
+
+        if (state === AIStates.Idle || state === AIStates.Error || clear) {
+            this.client.clearAIState?.(this.cid);
+        }
+    }
+
+    private shouldHandleAgentEvent(eventCid?: string | null, eventJobId?: string | null) {
+        if (eventCid && eventCid !== this.cid) return false;
+        if (this.activeAgentJobId && eventJobId && this.activeAgentJobId !== eventJobId) return false;
+
+        return true;
+    }
+
     /* ─── getters Stream-UI expects ─── */
     get state() { return this._state; }
     /** Convenience getter exposing current message list */
@@ -1097,16 +1119,12 @@ export class Channel {
 
                             if (!this.client?.setAIState) {
                                 /* noop – older clients may not support AI state */
-                            } else if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
-                                this.client.setAIState(aiState, this.cid);
                             } else if (aiState === AIStates.Idle && !errorReason) {
-                                this.client.setAIState(AIStates.Idle, this.cid);
-                                this.client.clearAIState(this.cid);
+                                this.setAIStateForChannel(AIStates.Idle, { clear: true });
+                                this.activeAgentJobId = undefined;
                             } else if (aiState === AIStates.Error || (aiState === AIStates.Idle && errorReason)) {
-                                this.client.setAIState(AIStates.Error, this.cid);
-                                this.client.clearAIState(this.cid);
-                            } else if (!aiState) {
-                                this.client.setAIState(AIStates.Generating, this.cid);
+                                this.setAIStateForChannel(AIStates.Error, { clear: true });
+                                this.activeAgentJobId = undefined;
                             }
                         }
 
@@ -1133,6 +1151,38 @@ export class Channel {
                         this.applyTypingEvent({ type: type as any, user_id: (p as any).user_id } as any);
                         this.emitter.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
                         this.client.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
+                        break;
+                    }
+
+                    case 'agent.llm.streaming.start':
+                    case 'agent.llm.streaming.call':
+                    case 'agent.llm.streaming.run_start':
+                    case 'agent.llm.streaming.first_chunk': {
+                        const { cid, job_id: jobId } = p as any;
+                        if (!this.shouldHandleAgentEvent(cid, jobId)) break;
+
+                        if (!this.activeAgentJobId && jobId) {
+                            this.activeAgentJobId = jobId;
+                        }
+
+                        if (this.aiState === AIStates.Thinking || this.activeAgentJobId) {
+                            this.setAIStateForChannel(AIStates.Generating);
+                        }
+                        break;
+                    }
+
+                    case 'agent.llm.streaming.success':
+                    case 'agent.generate.job.complete':
+                    case 'agent.llm.streaming_timeout':
+                    case 'agent.llm.streaming_timeout.fallback':
+                    case 'agent.handoff.escalate':
+                    case 'agent.llm.error':
+                    case 'agent.llm.streaming_failure': {
+                        const { cid, job_id: jobId } = p as any;
+                        if (!this.shouldHandleAgentEvent(cid, jobId)) break;
+
+                        this.activeAgentJobId = undefined;
+                        this.setAIStateForChannel(AIStates.Idle, { clear: true });
                         break;
                     }
 
@@ -1405,7 +1455,6 @@ export class Channel {
         this.startAgentTyping(typingUserId);
 
         try {
-            this.client?.setAIState?.(AIStates.Thinking, this.cid);
             const reply = await invokeAgent(this.cid, {
                 roomUUID: this.uuid,
                 lastHumanMessageId: String(message.id),
@@ -1413,13 +1462,13 @@ export class Channel {
                     client_generated_id ?? (message as any).client_generated_id,
             });
 
+            this.setAIStateForChannel(AIStates.Thinking);
+            this.activeAgentJobId = 'status' in reply && reply.status === 'queued' ? reply.job_id : undefined;
+
             if ('status' in reply && reply.status === 'queued') {
                 console.log('[agent] agent job queued', reply);
-                this.client?.setAIState?.(AIStates.Generating, this.cid);
                 return;
             }
-
-            this.client?.setAIState?.(AIStates.Generating, this.cid);
 
             (reply.messages ?? []).forEach(agentMessage => {
                 const normalized = {
@@ -1440,9 +1489,13 @@ export class Channel {
 
             console.log('[agent] echo reply integrated', reply);
 
+            this.activeAgentJobId = undefined;
+            this.setAIStateForChannel(AIStates.Idle, { clear: true });
+
         } catch (err) {
             console.error('[agent] failed to request reply', err);
-            this.client?.setAIState?.(AIStates.Error, this.cid);
+            this.setAIStateForChannel(AIStates.Error, { clear: true });
+            this.activeAgentJobId = undefined;
         } finally {
             this.stopAgentTyping(typingUserId);
         }
