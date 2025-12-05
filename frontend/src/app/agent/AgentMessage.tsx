@@ -45,8 +45,22 @@ export function AgentMessage(props: AgentMessageProps) {
       <MessageSimple {...messageProps} />
 
       {isAgent && rag?.used && (
-        <div className="flex items-center gap-1 text-[11px] text-neutral-500 pl-10">
-          <span>ⓘ</span>
+        <div
+          // “meta” line: small, grey text, indented to line up under the bubble
+          style={{
+            marginLeft: '2.5rem',      // roughly the avatar gutter
+            marginTop: '0.33rem',
+            marginBottom: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            columnGap: '0.25rem',      // ~4px
+            fontSize: '0.80rem',
+            color: '#6b7280',          // Tailwind neutral-500-ish
+            paddingTop: '2px',
+            paddingBottom: '4px',
+          }}
+        >
+          <span style={{fontSize: '1.1rem',}}>ⓘ</span>
           <span>
             Based on {rag.k ?? 1} sections from NTO&apos;s lien library.
           </span>
