@@ -173,7 +173,14 @@ const MessageWithContext = (props: MessageWithContextProps) => {
 
   return (
     <MessageProvider value={messageContextValue}>
-      <MessageUIComponent groupedByUser={groupedByUser} />
+      <MessageUIComponent
+        groupedByUser={groupedByUser}
+        message={message}
+        messageActions={messageActions}
+        onUserClick={onUserClick}
+        onUserHover={onUserHover}
+        {...rest}
+      />
       {/* TODO - remove prop in next major release, maintains VML backwards compatibility */}
     </MessageProvider>
   );
