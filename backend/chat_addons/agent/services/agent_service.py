@@ -25,6 +25,7 @@ from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 
 from .sidecar_catalog import SIDECAR_ITEM_DEFS, SidecarItemDef
+from .sidecar_metadata import extract_sidecar_metadata
 from .vector_memory import embed_query, search_similar
 from .metrics import estimate_prompt_tokens
 
@@ -660,6 +661,10 @@ class AgentService:
             handoff_triggered = True
             logger.exception("agent.generate.failure", extra={"cid": cid})
 
+        # NEW: strip SIDECAR_JSON and collect sidecar suggestions
+        clean_reply_text, sidecar_items = extract_sidecar_metadata(reply_text)
+        reply_text = clean_reply_text
+
         latency_ms = int((time.perf_counter() - start) * 1000)
         tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
@@ -678,6 +683,10 @@ class AgentService:
                     custom_data.setdefault("rag", {})
                     custom_data["rag"].update({"used": rag_used, "k": rag_k})
 
+                # NEW: attach sidecar suggestions, if any
+                if sidecar_items:
+                    custom_data["sidecar_items"] = sidecar_items
+
                 # For timeouts, do not overwrite the partial streaming text saved
                 # earlier. Only update metadata.
                 if reason == "timeout":
@@ -691,6 +700,11 @@ class AgentService:
                 message = self._persist_reply(
                     cid=cid, text=reply_text, handoff=handoff_triggered
                 )
+                # NEW: attach sidecar suggestions to this message too
+                if sidecar_items:
+                    extra_custom_data = {**(message.custom_data or {})}
+                    extra_custom_data["sidecar_items"] = sidecar_items
+                    self._update_message(message, custom_data=extra_custom_data)
 
             self._mark_provenance(message)
             if handoff_triggered:
