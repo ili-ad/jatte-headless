@@ -10,7 +10,7 @@ import threading
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Iterable, List, Sequence
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -24,6 +24,7 @@ from chat.consumers import broadcast_message_update
 from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 
+from .sidecar_catalog import SIDECAR_ITEM_DEFS, SidecarItemDef
 from .vector_memory import embed_query, search_similar
 from .metrics import estimate_prompt_tokens
 
@@ -52,6 +53,48 @@ from ..utils import agent_user_id_for_room
 logger = logging.getLogger(__name__)
 
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
+
+
+def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
+    """
+    Build the sidecar section appended to the RAG system prompt.
+
+    This is generic and can describe forms, pages, or other interactive
+    resources. It does NOT change any of the existing RAG behavior.
+    """
+    items_list: List[SidecarItemDef] = list(items)
+    if not items_list:
+        # If no sidecar items are configured yet, we don't add any extra instructions.
+        return ""
+
+    # Describe the available items in a compact, model-friendly way.
+    lines: List[str] = []
+    lines.append("Additional interactive sidecar resources are available.")
+    lines.append("These can be forms, pages, or other tools the user may want to open next.")
+    lines.append("Available sidecar items:")
+    for item in items_list:
+        kind = item.kind or "item"
+        # Example line:
+        # - FL_NOC (form): Florida Notice of Commencement – Record this to start the project...
+        lines.append(
+            f"- {item.id} ({kind}): {item.label} – {item.blurb}"
+        )
+
+    lines.append("")
+    lines.append(
+        "After you finish your natural-language answer, decide whether one or more "
+        "of these sidecar items would help the user take the next step."
+    )
+    lines.append("Then output a FINAL machine-readable line on its own:")
+    lines.append(
+        'SIDECAR_JSON: [{"id": "FL_NOC", "reason": "To record a notice of commencement"}, ...]'
+    )
+    lines.append("- Use only sidecar item ids from the list above.")
+    lines.append("- Suggest at most 3 items.")
+    lines.append("- If no sidecar item is appropriate, output: SIDECAR_JSON: [].")
+    lines.append("- Do NOT explain this line; just emit it exactly in that format.")
+
+    return "\n".join(lines)
 
 
 @dataclass
@@ -446,6 +489,10 @@ class AgentService:
                     f"{context_block}\n"
                     "=== CONTEXT END ==="
                 )
+
+                sidecar_block = _build_sidecar_prompt_block(SIDECAR_ITEM_DEFS)
+                if sidecar_block:
+                    rag_system = rag_system + "\n\n" + sidecar_block + "\n"
 
                 meta_payload["rag_context"] = rag_system
                 meta_payload["rag_chunk_ids"] = [c.id for c in chunks]
