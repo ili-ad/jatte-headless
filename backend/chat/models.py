@@ -133,6 +133,8 @@ class Room(models.Model):
     )
     url = models.CharField(max_length=255, blank=True, default="")
     data = models.JSONField(null=True, blank=True)
+    agent_busy = models.BooleanField(default=False)
+    active_agent_run_id = models.UUIDField(null=True, blank=True)
     status = models.CharField(
         max_length=10, choices=[(ACTIVE, "Active"), (CLOSED, "Closed")], default=ACTIVE
     )
