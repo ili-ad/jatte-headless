@@ -43,8 +43,11 @@ from ..services.tooling import (
     parse_tool_instructions,
 )
 from ..skills import ConversationCtx, Skill
-from ..forms_catalog import format_forms_prompt, forms_for_state
-from ..forms_metadata import extract_forms_metadata
+from ..forms_catalog import (
+    extract_forms_metadata,
+    format_forms_prompt,
+    forms_for_state,
+)
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
@@ -664,10 +667,7 @@ class AgentService:
                 if run_status == AgentRun.STATUS_ERROR and reason != "timeout":
                     final_state = "AI_STATE_ERROR"
                 custom_data["ai_state"] = final_state
-                if forms_metadata:
-                    custom_data["forms"] = forms_metadata
-                else:
-                    custom_data.pop("forms", None)
+                custom_data["forms"] = forms_metadata
                 if reason == "timeout":
                     custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
@@ -690,7 +690,7 @@ class AgentService:
                     cid=cid,
                     text=reply_text,
                     handoff=handoff_triggered,
-                    forms=forms_metadata if forms_metadata else None,
+                    forms=forms_metadata,
                 )
 
             self._mark_provenance(message)
