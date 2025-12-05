@@ -9,6 +9,7 @@ import {
   TypingIndicator,
   MessageInput,
   AIStateIndicator,
+  useAIState,
 } from '@iliad/stream-chat-shim';
 import { useEffect } from 'react';
 
@@ -20,6 +21,7 @@ import ErrorBoundary from './ErrorBoundary';
 
 export default function ChatUI() {
   const { client, channel } = useChat();
+  const { aiState } = useAIState(channel as any);
 
   useEffect(() => {
     if (!channel) return undefined;
@@ -65,6 +67,18 @@ export default function ChatUI() {
       if (typeof unsub === 'function') unsub();
     };
   }, [channel]);
+
+  useEffect(() => {
+    if (!channel) return;
+
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log('[agent/ui] ai state', {
+        cid: channel.cid,
+        aiState,
+      });
+    }
+  }, [aiState, channel]);
 
   if (!client || !channel) return null;
 
