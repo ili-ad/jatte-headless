@@ -14,6 +14,23 @@ import {
     type RoomAgentConfig,
 } from '../chat-addons/agentApi';
 
+type AIState = (typeof AIStates)[keyof typeof AIStates];
+
+const normalizeAiState = (raw?: string | null): AIState | undefined => {
+    switch (raw) {
+        case 'AI_STATE_THINKING':
+            return AIStates.Thinking;
+        case 'AI_STATE_GENERATING':
+            return AIStates.Generating;
+        case 'AI_STATE_IDLE':
+            return AIStates.Idle;
+        case 'AI_STATE_ERROR':
+            return AIStates.Error;
+        default:
+            return undefined;
+    }
+};
+
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
@@ -1074,36 +1091,22 @@ export class Channel {
 
                         const userId = (msg as any).user_id ?? msg.user?.id;
                         if (userId === 'ai-bot-agent-lab') {
-                            this.client?.setAIState?.(AIStates.Generating, this.cid);
+                            const rawState = (msg as any).custom_data?.ai_state as string | undefined;
+                            const errorReason = (msg as any).custom_data?.error_reason as string | undefined;
+                            const aiState = normalizeAiState(rawState);
 
-                            if (type === 'message.updated') {
-                                const rawState = (msg as any).custom_data?.ai_state as string | undefined;
-                                const errorReason = (msg as any).custom_data?.error_reason as string | undefined;
-
-                                let normalizedState: string | undefined;
-                                switch (rawState) {
-                                    case 'AI_STATE_IDLE':
-                                        normalizedState = AIStates.Idle;
-                                        break;
-                                    case 'AI_STATE_ERROR':
-                                        normalizedState = AIStates.Error;
-                                        break;
-                                    case 'AI_STATE_GENERATING':
-                                        normalizedState = AIStates.Generating;
-                                        break;
-                                    default:
-                                        normalizedState = rawState;
-                                        break;
-                                }
-
-                                if (normalizedState === AIStates.Idle && !errorReason) {
-                                    this.client?.setAIState?.(AIStates.Idle, this.cid);
-                                    this.client?.clearAIState?.(this.cid);
-                                } else if (normalizedState === AIStates.Idle && errorReason === 'timeout') {
-                                    this.client?.setAIState?.(AIStates.Error, this.cid);
-                                } else if (normalizedState === AIStates.Error) {
-                                    this.client?.setAIState?.(AIStates.Error, this.cid);
-                                }
+                            if (!this.client?.setAIState) {
+                                /* noop – older clients may not support AI state */
+                            } else if (aiState === AIStates.Thinking || aiState === AIStates.Generating) {
+                                this.client.setAIState(aiState, this.cid);
+                            } else if (aiState === AIStates.Idle && !errorReason) {
+                                this.client.setAIState(AIStates.Idle, this.cid);
+                                this.client.clearAIState(this.cid);
+                            } else if (aiState === AIStates.Error || (aiState === AIStates.Idle && errorReason)) {
+                                this.client.setAIState(AIStates.Error, this.cid);
+                                this.client.clearAIState(this.cid);
+                            } else if (!aiState) {
+                                this.client.setAIState(AIStates.Generating, this.cid);
                             }
                         }
 
