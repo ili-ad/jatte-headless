@@ -25,7 +25,6 @@ from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
 
 from .sidecar_catalog import SIDECAR_ITEM_DEFS, SidecarItemDef
-#from sidecar_metadata import extract_sidecar_metadata
 from ..sidecar_metadata import extract_sidecar_metadata
 from .vector_memory import embed_query, search_similar
 from .metrics import estimate_prompt_tokens
