@@ -102,8 +102,8 @@ export function AgentMessage(props: AgentMessageProps) {
             columnGap: '0.25rem',      // ~4px
             fontSize: '0.80rem',
             color: '#6b7280',          // Tailwind neutral-500-ish
-            paddingTop: '2px',
-            paddingBottom: '4px',
+            paddingTop: '0.5rem',
+            paddingBottom: '0.5rem',
           }}
         >
           <span style={{fontSize: '1.1rem',}}>ⓘ</span>
@@ -123,6 +123,24 @@ export function AgentMessage(props: AgentMessageProps) {
                 type="button"
                 className="agent-forms-button"
                 onClick={() => handleSidecarClick(suggestion)}
+
+                style={{
+                  marginLeft: '2.5rem',
+                  marginTop: '0.33rem',
+                  marginBottom: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  columnGap: '0.25rem',
+                  fontSize: '0.80rem',
+                  color: '#FFF',
+                  paddingTop: '0.5rem',
+                  paddingBottom: '0.5rem',
+                  paddingLeft: '1.0rem',
+                  paddingRight: '1.0rem',
+                  borderRadius: '10rem',
+                  border: 'none',
+                }}
+
                 title={suggestion.reason || def.blurb || labelForSidecarItem(def)}
               >
                 {labelForSidecarItem(def)}
