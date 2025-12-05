@@ -43,15 +43,35 @@ from ..services.tooling import (
     parse_tool_instructions,
 )
 from ..skills import ConversationCtx, Skill
+from ..forms_catalog import format_forms_prompt, forms_for_state
+from ..forms_metadata import extract_forms_metadata
 from ...common_audit.models import MessageProvenance
 from ...notifications.models import AdminPresence
 from ...notifications.services.notify import NotificationService
-from ..utils import agent_user_id_for_room
+from ..utils import agent_user_id_for_room, room_uuid_from_identifier
 
 
 logger = logging.getLogger(__name__)
 
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
+
+
+def resolve_state_for_room(room: Room | None) -> str | None:
+    """Best-effort resolution of a 2-letter state code for a room."""
+
+    state = getattr(room, "state", None)
+
+    data = getattr(room, "data", None)
+    if not state and isinstance(data, dict):
+        for key in ("state", "lien_state", "lienState"):
+            candidate = data.get(key)
+            if candidate:
+                state = candidate
+                break
+
+    if state:
+        return str(state).upper()
+    return None
 
 
 @dataclass
@@ -332,6 +352,7 @@ class AgentService:
         tokens_out = 0
         total_cost = Decimal("0")
         reply_text = ""
+        forms_metadata: list[dict[str, str]] = []
         reason = "ok"
         handoff_triggered = False
 
@@ -356,15 +377,30 @@ class AgentService:
         top_score = None
         top_ids: list[Any] = []
         meta_payload.setdefault("cid", cid)
+
+        room_uuid = room_uuid_from_identifier(cid)
+        room = Room.objects.filter(uuid=room_uuid).first()
+        meta_payload.setdefault("room_uuid", room_uuid)
+
+        state = meta_payload.get("state") or resolve_state_for_room(room)
+        state = str(state).upper() if state else None
+        if state:
+            meta_payload["state"] = state
+        else:
+            meta_payload.pop("state", None)
         llm_timeout = (
             meta_payload.get("timeout")
             or getattr(self.llm_client, "default_timeout", None)
             or AGENT_TIMEOUT_SEC
         )
 
-        if rag_enabled:
-            # For now, default to Florida; can be generalized later.
-            state = meta_payload.get("state") or "FL"
+        forms_prompt = format_forms_prompt(forms_for_state(state) if state else [])
+        meta_payload["forms_prompt"] = forms_prompt
+
+        if rag_enabled and not state:
+            rag_enabled = False
+
+        if rag_enabled and state:
             topic = meta_payload.get("rag_topic")  # optional narrowing
 
             try:
@@ -447,7 +483,10 @@ class AgentService:
                     "=== CONTEXT END ==="
                 )
 
+                rag_system = f"{rag_system}\n\n{forms_prompt}"
+
                 meta_payload["rag_context"] = rag_system
+                meta_payload["forms_prompt_included"] = True
                 meta_payload["rag_chunk_ids"] = [c.id for c in chunks]
 
                 # after building rag_system and rag_chunk_ids
@@ -613,6 +652,8 @@ class AgentService:
             handoff_triggered = True
             logger.exception("agent.generate.failure", extra={"cid": cid})
 
+        reply_text, forms_metadata = extract_forms_metadata(reply_text)
+
         latency_ms = int((time.perf_counter() - start) * 1000)
         tokens_in = estimate_prompt_tokens(message_text, history=meta.get("history"))
 
@@ -623,6 +664,10 @@ class AgentService:
                 if run_status == AgentRun.STATUS_ERROR and reason != "timeout":
                     final_state = "AI_STATE_ERROR"
                 custom_data["ai_state"] = final_state
+                if forms_metadata:
+                    custom_data["forms"] = forms_metadata
+                else:
+                    custom_data.pop("forms", None)
                 if reason == "timeout":
                     custom_data["error_reason"] = "timeout"
                 if handoff_triggered:
@@ -642,7 +687,10 @@ class AgentService:
                 message = ai_message
             else:
                 message = self._persist_reply(
-                    cid=cid, text=reply_text, handoff=handoff_triggered
+                    cid=cid,
+                    text=reply_text,
+                    handoff=handoff_triggered,
+                    forms=forms_metadata if forms_metadata else None,
                 )
 
             self._mark_provenance(message)
@@ -714,6 +762,11 @@ class AgentService:
         rag_context = meta.get("rag_context")
         if rag_context:
             messages.append({"role": "system", "content": str(rag_context)})
+
+        forms_prompt = meta.get("forms_prompt")
+        forms_prompt_included = bool(meta.get("forms_prompt_included"))
+        if forms_prompt and not forms_prompt_included:
+            messages.append({"role": "system", "content": str(forms_prompt)})
 
         # Existing history handling
         history = meta.get("history")
@@ -1033,8 +1086,17 @@ class AgentService:
         _broadcast_to_cid(cid, {"type": "message.new", "message": payload})
         return serializer.instance
 
-    def _persist_reply(self, *, cid: str, text: str, handoff: bool) -> Message:
+    def _persist_reply(
+        self,
+        *,
+        cid: str,
+        text: str,
+        handoff: bool,
+        forms: list[dict[str, str]] | None = None,
+    ) -> Message:
         custom_data = {"agent": {"handoff": handoff}, "ai_generated": True}
+        if forms is not None:
+            custom_data["forms"] = forms
         return self._persist_message(cid=cid, text=text, custom_data=custom_data)
 
     def _update_message(
