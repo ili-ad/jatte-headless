@@ -1124,6 +1124,13 @@ export class Channel {
                         break;
                     }
 
+                    // Backend emits read events as type: "message.read" with
+                    // { cid, user: { id, channel_last_read_at, channel_unread_count, ... } }.
+                    case 'message.read': {
+                        this.handleMessageReadEvent(p as any);
+                        break;
+                    }
+
                     default: {
                         if (process.env.NODE_ENV !== 'production') {
                             // eslint-disable-next-line no-console
@@ -1140,6 +1147,43 @@ export class Channel {
                 console.error('[agent/ws] bad payload', ev.data, err);
             }
         };
+    }
+
+    private handleMessageReadEvent(event: {
+        cid?: string;
+        user?: {
+            id?: string;
+            channel_last_read_at?: string;
+            channel_unread_count?: number;
+        };
+    }) {
+        if (!event || event.cid !== this.cid) return;
+
+        const userId = event.user?.id;
+        if (!userId) return;
+
+        const existing = this._state.read[userId];
+        const lastRead = event.user?.channel_last_read_at
+            ? new Date(event.user.channel_last_read_at)
+            : existing?.last_read;
+
+        if (!lastRead) return;
+
+        const unreadCount = typeof event.user?.channel_unread_count === 'number'
+            ? event.user.channel_unread_count
+            : existing?.unread_messages ?? 0;
+
+        this.bump({
+            read: {
+                ...this._state.read,
+                [userId]: {
+                    ...existing,
+                    last_read: lastRead,
+                    unread_messages: unreadCount,
+                    user: existing?.user ?? { id: userId },
+                },
+            },
+        });
     }
 
     async markRead() {
