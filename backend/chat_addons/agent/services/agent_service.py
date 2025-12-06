@@ -61,43 +61,73 @@ class CancelledError(Exception):
 
 
 def mark_agent_state(
-    room: Room,
-    ai_message: Message,
-    ai_state: str,
     *,
+    room: Room,
+    ai_state: str,
+    ai_message: Message | None = None,
+    agent_run: AgentRun | None = None,
     error_reason: str | None = None,
 ) -> None:
-    """Keep message ``ai_state`` and ``room.agent_busy`` in sync."""
+    """
+    Canonical place to keep AI message metadata, room busy flags, and run status in sync.
+    """
 
-    custom_data = dict(ai_message.custom_data or {})
-    custom_data["ai_state"] = ai_state
-    if error_reason:
-        custom_data["error_reason"] = error_reason
-
-    ai_message.custom_data = custom_data
-    ai_message.updated_at = timezone.now()
-    ai_message.save(update_fields=["custom_data", "updated_at"])
-
-    if not os.environ.get("DISABLE_AGENT_BROADCAST"):
-        try:
-            broadcast_message_update(ai_message)
-        except RuntimeError:
-            logger.debug(
-                "agent.state.broadcast_skipped",
-                extra={"message_id": getattr(ai_message, "id", None)},
-            )
-        except Exception:
-            logger.exception(
-                "agent.state.broadcast_failed",
-                extra={"message_id": getattr(ai_message, "id", None)},
-            )
+    room_update_fields: list[str] = []
+    agent_run_update_fields: list[str] = []
 
     if ai_state in ("AI_STATE_THINKING", "AI_STATE_GENERATING"):
-        room.agent_busy = True
+        desired_busy = True
+        desired_run_id = agent_run.run_id if agent_run is not None else room.active_agent_run_id
     else:
-        room.agent_busy = False
-        room.active_agent_run_id = None
-    room.save(update_fields=["agent_busy", "active_agent_run_id"])
+        desired_busy = False
+        desired_run_id = None
+
+    if room.agent_busy != desired_busy:
+        room.agent_busy = desired_busy
+        room_update_fields.append("agent_busy")
+    if room.active_agent_run_id != desired_run_id:
+        room.active_agent_run_id = desired_run_id
+        room_update_fields.append("active_agent_run_id")
+    if room_update_fields:
+        room.save(update_fields=room_update_fields)
+
+    if agent_run is not None:
+        if ai_state in ("AI_STATE_THINKING", "AI_STATE_GENERATING"):
+            if agent_run.status != AgentRun.STATUS_RUNNING:
+                agent_run.status = AgentRun.STATUS_RUNNING
+                agent_run_update_fields.append("status")
+        elif ai_state == "AI_STATE_ERROR" and error_reason == "cancelled":
+            if agent_run.status != AgentRun.STATUS_CANCELLED:
+                agent_run.status = AgentRun.STATUS_CANCELLED
+                agent_run_update_fields.append("status")
+        if agent_run_update_fields:
+            agent_run.updated_at = timezone.now()
+            agent_run_update_fields.append("updated_at")
+            agent_run.save(update_fields=agent_run_update_fields)
+
+    if ai_message is not None:
+        custom_data = dict(ai_message.custom_data or {})
+        custom_data["ai_state"] = ai_state
+        if error_reason is not None:
+            custom_data["error_reason"] = error_reason
+
+        ai_message.custom_data = custom_data
+        ai_message.updated_at = timezone.now()
+        ai_message.save(update_fields=["custom_data", "updated_at"])
+
+        if not os.environ.get("DISABLE_AGENT_BROADCAST"):
+            try:
+                broadcast_message_update(ai_message)
+            except RuntimeError:
+                logger.debug(
+                    "agent.state.broadcast_skipped",
+                    extra={"message_id": getattr(ai_message, "id", None)},
+                )
+            except Exception:
+                logger.exception(
+                    "agent.state.broadcast_failed",
+                    extra={"message_id": getattr(ai_message, "id", None)},
+                )
 
 
 def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
@@ -216,12 +246,8 @@ class AgentService:
 
     def _start_agent_run(
         self, *, room: Room, cid: str, run_id: str, user_id: str | None
-    ) -> None:
-        room.agent_busy = True
-        room.active_agent_run_id = run_id
-        room.save(update_fields=["agent_busy", "active_agent_run_id"])
-
-        AgentRun.objects.update_or_create(
+    ) -> AgentRun:
+        agent_run, _ = AgentRun.objects.update_or_create(
             run_id=run_id,
             defaults={
                 "cid": cid,
@@ -233,6 +259,14 @@ class AgentService:
                 "tokens_out": 0,
             },
         )
+
+        mark_agent_state(
+            room=room,
+            ai_state="AI_STATE_THINKING",
+            agent_run=agent_run,
+        )
+
+        return agent_run
 
     def _is_run_cancelled(self, run_id: str | None) -> bool:
         if not run_id:
@@ -463,6 +497,7 @@ class AgentService:
         reply_text = ""
         reason = "ok"
         handoff_triggered = False
+        agent_run: AgentRun | None = None
 
         room = self._get_room_for_cid(cid)
 
@@ -616,7 +651,7 @@ class AgentService:
 
         if persist and policy.agent_enabled:
             if room is not None:
-                self._start_agent_run(
+                agent_run = self._start_agent_run(
                     room=room,
                     cid=cid,
                     run_id=effective_request_id,
@@ -631,7 +666,12 @@ class AgentService:
                 },
             )
             if room is not None:
-                mark_agent_state(room, ai_message, "AI_STATE_THINKING")
+                mark_agent_state(
+                    room=room,
+                    ai_state="AI_STATE_THINKING",
+                    ai_message=ai_message,
+                    agent_run=agent_run,
+                )
 
         try:
             if not policy.agent_enabled:
@@ -784,10 +824,6 @@ class AgentService:
                     error_reason = "timeout"
                 elif run_status == AgentRun.STATUS_CANCELLED:
                     error_reason = "cancelled"
-                if reason == "timeout":
-                    custom_data["error_reason"] = "timeout"
-                elif run_status == AgentRun.STATUS_CANCELLED:
-                    custom_data["error_reason"] = "cancelled"
                 if handoff_triggered:
                     custom_data["agent"] = {"handoff": True}
                 if rag_enabled:
@@ -798,17 +834,21 @@ class AgentService:
                 if sidecar_items:
                     custom_data["sidecar_items"] = sidecar_items
 
-                # For timeouts, do not overwrite the partial streaming text saved
-                # earlier. Only update metadata.
+                ai_message.custom_data = custom_data
+                ai_message.updated_at = timezone.now()
                 if reason == "timeout":
-                    self._update_message(ai_message, text=None, custom_data=custom_data)
+                    ai_message.save(update_fields=["custom_data", "updated_at"])
                 else:
-                    self._update_message(
-                        ai_message, text=reply_text, custom_data=custom_data
+                    ai_message.body = reply_text
+                    ai_message.save(
+                        update_fields=["body", "custom_data", "updated_at"]
                     )
                 if room is not None:
                     mark_agent_state(
-                        room, ai_message, final_state, error_reason=error_reason
+                        room=room,
+                        ai_state=final_state,
+                        ai_message=ai_message,
+                        error_reason=error_reason,
                     )
                 message = ai_message
             else:
@@ -931,6 +971,7 @@ class AgentService:
         run_id: str | None = None,
     ) -> LLMResult:
         timeout = (meta or {}).get("timeout")
+        cid = (meta or {}).get("cid")
         streaming_timeout = (
             timeout
             or getattr(self.llm_client, "default_streaming_timeout", None)
@@ -946,21 +987,20 @@ class AgentService:
                 timeout=timeout if timeout is not None else streaming_timeout,
             )
 
+        if room is None and cid:
+            room = self._get_room_for_cid(cid)
+
         if room is not None:
-            mark_agent_state(room, stream_target, "AI_STATE_GENERATING")
-        else:
-            custom_data = {**(stream_target.custom_data or {})}
-            custom_data["ai_state"] = "AI_STATE_GENERATING"
-            self._update_message(stream_target, custom_data=custom_data)
+            mark_agent_state(
+                room=room,
+                ai_state="AI_STATE_GENERATING",
+                ai_message=stream_target,
+            )
 
         def on_update(buffer: str) -> None:
             if run_id and self._is_run_cancelled(run_id):
                 raise CancelledError("Agent run cancelled")
-            stream_custom_data = {**(stream_target.custom_data or {})}
-            stream_custom_data["ai_state"] = "AI_STATE_GENERATING"
-            self._update_message(
-                stream_target, text=buffer, custom_data=stream_custom_data
-            )
+            self._update_message(stream_target, text=buffer)
             logger.info(
                 "agent.llm.streaming.chunk",
                 extra={"cid": cid, "trace_id": trace_id, "length": len(buffer)},
@@ -1035,13 +1075,18 @@ class AgentService:
 
                 timeout_custom_data = {**(stream_target.custom_data or {})}
                 timeout_custom_data["ai_generated"] = True
-                timeout_custom_data["ai_state"] = "AI_STATE_IDLE"
-
-                self._update_message(
-                    stream_target, text=partial_text, custom_data=timeout_custom_data
+                stream_target.body = partial_text
+                stream_target.custom_data = timeout_custom_data
+                stream_target.updated_at = timezone.now()
+                stream_target.save(
+                    update_fields=["body", "custom_data", "updated_at"]
                 )
                 if room is not None:
-                    mark_agent_state(room, stream_target, "AI_STATE_IDLE")
+                    mark_agent_state(
+                        room=room,
+                        ai_state="AI_STATE_IDLE",
+                        ai_message=stream_target,
+                    )
                 logger.info(
                     "agent.llm.streaming_timeout.fallback",
                     extra={
@@ -1050,11 +1095,7 @@ class AgentService:
                         "fallback_text": fallback_text[:80],
                     },
                 )
-                timeout_custom_data_2 = {
-                    "ai_generated": True,
-                    "ai_state": "AI_STATE_IDLE",
-                    "error_reason": "timeout",
-                }
+                timeout_custom_data_2 = {"ai_generated": True}
 
                 from ..tasks import _persist_message
 
@@ -1065,7 +1106,10 @@ class AgentService:
                 )
                 if room is not None:
                     mark_agent_state(
-                        room, timeout_msg, "AI_STATE_IDLE", error_reason="timeout"
+                        room=room,
+                        ai_state="AI_STATE_IDLE",
+                        ai_message=timeout_msg,
+                        error_reason="timeout",
                     )
                 logger.info(
                     "agent.llm.streaming_timeout.secondary_message",

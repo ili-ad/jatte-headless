@@ -6,7 +6,6 @@ from typing import Any, Sequence
 
 from django.db import transaction
 from django.db.models import Q
-from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -422,19 +421,13 @@ class AgentCancelView(APIView):
             .first()
         )
 
-        if run and run.status != AgentRun.STATUS_CANCELLED:
-            run.status = AgentRun.STATUS_CANCELLED
-            run.updated_at = timezone.now()
-            run.save(update_fields=["status", "updated_at"])
-
-        if ai_message is not None:
-            mark_agent_state(
-                room, ai_message, "AI_STATE_ERROR", error_reason="cancelled"
-            )
-        else:
-            room.agent_busy = False
-            room.active_agent_run_id = None
-            room.save(update_fields=["agent_busy", "active_agent_run_id"])
+        mark_agent_state(
+            room=room,
+            ai_state="AI_STATE_ERROR",
+            ai_message=ai_message,
+            agent_run=run,
+            error_reason="cancelled",
+        )
 
         return Response(status=status.HTTP_200_OK)
 
