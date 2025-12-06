@@ -11,8 +11,8 @@ import {
   AIStateIndicator,
   AIStates,
   useAIState,
-  StopAIGenerationButton,
 } from '@iliad/stream-chat-shim';
+import {StopAIGenerationButton} from '@iliad/stream-chat-shim/components/MessageInput/StopAIGenerationButton';
 import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
