@@ -628,6 +628,8 @@ class RoomMarkUnreadView(RoomFromCIDMixin, APIView):
 class RoomCountUnreadView(RoomFromCIDMixin, APIView):
     """Return number of unread messages for the current user in a room."""
 
+    # NOTE: This endpoint is currently unused by the frontend shim.
+    # See audit/mark-read-wire-trace.md for read/unread protocol status.
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -643,6 +645,8 @@ class RoomCountUnreadView(RoomFromCIDMixin, APIView):
 class RoomLastReadView(RoomFromCIDMixin, APIView):
     """Return the last read timestamp for the current user in a room."""
 
+    # NOTE: This endpoint is currently unused by the frontend shim.
+    # See audit/mark-read-wire-trace.md for read/unread protocol status.
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
