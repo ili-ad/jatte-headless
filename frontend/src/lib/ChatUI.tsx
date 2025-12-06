@@ -17,7 +17,7 @@ import { useEffect } from 'react';
 
 import type { LocalMessage } from 'chat-shim';
 import { AgentMessage } from '@/app/agent/AgentMessage';
-import { AgentAIStateBanner } from '@/app/agent/AgentAIStateBanner';
+
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
@@ -163,7 +163,6 @@ export default function ChatUI() {
               )}
             />
             <TypingIndicator />
-            <AgentAIStateBanner channel={channel as any} />
             <div
               className="chat-footer-status-row"
               style={{
