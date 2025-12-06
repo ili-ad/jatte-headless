@@ -23,6 +23,7 @@ from chat.api_views import _broadcast_to_cid
 from chat.consumers import broadcast_message_update
 from chat.models import Channel, Message, Room
 from chat.serializers import MessageSerializer
+from chat.utils import canonical_cid
 
 from .sidecar_catalog import SIDECAR_ITEM_DEFS, SidecarItemDef
 from ..sidecar_metadata import extract_sidecar_metadata
@@ -128,6 +129,35 @@ def mark_agent_state(
                     "agent.state.broadcast_failed",
                     extra={"message_id": getattr(ai_message, "id", None)},
                 )
+
+    cid = getattr(room, "cid", None) or canonical_cid(None, room_uuid=room.uuid)
+
+    ai_indicator_payload: dict[str, Any] = {
+        "type": "ai_indicator.update",
+        "cid": cid,
+        "ai_state": ai_state,
+    }
+
+    if agent_run is not None:
+        ai_indicator_payload["run_id"] = agent_run.run_id
+
+    if ai_message is not None:
+        ai_indicator_payload["message_id"] = str(ai_message.id)
+
+    if error_reason is not None:
+        ai_indicator_payload["error_reason"] = error_reason
+
+    if not os.environ.get("DISABLE_AGENT_BROADCAST"):
+        try:
+            _broadcast_to_cid(cid, ai_indicator_payload)
+        except RuntimeError:
+            logger.debug(
+                "agent.ai_indicator.broadcast_skipped", extra={"cid": cid}
+            )
+        except Exception:
+            logger.exception(
+                "agent.ai_indicator.broadcast_failed", extra={"cid": cid}
+            )
 
 
 def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
