@@ -51,6 +51,8 @@ export class Channel {
     private hasActiveKeystroke = false;
     private readonly typingTimeoutMs = 8000;
     private readonly localTypingTimeoutMs = 5000;
+    private lastMarkReadAtMs?: number;
+    private readonly MARK_READ_THROTTLE_MS = 2000;
     private agentConfig?: RoomAgentConfig;
     private configStateCache?: ConfigState;
     private configStatePromise?: Promise<ConfigState>;
@@ -1230,6 +1232,21 @@ export class Channel {
     }
 
     async markRead() {
+        const now = Date.now();
+        if (this.lastMarkReadAtMs && now - this.lastMarkReadAtMs < this.MARK_READ_THROTTLE_MS) {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.debug('[markRead] throttled', {
+                    cid: this.cid,
+                    last: this.lastMarkReadAtMs,
+                    now,
+                });
+            }
+            return;
+        }
+
+        this.lastMarkReadAtMs = now;
+
         const me = this.client.user?.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
         if (me) {
