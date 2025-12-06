@@ -7,6 +7,8 @@ import { TokenManager } from './tokenManager';
 
 const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User, Message } from './types';
+import type { AIState } from '@iliad/stream-chat-shim/components/AIStateIndicator/hooks/useAIState';
+import { AIStates } from '@iliad/stream-chat-shim/components/AIStateIndicator/hooks/useAIState';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -49,6 +51,9 @@ export class ChatClient {
     readonly stateStore = new MiniStore({ channels: [] as Channel[] });
     readonly settingsStore = new MiniStore<AppSettings | null>(null);
     private bus = mitt();
+
+    /** Track latest AI state per channel */
+    private aiStateByCid = new Map<string, AIState>();
 
     /* feature-module placeholders Stream-UI imports & tears-down */
     threads   !: {
@@ -210,6 +215,48 @@ export class ChatClient {
         }
     };
     emit = this.bus.emit.bind(this);
+
+    normalizeAIState(wireState?: string): AIState {
+        switch (wireState) {
+            case AIStates.Thinking:
+                return AIStates.Thinking;
+            case AIStates.Generating:
+                return AIStates.Generating;
+            case AIStates.Error:
+                return AIStates.Error;
+            case AIStates.ExternalSources:
+                return AIStates.ExternalSources;
+            case AIStates.Idle:
+            default:
+                return AIStates.Idle;
+        }
+    }
+
+    setAIState(state: AIState | undefined, cid: string) {
+        if (!cid) return;
+
+        const nextState = this.normalizeAIState(state);
+        this.aiStateByCid.set(cid, nextState);
+
+        const payload = { type: 'ai_indicator.update', cid, ai_state: nextState } as const;
+
+        this.activeChannels[cid]?.dispatchEvent?.(payload as any);
+        this.emit('ai_indicator.update' as any, payload as any);
+    }
+
+    clearAIState(cid: string) {
+        if (!cid) return;
+
+        this.aiStateByCid.delete(cid);
+        const payload = { type: 'ai_indicator.clear', cid } as const;
+
+        this.activeChannels[cid]?.dispatchEvent?.(payload as any);
+        this.emit('ai_indicator.clear' as any, payload as any);
+    }
+
+    getAIState(cid: string): AIState {
+        return this.aiStateByCid.get(cid) ?? AIStates.Idle;
+    }
 
     private cleanupThreadSubscriptions() {
         this.threadCleanupHandlers.forEach((cleanup) => {
