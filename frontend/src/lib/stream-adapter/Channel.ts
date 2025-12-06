@@ -747,7 +747,7 @@ export class Channel {
         id: number,
         uuid: string,
         roomName: string,
-        private client: ChatClient,
+        readonly client: ChatClient,
         extraData: Record<string, unknown> = {},
     ) {
         this.id = id;
@@ -1097,6 +1097,17 @@ export class Channel {
                         this.applyTypingEvent({ type: type as any, user_id: (p as any).user_id } as any);
                         this.emitter.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
                         this.client.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
+                        break;
+                    }
+
+                    case 'ai_indicator.update': {
+                        const aiState = this.client.normalizeAIState((p as any).ai_state);
+                        this.client.setAIState(aiState, this.cid);
+                        break;
+                    }
+
+                    case 'ai_indicator.clear': {
+                        this.client.clearAIState(this.cid);
                         break;
                     }
 

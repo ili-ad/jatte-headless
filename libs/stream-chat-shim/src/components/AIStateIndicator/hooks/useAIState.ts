@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AIState, Channel } from 'chat-shim';
 import { on } from '../../../chatSDKShim';
 
@@ -16,37 +16,58 @@ export const AIStates = {
  * @returns {{ aiState: AIState }} The current AI state for the given channel.
  */
 export const useAIState = (channel?: Channel): { aiState: AIState } => {
-  const [aiState, setAiState] = useState<AIState>(AIStates.Idle);
+  const client = useMemo(
+    () => (channel as { client?: { getAIState?: (cid: string) => AIState } } | undefined)?.client,
+    [channel],
+  );
+  const cid = channel?.cid;
+  const [aiState, setAiState] = useState<AIState>(() =>
+    cid ? client?.getAIState?.(cid) ?? AIStates.Idle : AIStates.Idle,
+  );
 
   useEffect(() => {
-    if (!channel) {
-      return;
+    if (!channel || !cid) return;
+
+    const applyAIState = (state?: AIState) => setAiState(state ?? AIStates.Idle);
+
+    const initial = client?.getAIState?.(cid);
+    if (initial !== undefined) {
+      applyAIState(initial);
     }
 
     const indicatorChangedListener = on(
       channel,
       'ai_indicator.update',
       (event) => {
-        const { cid } = event;
         const state = event.ai_state as AIState | undefined;
-        if (channel.cid === cid && state) {
-          setAiState(state);
+        if (channel.cid === event.cid && state) {
+          applyAIState(state);
         }
       },
     );
 
     const indicatorClearedListener = on(channel, 'ai_indicator.clear', (event) => {
-      const { cid } = event;
-      if (channel.cid === cid) {
-        setAiState(AIStates.Idle);
+      if (channel.cid === event.cid) {
+        applyAIState(AIStates.Idle);
       }
     });
+
+    const clientUpdateHandler = (event: { cid?: string; ai_state?: AIState }) => {
+      if (event.cid === cid) {
+        applyAIState(event.ai_state ?? client?.getAIState?.(cid));
+      }
+    };
+
+    client?.on?.('ai_indicator.update', clientUpdateHandler as any);
+    client?.on?.('ai_indicator.clear', clientUpdateHandler as any);
 
     return () => {
       indicatorChangedListener.unsubscribe();
       indicatorClearedListener.unsubscribe();
+      client?.off?.('ai_indicator.update', clientUpdateHandler as any);
+      client?.off?.('ai_indicator.clear', clientUpdateHandler as any);
     };
-  }, [channel]);
+  }, [channel, cid, client]);
 
   return { aiState };
 };
