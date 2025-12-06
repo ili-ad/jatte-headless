@@ -554,6 +554,14 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
         return Response(status=204)
 
 
+def _get_read_state_channel(room: Room) -> Channel:
+    """Return the Channel row corresponding to a Room's uuid/client."""
+
+    defaults = {"client": room.client or "stream"}
+    channel, _ = Channel.objects.get_or_create(uuid=room.uuid, defaults=defaults)
+    return channel
+
+
 class RoomMarkReadView(RoomFromCIDMixin, APIView):
     """Mark all messages in a room as read for the current user."""
 
@@ -562,9 +570,11 @@ class RoomMarkReadView(RoomFromCIDMixin, APIView):
 
     def post(self, request, room_uuid):
         room = self.get_room(room_uuid)
+        channel = _get_read_state_channel(room)
+        user_identifier = str(request.user.id)
         ReadState.objects.update_or_create(
-            user=request.user,
-            room=room,
+            user=user_identifier,
+            channel=channel,
             defaults={"last_read": timezone.now()},
         )
         return Response({"status": "ok"})
@@ -578,7 +588,9 @@ class RoomMarkUnreadView(RoomFromCIDMixin, APIView):
 
     def post(self, request, room_uuid):
         room = self.get_room(room_uuid)
-        ReadState.objects.filter(user=request.user, room=room).delete()
+        channel = _get_read_state_channel(room)
+        user_identifier = str(request.user.id)
+        ReadState.objects.filter(user=user_identifier, channel=channel).delete()
         return Response({"status": "ok"})
 
 
@@ -590,7 +602,9 @@ class RoomCountUnreadView(RoomFromCIDMixin, APIView):
 
     def get(self, request, room_uuid):
         room = self.get_room(room_uuid)
-        state = ReadState.objects.filter(user=request.user, room=room).first()
+        channel = _get_read_state_channel(room)
+        user_identifier = str(request.user.id)
+        state = ReadState.objects.filter(user=user_identifier, channel=channel).first()
         if state is None:
             unread = room.messages.count()
         else:
@@ -606,7 +620,9 @@ class RoomLastReadView(RoomFromCIDMixin, APIView):
 
     def get(self, request, room_uuid):
         room = self.get_room(room_uuid)
-        state = ReadState.objects.filter(user=request.user, room=room).first()
+        channel = _get_read_state_channel(room)
+        user_identifier = str(request.user.id)
+        state = ReadState.objects.filter(user=user_identifier, channel=channel).first()
         last_read = state.last_read.isoformat() if state else None
         return Response({"last_read": last_read})
 
@@ -619,13 +635,14 @@ class RoomReadView(RoomFromCIDMixin, APIView):
 
     def get(self, request, room_uuid):
         room = self.get_room(room_uuid)
-        states = ReadState.objects.filter(room=room).select_related("user")
+        channel = _get_read_state_channel(room)
+        states = ReadState.objects.filter(channel=channel)
         data = []
         for st in states:
             unread = room.messages.filter(created_at__gt=st.last_read).count()
             data.append(
                 {
-                    "user": st.user.username,
+                    "user": st.user,
                     "last_read": st.last_read.isoformat(),
                     "unread_messages": unread,
                 }

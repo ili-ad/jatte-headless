@@ -840,6 +840,8 @@ export class Channel {
 
 
     countUnread() {
+        // We treat `client.user.id` (stringified Django user ID from `/api/token/`)
+        // as the canonical read-state identifier shared with the backend.
         const userId = this.client.user?.id;
         if (!userId) return 0;
         const me = this._state.read[userId];

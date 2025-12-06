@@ -113,6 +113,11 @@ class ReadState(models.Model):
     channel = models.ForeignKey(
         Channel, related_name="read_states", on_delete=models.CASCADE
     )
+    # NOTE: ``user`` stores the canonical read-state identifier expected by the
+    # frontend shim (``client.user.id``). We currently use the stringified
+    # Django ``User.id`` so the value matches the ``userID`` returned by the
+    # `/api/token/` handshake and consumed by `Channel.state.read` on the
+    # client.
     user = models.CharField(max_length=255)
     last_read = models.DateTimeField()
 
