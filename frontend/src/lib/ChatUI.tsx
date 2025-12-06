@@ -75,13 +75,16 @@ export default function ChatUI() {
   const isAgentBusy = aiState === AIStates.Thinking || aiState === AIStates.Generating;
 
   useEffect(() => {
+    if (!channel) return;
     // eslint-disable-next-line no-console
     console.log('[agent/ui] aiState in ChatUI', {
+      cid: (channel as any).cid,
       aiState,
       AIStates,
       isAgentBusy,
     });
-  }, [aiState, isAgentBusy]);
+  }, [aiState, isAgentBusy, channel]);
+
 
 
   if (!client || !channel) return null;
