@@ -74,6 +74,16 @@ export default function ChatUI() {
 
   const isAgentBusy = aiState === AIStates.Thinking || aiState === AIStates.Generating;
 
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[agent/ui] aiState in ChatUI', {
+      aiState,
+      AIStates,
+      isAgentBusy,
+    });
+  }, [aiState, isAgentBusy]);
+
+
   if (!client || !channel) return null;
 
   const isMessageAIGenerated = (message: LocalMessage) =>
