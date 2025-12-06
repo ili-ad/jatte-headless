@@ -123,19 +123,24 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   }, [channel]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!channel) return () => { cancelled = true; };
+    if (!channel) return;
 
-    (async () => {
+    let cancelled = false;
+
+    const loadConfigOnce = async () => {
       try {
-        const composer: any = (channel as any).messageComposer;
-        const configState = await composer?.getConfigState?.();
-        const snapshot = configState ?? composer?.configState?.getSnapshot?.();
+        const configState = await (channel as any).messageComposer?.getConfigState?.();
+        const snapshot = configState ?? (channel as any).messageComposer?.configState?.getSnapshot?.();
         if (!cancelled && snapshot) setRoomConfig(snapshot);
       } catch (err) {
-        console.error('[ChatProvider] failed to load room config', err);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error('[ChatProvider] failed to load room config', err);
+        }
       }
-    })();
+    };
+
+    void loadConfigOnce();
 
     return () => {
       cancelled = true;
