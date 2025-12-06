@@ -8,7 +8,10 @@ from chat.views import TokenView  # real view
 from chat.views_quoted import QuotedMessageView
 from chat.api_views import (
     RoomConfigView,
+    RoomMarkReadView,
+    RoomMarkUnreadView,
     RoomMessageListCreateView,
+    RoomReadView,
 )
 #from chat_addons.agent.views import AgentInvokeView
 # from chat.views import dev_token        # <- if you still need the dev stub
@@ -68,6 +71,21 @@ urlpatterns += [
         name="room-messages-cid",
     ),
     re_path(r"^api/rooms/(?P<cid>.+)/messages/?$", RoomMessageListCreateView.as_view()),
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/mark_read/?$",
+        RoomMarkReadView.as_view(),
+        name="room-mark-read",
+    ),
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/mark_unread/?$",
+        RoomMarkUnreadView.as_view(),
+        name="room-mark-unread",
+    ),
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/read/?$",
+        RoomReadView.as_view(),
+        name="room-read",
+    ),
     path("api/rooms/<path:cid>/config/", RoomConfigView.as_view(), name="room-config"),
     re_path(r"^api/rooms/(?P<cid>.+)/config/?$", RoomConfigView.as_view()),
     path(
