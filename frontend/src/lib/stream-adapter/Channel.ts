@@ -13,6 +13,16 @@ import {
     type RoomAgentConfig,
 } from '../chat-addons/agentApi';
 
+type ConfigState = {
+    attachments: {
+        acceptedFiles: File[];
+        maxNumberOfFilesPerMessage: number;
+    };
+    text: { enabled: boolean };
+    multipleUploads: boolean;
+    isUploadEnabled: boolean;
+};
+
 /* ──────────────────────────────────────────────────────────────── */
 /*  CustomChannel  –  minimal Stream-Chat look-alike               */
 /* ──────────────────────────────────────────────────────────────── */
@@ -40,6 +50,8 @@ export class Channel {
     private readonly typingTimeoutMs = 8000;
     private readonly localTypingTimeoutMs = 5000;
     private agentConfig?: RoomAgentConfig;
+    private configStateCache?: ConfigState;
+    private configStatePromise?: Promise<ConfigState>;
 
     /* channel-local state object */
     private _state = {
@@ -503,7 +515,7 @@ export class Channel {
 
 
                 /* ---------- config flags ---------- */
-                configState: new MiniStore({
+                configState: new MiniStore<ConfigState>({
                     attachments: {
                         acceptedFiles: [] as File[],
                         maxNumberOfFilesPerMessage: 10,
@@ -519,61 +531,83 @@ export class Channel {
                     return this.configState.getLatestValue();
                 },
 
-                async getConfigState() {
-                    // When ChatProvider initializes a room it calls this once to hydrate
-                    // the composer config. Previously this was invoked via `channel.getConfig()`
-                    // during every render/streaming chunk, which created a tight polling loop
-                    // against `/config-state`. Keep this method available for explicit calls,
-                    // but do not tie it to streaming callbacks.
-
-                    // 1) get the token from the ChatClient
-                    const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
-                    const token: string | null =
-                        typeof client.getToken === 'function'
-                        ? client.getToken()
-                        : client.jwt ?? null; // fall back to the private field at runtime
-
-                    if (!token) {
-                        throw new Error('getConfigState: missing JWT token');
+                async getConfigState(): Promise<ConfigState> {
+                    if (channelRef.configStateCache) {
+                        return channelRef.configStateCache;
+                    }
+                    if (channelRef.configStatePromise) {
+                        return channelRef.configStatePromise;
                     }
 
-                    // 2) use the channel’s UUID from the adapter, not `this`
-                    const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state/`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
+                    channelRef.configStatePromise = (async () => {
+                        // When ChatProvider initializes a room it calls this once to hydrate
+                        // the composer config. Previously this was invoked via `channel.getConfig()`
+                        // during every render/streaming chunk, which created a tight polling loop
+                        // against `/config-state`. Keep this method available for explicit calls,
+                        // but do not tie it to streaming callbacks.
 
-                    if (!res.ok) {
-                        throw new Error('getConfigState failed');
+                        // 1) get the token from the ChatClient
+                        const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
+                        const token: string | null =
+                            typeof client.getToken === 'function'
+                            ? client.getToken()
+                            : client.jwt ?? null; // fall back to the private field at runtime
+
+                        if (!token) {
+                            throw new Error('getConfigState: missing JWT token');
+                        }
+
+                        // 2) use the channel’s UUID from the adapter, not `this`
+                        const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state/`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+
+                        if (!res.ok) {
+                            throw new Error('getConfigState failed');
+                        }
+
+                        let raw: any = {};
+                        try {
+                            raw = await res.json();
+                        } catch (e) {
+                            // eslint-disable-next-line no-console
+                            console.warn('[agent/config] failed to parse config-state JSON', e);
+                            raw = {};
+                        }
+
+                        const snapshot = this.configState.getSnapshot();
+                        const composer = (raw && (raw.composer ?? raw)) || {};
+
+                        // AI state is driven exclusively by ai_indicator websocket events.
+                        // Do not attempt to derive AI state from config-state responses.
+
+                        // File uploads flag from the backend, fallback to whatever we had
+                        const isUploadEnabled =
+                            typeof composer.file_uploads === 'boolean'
+                                ? composer.file_uploads
+                                : snapshot.isUploadEnabled;
+
+                        // Optional: reflect cooldown in the channel’s state if present
+                        if (typeof composer.cooldown_seconds === 'number') {
+                            channelRef.state.cooldownSecs = composer.cooldown_seconds;
+                        }
+
+                        const mergedConfig = {
+                            ...snapshot,
+                            isUploadEnabled,
+                            // attachments, text, multipleUploads stay as‑is from snapshot
+                        } as ConfigState;
+
+                        this.configState._set(mergedConfig);
+                        channelRef.configStateCache = this.configState.getLatestValue();
+                        return channelRef.configStateCache;
+                    })();
+
+                    try {
+                        return await channelRef.configStatePromise;
+                    } finally {
+                        channelRef.configStatePromise = undefined;
                     }
-
-                    // Backend shape: { composer: { file_uploads, max_length, cooldown_seconds } }
-                    const raw = (await res.json().catch(() => ({}))) as any;
-                    const snapshot = this.configState.getSnapshot();
-
-                    const composer = (raw && (raw.composer ?? raw)) || {};
-
-                    // AI state is driven exclusively by ai_indicator websocket events.
-                    // Do not attempt to derive AI state from config-state responses.
-
-                    // File uploads flag from the backend, fallback to whatever we had
-                    const isUploadEnabled =
-                        typeof composer.file_uploads === 'boolean'
-                            ? composer.file_uploads
-                            : snapshot.isUploadEnabled;
-
-                    // Optional: reflect cooldown in the channel’s state if present
-                    if (typeof composer.cooldown_seconds === 'number') {
-                        channelRef.state.cooldownSecs = composer.cooldown_seconds;
-                    }
-
-                    const mergedConfig = {
-                        ...snapshot,
-                        isUploadEnabled,
-                        // attachments, text, multipleUploads stay as‑is from snapshot
-                    };
-
-                    this.configState._set(mergedConfig);
-                    return this.configState.getLatestValue();
                 },
 
 
@@ -834,6 +868,10 @@ export class Channel {
             }
             return {}; // never throw; Stream UI only needs a shape
         }
+    }
+
+    async getConfigState(): Promise<ConfigState> {
+        return this.messageComposer.getConfigState();
     }
 
 
