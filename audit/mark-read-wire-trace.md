@@ -16,6 +16,18 @@ This document summarizes the current read/unread and `mark_read` plumbing across
 - Additional read-related endpoints include `/api/rooms/<room_uuid>/count_unread/` (per-user unread count) and `/api/rooms/<room_uuid>/last_read/` (per-user timestamp).【F:backend/chat/urls.py†L102-L123】【F:backend/chat/api_views.py†L585-L612】
 - Read state model: `backend/chat/models.py` defines `ReadState` with `channel`, `user` (string), and `last_read` timestamp, unique per `(user, channel)`.【F:backend/chat/models.py†L110-L120】
 
+### Per-room read helpers
+
+- `GET /api/rooms/<room_uuid>/count_unread/`
+  - Purpose: return the unread message count for the current user in this room.
+  - Current usage: Defined but unused (no frontend or shim callers found).
+  - Notes: Frontend derives unread counts from `/read/` + `state.read` and never hits this endpoint today; keep available for future per-room unread shortcuts.【F:backend/chat/api_views.py†L582-L612】
+
+- `GET /api/rooms/<room_uuid>/last_read/`
+  - Purpose: return the last read timestamp for the current user in this room.
+  - Current usage: Defined but unused (no frontend or shim callers found).
+  - Notes: Shim rebuilds `last_read` from `/read/` response and local state; this endpoint remains present for potential lightweight polling.【F:backend/chat/api_views.py†L599-L612】
+
 ## Websocket/read events
 - No Django consumer code currently emits `message.read` or `notification.mark_read` events; only message/typing/AI indicator events are handled in the shim’s websocket switch. The Stream shim type map includes `notification.mark_read`/`notification.mark_unread` event types, but there is no backend producer observed in this repo.【F:frontend/src/lib/stream-adapter/Channel.ts†L1125-L1139】【F:libs/stream-chat-shim/src/chatSDKShim.ts†L389-L413】
 
