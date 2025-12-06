@@ -1031,10 +1031,17 @@ class AgentService:
             if run_id and self._is_run_cancelled(run_id):
                 raise CancelledError("Agent run cancelled")
             self._update_message(stream_target, text=buffer)
-            logger.info(
-                "agent.llm.streaming.chunk",
-                extra={"cid": cid, "trace_id": trace_id, "length": len(buffer)},
-            )
+            if settings.DEBUG:
+                logger.debug(
+                    "agent.llm.streaming.chunk",
+                    extra={
+                        "cid": cid,
+                        "trace_id": trace_id,
+                        "length": len(buffer),
+                        "room_uuid": str(getattr(room, "uuid", "")) or None,
+                        "agent_run_id": run_id,
+                    },
+                )
 
         trace_id = (meta or {}).get("trace_id") or (meta or {}).get("request_id")
         cid = (meta or {}).get("cid")
@@ -1045,18 +1052,9 @@ class AgentService:
                 "cid": cid,
                 "trace_id": trace_id,
                 "timeout_sec": streaming_timeout,
-            },
-        )
-
-        logger.info(
-            "agent.llm.streaming.call",
-            extra={
-                "cid": cid,
-                "trace_id": trace_id,
                 "job_id": job_id,
                 "model": AGENT_MODEL,
                 "max_tokens": AGENT_MAX_TOKENS,
-                "timeout_sec": streaming_timeout,
             },
         )
 
@@ -1080,6 +1078,8 @@ class AgentService:
                 extra={
                     "cid": cid,
                     "trace_id": trace_id,
+                    "job_id": job_id,
+                    "agent_run_id": run_id,
                     "latency_ms": int((time.perf_counter() - start) * 1000),
                 },
             )
@@ -1091,6 +1091,9 @@ class AgentService:
                 extra={
                     "cid": cid,
                     "trace_id": trace_id,
+                    "job_id": job_id,
+                    "agent_run_id": run_id,
+                    "room_uuid": str(getattr(room, "uuid", "")) or None,
                     "latency_ms": elapsed_ms,
                     "timeout_sec": streaming_timeout,
                 },
@@ -1122,6 +1125,8 @@ class AgentService:
                     extra={
                         "cid": cid,
                         "trace_id": trace_id,
+                        "job_id": job_id,
+                        "agent_run_id": run_id,
                         "fallback_text": fallback_text[:80],
                     },
                 )
@@ -1146,6 +1151,8 @@ class AgentService:
                     extra={
                         "cid": cid,
                         "trace_id": trace_id,
+                        "job_id": job_id,
+                        "agent_run_id": run_id,
                         "timeout_message_id": str(timeout_msg.id),
                     },
                 )
@@ -1160,14 +1167,24 @@ class AgentService:
         except CancelledError:
             logger.info(
                 "agent.llm.streaming.cancelled",
-                extra={"cid": cid, "trace_id": trace_id},
+                extra={
+                    "cid": cid,
+                    "trace_id": trace_id,
+                    "job_id": job_id,
+                    "agent_run_id": run_id,
+                },
             )
             raise
         except Exception:
             # Log and fall back to non-streaming so we don't regress to 500s
             logger.exception(
                 "agent.llm.streaming_failure",
-                extra={"cid": messages[0].get("cid", None)},
+                extra={
+                    "cid": messages[0].get("cid", None),
+                    "trace_id": trace_id,
+                    "job_id": job_id,
+                    "agent_run_id": run_id,
+                },
             )
             # As a fallback, do a single-shot call and just update the message once
             result = self._call_llm(messages, tools, meta)
