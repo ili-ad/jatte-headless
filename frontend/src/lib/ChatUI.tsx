@@ -11,9 +11,9 @@ import {
   AIStateIndicator,
   AIStates,
   useAIState,
+  StopAIGenerationButton,
 } from '@iliad/stream-chat-shim';
 import { useEffect } from 'react';
-import { StopAIGenerationButton } from '@iliad/stream-chat-shim/src/components/MessageInput/StopAIGenerationButton';
 
 import type { LocalMessage } from 'chat-shim';
 import { AgentMessage } from '@/app/agent/AgentMessage';
@@ -174,6 +174,9 @@ export default function ChatUI() {
               overrideSubmitHandler={
                 isAgentBusy
                   ? () => {
+                      // Agent is busy; ignore sends instead of causing a 409.
+                      // eslint-disable-next-line no-console
+                      console.warn('[agent/ui] blocked send while agent busy');
                       return;
                     }
                   : undefined
