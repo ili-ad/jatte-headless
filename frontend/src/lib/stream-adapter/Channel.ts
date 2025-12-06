@@ -520,6 +520,12 @@ export class Channel {
                 },
 
                 async getConfigState() {
+                    // When ChatProvider initializes a room it calls this once to hydrate
+                    // the composer config. Previously this was invoked via `channel.getConfig()`
+                    // during every render/streaming chunk, which created a tight polling loop
+                    // against `/config-state`. Keep this method available for explicit calls,
+                    // but do not tie it to streaming callbacks.
+
                     // 1) get the token from the ChatClient
                     const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
                     const token: string | null =
@@ -540,13 +546,14 @@ export class Channel {
                         throw new Error('getConfigState failed');
                     }
 
-                    const data = await res.json().catch(() => ({} as any));
-
                     // Backend shape: { composer: { file_uploads, max_length, cooldown_seconds } }
                     const raw = (await res.json().catch(() => ({}))) as any;
                     const snapshot = this.configState.getSnapshot();
 
                     const composer = (raw && (raw.composer ?? raw)) || {};
+
+                    // AI state is driven exclusively by ai_indicator websocket events.
+                    // Do not attempt to derive AI state from config-state responses.
 
                     // File uploads flag from the backend, fallback to whatever we had
                     const isUploadEnabled =
@@ -814,15 +821,19 @@ export class Channel {
     //     };
     // }
     async getConfig(): Promise<any> {
-    try {
-        // go through the composer-level store you defined
-        return await this.messageComposer.getConfigState();
-    } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-        console.warn('[Channel.getConfig] falling back to empty config', err);
+        // Stream UI calls this frequently (e.g. on re-render/streaming updates).
+        // Avoid hitting `/config-state` here; ChatProvider fetches it once on mount
+        // and hydrates messageComposer.configState. We simply return the latest
+        // snapshot so repeated renders do not generate network traffic.
+        try {
+            return this.messageComposer.configState.getLatestValue();
+        } catch (err) {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.warn('[Channel.getConfig] falling back to empty config', err);
+            }
+            return {}; // never throw; Stream UI only needs a shape
         }
-        return {}; // never throw; Stream UI only needs a shape
-    }
     }
 
 
