@@ -52,7 +52,11 @@ from ...notifications.services.notify import NotificationService
 from ..utils import agent_user_id_for_room
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("agent")
+AGENT_STREAMING_DEBUG = bool(
+    getattr(settings, "AGENT_STREAMING_DEBUG", False)
+    or os.environ.get("AGENT_STREAMING_DEBUG")
+)
 
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
 
@@ -1031,7 +1035,7 @@ class AgentService:
             if run_id and self._is_run_cancelled(run_id):
                 raise CancelledError("Agent run cancelled")
             self._update_message(stream_target, text=buffer)
-            if settings.DEBUG:
+            if AGENT_STREAMING_DEBUG and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(
                     "agent.llm.streaming.chunk",
                     extra={

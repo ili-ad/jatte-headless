@@ -42,7 +42,7 @@ from .services.agent_service import get_agent_service, mark_agent_state
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("agent")
 
 _MEMORY_SERVICE = MemoryService()
 
