@@ -21,6 +21,8 @@ type ConfigState = {
     text: { enabled: boolean };
     multipleUploads: boolean;
     isUploadEnabled: boolean;
+    maxLength: number;
+    cooldownSeconds: number;
 };
 
 /* ──────────────────────────────────────────────────────────────── */
@@ -525,6 +527,8 @@ export class Channel {
                     },
                     multipleUploads: false,
                     isUploadEnabled: true,
+                    maxLength: 0,
+                    cooldownSeconds: 0,
                 }),
 
                 get config() {
@@ -566,14 +570,7 @@ export class Channel {
                             throw new Error('getConfigState failed');
                         }
 
-                        let raw: any = {};
-                        try {
-                            raw = await res.json();
-                        } catch (e) {
-                            // eslint-disable-next-line no-console
-                            console.warn('[agent/config] failed to parse config-state JSON', e);
-                            raw = {};
-                        }
+                        const raw = (await res.json().catch(() => ({}))) as any;
 
                         const snapshot = this.configState.getSnapshot();
                         const composer = (raw && (raw.composer ?? raw)) || {};
@@ -587,18 +584,26 @@ export class Channel {
                                 ? composer.file_uploads
                                 : snapshot.isUploadEnabled;
 
-                        // Optional: reflect cooldown in the channel’s state if present
+                        const maxLength =
+                            typeof composer.max_length === 'number'
+                                ? composer.max_length
+                                : snapshot.maxLength;
+
+                        const cooldownSeconds =
+                            typeof composer.cooldown_seconds === 'number'
+                                ? composer.cooldown_seconds
+                                : snapshot.cooldownSeconds;
+
                         if (typeof composer.cooldown_seconds === 'number') {
                             channelRef.state.cooldownSecs = composer.cooldown_seconds;
                         }
 
-                        const mergedConfig = {
+                        this.configState._set({
                             ...snapshot,
                             isUploadEnabled,
-                            // attachments, text, multipleUploads stay as‑is from snapshot
-                        } as ConfigState;
-
-                        this.configState._set(mergedConfig);
+                            maxLength,
+                            cooldownSeconds,
+                        });
                         channelRef.configStateCache = this.configState.getLatestValue();
                         return channelRef.configStateCache;
                     })();

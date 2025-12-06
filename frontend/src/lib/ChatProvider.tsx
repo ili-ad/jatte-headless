@@ -126,8 +126,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     if (!channel || typeof (channel as any).getConfigState !== 'function') return;
 
     let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
 
-    (async () => {
+    const loadConfigState = async () => {
+      if (cancelled) return;
       try {
         const config = await (channel as any).getConfigState();
         if (!cancelled) {
@@ -143,10 +145,14 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
           console.warn('[agent/config] getConfigState failed', err);
         }
       }
-    })();
+    };
+
+    void loadConfigState();
+    timer = setInterval(loadConfigState, 90_000);
 
     return () => {
       cancelled = true;
+      if (timer) clearInterval(timer);
     };
   }, [channel]);
 
