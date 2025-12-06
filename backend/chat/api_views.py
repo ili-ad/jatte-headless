@@ -562,6 +562,14 @@ def _get_read_state_channel(room: Room) -> Channel:
     return channel
 
 
+def _count_unread_messages(room: Room, state: ReadState | None) -> int:
+    """Return unread messages for a room given an optional read state."""
+
+    if state is None:
+        return room.messages.count()
+    return room.messages.filter(created_at__gt=state.last_read).count()
+
+
 class RoomMarkReadView(RoomFromCIDMixin, APIView):
     """Mark all messages in a room as read for the current user."""
 
@@ -572,11 +580,34 @@ class RoomMarkReadView(RoomFromCIDMixin, APIView):
         room = self.get_room(room_uuid)
         channel = _get_read_state_channel(room)
         user_identifier = str(request.user.id)
-        ReadState.objects.update_or_create(
+        read_state, _ = ReadState.objects.update_or_create(
             user=user_identifier,
             channel=channel,
             defaults={"last_read": timezone.now()},
         )
+
+        # Mirror Stream's ``message.read`` event shape so other clients stay in sync.
+        channel_unread_count = _count_unread_messages(room, read_state)
+        now = timezone.now()
+        event_payload = {
+            "type": "message.read",
+            "cid": canonical_cid(None, room_uuid=room.uuid),
+            "user": {
+                "id": read_state.user,
+                "channel_last_read_at": read_state.last_read.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "channel_unread_count": channel_unread_count,
+                "unread_count": 0,
+                "unread_channels": 0,
+                "total_unread_count": 0,
+            },
+            "created_at": now.isoformat().replace("+00:00", "Z"),
+        }
+        try:
+            _broadcast_to_cid(event_payload["cid"], event_payload)
+        except Exception:
+            pass
         return Response({"status": "ok"})
 
 
@@ -605,10 +636,7 @@ class RoomCountUnreadView(RoomFromCIDMixin, APIView):
         channel = _get_read_state_channel(room)
         user_identifier = str(request.user.id)
         state = ReadState.objects.filter(user=user_identifier, channel=channel).first()
-        if state is None:
-            unread = room.messages.count()
-        else:
-            unread = room.messages.filter(created_at__gt=state.last_read).count()
+        unread = _count_unread_messages(room, state)
         return Response({"unread": unread})
 
 
@@ -639,7 +667,7 @@ class RoomReadView(RoomFromCIDMixin, APIView):
         states = ReadState.objects.filter(channel=channel)
         data = []
         for st in states:
-            unread = room.messages.filter(created_at__gt=st.last_read).count()
+            unread = _count_unread_messages(room, st)
             data.append(
                 {
                     "user": st.user,
