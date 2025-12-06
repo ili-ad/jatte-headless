@@ -854,33 +854,33 @@ export class Channel {
 
     /** Fetch read states for this channel */
     async read() {
-    const res = await apiFetch(`/rooms/${this.uuid}/read/`, {
-        headers: { Authorization: `Bearer ${this.client['jwt']}` },
-    });
-    if (!res.ok) throw new Error('read failed');
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/read/`, {
+            headers: { Authorization: `Bearer ${this.client['jwt']}` },
+        });
+        if (!res.ok) throw new Error('read failed');
 
-    // Backend returns strings here.
-    const list = (await res.json()) as {
-        user: string;
-        last_read: string;
-        unread_messages: number;
-    }[];
+        // Backend returns strings here.
+        const list = (await res.json()) as {
+            user: string;
+            last_read: string;
+            unread_messages: number;
+        }[];
 
-    const map: Record<
-        string,
-        { last_read: Date; unread_messages: number; user: { id: string } }
-    > = {};
+        const map: Record<
+            string,
+            { last_read: Date; unread_messages: number; user: { id: string } }
+        > = {};
 
-    for (const item of list) {
-        map[item.user] = {
-        last_read: new Date(item.last_read),  // <-- convert string → Date
-        unread_messages: item.unread_messages,
-        user: { id: item.user },
-        };
-    }
+        for (const item of list) {
+            map[item.user] = {
+                last_read: new Date(item.last_read), // <-- convert string → Date
+                unread_messages: item.unread_messages,
+                user: { id: item.user },
+            };
+        }
 
-    this.bump({ read: map });
-    return map;
+        this.bump({ read: map });
+        return map;
     }
 
 
@@ -1144,7 +1144,7 @@ export class Channel {
         const me = this.client.user?.id;
         const lastId = this._state.latestMessages.at(-1)?.id;
         if (me) {
-            apiFetch(`/rooms/${this.uuid}/mark_read/`, {
+            apiFetch(`${API.ROOMS}${this.uuid}/mark_read/`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
@@ -1168,7 +1168,7 @@ export class Channel {
     async markUnread() {
         const me = this.client.user?.id;
         if (me) {
-            apiFetch(`/rooms/${this.uuid}/mark_unread/`, {
+            apiFetch(`${API.ROOMS}${this.uuid}/mark_unread/`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${this.client['jwt']}`,
