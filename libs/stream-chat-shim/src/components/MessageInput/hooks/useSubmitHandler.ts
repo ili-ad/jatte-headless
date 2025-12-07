@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { AIStates } from '../../AIStateIndicator';
 import { useMessageComposer } from './useMessageComposer';
 import { useChannelActionContext } from '../../../context/ChannelActionContext';
 import { useTranslationContext } from '../../../context/TranslationContext';
@@ -43,6 +44,24 @@ export const useSubmitHandler = (props: MessageInputProps) => {
   const handleSubmit = useCallback(
     async (event?: React.BaseSyntheticEvent) => {
       event?.preventDefault();
+
+      // Do not allow submissions while the agent is busy handling another request
+      const client = (channel as any)?.client;
+      const cid = (channel as any)?.cid;
+      const currentAiState = client?.getAIState?.(cid);
+      const isBusy =
+        currentAiState === AIStates.Thinking || currentAiState === AIStates.Generating;
+
+      if (isBusy) {
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.warn('[useSubmitHandler] blocked submit while agent busy', {
+            cid,
+            aiState: currentAiState,
+          });
+        }
+        return;
+      }
 
       try {
         const submitted = await submitViaTextComposer();
