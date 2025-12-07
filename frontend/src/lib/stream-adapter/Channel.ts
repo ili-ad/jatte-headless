@@ -572,7 +572,12 @@ export class Channel {
                             throw new Error('getConfigState failed');
                         }
 
-                        const raw = (await res.json().catch(() => ({}))) as any;
+                        let raw: any;
+                        try {
+                            raw = await res.json();
+                        } catch {
+                            raw = {};
+                        }
 
                         const snapshot = this.configState.getSnapshot();
                         const composer = (raw && (raw.composer ?? raw)) || {};
