@@ -7,6 +7,7 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
+import { AIStates } from '@iliad/stream-chat-shim';
 import {
     extractRoomAgentConfig,
     invokeAgent,
@@ -1473,6 +1474,21 @@ export class Channel {
 
         // We only auto‑reply in the dedicated dev room for now
         if (!isAgentLab) {
+            return;
+        }
+
+        // Prevent concurrent invocations while the agent is already busy
+        const currentAiState = this.client.getAIState?.(this.cid);
+        const isBusy =
+            currentAiState === AIStates.Thinking || currentAiState === AIStates.Generating;
+
+        if (isBusy) {
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn('[agent] skip invokeAgent: channel busy', {
+                    cid: this.cid,
+                    aiState: currentAiState,
+                });
+            }
             return;
         }
 
