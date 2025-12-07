@@ -128,10 +128,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
 
-    const loadConfigState = async () => {
+    const loadConfigState = async (force = false) => {
       if (cancelled) return;
       try {
-        const config = await (channel as any).getConfigState();
+        const config = await (channel as any).getConfigState(force);
         if (!cancelled) {
           setRoomConfig(config ?? null);
           if (process.env.NODE_ENV !== 'production') {
@@ -148,7 +148,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     };
 
     void loadConfigState();
-    timer = setInterval(loadConfigState, 90_000);
+    timer = setInterval(() => { void loadConfigState(true); }, 90_000);
 
     return () => {
       cancelled = true;

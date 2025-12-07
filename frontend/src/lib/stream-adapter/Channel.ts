@@ -537,8 +537,8 @@ export class Channel {
                     return this.configState.getLatestValue();
                 },
 
-                async getConfigState(): Promise<ConfigState> {
-                    if (channelRef.configStateCache) {
+                async getConfigState(force = false): Promise<ConfigState> {
+                    if (!force && channelRef.configStateCache) {
                         return channelRef.configStateCache;
                     }
                     if (channelRef.configStatePromise) {
@@ -547,10 +547,9 @@ export class Channel {
 
                     channelRef.configStatePromise = (async () => {
                         // When ChatProvider initializes a room it calls this once to hydrate
-                        // the composer config. Previously this was invoked via `channel.getConfig()`
-                        // during every render/streaming chunk, which created a tight polling loop
-                        // against `/config-state`. Keep this method available for explicit calls,
-                        // but do not tie it to streaming callbacks.
+                        // the composer config (and may re-run it on a low-frequency timer). This
+                        // should not be tied to streaming callbacks; polling `/config-state` while
+                        // streaming would overload the backend without providing new info.
 
                         // 1) get the token from the ChatClient
                         const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
@@ -868,9 +867,10 @@ export class Channel {
     // }
     async getConfig(): Promise<any> {
         // Stream UI calls this frequently (e.g. on re-render/streaming updates).
-        // Avoid hitting `/config-state` here; ChatProvider fetches it once on mount
-        // and hydrates messageComposer.configState. We simply return the latest
-        // snapshot so repeated renders do not generate network traffic.
+        // Avoid hitting `/config-state` here; ChatProvider fetches it on mount and
+        // periodically on a low-frequency timer, hydrating messageComposer.configState.
+        // We simply return the latest snapshot so repeated renders do not generate
+        // network traffic.
         try {
             return this.messageComposer.configState.getLatestValue();
         } catch (err) {
@@ -882,8 +882,8 @@ export class Channel {
         }
     }
 
-    async getConfigState(): Promise<ConfigState> {
-        return this.messageComposer.getConfigState();
+    async getConfigState(force = false): Promise<ConfigState> {
+        return this.messageComposer.getConfigState(force);
     }
 
 
