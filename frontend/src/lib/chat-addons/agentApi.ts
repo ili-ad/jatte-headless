@@ -1,4 +1,4 @@
-import type { Channel } from '@/lib/stream-adapter';
+import type { Channel } from '@/chat-kit/client';
 import { apiFetch } from '../api';
 
 export interface AgentToggleResponse {
