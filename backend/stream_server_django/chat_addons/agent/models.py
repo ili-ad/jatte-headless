@@ -4,11 +4,26 @@ from decimal import Decimal
 
 from django.db import models
 
+try:
+    # Real pgvector field when the package is available
+    from pgvector.django import VectorField  # type: ignore[assignment]
+    PGVECTOR_INSTALLED = True
+except ImportError:
+    PGVECTOR_INSTALLED = False
 
+    class VectorField(models.JSONField):  # type: ignore[misc]
+        """
+        Fallback stand-in for pgvector.django.VectorField.
 
+        - Accepts a `dimensions=` kwarg but ignores it.
+        - Stores data as JSON instead of a true vector column.
+        - Allows the app to run without pgvector installed.
+        """
 
-
-from pgvector.django import VectorField
+        def __init__(self, *args, **kwargs):
+            # `dimensions` is valid for pgvector but not for JSONField
+            kwargs.pop("dimensions", None)
+            super().__init__(*args, **kwargs)
 
 class RoomAgentFlag(models.Model):
     """Toggle state for the chat agent on a per-room basis."""
