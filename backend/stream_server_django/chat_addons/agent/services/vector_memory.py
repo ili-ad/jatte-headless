@@ -5,13 +5,29 @@ from __future__ import annotations
 from typing import List, Sequence
 
 from django.conf import settings
-from django.db.models.expressions import RawSQL
 
 from openai import OpenAI
-from pgvector import Vector
-from pgvector.django import CosineDistance #Vector
-
 from stream_server_django.chat_addons.agent.models import DocumentChunk
+
+try:
+    from pgvector import Vector
+    from pgvector.django import CosineDistance
+    PGVECTOR_ENABLED = True
+except ImportError:
+    PGVECTOR_ENABLED = False
+
+    class Vector(list):
+        """Dummy Vector type so type hints don’t blow up."""
+
+        pass
+
+    def CosineDistance(field_name: str, embedding: Sequence[float]):
+        """
+        Placeholder CosineDistance when pgvector is not installed.
+        This should not be called; search_similar should early-return.
+        """
+
+        raise RuntimeError("pgvector is not installed; vector search is disabled")
 
 
 
@@ -26,7 +42,13 @@ def search_similar(
     """
     Return the top-k DocumentChunk rows most similar to `query_embedding`
     using pgvector cosine distance.
+
+    If pgvector is not installed, this returns an empty list.
     """
+    if not PGVECTOR_ENABLED:
+        # No pgvector: vector search is disabled for now.
+        return []
+
     qs = DocumentChunk.objects.filter(state=state)
     if topic:
         qs = qs.filter(topic=topic)
