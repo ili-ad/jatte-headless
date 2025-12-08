@@ -18,6 +18,7 @@ export default function AgentPage() {
         roomSlug="agent-lab"
         heading="Agent lab"
         description="Talk to the assistant-enabled sandbox room."
+        useAgentUI
       />
     </ChatGuard>
   );
