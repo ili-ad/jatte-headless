@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat", "0004_add_message_deleted_at"),
+        ("chat", "0004_add_message_deleted_at"),
     ]
 
     operations = [

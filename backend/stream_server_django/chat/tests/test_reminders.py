@@ -54,20 +54,20 @@ class ReminderAPITests(APITestCase):
 
     def test_list_reminders(self):
         token = self.make_token()
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]["note"], "hi")
 
     def test_reminders_requires_auth(self):
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         res = self.client.get(url)
         self.assertEqual(res.status_code, 403)
 
     def test_reminders_wrong_method(self):
         token = self.make_token()
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         res = self.client.put(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 405)
 
@@ -104,7 +104,7 @@ class ReminderAPITests(APITestCase):
         channel_layer.group_send = AsyncMock()
         mock_get_channel_layer.return_value = channel_layer
         token = self.make_token()
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         payload = {
             "cid": f"messaging:{self.room.uuid}",
             "remind_at": "2025-01-04T00:00:00Z",
@@ -127,7 +127,7 @@ class ReminderAPITests(APITestCase):
 
     def test_create_reminder_requires_cid(self):
         token = self.make_token()
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         payload = {
             "remind_at": "2025-01-05T00:00:00Z",
         }
@@ -143,7 +143,7 @@ class ReminderAPITests(APITestCase):
     def test_create_reminder_requires_membership(self):
         Room.objects.create(uuid="r2", client="c2")
         token = self.make_token()
-        url = reverse("stream_server_django.reminders")
+        url = reverse('reminders")
         payload = {
             "cid": "messaging:r2",
             "remind_at": "2025-01-06T00:00:00Z",

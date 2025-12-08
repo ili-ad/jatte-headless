@@ -12,7 +12,7 @@ from django.db import transaction
 from .models import AgentRoomPolicy
 from .skills import Skill
 
-_SKILLS_PACKAGE = "chat_addons.agent.skills"
+_SKILLS_PACKAGE = "stream_server_django.chat_addons.agent.skills"
 
 
 @dataclass(frozen=True)

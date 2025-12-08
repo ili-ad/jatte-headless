@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat", "0009_pollvote"),
+        ("chat", "0009_pollvote"),
     ]
 
     operations = [

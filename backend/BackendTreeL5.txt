@@ -1,0 +1,486 @@
+.
+├── BackendTreeL5.txt
+├── Pipfile
+├── Pipfile.lock
+├── README.md
+├── __init__.py
+├── common
+│   ├── __pycache__
+│   │   └── throttling.cpython-310.pyc
+│   └── throttling.py
+├── db.sqlite3
+├── jatte
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── asgi.cpython-310.pyc
+│   │   ├── settings.cpython-310.pyc
+│   │   └── urls.cpython-310.pyc
+│   ├── asgi.py
+│   ├── auth
+│   │   ├── __init__.py
+│   │   └── supabase.py
+│   ├── settings.py
+│   ├── settingsprod.py
+│   ├── urls.py
+│   └── wsgi.py
+├── manage.py
+├── node_modules
+│   └── tailwindcss -> ../../node_modules/.pnpm/tailwindcss@3.4.17/node_modules/tailwindcss
+├── package.json
+├── requirements.txt
+├── serverfiles
+│   ├── commands.conf
+│   ├── daphne_start
+│   ├── gunicorn_start
+│   ├── nginx_jatte.conf
+│   ├── supervisor_daphne.conf
+│   └── supervisor_jatte.conf
+├── static
+│   ├── css
+│   │   ├── main.css
+│   │   └── main.min.css
+│   ├── images
+│   │   └── header.png
+│   └── js
+│       ├── main.js
+│       └── main_admin.js
+├── stream_server_django
+│   ├── __init__.py
+│   ├── accounts
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── middleware.py
+│   │   ├── migrations
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── signals.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── accounts_supabase
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── authentication.py
+│   │   ├── middleware.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_userprofile_display_name_userprofile_extra_and_more.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── signals.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_user_agent_auth.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── auth
+│   │   ├── __init__.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── conftest.py
+│   │   │   └── test_auth_identity.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── chat
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── api.py
+│   │   ├── api_views.py
+│   │   ├── apps.py
+│   │   ├── console404.txt
+│   │   ├── consumers.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_add_room_draft.py
+│   │   │   ├── 0003_add_misc_models.py
+│   │   │   ├── 0004_add_message_deleted_at.py
+│   │   │   ├── 0005_add_message_updated_at.py
+│   │   │   ├── 0006_update_reminder_model.py
+│   │   │   ├── 0007_roommembermute.py
+│   │   │   ├── 0008_webpushsubscription.py
+│   │   │   ├── 0009_pollvote.py
+│   │   │   ├── 0010_message_custom_data_message_reply_to_and_more.py
+│   │   │   ├── 0011_message_attachments_preview.py
+│   │   │   ├── 0012_add_message_fts.py
+│   │   │   ├── 0013_message_hidden_message_hidden_at_message_hidden_by.py
+│   │   │   ├── 0014_room_agent_fields.py
+│   │   │   └── __init__.py
+│   │   ├── mixins.py
+│   │   ├── models.py
+│   │   ├── routing.py
+│   │   ├── search.py
+│   │   ├── serializers.py
+│   │   ├── storage
+│   │   │   ├── __init__.py
+│   │   │   └── gcs.py
+│   │   ├── tasks.py
+│   │   ├── templates
+│   │   │   └── chat
+│   │   │       ├── add_user.html
+│   │   │       ├── admin.html
+│   │   │       ├── edit_user.html
+│   │   │       ├── partials
+│   │   │       ├── room.html
+│   │   │       └── user_detail.html
+│   │   ├── templatetags
+│   │   │   ├── __init__.py
+│   │   │   └── chatextras.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── conftest.py
+│   │   │   ├── test_active_rooms.py
+│   │   │   ├── test_archive_room.py
+│   │   │   ├── test_attachment_scan.py
+│   │   │   ├── test_attachments.py
+│   │   │   ├── test_axios_instance.py
+│   │   │   ├── test_cid_field.py
+│   │   │   ├── test_client_id.py
+│   │   │   ├── test_compose.py
+│   │   │   ├── test_composition_is_empty.py
+│   │   │   ├── test_config_state.py
+│   │   │   ├── test_connection_id.py
+│   │   │   ├── test_context_type.py
+│   │   │   ├── test_cooldown.py
+│   │   │   ├── test_count_unread.py
+│   │   │   ├── test_create_draft.py
+│   │   │   ├── test_create_message.py
+│   │   │   ├── test_create_poll.py
+│   │   │   ├── test_create_poll_option.py
+│   │   │   ├── test_delete_draft.py
+│   │   │   ├── test_delete_message.py
+│   │   │   ├── test_delete_message_api.py
+│   │   │   ├── test_disconnect_user.py
+│   │   │   ├── test_disconnected.py
+│   │   │   ├── test_dispatch_event.py
+│   │   │   ├── test_edited_message.py
+│   │   │   ├── test_editing_audit_state.py
+│   │   │   ├── test_event.py
+│   │   │   ├── test_flag_message.py
+│   │   │   ├── test_get_client.py
+│   │   │   ├── test_get_config.py
+│   │   │   ├── test_get_members_cid.py
+│   │   │   ├── test_get_messages.py
+│   │   │   ├── test_get_messages_cid.py
+│   │   │   ├── test_has_sendable_data.py
+│   │   │   ├── test_hide_room.py
+│   │   │   ├── test_init_state.py
+│   │   │   ├── test_initialized.py
+│   │   │   ├── test_intro.py
+│   │   │   ├── test_last_read.py
+│   │   │   ├── test_link_preview.py
+│   │   │   ├── test_list_polls.py
+│   │   │   ├── test_list_users.py
+│   │   │   ├── test_listeners.py
+│   │   │   ├── test_mark_read.py
+│   │   │   ├── test_mark_unread.py
+│   │   │   ├── test_members.py
+│   │   │   ├── test_message_enrichment.py
+│   │   │   ├── test_message_updated.py
+│   │   │   ├── test_moderation_hide.py
+│   │   │   ├── test_mute_status.py
+│   │   │   ├── test_mute_user.py
+│   │   │   ├── test_muted_channels.py
+│   │   │   ├── test_muted_users.py
+│   │   │   ├── test_notifications.py
+│   │   │   ├── test_off.py
+│   │   │   ├── test_on.py
+│   │   │   ├── test_pin_message.py
+│   │   │   ├── test_pinned_messages.py
+│   │   │   ├── test_pins.py
+│   │   │   ├── test_query_poll_option_votes.py
+│   │   │   ├── test_query_users.py
+│   │   │   ├── test_quoted_message.py
+│   │   │   ├── test_reactions.py
+│   │   │   ├── test_read.py
+│   │   │   ├── test_recover_state.py
+│   │   │   ├── test_refresh_token.py
+│   │   │   ├── test_register_subscriptions.py
+│   │   │   ├── test_reminders.py
+│   │   │   ├── test_reminders_delete.py
+│   │   │   ├── test_replies.py
+│   │   │   ├── test_rest_throttles.py
+│   │   │   ├── test_restore_message.py
+│   │   │   ├── test_room_data.py
+│   │   │   ├── test_room_detail.py
+│   │   │   ├── test_room_id.py
+│   │   │   ├── test_room_list.py
+│   │   │   ├── test_room_member_mute.py
+│   │   │   ├── test_room_mute_status.py
+│   │   │   ├── test_room_name.py
+│   │   │   ├── test_room_query.py
+│   │   │   ├── test_room_type.py
+│   │   │   ├── test_room_visible.py
+│   │   │   ├── test_search.py
+│   │   │   ├── test_send_action.py
+│   │   │   ├── test_send_message.py
+│   │   │   ├── test_set_user_agent.py
+│   │   │   ├── test_show_reply_in_channel.py
+│   │   │   ├── test_show_room.py
+│   │   │   ├── test_state.py
+│   │   │   ├── test_subarray.py
+│   │   │   ├── test_supabase_auth.py
+│   │   │   ├── test_sync_user.py
+│   │   │   ├── test_text_composer.py
+│   │   │   ├── test_threads.py
+│   │   │   ├── test_token.py
+│   │   │   ├── test_trailing_slash.py
+│   │   │   ├── test_truncate_room.py
+│   │   │   ├── test_unarchive_room.py
+│   │   │   ├── test_unmute_user.py
+│   │   │   ├── test_unpin_message.py
+│   │   │   ├── test_update_message_api.py
+│   │   │   ├── test_url_aliases.py
+│   │   │   ├── test_user.py
+│   │   │   ├── test_user_id.py
+│   │   │   ├── test_websocket.py
+│   │   │   ├── test_ws_auth.py
+│   │   │   ├── test_ws_handshake_parity.py
+│   │   │   ├── test_ws_rate_limit.py
+│   │   │   ├── test_ws_watch.py
+│   │   │   └── ws_test_urls.py
+│   │   ├── urls.py
+│   │   ├── utils.py
+│   │   ├── views.py
+│   │   ├── views_auth.py
+│   │   ├── views_quoted.py
+│   │   ├── views_threads.py
+│   │   └── webpush.py
+│   ├── chat_addons
+│   │   ├── __init__.py
+│   │   ├── admin_console
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── serializers.py
+│   │   │   ├── services
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── gating.py
+│   │   │   │   └── triage.py
+│   │   │   ├── tests
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── test_admin_console.py
+│   │   │   ├── urls.py
+│   │   │   └── views.py
+│   │   ├── agent
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   ├── evals
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── calc_simple.yaml
+│   │   │   │   ├── memory_smoke.yaml
+│   │   │   │   └── runner.py
+│   │   │   ├── management
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── commands
+│   │   │   │   └── sample_ingestion_workflow.md
+│   │   │   ├── migrations
+│   │   │   │   ├── 0001_initial.py
+│   │   │   │   ├── 0002_agentrun_status_choices.py
+│   │   │   │   └── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── registry.py
+│   │   │   ├── serializers.py
+│   │   │   ├── services
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── agent_service.py
+│   │   │   │   ├── llm_client.py
+│   │   │   │   ├── llm_stub.py
+│   │   │   │   ├── memory.py
+│   │   │   │   ├── metrics.py
+│   │   │   │   ├── safe_calc.py
+│   │   │   │   ├── sidecar_catalog.py
+│   │   │   │   ├── tooling.py
+│   │   │   │   └── vector_memory.py
+│   │   │   ├── sidecar_catalog.py
+│   │   │   ├── sidecar_metadata.py
+│   │   │   ├── skills
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── base.py
+│   │   │   │   ├── context.py
+│   │   │   │   ├── dummy
+│   │   │   │   ├── memory
+│   │   │   │   ├── smalltalk
+│   │   │   │   └── utility
+│   │   │   ├── tasks.py
+│   │   │   ├── tests
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── skills
+│   │   │   │   ├── test_agent_service.py
+│   │   │   │   ├── test_eval_harness.py
+│   │   │   │   ├── test_memory_service.py
+│   │   │   │   ├── test_orchestrator.py
+│   │   │   │   ├── test_skills_registry.py
+│   │   │   │   └── test_views.py
+│   │   │   ├── urls.py
+│   │   │   ├── utils.py
+│   │   │   └── views.py
+│   │   ├── apps.py
+│   │   ├── common_audit
+│   │   │   ├── __init__.py
+│   │   │   ├── decorators.py
+│   │   │   ├── models.py
+│   │   │   ├── tests
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── test_audit_features.py
+│   │   │   └── throttling.py
+│   │   ├── management
+│   │   │   ├── __init__.py
+│   │   │   └── commands
+│   │   │       ├── __init__.py
+│   │   │       ├── agent_eval.py
+│   │   │       ├── embed_chunks.py
+│   │   │       └── ingest_fl_rag.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_roomagentflag.py
+│   │   │   ├── 0003_gatingconfig_messageintake.py
+│   │   │   ├── 0004_sms_bridge_models.py
+│   │   │   ├── 0005_notifications_models.py
+│   │   │   ├── 0006_common_audit_models.py
+│   │   │   ├── 0007_agent_room_policy.py
+│   │   │   ├── 0008_agent_policy_extensions.py
+│   │   │   ├── 0009_agent_memory.py
+│   │   │   ├── 0010_rename_chat_addons_last_154576_idx_chat_addons_last_se_56d70a_idx_and_more.py
+│   │   │   ├── 0011_seed_agent_lab_room.py
+│   │   │   ├── 0012_documentchunk.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── notifications
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── serializers.py
+│   │   │   ├── services
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── notify.py
+│   │   │   ├── tests
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── test_notifications.py
+│   │   │   ├── urls.py
+│   │   │   └── views.py
+│   │   ├── sms_bridge
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── serializers.py
+│   │   │   ├── services
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── linking.py
+│   │   │   │   └── provider.py
+│   │   │   ├── tests
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── test_sms_bridge.py
+│   │   │   ├── urls.py
+│   │   │   └── views.py
+│   │   └── urls.py
+│   ├── chatcore
+│   │   ├── __init__.py
+│   │   └── services.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── templates
+│   │   │   └── core
+│   │   │       ├── about.html
+│   │   │       ├── base.html
+│   │   │       └── index.html
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── test_get_app_settings.py
+│   │   │   ├── test_get_tag.py
+│   │   │   └── test_get_user_agent.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── drafts
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_room_drafts.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── events
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   └── test_events.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── mutes
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_mutes.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── polls
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── test_polls.py
+│   │   │   └── test_votes.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── reminders
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_reminders.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── rooms
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── test_room_config_state.py
+│   │   │   └── test_rooms_members.py
+│   │   ├── urls.py
+│   │   ├── utils.py
+│   │   ├── views.py
+│   │   └── views_config.py
+│   ├── state
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── serializers.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── test_state_recovery.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   └── users
+│       ├── __init__.py
+│       ├── tests
+│       │   ├── __init__.py
+│       │   └── test_users_directory.py
+│       ├── urls.py
+│       └── views.py
+└── tailwind.config.js
+
+81 directories, 402 files

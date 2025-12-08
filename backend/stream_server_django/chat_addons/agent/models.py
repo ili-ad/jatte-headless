@@ -23,7 +23,7 @@ class RoomAgentFlag(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         verbose_name = "Agent room flag"
         verbose_name_plural = "Agent room flags"
 
@@ -61,7 +61,7 @@ class AgentRoomPolicy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         verbose_name = "Agent room policy"
         verbose_name_plural = "Agent room policies"
 
@@ -100,7 +100,7 @@ class AgentRun(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         ordering = ("-created_at", "-id")
 
     def __str__(self) -> str:  # pragma: no cover - debug helper
@@ -125,7 +125,7 @@ class AgentMemoryEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         ordering = ("-created_at", "-id")
         verbose_name = "Agent memory entry"
         verbose_name_plural = "Agent memory entries"

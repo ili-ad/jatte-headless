@@ -1,0 +1,45 @@
+stream_server_django/chat_addons/agent/evals/runner.py:15:from ..models import AgentRoomPolicy
+stream_server_django/chat_addons/agent/evals/runner.py:241:    AgentRoomPolicy.objects.update_or_create(cid=spec.cid, defaults=policy_defaults)
+stream_server_django/chat_addons/agent/models.py:34:class AgentRoomPolicy(models.Model):
+stream_server_django/chat_addons/agent/serializers.py:5:from .models import AgentRoomPolicy, AgentRun
+stream_server_django/chat_addons/agent/serializers.py:50:class AgentRoomPolicySerializer(serializers.ModelSerializer):
+stream_server_django/chat_addons/agent/serializers.py:58:        model = AgentRoomPolicy
+stream_server_django/chat_addons/agent/views.py:27:from .models import AgentRoomPolicy, AgentRun, RoomAgentFlag
+stream_server_django/chat_addons/agent/views.py:32:    AgentRoomPolicySerializer,
+stream_server_django/chat_addons/agent/views.py:100:            policy, _ = AgentRoomPolicy.objects.select_for_update().get_or_create(
+stream_server_django/chat_addons/agent/views.py:137:            policy, _ = AgentRoomPolicy.objects.select_for_update().get_or_create(
+stream_server_django/chat_addons/agent/views.py:555:        policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
+stream_server_django/chat_addons/agent/views.py:593:        policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
+stream_server_django/chat_addons/agent/views.py:619:        policy, created = AgentRoomPolicy.objects.get_or_create(
+stream_server_django/chat_addons/agent/views.py:627:        serializer = AgentRoomPolicySerializer(policy)
+stream_server_django/chat_addons/agent/views.py:639:        policy, _ = AgentRoomPolicy.objects.get_or_create(cid=canonical)
+stream_server_django/chat_addons/agent/views.py:641:        serializer = AgentRoomPolicySerializer(policy, data=data, partial=True)
+stream_server_django/chat_addons/agent/views.py:678:        serializer = AgentRoomPolicySerializer(policy)
+stream_server_django/chat_addons/agent/registry.py:12:from .models import AgentRoomPolicy
+stream_server_django/chat_addons/agent/registry.py:103:    policy = AgentRoomPolicy.objects.filter(cid=cid).first()
+stream_server_django/chat_addons/agent/registry.py:127:def set_policy(cid: str, enabled: bool, skills: Sequence[str]) -> AgentRoomPolicy:
+stream_server_django/chat_addons/agent/registry.py:132:        policy, _ = AgentRoomPolicy.objects.select_for_update().get_or_create(cid=cid)
+stream_server_django/chat_addons/agent/utils.py:7:from .models import AgentRoomPolicy, RoomAgentFlag
+stream_server_django/chat_addons/agent/utils.py:32:    policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:29:from stream_server_django.chat_addons.agent.models import AgentRoomPolicy, AgentRun
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:77:        self.assertEqual(data["auto_reply_mode"], AgentRoomPolicy.RECEPTIONIST)
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:85:            "auto_reply_mode": AgentRoomPolicy.AUTO_REPLY_MANUAL,
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:96:        self.assertEqual(updated["auto_reply_mode"], AgentRoomPolicy.AUTO_REPLY_MANUAL)
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:115:        AgentRoomPolicy.objects.all().delete()
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:125:        AgentRoomPolicy.objects.create(
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:164:        AgentRoomPolicy.objects.create(
+stream_server_django/chat_addons/agent/tests/test_orchestrator.py:192:        AgentRoomPolicy.objects.create(
+stream_server_django/chat_addons/agent/services/agent_service.py:39:from ..models import AgentRoomPolicy, AgentRun
+stream_server_django/chat_addons/agent/services/agent_service.py:934:    def _get_policy(self, cid: str) -> AgentRoomPolicy:
+stream_server_django/chat_addons/agent/services/agent_service.py:935:        policy = AgentRoomPolicy.objects.filter(cid=cid).first()
+stream_server_django/chat_addons/agent/services/agent_service.py:937:            policy = AgentRoomPolicy.objects.create(cid=cid)
+stream_server_django/chat_addons/agent/tests/test_agent_service.py:28:from stream_server_django.chat_addons.agent.models import AgentRoomPolicy, AgentRun
+stream_server_django/chat_addons/agent/tests/test_agent_service.py:174:    AgentRoomPolicy.objects.update_or_create(
+stream_server_django/chat_addons/agent/tests/test_agent_service.py:190:    AgentRoomPolicy.objects.update_or_create(
+stream_server_django/chat_addons/agent/tests/test_skills_registry.py:31:from stream_server_django.chat_addons.agent.models import AgentRoomPolicy
+stream_server_django/chat_addons/agent/tests/test_skills_registry.py:110:        policy = AgentRoomPolicy.objects.get(cid="messaging:room-b")
+stream_server_django/chat_addons/migrations/0011_seed_agent_lab_room.py:11:    AgentRoomPolicy = apps.get_model("chat_addons", "AgentRoomPolicy")
+stream_server_django/chat_addons/migrations/0011_seed_agent_lab_room.py:26:    AgentRoomPolicy.objects.update_or_create(
+stream_server_django/chat_addons/migrations/0011_seed_agent_lab_room.py:35:    AgentRoomPolicy = apps.get_model("chat_addons", "AgentRoomPolicy")
+stream_server_django/chat_addons/migrations/0011_seed_agent_lab_room.py:42:    AgentRoomPolicy.objects.filter(cid=f"messaging:{room.uuid}").delete()
+stream_server_django/chat_addons/migrations/0007_agent_room_policy.py:14:            name="AgentRoomPolicy",

@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0008_agent_policy_extensions"),
+        ("chat_addons", "0008_agent_policy_extensions"),
     ]
 
     operations = [
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-created_at", "-id"),
                 "verbose_name": "Agent memory entry",
                 "verbose_name_plural": "Agent memory entries",
-                "app_label": "stream_server_django.chat_addons",
+                "app_label": "chat_addons",
             },
         ),
         migrations.AddIndex(

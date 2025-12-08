@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0002_roomagentflag"),
+        ("chat_addons", "0002_roomagentflag"),
     ]
 
     operations = [
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Gating configuration",
                 "verbose_name_plural": "Gating configurations",
-                "app_label": "stream_server_django.chat_addons",
+                "app_label": "chat_addons",
             },
         ),
         migrations.CreateModel(
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 "verbose_name": "Message intake",
                 "verbose_name_plural": "Message intakes",
                 "ordering": ("-created_at",),
-                "app_label": "stream_server_django.chat_addons",
+                "app_label": "chat_addons",
             },
         ),
     ]

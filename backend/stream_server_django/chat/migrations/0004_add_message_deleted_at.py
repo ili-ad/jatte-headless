@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat", "0003_add_misc_models"),
+        ("chat", "0003_add_misc_models"),
     ]
 
     operations = [

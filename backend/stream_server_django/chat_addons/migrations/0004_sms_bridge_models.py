@@ -7,7 +7,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0003_gatingconfig_messageintake"),
+        ("chat_addons", "0003_gatingconfig_messageintake"),
     ]
 
     operations = [

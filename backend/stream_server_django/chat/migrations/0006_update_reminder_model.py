@@ -5,7 +5,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat", "0005_add_message_updated_at"),
+        ("chat", "0005_add_message_updated_at"),
     ]
 
     operations = [

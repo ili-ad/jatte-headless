@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0006_common_audit_models"),
+        ("chat_addons", "0006_common_audit_models"),
     ]
 
     operations = [

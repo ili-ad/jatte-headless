@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("stream_server_django.accounts_supabase", "0002_userprofile_display_name_userprofile_extra_and_more"),
+        ("accounts_supabase", "0002_userprofile_display_name_userprofile_extra_and_more"),
     ]
 
     operations = [

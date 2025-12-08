@@ -1,0 +1,67 @@
+.
+├── DOCS
+│   ├── api-callsite-survey.v2.md
+│   └── api-trailing-slash-survey.md
+├── README.md
+├── RootFrontendL2.txt
+├── __tests__
+│   ├── adapter
+│   ├── placeholder.test.js
+│   └── placeholder.test.ts
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── node_modules
+│   ├── @eslint
+│   ├── @iliad
+│   ├── @playwright
+│   ├── @supabase
+│   ├── @types
+│   ├── autoprefixer -> ../../node_modules/.pnpm/autoprefixer@10.4.21_postcss@8.5.6/node_modules/autoprefixer
+│   ├── browserslist -> ../../node_modules/.pnpm/browserslist@4.25.0/node_modules/browserslist
+│   ├── caniuse-lite -> ../../node_modules/.pnpm/caniuse-lite@1.0.30001724/node_modules/caniuse-lite
+│   ├── eslint -> ../../node_modules/.pnpm/eslint@9.29.0_jiti@1.21.7/node_modules/eslint
+│   ├── eslint-config-next -> ../../node_modules/.pnpm/eslint-config-next@15.3.3_eslint@9.29.0_jiti@1.21.7__typescript@5.8.3/node_modules/eslint-config-next
+│   ├── mitt -> ../../node_modules/.pnpm/mitt@3.0.1/node_modules/mitt
+│   ├── mml-react -> ../../node_modules/.pnpm/mml-react@0.4.7_@types+react@19.1.8_jquery@3.7.1_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/mml-react
+│   ├── next -> ../../node_modules/.pnpm/next@15.3.3_@babel+core@7.27.4_@playwright+test@1.53.1_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next
+│   ├── next-transpile-modules -> ../../node_modules/.pnpm/next-transpile-modules@10.0.1/node_modules/next-transpile-modules
+│   ├── postcss -> ../../node_modules/.pnpm/postcss@8.5.6/node_modules/postcss
+│   ├── react -> ../../node_modules/.pnpm/react@18.2.0/node_modules/react
+│   ├── react-dom -> ../../node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom
+│   ├── sonner -> ../../node_modules/.pnpm/sonner@2.0.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/sonner
+│   ├── tailwindcss -> ../../node_modules/.pnpm/tailwindcss@4.1.10/node_modules/tailwindcss
+│   ├── turbo -> ../../node_modules/.pnpm/turbo@1.13.4/node_modules/turbo
+│   ├── typescript -> ../../node_modules/.pnpm/typescript@5.8.3/node_modules/typescript
+│   └── vitest -> ../../node_modules/.pnpm/vitest@1.6.1_@types+node@20.19.1_jsdom@24.1.3_terser@5.43.1/node_modules/vitest
+├── package.json
+├── playwright.config.ts
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── shims
+│   └── decode-named-character-reference.js
+├── src
+│   ├── FrontendTree.txt
+│   ├── app
+│   ├── chat-kit
+│   ├── components
+│   ├── config
+│   ├── lib
+│   └── stream-chat-react-shim.ts
+├── src.zip
+├── stubs
+│   └── stream-ui
+├── tests
+│   └── e2e
+├── tsconfig.json
+├── types
+│   ├── stream-chat-shim.d.ts
+│   └── stream-ui-shim.d.ts
+├── vitest.config.ts
+└── vitest.setup.ts
+
+39 directories, 25 files

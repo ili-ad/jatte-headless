@@ -20,7 +20,7 @@ class MessageProvenance(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         verbose_name = "Message provenance"
         verbose_name_plural = "Message provenance"
 
@@ -50,7 +50,7 @@ class AuditTrail(models.Model):
     meta = models.JSONField(default=dict, blank=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         ordering = ("-ts", "-id")
         verbose_name = "Audit trail entry"
         verbose_name_plural = "Audit trail entries"
