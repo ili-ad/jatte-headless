@@ -5,14 +5,23 @@ import { PropsWithChildren } from 'react';
 
 import { ChatProvider } from '@/lib/ChatProvider';
 import ChatUI from '@/lib/ChatUI';
+import ChatWindow from '@/lib/ChatWindow';
 
 interface ChatInnerProps {
   roomSlug?: string;
   heading?: string;
   description?: string;
+  useAgentUI?: boolean;
 }
 
-export default function ChatInner({ roomSlug, heading, description }: PropsWithChildren<ChatInnerProps>) {
+export default function ChatInner({
+  roomSlug,
+  heading,
+  description,
+  useAgentUI = false,
+}: PropsWithChildren<ChatInnerProps>) {
+  const ChatComponent = useAgentUI ? ChatUI : ChatWindow;
+
   return (
     <ChatProvider roomSlug={roomSlug}>
       {heading ? (
@@ -21,7 +30,7 @@ export default function ChatInner({ roomSlug, heading, description }: PropsWithC
           {description ? <p style={{ color: '#4b5563' }}>{description}</p> : null}
         </div>
       ) : null}
-      <ChatUI />
+      <ChatComponent />
     </ChatProvider>
   );
 }
