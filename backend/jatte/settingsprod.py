@@ -32,7 +32,7 @@ ALLOWED_HOSTS = ['jatte.com', '64.226.118.249']
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
-AUTH_USER_MODEL = 'accounts_supabase.CustomUser'
+AUTH_USER_MODEL = 'stream_server_django.accounts_supabase.CustomUser'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -55,10 +55,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'accounts',
-    'chat',
-    'drafts',
-    'core',
+    'stream_server_django.accounts',
+    'stream_server_django.chat',
+    'stream_server_django.drafts',
+    'stream_server_django.core',
 ]
 
 MIDDLEWARE = [
