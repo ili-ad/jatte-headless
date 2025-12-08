@@ -151,24 +151,24 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     "pgvector.django",
-    'accounts_supabase',
-    'chat',
-    'mutes',
-    'reminders',
-    'drafts',
-    'rooms',
-    'events',
-    'core',
-    'state',
-    'polls',
-    'chat_addons',
-    "chat_addons.agent",
+    'stream_server_django.accounts_supabase',
+    'stream_server_django.chat',
+    'stream_server_django.mutes',
+    'stream_server_django.reminders',
+    'stream_server_django.drafts',
+    'stream_server_django.rooms',
+    'stream_server_django.events',
+    'stream_server_django.core',
+    'stream_server_django.state',
+    'stream_server_django.polls',
+    'stream_server_django.chat_addons',
+    "stream_server_django.chat_addons.agent",
 ]
 
 # REST framework configuration
 REST_FRAMEWORK = {
      "DEFAULT_AUTHENTICATION_CLASSES": (
-         "accounts_supabase.authentication.DevTokenOrJWTAuthentication",
+         "stream_server_django.accounts_supabase.authentication.DevTokenOrJWTAuthentication",
          #"jatte.auth.supabase.SupabaseJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
@@ -342,7 +342,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #         }
 #     },
 #     "loggers": {
-#         "chat": {
+#         "stream_server_django.chat": {
 #             "handlers": ["console"],
 #             "level": os.environ.get("CHAT_LOG_LEVEL", "INFO"),
 #             "propagate": True,
@@ -359,7 +359,7 @@ LOGGING = {
     },
     "loggers": {
         # keep existing django loggers...
-        "chat": {
+        "stream_server_django.chat": {
             "handlers": ["console"],
             "level": os.environ.get("CHAT_LOG_LEVEL", "INFO"),
             "propagate": True,
