@@ -1,1 +1,1 @@
-frontend/src/stream-chat-react-shim.ts  # lines 1-39
+frontend/src/lib/stream-chat-react-bridge.ts  # lines 1-39
