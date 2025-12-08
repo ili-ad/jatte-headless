@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import type { Channel } from '@/lib/stream-adapter/Channel';
+import type { Channel } from '@/chat-kit/client';
 
 type AgentAIState = 'idle' | 'thinking' | 'generating' | 'error';
 
