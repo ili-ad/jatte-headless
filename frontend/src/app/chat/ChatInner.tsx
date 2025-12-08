@@ -3,7 +3,7 @@
 
 import { PropsWithChildren } from 'react';
 
-import { ChatProvider, ChatUI, ChatWindow } from '@/chat-kit';
+import { AgentChatWindow, ChatProvider, ChatWindow } from '@/chat-kit';
 
 interface ChatInnerProps {
   roomSlug?: string;
@@ -18,7 +18,7 @@ export default function ChatInner({
   description,
   useAgentUI = false,
 }: PropsWithChildren<ChatInnerProps>) {
-  const ChatComponent = useAgentUI ? ChatUI : ChatWindow;
+  const ChatComponent = useAgentUI ? AgentChatWindow : ChatWindow;
 
   return (
     <ChatProvider roomSlug={roomSlug}>
