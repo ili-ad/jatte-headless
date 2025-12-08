@@ -1,3 +1,6 @@
+// Thin bridge around the vendored Stream UI (`libs/stream-chat-shim`).
+// This is the public entrypoint for Stream chat React components within the frontend app.
+// App code should import Stream UI only from here, not directly from `libs/`.
 // /* ------------------------------------------------------------------ *
 //  *  Fallback for missing textComposer (MessageInput → TextareaComposer)
 //  * ------------------------------------------------------------------ */

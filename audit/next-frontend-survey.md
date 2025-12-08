@@ -15,7 +15,7 @@ frontend/
     lib/                 // Chat providers, adapters, Supabase session handling, APIs
       stream-adapter/    // Custom Stream-like client/channel for backend
       chat-addons/       // Agent + admin API helpers
-    stream-chat-react-shim.ts // (commented) placeholder patch
+    lib/stream-chat-react-bridge.ts // (commented) placeholder patch
   shims/                 // Micromark decoding shim
   stubs/                 // Stream UI stubs for builds
   types/                 // Ambient type shims for chat packages
@@ -53,7 +53,7 @@ External dependencies: relies on `@iliad/stream-chat-shim` for UI components/AI 
 - **Webpack aliases (`next.config.ts`)** redirect `stream-chat-react`, `@iliad/stream-chat-shim`, and `chat-shim` to in-repo adapters; also aliases `decode-named-character-reference` to local shim. Target: force UI to use custom adapters. **Classification:** essential-shim.
 - **`shims/decode-named-character-reference.js`** – micromark-compatible decoder export for markdown parsing. Imported via alias when needed. **Classification:** essential-shim.
 - **`src/lib/stream-adapter/*`** – Acts as adapter between Stream UI expectations and Django backend APIs/WebSocket. Imported by ChatProvider/ChatUI and any page using chat. **Classification:** essential-shim (core to reusable chat kit).
-- **`src/stream-chat-react-shim.ts` (commented)** – Prototype patch for TextareaComposer fallback; currently inert. **Classification:** demo-shim/migration placeholder.
+- **`src/lib/stream-chat-react-bridge.ts` (commented)** – Prototype patch for TextareaComposer fallback; currently inert. **Classification:** demo-shim/migration placeholder.
 - **`stubs/stream-ui/*` & `types/stream-ui-shim.d.ts`** – Build-time stubs for Stream UI; not used at runtime when real package available. **Classification:** demo-shim/build-only.
 
 ## 6. Types & models
