@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("stream_server_django.chat", "0007_roommembermute"),
+        ("chat", "0007_roommembermute"),
     ]
 
     operations = [
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ("endpoint", models.TextField()),
                 ("expiration_time", models.FloatField(blank=True, null=True)),
                 ("p256dh", models.CharField(max_length=255)),
-                ("stream_server_django.auth", models.CharField(max_length=255)),
+                ("auth", models.CharField(max_length=255)),
                 ("client_id", models.CharField(blank=True, max_length=255, null=True)),
                 (
                     "platform",

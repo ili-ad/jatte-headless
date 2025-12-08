@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0007_agent_room_policy"),
+        ("chat_addons", "0007_agent_room_policy"),
     ]
 
     operations = [

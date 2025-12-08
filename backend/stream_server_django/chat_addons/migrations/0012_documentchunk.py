@@ -7,7 +7,7 @@ import pgvector.django.vector
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stream_server_django.chat_addons', '0011_seed_agent_lab_room'),
+        ('chat_addons', '0011_seed_agent_lab_room'),
     ]
 
     operations = [
@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='DocumentChunk',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('stream_server_django.state', models.CharField(db_index=True, max_length=8)),
+                ('state', models.CharField(db_index=True, max_length=8)),
                 ('topic', models.CharField(db_index=True, help_text="Short slug for the pillar/topic, e.g. 'noc_compliance', 'lien_waiver'.", max_length=128)),
                 ('doc_name', models.CharField(help_text="Source document name, e.g. 'florida_noc_compliance.md'.", max_length=256)),
                 ('chunk_index', models.PositiveIntegerField(help_text='Zero-based index for this chunk within its document.')),
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'indexes': [models.Index(fields=['stream_server_django.state', 'topic'], name='chat_addons_state_936cc2_idx')],
-                'unique_together': {('stream_server_django.state', 'doc_name', 'chunk_index')},
+                'unique_together': {('state', 'doc_name', 'chunk_index')},
             },
         ),
     ]

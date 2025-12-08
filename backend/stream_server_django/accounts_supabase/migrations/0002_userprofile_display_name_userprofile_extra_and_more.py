@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.accounts_supabase", "0001_initial"),
+        ("accounts_supabase", "0001_initial"),
     ]
 
     operations = [

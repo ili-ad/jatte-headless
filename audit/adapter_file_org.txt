@@ -1,0 +1,101 @@
+Layer 0: Vendored libs (libs/*)
+
+Never imported from routes directly.
+
+Only imported by:
+
+frontend/src/stream-chat-react-shim.ts (for UI),
+
+frontend/src/lib/stream-adapter/* (for protocol-level bits if needed).
+
+Layer 1: Adapter (frontend/src/lib/stream-adapter/*)
+
+Only imports from libs/chat-shim, libs/stream-value-shim, or stream-chat-react-shim as needed.
+
+Provides ChatClient, Channel, MiniStore, and ChatEvents/types.
+
+Layer 2: App chat API (frontend/src/lib + frontend/src/chat-kit)
+
+Only imports from:
+
+./stream-adapter,
+
+./chat-addons,
+
+@/stream-chat-react-shim (for the Stream components),
+
+Supabase, etc.
+
+Exposes:
+
+ChatProvider, ChatWindow, AgentChatWindow,
+
+sidecarCatalog, agent API hooks,
+
+@/chat-kit as the public facade.
+
+Layer 3: Routes (frontend/src/app/*)
+
+Only import from @/chat-kit and @/components/@/lib where absolutely necessary.
+
+Never import from libs/* or stream-adapter directly.
+
+
+
+---
+
+1. Big-picture layout: three distinct “zones”
+
+From the root tree:
+
+RootFrontendL2
+
+backend/
+
+frontend/
+
+libs/
+
+audit/, docs/, scripts/, etc.
+
+So structurally you already have:
+
+libs/ → vendored / forked Stream world
+
+frontend/ → your Next app + adapter + chat-kit
+
+backend/ → Django emulator
+
+That’s exactly the separation you want for vendoring.
+
+Inside frontend/src, the tree is compact and coherent:
+
+FrontendTree
+
+app/ (routes & demo UIs: /chat, /agent, /demo, /chat-admin, etc.)
+
+chat-kit/ (curated surface you just introduced)
+
+components/ (ChatGuard + tiny UI)
+
+config/ (endpoint config)
+
+lib/:
+
+AgentChatWindow, ChatWindow, ChatProvider, ErrorBoundary
+
+chat-addons/ (adminApi, agentApi)
+
+stream-adapter/ (Channel, ChatClient, MiniStore, composer helpers, etc.)
+
+getStreamClient, supabaseClient, auth helpers
+
+stream-chat-react-shim.ts at the root of src
+
+That’s already a pretty clean “onion”:
+
+Outer ring: app/* route UIs
+
+Inner ring: chat-kit + lib/* (your reusable surfaces & plumbing)
+
+Core: lib/stream-adapter/* (adapter brain)

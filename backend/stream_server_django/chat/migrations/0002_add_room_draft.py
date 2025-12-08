@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("stream_server_django.chat", "0001_initial"),
+        ("chat", "0001_initial"),
     ]
 
     operations = [

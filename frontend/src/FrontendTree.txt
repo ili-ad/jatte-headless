@@ -1,0 +1,74 @@
+.
+├── FrontendTree.txt
+├── app
+│   ├── AuthBootstrap.tsx
+│   ├── Providers.tsx
+│   ├── agent
+│   │   ├── AgentAIStateBanner.tsx
+│   │   ├── AgentMessage.tsx
+│   │   └── page.tsx
+│   ├── api
+│   │   └── rooms
+│   │       └── [...path]
+│   │           └── route.ts
+│   ├── chat
+│   │   ├── ChatInner.tsx
+│   │   └── page.tsx
+│   ├── chat-admin
+│   │   └── page.tsx
+│   ├── demo
+│   │   └── page.tsx
+│   ├── endpoint-config.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── login
+│   │   └── page.tsx
+│   ├── page.module.css
+│   └── page.tsx
+├── chat-kit
+│   ├── client.ts
+│   ├── index.ts
+│   └── ui.ts
+├── components
+│   ├── ChatGuard.tsx
+│   └── ui
+│       ├── button.js
+│       └── button.tsx
+├── config
+│   └── endpoints.ts
+├── lib
+│   ├── AgentChatWindow.tsx
+│   ├── ChatProvider.tsx
+│   ├── ChatWindow.tsx
+│   ├── ErrorBoundary.tsx
+│   ├── SessionProvider.tsx
+│   ├── api.ts
+│   ├── chat-addons
+│   │   ├── adminApi.ts
+│   │   └── agentApi.ts
+│   ├── errors.ts
+│   ├── getChatCreds.ts
+│   ├── getStreamClient.ts
+│   ├── getToken.ts
+│   ├── sidecarCatalog.ts
+│   ├── stream-adapter
+│   │   ├── Channel.js.bak
+│   │   ├── Channel.ts
+│   │   ├── ChatClient.ts
+│   │   ├── MiniStore.ts
+│   │   ├── channelAgentExtensions.ts
+│   │   ├── composer
+│   │   │   ├── attachments.ts
+│   │   │   ├── index.ts
+│   │   │   ├── polls.ts
+│   │   │   └── text.ts
+│   │   ├── constants.ts
+│   │   ├── index.ts
+│   │   ├── intro.ts
+│   │   ├── tokenManager.ts
+│   │   └── types.ts
+│   └── supabaseClient.ts
+└── stream-chat-react-shim.ts
+
+17 directories, 54 files

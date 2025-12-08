@@ -9,8 +9,8 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat_addons", "0004_sms_bridge_models"),
-        ("stream_server_django.chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
+        ("chat_addons", "0004_sms_bridge_models"),
+        ("chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("stream_server_django.chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
+        ("chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
     ]
 
     operations = [

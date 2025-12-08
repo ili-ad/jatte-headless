@@ -5,10 +5,10 @@ ROOM_SLUG = "agent-lab"
 
 
 def seed_agent_lab_room(apps, schema_editor):
-    Room = apps.get_model("stream_server_django.chat", "Room")
-    Channel = apps.get_model("stream_server_django.chat", "Channel")
-    RoomAgentFlag = apps.get_model("stream_server_django.chat_addons", "RoomAgentFlag")
-    AgentRoomPolicy = apps.get_model("stream_server_django.chat_addons", "AgentRoomPolicy")
+    Room = apps.get_model("chat", "Room")
+    Channel = apps.get_model("chat", "Channel")
+    RoomAgentFlag = apps.get_model("chat_addons", "RoomAgentFlag")
+    AgentRoomPolicy = apps.get_model("chat_addons", "AgentRoomPolicy")
 
     room, _ = Room.objects.get_or_create(
         uuid=ROOM_SLUG,
@@ -29,10 +29,10 @@ def seed_agent_lab_room(apps, schema_editor):
 
 
 def remove_agent_lab_room(apps, schema_editor):
-    Room = apps.get_model("stream_server_django.chat", "Room")
-    Channel = apps.get_model("stream_server_django.chat", "Channel")
-    RoomAgentFlag = apps.get_model("stream_server_django.chat_addons", "RoomAgentFlag")
-    AgentRoomPolicy = apps.get_model("stream_server_django.chat_addons", "AgentRoomPolicy")
+    Room = apps.get_model("chat", "Room")
+    Channel = apps.get_model("chat", "Channel")
+    RoomAgentFlag = apps.get_model("chat_addons", "RoomAgentFlag")
+    AgentRoomPolicy = apps.get_model("chat_addons", "AgentRoomPolicy")
 
     room = Room.objects.filter(uuid=ROOM_SLUG).first()
     if not room:
@@ -46,12 +46,9 @@ def remove_agent_lab_room(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        (
-            "stream_server_django.chat_addons",
-            "0010_rename_chat_addons_last_154576_idx_chat_addons_last_se_56d70a_idx_and_more",
-        ),
-        ("stream_server_django.chat", "0013_message_hidden_message_hidden_at_message_hidden_by"),
+        ("chat", "0010_message_custom_data_message_reply_to_and_more"),
     ]
+
 
 
     operations = [

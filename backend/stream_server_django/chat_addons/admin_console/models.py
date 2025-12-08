@@ -23,7 +23,7 @@ class RoomOwnership(models.Model):
     claimed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         verbose_name = "Room ownership"
         verbose_name_plural = "Room ownership"
 
@@ -49,7 +49,7 @@ class GatingConfig(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         verbose_name = "Gating configuration"
         verbose_name_plural = "Gating configurations"
 
@@ -87,7 +87,7 @@ class MessageIntake(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = "stream_server_django.chat_addons"
+        app_label = "chat_addons"
         ordering = ("-created_at",)
         verbose_name = "Message intake"
         verbose_name_plural = "Message intakes"

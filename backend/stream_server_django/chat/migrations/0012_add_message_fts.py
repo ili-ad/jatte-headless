@@ -21,7 +21,7 @@ def drop_message_fts_index(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("stream_server_django.chat", "0011_message_attachments_preview"),
+        ("chat", "0011_message_attachments_preview"),
     ]
 
     operations = [

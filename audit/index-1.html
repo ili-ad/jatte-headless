@@ -1,0 +1,15 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Unknown </title></head><body>
+<h1 id="narrow-chat-kit-client-surface-a-usage-audit">Narrow Chat Kit Client Surface â€“ Usage Audit</h1>
+<p>Findings from searching for <code>@/lib/stream-adapter</code> imports (alias-based):</p>
+<h2 id="app-library-code-outside-the-adapter">App / library code outside the adapter</h2>
+<ul>
+<li><code>frontend/src/lib/getStreamClient.ts</code> - imports <code>ChatClient</code> (runtime) to create the singleton client.</li>
+<li><code>frontend/src/lib/chat-addons/agentApi.ts</code> - imports <code>Channel</code> (type-only) for agent helper context.</li>
+<li><code>frontend/src/app/agent/AgentAIStateBanner.tsx</code> - imports <code>Channel</code> (type-only) directly from <code>@/lib/stream-adapter/Channel</code>.</li>
+</ul>
+<h2 id="core-kit-neighbor-left-as-is-for-now">Core kit neighbor (left as-is for now)</h2>
+<ul>
+<li><code>frontend/src/lib/ChatProvider.tsx</code> - imports <code>ChatClient</code> (type), <code>Channel</code> (type), and <code>Channel</code> class (runtime) from the adapter barrel. This module sits alongside the adapter and should keep the direct dependency to avoid circular references.</li>
+</ul>
+<p>No other <code>@/lib/stream-adapter</code> imports were found outside the adapter implementation itself.</p>
+</body></html>
