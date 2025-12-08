@@ -23,7 +23,7 @@ import { AgentMessage } from '@/app/agent/AgentMessage';
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 
-export default function ChatUI() {
+export default function AgentChatWindow() {
   const { client, channel } = useChat();
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function ChatUI() {
   useEffect(() => {
     if (!channel) return;
     // eslint-disable-next-line no-console
-    console.log('[agent/ui] aiState in ChatUI', {
+    console.log('[agent/ui] aiState in AgentChatWindow', {
       cid: (channel as any).cid,
       aiState,
       AIStates,

@@ -4,7 +4,7 @@
 
 //import { ChatProvider, useChat } from '@/lib/ChatProvider';
 import { ChatProvider, useChat } from '@/lib/ChatProvider';
-import ChatUI from '@/lib/ChatUI';
+import AgentChatWindow from '@/lib/AgentChatWindow';
 import ChatGuard from '@/components/ChatGuard';
 import { useEffect } from 'react';
 
@@ -38,7 +38,7 @@ export default function DemoPage() {
     <ChatProvider>
       <HelloWorldSender />
       <ChatGuard>
-        <ChatUI />
+        <AgentChatWindow />
       </ChatGuard>
     </ChatProvider>
   );
