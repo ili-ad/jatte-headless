@@ -7,12 +7,13 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
-import { AIStates } from '@iliad/stream-chat-shim';
 import {
-    extractRoomAgentConfig,
-    invokeAgent,
-    type RoomAgentConfig,
-} from '../chat-addons/agentApi';
+    clearAgentTypingTimer,
+    normalizeMessagesWithDisplayName,
+    triggerAgentReplyIfEnabled,
+    withDisplayName,
+} from './channelAgentExtensions';
+import { type RoomAgentConfig } from '../chat-addons/agentApi';
 
 type ConfigState = {
     attachments: {
@@ -1350,25 +1351,6 @@ export class Channel {
         this.client.emit('typing.stop' as any, payload);
     }
 
-    private clearAgentTypingTimer(userId: string) {
-        const timer = this.agentTypingTimers.get(userId);
-        if (timer) clearTimeout(timer);
-        this.agentTypingTimers.delete(userId);
-    }
-
-    private startAgentTyping(botUserId: string) {
-        if (!botUserId) return;
-        this.clearAgentTypingTimer(botUserId);
-        this.simulateTypingStart(botUserId, 30000);
-        const timer = setTimeout(() => this.stopAgentTyping(botUserId), 30000);
-        this.agentTypingTimers.set(botUserId, timer);
-    }
-
-    private stopAgentTyping(botUserId: string) {
-        this.clearAgentTypingTimer(botUserId);
-        this.simulateTypingStop(botUserId);
-    }
-
 
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
     /** Network-level send that also updates local state & fires EVENTS.MESSAGE_NEW */
@@ -1454,108 +1436,9 @@ export class Channel {
         this.client.emit(EVENTS.MESSAGE_NEW, { message: msg });
         this.messageComposer.customDataManager.clear();
         this.messageComposer.pollComposer.state._set({ poll: undefined as any });
-        void this.triggerAgentReplyIfEnabled(msg, client_generated_id);
+        void triggerAgentReplyIfEnabled(this, msg, client_generated_id);
         return msg;
     }
-
-
-    private async triggerAgentReplyIfEnabled(
-        message: Message & { client_generated_id?: string },
-        client_generated_id?: string,
-    ) {
-        // Human sender id
-        const authorId =
-            (message as any).user_id ??
-            (message as any).sent_by ??
-            (message as any).user?.id;
-
-        const isAgentLab =
-            this.uuid === 'agent-lab' || this.cid === 'messaging:agent-lab';
-
-        // We only auto‑reply in the dedicated dev room for now
-        if (!isAgentLab) {
-            return;
-        }
-
-        // Prevent concurrent invocations while the agent is already busy
-        const currentAiState = this.client.getAIState?.(this.cid);
-        const isBusy =
-            currentAiState === AIStates.Thinking || currentAiState === AIStates.Generating;
-
-        if (isBusy) {
-            if (process.env.NODE_ENV !== 'production') {
-                console.warn('[agent] skip invokeAgent: channel busy', {
-                    cid: this.cid,
-                    aiState: currentAiState,
-                });
-            }
-            return;
-        }
-
-        // Don’t chain agent replies back into the agent
-        const snapshot = this.messageComposer.configState.getSnapshot();
-        const aiConfig = this.agentConfig ?? extractRoomAgentConfig(snapshot);
-        const botUserId = aiConfig?.botUserId;
-        if (botUserId && authorId === botUserId) {
-            console.log('[agent] bail: message from bot user, not echoing');
-            return;
-        }
-
-        if (!message.id) {
-            console.log('[agent] bail: missing message id');
-            return;
-        }
-
-        console.log('[agent] trigger echo', {
-            cid: this.cid,
-            uuid: this.uuid,
-            authorId,
-            botUserId,
-            messageId: message.id,
-        });
-
-        const typingUserId = botUserId ?? authorId;
-        this.startAgentTyping(typingUserId);
-
-        try {
-            const reply = await invokeAgent(this.cid, {
-                roomUUID: this.uuid,
-                lastHumanMessageId: String(message.id),
-                clientGeneratedId:
-                    client_generated_id ?? (message as any).client_generated_id,
-            });
-
-            if ('status' in reply && reply.status === 'queued') {
-                console.log('[agent] agent job queued', reply);
-                return;
-            }
-
-            (reply.messages ?? []).forEach(agentMessage => {
-                const normalized = {
-                    // backend sends id as string, other code often uses number
-                    id: Number(agentMessage.id) || agentMessage.id,
-                    room_uuid: agentMessage.room_uuid,
-                    user_id: agentMessage.user_id,
-                    user: { id: agentMessage.user_id } as any,
-                    text: agentMessage.text,
-                    body: agentMessage.text,
-                    created_at: agentMessage.created_at,
-                    custom_data: agentMessage.custom_data ?? {},
-                    status: 'received' as const,
-                };
-
-                this.integrateIncomingMessage(normalized as any, normalized.id as any);
-            });
-
-            console.log('[agent] echo reply integrated', reply);
-
-        } catch (err) {
-            console.error('[agent] failed to request reply', err);
-        } finally {
-            this.stopAgentTyping(typingUserId);
-        }
-    }
-
 
 
 
@@ -1825,11 +1708,11 @@ export class Channel {
 
         const normalizedPatch: Partial<typeof this._state> = { ...patch };
 
-        if (patch.messages) normalizedPatch.messages = this.normalizeMessagesWithDisplayName(patch.messages);
+        if (patch.messages) normalizedPatch.messages = normalizeMessagesWithDisplayName(this, patch.messages);
         if (patch.latestMessages)
-            normalizedPatch.latestMessages = this.normalizeMessagesWithDisplayName(patch.latestMessages);
+            normalizedPatch.latestMessages = normalizeMessagesWithDisplayName(this, patch.latestMessages);
         if (patch.pinnedMessages)
-            normalizedPatch.pinnedMessages = this.normalizeMessagesWithDisplayName(patch.pinnedMessages);
+            normalizedPatch.pinnedMessages = normalizeMessagesWithDisplayName(this, patch.pinnedMessages);
 
         this._state = { ...this._state, ...normalizedPatch };
         this.stateStore.dispatch(normalizedPatch);     // ← keep channel store current
@@ -1838,54 +1721,6 @@ export class Channel {
 
     private getCurrentUserId() {
         return this.client.user?.id ?? (this.client as any)._user?.id ?? null;
-    }
-
-    private getBotUserId() {
-        const snapshot = this.messageComposer?.configState?.getSnapshot?.();
-        const aiConfig = snapshot ? this.agentConfig ?? extractRoomAgentConfig(snapshot) : this.agentConfig;
-        return aiConfig?.botUserId ?? 'ai-bot-agent-lab';
-    }
-
-    private resolveDisplayName(message: Message) {
-        const user = (message as any).user ?? {};
-        const authorId = user.id ?? (message as any).user_id ?? (message as any).sent_by;
-        const botUserId = this.getBotUserId();
-        const currentUserId = this.getCurrentUserId();
-
-        if (authorId && botUserId && authorId === botUserId) {
-            return 'AI assistant';
-        }
-
-        if (currentUserId && authorId === currentUserId) {
-            return 'You';
-        }
-
-        if (user.name) {
-            return user.name;
-        }
-
-        const rawId = String(authorId ?? '');
-        const shortId = rawId.slice(0, 4).toUpperCase() || '????';
-        return `Guest ${shortId}`;
-    }
-
-    private withDisplayName(message: Message): Message {
-        const user = { ...(message as any).user } as { id?: string; name?: string };
-        const authorId = user.id ?? (message as any).user_id ?? (message as any).sent_by;
-        const displayName = this.resolveDisplayName({ ...message, user });
-        const normalizedUser = authorId ? { ...user, id: authorId, name: displayName } : { ...user, name: displayName };
-
-        const normalizedMessage = {
-            ...message,
-            user_id: (message as any).user_id ?? authorId,
-            user: normalizedUser,
-        } as Message;
-
-        return normalizedMessage;
-    }
-
-    private normalizeMessagesWithDisplayName(messages: Message[]) {
-        return messages.map((msg) => this.withDisplayName(msg));
     }
 
     private clearTypingUser(userId: string, emitEvent = false) {
@@ -1968,9 +1803,9 @@ export class Channel {
         if (!normalized.user_id && authorId) normalized.user_id = authorId;
         if (!normalized.user && authorId) normalized.user = { id: authorId };
 
-        const messageWithDisplayName = this.withDisplayName(normalized as Message);
+        const messageWithDisplayName = withDisplayName(this, normalized as Message);
 
-        if (authorId) this.clearAgentTypingTimer(authorId);
+        if (authorId) clearAgentTypingTimer(this, authorId);
         if (authorId) this.clearTypingUser(authorId, true);
 
         const matcher = (m: Message) =>
