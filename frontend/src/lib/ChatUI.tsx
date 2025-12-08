@@ -1,5 +1,7 @@
 'use client';
 
+// Agent-only chat UI. Plain chat uses ChatWindow from ./ChatWindow.
+
 import type { MessageProps } from '@iliad/stream-chat-shim';
 import {
   Chat,
@@ -15,7 +17,6 @@ import {
 import {StopAIGenerationButton} from '@iliad/stream-chat-shim/components/MessageInput/StopAIGenerationButton';
 import { useEffect } from 'react';
 
-import type { LocalMessage } from 'chat-shim';
 import { AgentMessage } from '@/app/agent/AgentMessage';
 
 
@@ -88,33 +89,6 @@ export default function ChatUI() {
 
 
   if (!client || !channel) return null;
-
-  const isMessageAIGenerated = (message: LocalMessage) =>
-    !!(message as any).ai_generated ||
-    message.user?.id === 'ai-bot-agent-lab';
-
-  const handleDebugSend = async () => {
-    const ch: any = channel as any;
-
-    const textComposer = ch?.messageComposer?.textComposer;
-    if (!textComposer) {
-      // eslint-disable-next-line no-console
-      console.log('[ChatUI DebugSend] no textComposer on channel', ch);
-      return;
-    }
-
-    try {
-      const snapshot =
-        textComposer.state?.getSnapshot?.() ??
-        textComposer.state?.['_getSnapshot']?.();
-
-      // eslint-disable-next-line no-console
-      console.log('[ChatUI DebugSend] snapshot before submit:', snapshot);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ChatUI DebugSend] submit error', err);
-    }
-  };
 
   const handleStopAgent = async () => {
     if (!channel) return;
