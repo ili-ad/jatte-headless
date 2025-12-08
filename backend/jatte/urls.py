@@ -1,34 +1,34 @@
 # backend/jatte/urls.py
 from django.contrib import admin
 from django.urls import re_path, include, path
-from chat import api
-from chat_addons.agent.views import AgentCancelView, AgentLLMInvokeView
+from stream_server_django.chat import api
+from stream_server_django.chat_addons.agent.views import AgentCancelView, AgentLLMInvokeView
 
-from chat.views import TokenView  # real view
-from chat.views_quoted import QuotedMessageView
-from chat.api_views import (
+from stream_server_django.chat.views import TokenView  # real view
+from stream_server_django.chat.views_quoted import QuotedMessageView
+from stream_server_django.chat.api_views import (
     RoomConfigView,
     RoomMarkReadView,
     RoomMarkUnreadView,
     RoomMessageListCreateView,
     RoomReadView,
 )
-#from chat_addons.agent.views import AgentInvokeView
-# from chat.views import dev_token        # <- if you still need the dev stub
+#from stream_server_django.chat_addons.agent.views import AgentInvokeView
+# from stream_server_django.chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
-    path("", include("auth.urls")),
-    path("", include("accounts_supabase.urls")),
-    path("", include("users.urls")),
-    path("", include("core.urls")),
-    path("", include("mutes.urls")),
-    path("", include("rooms.urls")),
-    path("", include("drafts.urls")),
-    path("", include("polls.urls")),
-    path("", include("reminders.urls")),
-    path("", include("events.urls")),
-    path("", include("state.urls")),
-    path("", include("chat_addons.urls")),
+    path("", include("stream_server_django.auth.urls")),
+    path("", include("stream_server_django.accounts_supabase.urls")),
+    path("", include("stream_server_django.users.urls")),
+    path("", include("stream_server_django.core.urls")),
+    path("", include("stream_server_django.mutes.urls")),
+    path("", include("stream_server_django.rooms.urls")),
+    path("", include("stream_server_django.drafts.urls")),
+    path("", include("stream_server_django.polls.urls")),
+    path("", include("stream_server_django.reminders.urls")),
+    path("", include("stream_server_django.events.urls")),
+    path("", include("stream_server_django.state.urls")),
+    path("", include("stream_server_django.chat_addons.urls")),
     path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
 
