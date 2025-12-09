@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat.models import Draft
 
 from .serializers import DraftSerializer
@@ -21,11 +22,13 @@ class RoomDraftView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request: Request, room_uuid: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         room = get_room_or_404(room_uuid)
-        if not user_has_room_access(request.user, room):
+        if not user_has_room_access(user, room):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        draft = Draft.objects.filter(room=room, user=request.user).first()
+        draft = Draft.objects.filter(room=room, user=user).first()
         if not draft:
             return Response({"draft": None})
 
@@ -33,14 +36,16 @@ class RoomDraftView(APIView):
         return Response({"draft": serializer.data})
 
     def post(self, request: Request, room_uuid: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         room = get_room_or_404(room_uuid)
-        if not user_has_room_access(request.user, room):
+        if not user_has_room_access(user, room):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         serializer = DraftSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        draft, _created = Draft.objects.get_or_create(room=room, user=request.user)
+        draft, _created = Draft.objects.get_or_create(room=room, user=user)
         draft.text = serializer.validated_data["text"]
         draft.save(update_fields=["text", "updated_at"])
 
@@ -48,9 +53,11 @@ class RoomDraftView(APIView):
         return Response({"draft": output.data})
 
     def delete(self, request: Request, room_uuid: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         room = get_room_or_404(room_uuid)
-        if not user_has_room_access(request.user, room):
+        if not user_has_room_access(user, room):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        Draft.objects.filter(room=room, user=request.user).delete()
+        Draft.objects.filter(room=room, user=user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -15,6 +15,8 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from stream_server_django.common.identity import get_chat_identity
+
 from .models import Poll, PollAnswer, PollOption, PollVote, normalize_cid
 from .serializers import (
     PollAnswerCreateSerializer,
@@ -135,6 +137,8 @@ class PollListCreateView(APIView):
         return Response({"results": serializer.data, "next": next_cursor})
 
     def post(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = PollCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -143,13 +147,13 @@ class PollListCreateView(APIView):
             poll = Poll.objects.create(
                 cid=data["cid"],
                 question=data["question"],
-                created_by=request.user,
+                created_by=user,
             )
             options = [
                 PollOption.objects.create(
                     poll=poll,
                     text=text,
-                    created_by=request.user,
+                    created_by=user,
                 )
                 for text in data.get("options", [])
             ]
@@ -163,13 +167,15 @@ class PollOptionCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, poll_id: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         poll = get_object_or_404(Poll, pk=poll_id)
         serializer = PollOptionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         option = PollOption.objects.create(
             poll=poll,
             text=serializer.validated_data["text"],
-            created_by=request.user,
+            created_by=user,
         )
         return Response({"option": PollOptionSerializer(option).data})
 
@@ -178,13 +184,15 @@ class PollAnswerCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, poll_id: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         poll = get_object_or_404(Poll, pk=poll_id)
         serializer = PollAnswerCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         answer = PollAnswer.objects.create(
             poll=poll,
             text=serializer.validated_data["text"],
-            user=request.user,
+            user=user,
         )
         return Response({"answer": PollAnswerSerializer(answer).data})
 
@@ -232,13 +240,15 @@ class PollVoteView(APIView):
         return Response(response)
 
     def post(self, request, poll_id: str, option_id: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         poll = get_object_or_404(Poll, pk=poll_id)
         option = get_object_or_404(PollOption, pk=option_id, poll=poll)
 
         with transaction.atomic():
             vote, created = PollVote.objects.select_for_update().get_or_create(
                 poll=poll,
-                user=request.user,
+                user=user,
                 defaults={"option": option},
             )
 
@@ -247,7 +257,7 @@ class PollVoteView(APIView):
 
             if not created:
                 if vote.option_id == option.id:
-                    payload = _vote_response_payload(poll, option, request.user.id, vote)
+                    payload = _vote_response_payload(poll, option, user.id, vote)
                     return Response(payload)
                 from_option_id = str(vote.option_id)
                 vote.option = option
@@ -257,7 +267,7 @@ class PollVoteView(APIView):
         payload = _vote_response_payload(
             poll,
             option,
-            request.user.id,
+            user.id,
             vote,
             from_option_id=from_option_id,
         )
@@ -266,17 +276,19 @@ class PollVoteView(APIView):
 
 
     def delete(self, request, poll_id: str, option_id: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         poll = get_object_or_404(Poll, pk=poll_id)
         option = get_object_or_404(PollOption, pk=option_id, poll=poll)
 
         try:
-            vote = PollVote.objects.get(poll=poll, user=request.user)
+            vote = PollVote.objects.get(poll=poll, user=user)
         except PollVote.DoesNotExist:
             payload = {
                 "status": "ok",
                 "poll_id": str(poll.id),
                 "option_id": str(option.id),
-                "user_id": str(request.user.id),
+                "user_id": str(user.id),
                 "poll_vote": None,
             }
             return Response(payload)
@@ -289,7 +301,7 @@ class PollVoteView(APIView):
             "status": "ok",
             "poll_id": str(poll.id),
             "option_id": str(option.id),
-            "user_id": str(request.user.id),
+            "user_id": str(user.id),
             "poll_vote": vote_payload,
         }
         _broadcast_vote_event(

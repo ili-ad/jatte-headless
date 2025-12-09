@@ -397,6 +397,7 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         identity = get_chat_identity(self.request)
+        user = identity.as_user()
         room = self.get_room()
         cid = canonical_cid(None, room_uuid=room.uuid)
         message_text = serializer.validated_data.get("body") or ""
@@ -414,7 +415,7 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
             hidden=decision in {"hold", "reject"},
         )
         room.messages.add(serializer.instance)
-        Draft.objects.filter(user=identity.user, room=room).delete()
+        Draft.objects.filter(user=user, room=room).delete()
         try:
             r = redis.Redis(
                 host=settings.REDIS_HOST,
@@ -713,12 +714,13 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
 
     def post(self, request, room_uuid):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(room_uuid)
         if not self._user_has_access(request, room):
             return Response(status=403)
         text = request.data.get("text", "")
         Draft.objects.update_or_create(
-            user=identity.user,
+            user=user,
             room=room,
             defaults={"text": text},
         )
@@ -735,6 +737,7 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
 
     def get(self, request, room_uuid):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(room_uuid)
         if not self._user_has_access(request, room):
             return Response(status=403)
@@ -748,7 +751,7 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
             cached_text = r.get(f"draft:{identity.username}:{room.uuid}")
         except Exception:
             pass
-        draft = Draft.objects.filter(user=identity.user, room=room).first()
+        draft = Draft.objects.filter(user=user, room=room).first()
         drafts = []
         if draft:
             draft_data = DraftSerializer(draft).data
@@ -762,10 +765,11 @@ class RoomDraftView(RoomFromCIDMixin, APIView):
 
     def delete(self, request, room_uuid):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(room_uuid)
         if not self._user_has_access(request, room):
             return Response(status=403)
-        Draft.objects.filter(user=identity.user, room=room).delete()
+        Draft.objects.filter(user=user, room=room).delete()
         try:
             r = redis.Redis(
                 host=settings.REDIS_HOST,
@@ -884,14 +888,15 @@ class MessageHideView(APIView):
 
     def post(self, request, message_id: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         message = _message_from_identifier(message_id)
-        if not self._can_moderate(identity.user, message):
+        if not self._can_moderate(user, message):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         now = timezone.now()
         if not message.hidden:
             message.hidden = True
-        message.hidden_by = identity.user
+        message.hidden_by = user
         message.hidden_at = now
         message.save(update_fields=["hidden", "hidden_by", "hidden_at", "updated_at"])
 
@@ -901,8 +906,9 @@ class MessageHideView(APIView):
 
     def delete(self, request, message_id: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         message = _message_from_identifier(message_id)
-        if not self._can_moderate(identity.user, message):
+        if not self._can_moderate(user, message):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         message.hidden = False
@@ -928,12 +934,13 @@ class MessageReactionsView(APIView):
 
     def post(self, request, message_id):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         msg = _message_from_identifier(message_id)
         serializer = ReactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reaction = Reaction.objects.create(
             message=msg,
-            user=identity.user,
+            user=user,
             type=serializer.validated_data["type"],
         )
         return Response(ReactionSerializer(reaction).data, status=201)
@@ -953,10 +960,11 @@ class MessageReactionTypeView(APIView):
 
     def post(self, request, message_id, reaction_type):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         message = _message_from_identifier(message_id)
         reaction, created = Reaction.objects.get_or_create(
             message=message,
-            user=identity.user,
+            user=user,
             type=reaction_type,
         )
 
@@ -984,10 +992,11 @@ class MessageReactionTypeView(APIView):
 
     def delete(self, request, message_id, reaction_type):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         message = _message_from_identifier(message_id)
         qs = Reaction.objects.filter(
             message=message,
-            user=identity.user,
+            user=user,
             type=reaction_type,
         )
         existed = qs.exists()
@@ -1024,8 +1033,9 @@ class MessageFlagView(APIView):
 
     def post(self, request, message_id):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         msg = _message_from_identifier(message_id)
-        flag, _ = Flag.objects.get_or_create(message=msg, user=identity.user)
+        flag, _ = Flag.objects.get_or_create(message=msg, user=user)
         return Response({"flag": FlagSerializer(flag).data}, status=201)
 
 
@@ -1037,8 +1047,9 @@ class MessagePinView(APIView):
 
     def post(self, request, message_id):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         msg = _message_from_identifier(message_id)
-        pin, _ = Pin.objects.get_or_create(message=msg, user=identity.user)
+        pin, _ = Pin.objects.get_or_create(message=msg, user=user)
         return Response({"pin": PinSerializer(pin).data}, status=201)
 
 
@@ -1050,8 +1061,9 @@ class MessageUnpinView(APIView):
 
     def delete(self, request, message_id):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         msg = _message_from_identifier(message_id)
-        Pin.objects.filter(message=msg, user=identity.user).delete()
+        Pin.objects.filter(message=msg, user=user).delete()
         return Response(status=204)
 
 
@@ -1081,12 +1093,13 @@ class PollOptionCreateView(APIView):
 
     def post(self, request, poll_id):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = PollOptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         option = PollOption.objects.create(
             poll_id=poll_id,
             text=serializer.validated_data["text"],
-            user=identity.user,
+            user=user,
         )
         return Response({"poll_option": PollOptionSerializer(option).data}, status=201)
 
@@ -1106,14 +1119,15 @@ class PollListCreateView(APIView):
 
     def post(self, request):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = PollSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         poll = Poll.objects.create(
             question=serializer.validated_data["question"],
-            user=identity.user,
+            user=user,
         )
         for text in request.data.get("options", []):
-            PollOption.objects.create(poll_id=str(poll.id), text=text, user=identity.user)
+            PollOption.objects.create(poll_id=str(poll.id), text=text, user=user)
         return Response({"poll": PollSerializer(poll).data}, status=201)
 
 
@@ -1198,6 +1212,7 @@ class RoomConfigView(RoomFromCIDMixin, APIView):
 
     def get(self, request, cid: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         try:
             room_type, room_uuid = cid.split(":", 1)
         except ValueError:
@@ -1206,7 +1221,7 @@ class RoomConfigView(RoomFromCIDMixin, APIView):
         room = self.get_room(room_uuid)
 
         name = room.data.get("name") if room.data else None
-        muted = RoomMute.objects.filter(user=identity.user, room=room).exists()
+        muted = RoomMute.objects.filter(user=user, room=room).exists()
 
         return Response({"name": name, "type": room_type, "muted": muted})
 
@@ -1219,8 +1234,9 @@ class RoomMuteStatusView(RoomFromCIDMixin, APIView):
 
     def get(self, request, cid: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(cid)
-        mute = RoomMute.objects.filter(user=identity.user, room=room).first()
+        mute = RoomMute.objects.filter(user=user, room=room).first()
         muted_until = getattr(mute, "muted_until", None)
         serializer = MuteStatusSerializer(
             {"muted": mute is not None, "muted_until": muted_until}
@@ -1247,19 +1263,20 @@ class RoomMemberMuteCreateView(RoomFromCIDMixin, APIView):
 
     def post(self, request, cid: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(cid)
         serializer = RoomMemberMuteCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         target_user = serializer.validated_data["user"]
         muted_until = serializer.validated_data.get("muted_until")
 
-        if not self._can_mute(identity.user, room, target_user):
+        if not self._can_mute(user, room, target_user):
             return Response(status=403)
 
         mute, _created = RoomMemberMute.objects.update_or_create(
             room=room,
             user=target_user,
-            defaults={"muted_by": identity.user, "muted_until": muted_until},
+            defaults={"muted_by": user, "muted_until": muted_until},
         )
 
         response_data = RoomMemberMuteSerializer(mute).data
@@ -1484,7 +1501,8 @@ class NotificationListView(APIView):
 
     def get(self, request):
         identity = get_chat_identity(request)
-        notes = Notification.objects.filter(user=identity.user)
+        user = identity.as_user()
+        notes = Notification.objects.filter(user=user)
         serializer = NotificationSerializer(notes, many=True)
         return Response(serializer.data)
 
@@ -1497,12 +1515,14 @@ class ReminderListCreateView(RoomFromCIDMixin, APIView):
 
     def get(self, request):
         identity = get_chat_identity(request)
-        reminders = Reminder.objects.filter(created_by=identity.user)
+        user = identity.as_user()
+        reminders = Reminder.objects.filter(created_by=user)
         serializer = ReminderSerializer(reminders, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         cid = request.data.get("cid")
         if not cid:
             return Response({"cid": ["This field is required."]}, status=400)
@@ -1513,7 +1533,7 @@ class ReminderListCreateView(RoomFromCIDMixin, APIView):
             return Response({"cid": ["This field may not be blank."]}, status=400)
 
         room = self.get_room(cid_value)
-        if not _user_can_access_room(identity.user, room):
+        if not _user_can_access_room(user, room):
             return Response(status=403)
 
         payload = request.data.copy()
@@ -1522,9 +1542,7 @@ class ReminderListCreateView(RoomFromCIDMixin, APIView):
         else:
             payload = {k: v for k, v in payload.items() if k != "cid"}
 
-        serializer = ReminderCreateSerializer(
-            data=payload, context={"room": room, "user": identity.user}
-        )
+        serializer = ReminderCreateSerializer(data=payload, context={"room": room, "user": user})
         serializer.is_valid(raise_exception=True)
         reminder = serializer.save()
         reminder_data = ReminderSerializer(reminder).data
@@ -1562,11 +1580,12 @@ class RoomReminderCreateView(RoomFromCIDMixin, APIView):
 
     def post(self, request, cid: str):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         room = self.get_room(cid)
-        if not _user_can_access_room(identity.user, room):
+        if not _user_can_access_room(user, room):
             return Response(status=403)
         serializer = ReminderCreateSerializer(
-            data=request.data, context={"room": room, "user": identity.user}
+            data=request.data, context={"room": room, "user": user}
         )
         serializer.is_valid(raise_exception=True)
         reminder = serializer.save()
@@ -1585,7 +1604,8 @@ class MutedChannelListView(APIView):
 
     def get(self, request):
         identity = get_chat_identity(request)
-        mutes = RoomMute.objects.filter(user=identity.user)
+        user = identity.as_user()
+        mutes = RoomMute.objects.filter(user=user)
         rooms = [m.room for m in mutes]
         serializer = RoomSerializer(rooms, many=True)
         return Response(serializer.data)
@@ -1599,8 +1619,9 @@ class MuteStatusView(APIView):
 
     def get(self, request, target_username):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         target = get_object_or_404(get_user_model(), username=target_username)
-        muted = UserMute.objects.filter(user=identity.user, target=target).exists()
+        muted = UserMute.objects.filter(user=user, target=target).exists()
         return Response({"muted": muted})
 
 
@@ -1612,7 +1633,8 @@ class MutedUsersView(APIView):
 
     def get(self, request):
         identity = get_chat_identity(request)
-        qs = UserMute.objects.filter(user=identity.user).select_related("target")
+        user = identity.as_user()
+        qs = UserMute.objects.filter(user=user).select_related("target")
         data = [{"id": m.target.id, "username": m.target.username} for m in qs]
         return Response(data)
 
@@ -1625,8 +1647,9 @@ class MuteUserView(APIView):
 
     def post(self, request, target_username):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         target = get_object_or_404(get_user_model(), username=target_username)
-        UserMute.objects.get_or_create(user=identity.user, target=target)
+        UserMute.objects.get_or_create(user=user, target=target)
         return Response({"status": "ok"})
 
 
@@ -1638,9 +1661,10 @@ class UnmuteUserView(APIView):
     serializer_class = UserMuteUnmuteSerializer
 
     def post(self, request):
+        identity = get_chat_identity(request)
         serializer = self.serializer_class(
             data=request.data,
-            context={"request": request},
+            context={"request": request, "identity": identity},
         )
         serializer.is_valid(raise_exception=True)
         payload = serializer.save()
@@ -2089,9 +2113,10 @@ class RecoverStateView(APIView):
 
     def get(self, request):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         rooms = Room.objects.filter(status=Room.ACTIVE)
         room_data = RoomSerializer(rooms, many=True).data
-        notes = Notification.objects.filter(user=identity.user)
+        notes = Notification.objects.filter(user=user)
         note_data = NotificationSerializer(notes, many=True).data
         return Response({"stream_server_django.rooms": room_data, "notifications": note_data})
 
@@ -2422,9 +2447,10 @@ class RegisterSubscriptionsView(APIView):
 
     def post(self, request):
         identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = RegisterSubscriptionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         client_id = serializer.validated_data.get("client_id")
-        data = serializer.save(user=identity.user)
-        broadcast_subscriptions_registered(identity.user, client_id, data)
+        data = serializer.save(user=user)
+        broadcast_subscriptions_registered(user, client_id, data)
         return Response(data, status=status.HTTP_201_CREATED)

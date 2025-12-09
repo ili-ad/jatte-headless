@@ -9,6 +9,7 @@ from jwt import PyJWKClient
 import jwt
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.common.identity import get_chat_identity
 
 from .serializers import RegisterSubscriptionsSerializer
 from .webpush import broadcast_subscriptions_registered
@@ -48,6 +49,7 @@ def ws_auth(request):
 
 @api_view(["GET"])
 def connection_id(request):
+    identity = get_chat_identity(request)
     auth = request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         return Response(status=403)
@@ -88,7 +90,7 @@ def connection_id(request):
             port=settings.REDIS_PORT,
             decode_responses=True,
         )
-        r.set(f"cid:{cid}", request.user.username, ex=60)
+        r.set(f"cid:{cid}", identity.username, ex=60)
     except Exception:
         pass
 
@@ -120,11 +122,13 @@ def messages(_request, cid):
 @permission_classes([permissions.IsAuthenticated])
 def register_subscriptions(request):
     """Register web push subscriptions and echo them back."""
+    identity = get_chat_identity(request)
+    user = identity.as_user()
     serializer = RegisterSubscriptionsSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     client_id = serializer.validated_data.get("client_id")
-    data = serializer.save(user=request.user)
-    broadcast_subscriptions_registered(request.user, client_id, data)
+    data = serializer.save(user=user)
+    broadcast_subscriptions_registered(user, client_id, data)
     return Response(data, status=status.HTTP_201_CREATED)
 
 
