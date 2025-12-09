@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.utils.module_loading import import_string
 from django.http import HttpRequest
 
 UserModel = get_user_model()
@@ -117,12 +119,39 @@ class ChatIdentity:
 
 def get_chat_identity(request: HttpRequest) -> ChatIdentity:
     """
-    Build a ChatIdentity from the current HTTP request.
+    Build a ChatIdentity from the current HTTP request via a configurable
+    factory hook.
 
-    For now this simply wraps request.user, defaulting to
-    AnonymousUser if no user is attached. Future work may
-    route through a configurable factory to support principal
-    objects or guest identities.
+    The factory path is defined by the STREAM_SERVER_CHAT_IDENTITY_FACTORY
+    setting and must point to a callable with the signature:
+        (request: HttpRequest) -> ChatIdentity
+
+    By default, this uses ``default_identity_factory`` which simply wraps
+    request.user / AnonymousUser without changing behavior.
+    """
+
+    factory_path = getattr(
+        settings,
+        "STREAM_SERVER_CHAT_IDENTITY_FACTORY",
+        "stream_server_django.common.identity.default_identity_factory",
+    )
+    factory = import_string(factory_path)
+    identity = factory(request)
+
+    if not isinstance(identity, ChatIdentity):
+        raise TypeError(
+            f"Expected ChatIdentity from {factory_path}, got {type(identity)!r}"
+        )
+
+    return identity
+
+
+def default_identity_factory(request: HttpRequest) -> ChatIdentity:
+    """
+    Default ChatIdentity factory.
+
+    This preserves the current behavior: wrap request.user if present,
+    otherwise wrap an AnonymousUser instance.
     """
 
     user = getattr(request, "user", None)

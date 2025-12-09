@@ -143,6 +143,16 @@ CACHES = {
 STREAM_SERVER_CHAT_AUTHENTICATION_CLASS = (
     "stream_server_django.accounts_supabase.authentication.SupabaseJWTAuthentication"
 )
+# Which factory function is used to build ChatIdentity instances
+# from an incoming HttpRequest.
+#
+# The factory must be a callable of the form:
+#   (request: HttpRequest) -> ChatIdentity
+#
+# Default: wrap request.user / AnonymousUser without changing behavior.
+STREAM_SERVER_CHAT_IDENTITY_FACTORY = (
+    "stream_server_django.common.identity.default_identity_factory"
+)
 
 # Application definition
 
