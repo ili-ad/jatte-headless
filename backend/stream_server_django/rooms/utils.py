@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.shortcuts import get_object_or_404
 
 from stream_server_django.chat.models import Room
+from stream_server_django.common.identity import ChatIdentity
 
 
 def normalize_room_identifier(identifier: str) -> str:
@@ -26,14 +27,15 @@ def get_room_or_404(identifier: str) -> Room:
 def _user_identifiers(user) -> set[str]:
     """Collect identifiers that may be associated with the authenticated user."""
 
+    identity = ChatIdentity(user)
     identifiers: set[str] = set()
-    username = getattr(user, "username", None)
+    username = identity.username
     if username:
         identifiers.add(username)
-    supabase_uid = getattr(user, "supabase_uid", None)
+    supabase_uid = identity.supabase_uid
     if supabase_uid:
         identifiers.add(supabase_uid)
-    user_id = getattr(user, "id", None)
+    user_id = identity.id
     if user_id:
         identifiers.add(str(user_id))
     return identifiers
@@ -42,17 +44,19 @@ def _user_identifiers(user) -> set[str]:
 def user_has_room_access(user, room: Room) -> bool:
     """Return ``True`` if the authenticated user can interact with the room."""
 
-    if not getattr(user, "is_authenticated", False):
+    identity = ChatIdentity(user)
+
+    if not identity.is_authenticated:
         return False
 
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+    if identity.is_superuser or identity.is_staff:
         return True
 
-    identifiers = _user_identifiers(user)
+    identifiers = _user_identifiers(identity.user)
     if not identifiers:
         identifiers = set()
 
-    if room.agent_id == getattr(user, "id", None):
+    if room.agent_id == identity.id:
         return True
 
     if room.client and room.client in identifiers:
