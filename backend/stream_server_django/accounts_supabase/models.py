@@ -19,18 +19,9 @@ class UserProfile(models.Model):
         related_name='profile'
     )
 
-    return_address = models.CharField(max_length=255, blank=True, null=True)
-    license_number = models.CharField(max_length=100, blank=True, null=True)
-
-    # New field for storing signatures:
-    signature_image = models.ImageField(
-        upload_to='signatures/', null=True, blank=True,
-        help_text="Stored user signature image."
-    )
-
     display_name = models.CharField(max_length=255, blank=True, null=True)
     image_url = models.CharField(max_length=500, blank=True, null=True)
     extra = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"Profile for {self.user.username}"
+        return self.display_name or self.user.get_username()
