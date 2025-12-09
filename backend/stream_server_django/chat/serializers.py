@@ -3,6 +3,8 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from stream_server_django.common.identity import get_chat_identity
+
 from .models import (
     Draft,
     Flag,
@@ -545,14 +547,24 @@ class UserMuteUnmuteSerializer(serializers.Serializer):
         source="target",
     )
 
-    def validate_target(self, value):
+    def _acting_user(self):
+        identity = self.context.get("identity")
+        if identity is not None:
+            return identity.as_user()
         request = self.context.get("request")
-        if request and request.user == value:
+        if request is not None:
+            return get_chat_identity(request).as_user()
+        return None
+
+    def validate_target(self, value):
+        user = self._acting_user()
+        if user and user == value:
             raise serializers.ValidationError("You cannot unmute yourself.")
         return value
 
     def save(self, **kwargs):  # type: ignore[override]
-        request = self.context["request"]
+        user = self._acting_user()
         target = self.validated_data["target"]
-        UserMute.objects.filter(user=request.user, target=target).delete()
+        if user is not None:
+            UserMute.objects.filter(user=user, target=target).delete()
         return {"target_user_id": target.pk, "muted": False}
