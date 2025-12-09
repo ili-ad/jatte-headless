@@ -12,8 +12,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stream_server_django.accounts_supabase.authentication import SupabaseJWTAuthentication
 from stream_server_django.accounts_supabase.models import UserProfile
+from stream_server_django.common.auth_utils import get_chat_authentication_classes
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ def serialize_current_user(user):
 
 class SyncUserView(APIView):
     # explicitly setting here again as sanity check
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -133,7 +133,7 @@ class SyncUserView(APIView):
 
 
 class SessionView(APIView):
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def delete(self, request):
@@ -145,7 +145,7 @@ class SessionView(APIView):
 class ClientIDView(APIView):
     """Return a random client identifier."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -157,7 +157,7 @@ class UserAgentSerializer(serializers.Serializer):
 
 
 class UserAgentView(APIView):
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -198,7 +198,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class QueryUsersView(generics.ListAPIView):
     """List users."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
 
@@ -208,7 +208,7 @@ class QueryUsersView(generics.ListAPIView):
 
 class CurrentUserView(APIView):
     """Return details for the current authenticated user."""
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -216,7 +216,7 @@ class CurrentUserView(APIView):
 
 
 class RefreshTokenView(APIView):
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -231,7 +231,7 @@ class RefreshTokenView(APIView):
 class DisconnectedView(APIView):
     """Return whether the current user is marked as disconnected."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -242,7 +242,7 @@ class DisconnectedView(APIView):
 class InitializedView(APIView):
     """Return whether the current user is marked as initialized."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

@@ -138,6 +138,12 @@ CACHES = {
     },
 }
 
+# Which DRF authentication class to use for chat APIs.
+# Default is Jatte's own Supabase JWT auth.
+STREAM_SERVER_CHAT_AUTHENTICATION_CLASS = (
+    "stream_server_django.accounts_supabase.authentication.SupabaseJWTAuthentication"
+)
+
 # Application definition
 
 INSTALLED_APPS = [
