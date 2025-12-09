@@ -18,7 +18,6 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stream_server_django.accounts_supabase.authentication import SupabaseJWTAuthentication
 from stream_server_django.accounts_supabase.views import (
     ClientIDView as LegacyClientIDView,
     CurrentUserView as LegacyCurrentUserView,
@@ -27,6 +26,7 @@ from stream_server_django.accounts_supabase.views import (
     SyncUserView as LegacySyncUserView,
 )
 from stream_server_django.chat.utils import generate_snowflake
+from stream_server_django.common.auth_utils import get_chat_authentication_classes
 
 try:  # pragma: no cover - optional dependency
     import redis
@@ -37,7 +37,7 @@ except Exception:  # pragma: no cover - redis is optional in tests
 class SyncUserView(LegacySyncUserView):
     """Proxy Supabase sync while returning the OpenAPI shape."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -54,21 +54,21 @@ class SyncUserView(LegacySyncUserView):
 class SessionView(LegacySessionView):
     """End the authenticated session."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
 
 class RefreshTokenView(LegacyRefreshTokenView):
     """Return a freshly minted JWT for the caller."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
 
 class CurrentUserView(LegacyCurrentUserView):
     """Return the minimal user payload required by the shim."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -84,7 +84,7 @@ class CurrentUserView(LegacyCurrentUserView):
 class WebsocketAuthView(APIView):
     """Authorize websocket usage for authenticated callers."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -94,14 +94,14 @@ class WebsocketAuthView(APIView):
 class ClientIDView(LegacyClientIDView):
     """Expose the legacy client ID generator on the new surface."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
 
 class ConnectionIDView(APIView):
     """Return a connection id derived from the session."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):

@@ -14,8 +14,8 @@ from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import (
     DevTokenOrJWTAuthentication,
-    SupabaseJWTAuthentication,
 )
+from stream_server_django.common.auth_utils import get_chat_authentication_classes
 
 from .mixins import RoomFromCIDMixin
 from .serializers import RoomMemberOut
@@ -26,7 +26,7 @@ User = get_user_model()
 class TokenView(APIView):
     """Return a signed chat token for the authenticated Supabase user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):

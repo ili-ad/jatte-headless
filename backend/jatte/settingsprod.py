@@ -38,6 +38,12 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Which DRF authentication class to use for chat APIs.
+# Default is Jatte's own Supabase JWT auth.
+STREAM_SERVER_CHAT_AUTHENTICATION_CLASS = (
+    "stream_server_django.accounts_supabase.authentication.SupabaseJWTAuthentication"
+)
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
