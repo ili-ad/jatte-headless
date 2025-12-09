@@ -24,12 +24,14 @@ django.setup()
 call_command("migrate", run_syncdb=True, verbosity=0)
 call_command("flush", verbosity=0, interactive=False)
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat_addons.admin_console.models import MessageIntake
 from stream_server_django.chat_addons.agent.tasks import run_agent_invocation
 from stream_server_django.chat_addons.common_audit.models import AuditTrail, MessageProvenance
 from stream_server_django.chat_addons.common_audit.throttling import reset_rate_limit_cache
+User = get_user_model()
 
 if TYPE_CHECKING:  # pragma: no cover - typing helpers
     from rest_framework.test import APIClient
@@ -50,9 +52,9 @@ def api_client():
 
 
 @pytest.fixture
-def operator_user() -> CustomUser:
+def operator_user() -> User:
     supabase_uid = f"operator-{uuid.uuid4()}"
-    return CustomUser.objects.create_user(
+    return User.objects.create_user(
         username=supabase_uid,
         email="operator@example.com",
         password="secret",
@@ -61,7 +63,7 @@ def operator_user() -> CustomUser:
 
 
 @pytest.fixture
-def operator_token(operator_user: CustomUser) -> str:
+def operator_token(operator_user: User) -> str:
     return jwt.encode(
         {"sub": operator_user.supabase_uid, "email": operator_user.email},
         settings.SUPABASE_JWT_SECRET,
@@ -88,7 +90,7 @@ def test_agent_message_provenance_recorded() -> None:
 
 @override_settings(ADDON_RATE_LIMITS={"claim": "1/min"})
 def test_claim_room_throttled(
-    api_client: "APIClient", operator_user: CustomUser, auth_headers: dict[str, str]
+    api_client: "APIClient", operator_user: User, auth_headers: dict[str, str]
 ) -> None:
     room_uuid = f"claim-{uuid.uuid4()}"
     Room.objects.create(uuid=room_uuid, client="stream")
@@ -104,7 +106,7 @@ def test_claim_room_throttled(
 @override_settings(ADDON_RATE_LIMITS={"intake_write": "10/min"})
 def test_approve_intake_creates_audit_log(
     api_client: "APIClient",
-    operator_user: CustomUser,
+    operator_user: User,
     auth_headers: dict[str, str],
     caplog,
     monkeypatch: pytest.MonkeyPatch,
@@ -162,7 +164,7 @@ def test_approve_intake_creates_audit_log(
 
 
 def test_list_audit_entries_paginated(
-    api_client: "APIClient", operator_user: CustomUser, auth_headers: dict[str, str]
+    api_client: "APIClient", operator_user: User, auth_headers: dict[str, str]
 ) -> None:
     AuditTrail.objects.all().delete()
     for index in range(5):

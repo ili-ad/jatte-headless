@@ -3,14 +3,15 @@ from __future__ import annotations
 import re
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
-
-from stream_server_django.accounts_supabase.models import CustomUser
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat.utils import canonical_cid
 
 from ..models import SmsRelay, SmsRoomLink
+
+User = get_user_model()
 
 PHONE_CLEAN_RE = re.compile(r"[^\d]")
 
@@ -22,14 +23,14 @@ def _sanitize_username(phone_e164: str) -> str:
     return f"sms_{digits}"[:150]
 
 
-def get_or_create_phone_user(phone_e164: str) -> CustomUser:
+def get_or_create_phone_user(phone_e164: str) -> User:
     supabase_uid = f"sms:{phone_e164}"
-    user = CustomUser.objects.filter(supabase_uid=supabase_uid).first()
+    user = User.objects.filter(supabase_uid=supabase_uid).first()
     if user:
         return user
 
     username = _sanitize_username(phone_e164)
-    user = CustomUser.objects.create_user(
+    user = User.objects.create_user(
         username=username,
         email="",
         password=None,

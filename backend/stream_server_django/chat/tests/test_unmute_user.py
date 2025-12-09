@@ -3,8 +3,10 @@ from rest_framework.test import APITestCase
 from django.conf import settings
 import jwt
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import UserMute
+User = get_user_model()
 
 
 class UnmuteUserAPITests(APITestCase):
@@ -16,10 +18,10 @@ class UnmuteUserAPITests(APITestCase):
         )
 
     def setUp(self):
-        self.user1 = CustomUser.objects.create_user(
+        self.user1 = User.objects.create_user(
             username="u1", email="u1@example.com", password="x", supabase_uid="u1"
         )
-        self.user2 = CustomUser.objects.create_user(
+        self.user2 = User.objects.create_user(
             username="u2", email="u2@example.com", password="x", supabase_uid="u2"
         )
         UserMute.objects.create(user=self.user1, target=self.user2)

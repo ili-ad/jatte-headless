@@ -3,16 +3,18 @@ from rest_framework.test import APITestCase
 from django.conf import settings
 import jwt
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import UserMute
+User = get_user_model()
 
 class MuteUserAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
     def setUp(self):
-        self.user1 = CustomUser.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
-        self.user2 = CustomUser.objects.create_user(username="u2", email="u2@example.com", password="x", supabase_uid="u2")
+        self.user1 = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
+        self.user2 = User.objects.create_user(username="u2", email="u2@example.com", password="x", supabase_uid="u2")
 
     def test_mute_user_creates_record(self):
         token = self.make_token()

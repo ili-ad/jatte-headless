@@ -8,9 +8,11 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Room, RoomMemberMute
 from stream_server_django.chat.utils import group_name_for_cid
+User = get_user_model()
 
 
 @override_settings(ROOT_URLCONF="chat.urls")
@@ -19,19 +21,19 @@ class RoomMemberMuteAPITests(APITestCase):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
     def setUp(self):
-        self.agent = CustomUser.objects.create_user(
+        self.agent = User.objects.create_user(
             username="mod",
             email="mod@example.com",
             password="x",
             supabase_uid="mod",
         )
-        self.member = CustomUser.objects.create_user(
+        self.member = User.objects.create_user(
             username="mem",
             email="member@example.com",
             password="x",
             supabase_uid="mem",
         )
-        self.other = CustomUser.objects.create_user(
+        self.other = User.objects.create_user(
             username="other",
             email="other@example.com",
             password="x",

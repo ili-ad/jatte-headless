@@ -7,20 +7,22 @@ import jwt
 
 from django.conf import settings
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Reminder, Room
+User = get_user_model()
 
 
 @override_settings(ROOT_URLCONF="chat.urls")
 class ReminderDeleteAPITests(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="u1",
             email="u1@example.com",
             password="pw",
             supabase_uid="u1",
         )
-        self.other = CustomUser.objects.create_user(
+        self.other = User.objects.create_user(
             username="u2",
             email="u2@example.com",
             password="pw",

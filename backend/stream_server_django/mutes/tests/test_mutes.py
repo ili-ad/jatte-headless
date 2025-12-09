@@ -9,8 +9,10 @@ from django.core.management import call_command
 django.setup()
 call_command("migrate", run_syncdb=True, verbosity=0)
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Room, RoomMute, UserMute
+User = get_user_model()
 
 
 class MutesAPITests(APITestCase):
@@ -22,19 +24,19 @@ class MutesAPITests(APITestCase):
         )
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="u1",
             email="u1@example.com",
             password="x",
             supabase_uid="u1",
         )
-        self.other = CustomUser.objects.create_user(
+        self.other = User.objects.create_user(
             username="u2",
             email="u2@example.com",
             password="x",
             supabase_uid="u2",
         )
-        self.third = CustomUser.objects.create_user(
+        self.third = User.objects.create_user(
             username="u3",
             email="u3@example.com",
             password="x",

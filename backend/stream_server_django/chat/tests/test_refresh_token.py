@@ -3,14 +3,16 @@ from rest_framework.test import APITestCase
 from django.conf import settings
 import jwt
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class RefreshTokenAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
     def setUp(self):
-        CustomUser.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
+        User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
 
     def test_refresh_token_returns_new_token(self):
         token = self.make_token()
