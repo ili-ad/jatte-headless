@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.common.identity import get_chat_identity
 
 from stream_server_django.chat_addons.admin_console.models import MessageIntake
 
@@ -45,6 +46,8 @@ class OnCallConfigView(NotificationsBaseView):
         return Response(payload)
 
     def put(self, request: Request) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = OnCallConfigSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data.get("phone_e164") or ""
@@ -55,19 +58,21 @@ class OnCallConfigView(NotificationsBaseView):
             config = OnCallConfig.objects.create(
                 phone_e164=phone,
                 email=email,
-                updated_by=request.user,
+                updated_by=user,
             )
         else:
             config.phone_e164 = phone
             config.email = email
-            config.updated_by = request.user
+            config.updated_by = user
             config.save(update_fields=["phone_e164", "email", "updated_by", "updated_at"])
         return Response(config.as_payload())
 
 
 class AdminHeartbeatView(NotificationsBaseView):
     def post(self, request: Request) -> Response:
-        presence, _ = AdminPresence.objects.get_or_create(user=request.user)
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        presence, _ = AdminPresence.objects.get_or_create(user=user)
         presence.touch()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -93,6 +98,8 @@ class EscalateRoomView(NotificationsBaseView):
     service_class = NotificationService
 
     def post(self, request: Request) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = EscalationRequestSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         cid = serializer.validated_data["cid"]
@@ -115,7 +122,7 @@ class EscalateRoomView(NotificationsBaseView):
         service = self.service_class()
 
         note_text = f"[Escalation] {cid} – {reason}"
-        recipients = _notification_recipients(request.user)
+        recipients = _notification_recipients(user)
         notifications = service.create_notification_item(text=note_text, users=recipients)
         notification = notifications[0] if notifications else None
 
@@ -131,7 +138,7 @@ class EscalateRoomView(NotificationsBaseView):
         record = EscalationRecord.objects.create(
             cid=cid,
             reason=reason,
-            created_by=request.user if request.user.is_authenticated else None,
+            created_by=user if identity.is_authenticated else None,
             delivered_via=via,
             delivered_at=delivered_at,
             notification=notification,

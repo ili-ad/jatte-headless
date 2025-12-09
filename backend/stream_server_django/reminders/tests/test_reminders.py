@@ -73,6 +73,8 @@ class ReminderAPITests(APITestCase):
         self.assertEqual(reminder["text"], "Prep standup")
         self.assertEqual(reminder["remind_at"], remind_at)
         self.assertTrue(Reminder.objects.filter(id=reminder["id"], user=self.user).exists())
+        stored = Reminder.objects.get(id=reminder["id"])
+        self.assertEqual(stored.user_id, self.user.id)
 
     def test_delete_reminder(self):
         reminder = Reminder.objects.create(

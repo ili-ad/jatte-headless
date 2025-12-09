@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.chat.models import Room
 from stream_server_django.chat.utils import canonical_cid
+from stream_server_django.common.identity import get_chat_identity
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
@@ -38,6 +39,8 @@ class AdminQueueView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         status_param = request.query_params.get("status", "new")
         if status_param not in {"new", "mine"}:
             raise ValidationError({"status": "Invalid status"})
@@ -46,7 +49,7 @@ class AdminQueueView(APIView):
         cursor_param = request.query_params.get("cursor")
         try:
             result = triage.list_queue(
-                user=request.user,
+                user=user,
                 status=status_param,
                 limit=limit_param,
                 cursor=cursor_param,
@@ -67,17 +70,19 @@ class ClaimRoomView(APIView):
 
     @audit_action(action=AuditTrail.Action.CLAIM, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         canonical = canonical_cid(cid)
         room = _get_room(canonical)
         request._audit_context = {"cid": canonical, "target_id": room.uuid}
 
         with transaction.atomic():
             try:
-                ownership = triage.claim_room(user=request.user, room=room)
+                ownership = triage.claim_room(user=user, room=room)
             except PermissionError as exc:
                 raise PermissionDenied(str(exc)) from exc
 
-        owner_identifier = _resolve_user_identifier(request.user)
+        owner_identifier = _resolve_user_identifier(user)
         request._audit_context = {
             "cid": canonical,
             "target_id": room.uuid,
@@ -157,6 +162,8 @@ class ApproveIntakeView(APIView):
 
     @audit_action(action=AuditTrail.Action.APPROVE, target_kwarg="message_id")
     def post(self, request: Request, message_id: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         base_context = {"target_id": message_id}
         request._audit_context = dict(base_context)
         intake_lookup = (
@@ -168,7 +175,7 @@ class ApproveIntakeView(APIView):
             base_context["cid"] = canonical_cid(intake_lookup)
             request._audit_context = dict(base_context)
 
-        result = gating.approve_intake(message_id=message_id, actor=request.user)
+        result = gating.approve_intake(message_id=message_id, actor=user)
         enriched_context = dict(base_context)
         enriched_context["meta"] = {
             "status": result.status,
@@ -188,6 +195,8 @@ class RejectIntakeView(APIView):
 
     @audit_action(action=AuditTrail.Action.REJECT, target_kwarg="message_id")
     def post(self, request: Request, message_id: str) -> Response:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         payload = request.data or {}
         reason = payload.get("reason") or "spam"
         mute_raw = payload.get("mute")
@@ -210,7 +219,7 @@ class RejectIntakeView(APIView):
 
         result = gating.reject_intake(
             message_id=message_id,
-            actor=request.user,
+            actor=user,
             reason=reason,
             mute=mute,
         )

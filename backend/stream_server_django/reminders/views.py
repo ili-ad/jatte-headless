@@ -9,6 +9,8 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from stream_server_django.common.identity import get_chat_identity
+
 from .models import Reminder
 from .serializers import ReminderIn, ReminderOut
 
@@ -39,12 +41,16 @@ class ReminderListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        reminders = Reminder.objects.filter(user=request.user).order_by("remind_at", "id")
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        reminders = Reminder.objects.filter(user=user).order_by("remind_at", "id")
         data = ReminderOut(reminders, many=True).data
         return Response(data)
 
     def post(self, request):
-        serializer = ReminderIn(data=request.data, context={"user": request.user})
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        serializer = ReminderIn(data=request.data, context={"user": user})
         serializer.is_valid(raise_exception=True)
         reminder = serializer.save()
         payload = ReminderOut(reminder).data
@@ -60,6 +66,8 @@ class ReminderDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, reminder_id: str):
-        reminder = get_object_or_404(Reminder, pk=reminder_id, user=request.user)
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        reminder = get_object_or_404(Reminder, pk=reminder_id, user=user)
         reminder.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
