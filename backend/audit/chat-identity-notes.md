@@ -38,3 +38,19 @@
   - **Django user adapter:** wraps `AUTH_USER_MODEL` instances and proxies current attributes.
   - **Principal adapter:** wraps external claims objects, normalizes IDs/emails, and optionally materializes a user record when a FK is required (e.g., before writing reminders or mutes).
 - Update permission helpers and serializers to consume `ChatIdentity` instead of raw `request.user`, enabling anonymous principals (session-bound) and claim-based principals to share the same surface area while keeping DB-backed flows explicit.
+
+## Principal-backed identity notes
+`PrincipalBackedIdentity` lets chat flows work with a principal (JWT claims, API token data, etc.) while still being able to materialize a Django user row when a database foreign key is required. Host projects can supply a principal plus an optional `user_loader` callable to create or fetch the concrete `AUTH_USER_MODEL` instance lazily when `as_user()` is first called.
+
+Minimal principal attributes (all optional, but used when present):
+- `id` or `sub`: unique identifier for the principal.
+- `username` or `name`: display-friendly identifier.
+- `email`: caller email address.
+- `is_authenticated`: boolean flag for authentication state.
+- `is_staff`, `is_superuser`: Django-style privilege flags if available.
+- `role`: coarse role hint such as `user`, `guest`, or `anonymous`.
+- `supabase_uid` / `sub` / `uid`: Supabase-style UID for cross-system mapping.
+
+Lazy user loading expectations:
+- `user_loader` is a callable that returns a Django user instance (or raises on failure).
+- It is only invoked the first time `as_user()` is called; other property accessors use principal data first and fall back to the base user.
