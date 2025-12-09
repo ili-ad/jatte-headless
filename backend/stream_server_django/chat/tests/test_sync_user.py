@@ -2,7 +2,10 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from django.conf import settings
 import jwt
-from stream_server_django.accounts_supabase.models import CustomUser, UserProfile
+from django.contrib.auth import get_user_model
+
+from stream_server_django.accounts_supabase.models import UserProfile
+User = get_user_model()
 
 class SyncUserAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
@@ -17,8 +20,8 @@ class SyncUserAPITests(APITestCase):
         self.assertEqual(response.data["display_name"], None)
         self.assertEqual(response.data["image_url"], None)
         self.assertEqual(response.data["extra"], {})
-        self.assertTrue(CustomUser.objects.filter(username="u1").exists())
-        user = CustomUser.objects.get(username="u1")
+        self.assertTrue(User.objects.filter(username="u1").exists())
+        user = User.objects.get(username="u1")
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
 
     def test_sync_user_requires_auth(self):

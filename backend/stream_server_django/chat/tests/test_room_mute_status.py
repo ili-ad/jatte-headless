@@ -4,7 +4,9 @@ from rest_framework.test import APITestCase
 import jwt
 
 from stream_server_django.chat.models import Room, RoomMute
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class RoomMuteStatusAPITests(APITestCase):
@@ -16,7 +18,7 @@ class RoomMuteStatusAPITests(APITestCase):
         )
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="u1",
             email="u1@example.com",
             password="x",

@@ -10,8 +10,10 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
+User = get_user_model()
 
 from stream_server_django.chat_addons.sms_bridge.models import SmsRelay, SmsRoomLink
 from stream_server_django.chat_addons.sms_bridge.services.provider import SmsProviderResponse
@@ -84,7 +86,7 @@ class SmsBridgeWebhookTests(APITestCase):
 @override_settings(ROOT_URLCONF="jatte.urls", SMS_WEBHOOK_SECRET="super-secret")
 class SmsBridgeSendTests(APITestCase):
     def setUp(self) -> None:
-        self.agent = CustomUser.objects.create_user(
+        self.agent = User.objects.create_user(
             username="admin",
             email="admin@example.com",
             password="secret",

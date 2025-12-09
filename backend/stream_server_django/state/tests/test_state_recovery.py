@@ -22,23 +22,24 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jatte.settings")
 django.setup()
 call_command("migrate", run_syncdb=True, verbosity=0)
 
+from django.contrib.auth import get_user_model  # noqa: E402
 from rest_framework.test import APITestCase  # noqa: E402
 
-from stream_server_django.accounts_supabase.models import CustomUser  # noqa: E402
 from stream_server_django.chat.models import Notification, Room  # noqa: E402
+User = get_user_model()
 
 
 class StateRecoveryEndpointsTests(APITestCase):
     """Validate recover-state helpers used during initialization."""
 
     def setUp(self) -> None:
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="user-1",
             email="user1@example.com",
             password="x",
             supabase_uid="user-1",
         )
-        self.other_user = CustomUser.objects.create_user(
+        self.other_user = User.objects.create_user(
             username="user-2",
             email="user2@example.com",
             password="x",

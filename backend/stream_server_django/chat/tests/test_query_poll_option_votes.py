@@ -4,20 +4,22 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 import jwt
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Poll, PollOption, PollVote
+User = get_user_model()
 
 
 @override_settings(ROOT_URLCONF="chat.urls")
 class QueryPollOptionVotesAPITests(APITestCase):
     def setUp(self):
-        self.owner = CustomUser.objects.create_user(
+        self.owner = User.objects.create_user(
             username="owner",
             email="owner@example.com",
             password="x",
             supabase_uid="owner",
         )
-        self.voter = CustomUser.objects.create_user(
+        self.voter = User.objects.create_user(
             username="voter",
             email="voter@example.com",
             password="x",
