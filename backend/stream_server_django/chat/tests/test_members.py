@@ -3,8 +3,10 @@ from rest_framework.test import APITestCase
 from django.conf import settings
 import jwt
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
+User = get_user_model()
 
 
 class RoomMembersCIDViewTests(APITestCase):
@@ -20,19 +22,19 @@ class RoomMembersCIDViewTests(APITestCase):
         return message
 
     def test_members_shape(self):
-        agent = CustomUser.objects.create_user(
+        agent = User.objects.create_user(
             username="agent-uid",
             email="agent@example.com",
             password="x",
             supabase_uid="agent-uid",
         )
-        client = CustomUser.objects.create_user(
+        client = User.objects.create_user(
             username="client-uid",
             email="client@example.com",
             password="x",
             supabase_uid="client-uid",
         )
-        participant = CustomUser.objects.create_user(
+        participant = User.objects.create_user(
             username="participant-uid",
             email="participant@example.com",
             password="x",
@@ -80,7 +82,7 @@ class RoomMembersCIDViewTests(APITestCase):
         self.assertIn(participant.id, member_ids)
 
     def test_members_pagination(self):
-        agent = CustomUser.objects.create_user(
+        agent = User.objects.create_user(
             username="agent-uid",
             email="agent@example.com",
             password="x",
@@ -90,7 +92,7 @@ class RoomMembersCIDViewTests(APITestCase):
         channel = Channel.objects.create(uuid="channel-2", client="client")
 
         for index in range(75):
-            user = CustomUser.objects.create_user(
+            user = User.objects.create_user(
                 username=f"user-{index}",
                 email=f"user-{index}@example.com",
                 password="x",

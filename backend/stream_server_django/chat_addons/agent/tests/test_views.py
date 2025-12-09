@@ -27,17 +27,19 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat_addons.agent.models import AgentRun, RoomAgentFlag
 from stream_server_django.chat_addons.agent.services.agent_service import AgentSimulationResult
 from stream_server_django.chat_addons.agent.services.memory import MemoryService
 from stream_server_django.chat_addons.agent.utils import agent_user_id_for_room
+User = get_user_model()
 
 
 class AgentViewsTests(APITestCase):
     def setUp(self) -> None:
-        self.operator, _ = CustomUser.objects.get_or_create(
+        self.operator, _ = User.objects.get_or_create(
             username="operator-1",
             defaults={
                 "email": "operator1@example.com",

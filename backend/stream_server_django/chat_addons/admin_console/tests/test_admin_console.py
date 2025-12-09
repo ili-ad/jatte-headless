@@ -2,32 +2,33 @@ from unittest.mock import patch
 
 import jwt
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
-
-from stream_server_django.accounts_supabase.models import CustomUser
 from stream_server_django.chat.models import Message, Room, RoomMemberMute
 from stream_server_django.chat_addons.admin_console.models import GatingConfig, MessageIntake
 from stream_server_django.chat_addons.models import RoomOwnership
 
+User = get_user_model()
+
 
 class AdminConsoleQueueTests(APITestCase):
     def setUp(self):
-        self.operator = CustomUser.objects.create_user(
+        self.operator = User.objects.create_user(
             username="op1",
             email="op1@example.com",
             password="secret",
             supabase_uid="op1",
         )
-        self.other_operator = CustomUser.objects.create_user(
+        self.other_operator = User.objects.create_user(
             username="op2",
             email="op2@example.com",
             password="secret",
             supabase_uid="op2",
         )
 
-    def make_token(self, user: CustomUser) -> str:
+    def make_token(self, user: User) -> str:
         return jwt.encode(
             {"sub": user.supabase_uid, "email": user.email},
             settings.SUPABASE_JWT_SECRET,
@@ -65,7 +66,7 @@ class AdminConsoleQueueTests(APITestCase):
 
     def test_claim_rejected_when_owned_by_other(self):
         room = Room.objects.create(uuid="claim-r2", client="stream")
-        RoomOwnership.objects.create(room=room, owner=self.other_operator)
+          RoomOwnership.objects.create(room=room, owner=self.other_operator)
 
         token = self.make_token(self.operator)
         url = reverse("claim-room", kwargs={"cid": "messaging:claim-r2"})
@@ -103,14 +104,14 @@ class AdminConsoleQueueTests(APITestCase):
 
 class GatingRulesAPITests(APITestCase):
     def setUp(self):
-        self.operator = CustomUser.objects.create_user(
+        self.operator = User.objects.create_user(
             username="gate-admin",
             email="gate@example.com",
             password="secret",
             supabase_uid="gate-admin",
         )
 
-    def make_token(self, user: CustomUser) -> str:
+    def make_token(self, user: User) -> str:
         return jwt.encode(
             {"sub": user.supabase_uid, "email": user.email},
             settings.SUPABASE_JWT_SECRET,
@@ -158,13 +159,13 @@ class GatingRulesAPITests(APITestCase):
 )
 class IntakeWorkflowTests(APITestCase):
     def setUp(self):
-        self.operator = CustomUser.objects.create_user(
+        self.operator = User.objects.create_user(
             username="admin",
             email="admin@example.com",
             password="secret",
             supabase_uid="admin",
         )
-        self.visitor = CustomUser.objects.create_user(
+        self.visitor = User.objects.create_user(
             username="visitor",
             email="visitor@example.com",
             password="secret",
@@ -172,7 +173,7 @@ class IntakeWorkflowTests(APITestCase):
         )
         self.room = Room.objects.create(uuid="intake-room", client="stream")
 
-    def make_token(self, user: CustomUser) -> str:
+    def make_token(self, user: User) -> str:
         return jwt.encode(
             {"sub": user.supabase_uid, "email": user.email},
             settings.SUPABASE_JWT_SECRET,

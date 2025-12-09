@@ -8,32 +8,34 @@ django.setup()
 
 import jwt
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
 from stream_server_django.reminders.models import Reminder
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 
+User = get_user_model()
+
 
 class ReminderAPITests(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="alice",
             email="alice@example.com",
             password="pwd",
             supabase_uid="alice",
         )
-        self.other = CustomUser.objects.create_user(
+        self.other = User.objects.create_user(
             username="bob",
             email="bob@example.com",
             password="pwd",
             supabase_uid="bob",
         )
 
-    def _auth_headers(self, user: CustomUser | None = None) -> dict[str, str]:
+    def _auth_headers(self, user: User | None = None) -> dict[str, str]:
         actor = user or self.user
         token = jwt.encode(
             {"sub": actor.username, "email": actor.email},

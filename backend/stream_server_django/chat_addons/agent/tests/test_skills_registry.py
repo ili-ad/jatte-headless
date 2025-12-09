@@ -26,9 +26,11 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat_addons.agent import registry
 from stream_server_django.chat_addons.agent.models import AgentRoomPolicy
+User = get_user_model()
 
 
 class SkillRegistryTests(TestCase):
@@ -59,7 +61,7 @@ class SkillRegistryTests(TestCase):
 
 class SkillPolicyViewTests(APITestCase):
     def setUp(self) -> None:
-        self.operator, _ = CustomUser.objects.get_or_create(
+        self.operator, _ = User.objects.get_or_create(
             username="skills-operator",
             defaults={
                 "email": "skills@example.com",

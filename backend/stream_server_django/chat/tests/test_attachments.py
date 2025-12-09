@@ -9,8 +9,10 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
+User = get_user_model()
 
 @override_settings(ROOT_URLCONF="chat.urls")
 class AttachmentAPITests(APITestCase):
@@ -34,7 +36,7 @@ class AttachmentAPITests(APITestCase):
         return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
+        self.user = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
 
     def _direct_upload_settings(self, **overrides):
         base = {

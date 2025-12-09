@@ -19,8 +19,10 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Notification
+User = get_user_model()
 
 from stream_server_django.chat_addons.notifications.models import AdminPresence, EscalationRecord
 
@@ -28,7 +30,7 @@ from stream_server_django.chat_addons.notifications.models import AdminPresence,
 @override_settings(ROOT_URLCONF="jatte.urls")
 class NotificationEscalationTests(APITestCase):
     def setUp(self) -> None:
-        self.admin = CustomUser.objects.create_user(
+        self.admin = User.objects.create_user(
             username="admin",
             email="admin@example.com",
             password="secret",
