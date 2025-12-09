@@ -15,9 +15,11 @@ from django.test import TransactionTestCase, override_settings
 from rest_framework.test import APIClient, APITestCase
 from urllib.parse import quote
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.polls.models import Poll, PollOption, PollVote
 from jatte.asgi import application
+User = get_user_model()
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 
@@ -29,7 +31,7 @@ class PollVoteWebsocketTests(TransactionTestCase):
         call_command("migrate", run_syncdb=True, verbosity=0)
 
     async def _setup_user_poll(self):
-        user = await sync_to_async(CustomUser.objects.create_user)(
+        user = await sync_to_async(User.objects.create_user)(
             username="bob",
             email="bob@example.com",
             password="pwd",
@@ -174,13 +176,13 @@ class PollVoteWebsocketTests(TransactionTestCase):
 
 class PollVoteQueryTests(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="carol",
             email="carol@example.com",
             password="pwd",
             supabase_uid="carol",
         )
-        self.other = CustomUser.objects.create_user(
+        self.other = User.objects.create_user(
             username="dave",
             email="dave@example.com",
             password="pwd",

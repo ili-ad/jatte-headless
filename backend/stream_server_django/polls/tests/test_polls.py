@@ -8,18 +8,19 @@ django.setup()
 
 import jwt
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from rest_framework.test import APITestCase
-
-from stream_server_django.accounts_supabase.models import CustomUser
 from stream_server_django.polls.models import Poll, PollOption
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 
+User = get_user_model()
+
 
 class PollsAPITests(APITestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(
+        self.user = User.objects.create_user(
             username="alice",
             email="alice@example.com",
             password="pwd",

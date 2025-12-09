@@ -22,8 +22,10 @@ call_command("migrate", run_syncdb=True, verbosity=0)
 
 from rest_framework.test import APITestCase
 
-from stream_server_django.accounts_supabase.models import CustomUser
+from django.contrib.auth import get_user_model
+
 from stream_server_django.chat.models import Channel, Message, Room
+User = get_user_model()
 
 
 class RoomsEndpointsTests(APITestCase):
@@ -101,19 +103,19 @@ class RoomsEndpointsTests(APITestCase):
     def test_list_room_members_returns_expected_wrapper(self) -> None:
         """Members should be wrapped inside an object keyed by `members`."""
 
-        agent = CustomUser.objects.create_user(
+        agent = User.objects.create_user(
             username="agent-uid",
             email="agent@example.com",
             password="x",
             supabase_uid="agent-uid",
         )
-        client = CustomUser.objects.create_user(
+        client = User.objects.create_user(
             username="client-uid",
             email="client@example.com",
             password="x",
             supabase_uid="client-uid",
         )
-        participant = CustomUser.objects.create_user(
+        participant = User.objects.create_user(
             username="participant-uid",
             email="participant@example.com",
             password="x",
@@ -160,7 +162,7 @@ class RoomsEndpointsTests(APITestCase):
     def test_list_room_members_paginates_results(self) -> None:
         """Limit and offset should slice the members list."""
 
-        agent = CustomUser.objects.create_user(
+        agent = User.objects.create_user(
             username="agent",
             email="agent@example.com",
             password="x",
@@ -172,7 +174,7 @@ class RoomsEndpointsTests(APITestCase):
         channel = Channel.objects.create(uuid="channel-paginated", client="client")
 
         for index in range(75):
-            user = CustomUser.objects.create_user(
+            user = User.objects.create_user(
                 username=f"user-{index}",
                 email=f"user-{index}@example.com",
                 password="x",
