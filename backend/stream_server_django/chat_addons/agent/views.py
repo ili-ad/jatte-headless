@@ -13,6 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.chat.models import Message, Room
 from stream_server_django.chat.utils import canonical_cid
@@ -270,6 +271,8 @@ class AgentLLMInvokeView(APIView):
             return response
 
         try:
+            identity = get_chat_identity(request)
+
             # Normalize CID + room and mark that this room has ever used an agent
             canonical, room = _resolve_room(cid)
             RoomAgentFlag.objects.get_or_create(room=room)
@@ -351,7 +354,7 @@ class AgentLLMInvokeView(APIView):
 
             job_id = service.enqueue_generate(
                 cid=canonical,
-                user_id=str(getattr(request.user, "id", "")) or None,
+                user_id=str(identity.id) if identity.id is not None else None,
                 text=message.body or "",
                 meta=meta,
                 request_id=trace_id,
@@ -443,6 +446,7 @@ class AgentRagView(APIView):
 
         room_identifier = serializer.validated_data["room_uuid"]
         canonical, room = _resolve_room(room_identifier)
+        identity = get_chat_identity(request)
         if not agent_enabled_for_room(canonical, room):
             return Response(
                 {"detail": "Agent disabled for this room."},
@@ -477,7 +481,7 @@ class AgentRagView(APIView):
         service = get_agent_service()
         reply = service.generate(
             cid=canonical,
-            user_id=str(getattr(request.user, "id", "")) or None,
+            user_id=str(identity.id) if identity.id is not None else None,
             text=message.body,
             meta={k: v for k, v in meta.items() if v is not None},
             request_id=serializer.validated_data.get("trace_id"),
