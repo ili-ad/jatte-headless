@@ -5,13 +5,13 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stream_server_django.accounts_supabase.authentication import SupabaseJWTAuthentication
+from stream_server_django.common.auth_utils import get_chat_authentication_classes
 
 
 class UsersDirectoryView(APIView):
     """Return the list of users with the minimal shape required."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -27,7 +27,7 @@ class UsersDirectoryView(APIView):
 class CurrentUserView(APIView):
     """Return the authenticated user with the minimal payload."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
