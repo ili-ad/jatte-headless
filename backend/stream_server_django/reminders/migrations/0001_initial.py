@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("accounts_supabase", "0002_userprofile_display_name_userprofile_extra_and_more"),
+        ("accounts", "0001_initial"),
     ]
 
     operations = [
@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="stream_server_django.reminders",
-                        to="accounts_supabase.customuser",
+                        to="accounts.customuser",
                     ),
                 ),
             ],
