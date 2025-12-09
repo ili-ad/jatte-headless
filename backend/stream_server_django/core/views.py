@@ -1,4 +1,4 @@
-from stream_server_django.accounts_supabase.authentication import SupabaseJWTAuthentication
+from stream_server_django.common.auth_utils import get_chat_authentication_classes
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,7 +18,7 @@ def about(request):
 class AppSettingsView(APIView):
     """Return application-wide settings for the authenticated user."""
 
-    authentication_classes = [SupabaseJWTAuthentication]
+    authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
