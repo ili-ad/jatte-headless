@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.common.identity import get_chat_identity
 
 from .models import EventNotification, EventSubscription
 from .serializers import (
@@ -31,13 +32,15 @@ class RegisterSubscriptionsView(AuthenticatedAPIView):
     """Persist subscription state for the current user."""
 
     def post(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = RegisterSubscriptionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         subscriptions = serializer.validated_data["subscriptions"]
 
         with transaction.atomic():
             EventSubscription.objects.update_or_create(
-                user=request.user,
+                user=user,
                 defaults={"subscriptions": subscriptions},
             )
 
@@ -55,6 +58,8 @@ class DispatchEventView(AuthenticatedAPIView):
     """Store an incoming event and echo it back to the caller."""
 
     def post(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         serializer = DispatchEventSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         event = serializer.validated_data["event"]
@@ -62,7 +67,7 @@ class DispatchEventView(AuthenticatedAPIView):
         cid = payload.get("cid") or ""
 
         EventNotification.objects.create(
-            user=request.user,
+            user=user,
             event_type=event["type"],
             payload=payload,
             cid=cid,
@@ -75,8 +80,10 @@ class NotificationListView(AuthenticatedAPIView):
     """Return the notification feed for the current user."""
 
     def get(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         cid = request.query_params.get("cid")
-        notifications = EventNotification.objects.filter(user=request.user)
+        notifications = EventNotification.objects.filter(user=user)
         if cid:
             notifications = notifications.filter(cid=cid)
         notifications = notifications.order_by("-created_at", "-id")

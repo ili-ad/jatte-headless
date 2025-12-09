@@ -15,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat.models import Notification, Room
 
 from .serializers import (
@@ -53,7 +54,9 @@ def recover_state(request: Request) -> Response:
 
     rooms_serialized = RoomSnapshotSerializer(room_payload, many=True).data
 
-    notifications = Notification.objects.filter(user=request.user).order_by(
+    identity = get_chat_identity(request)
+    user = identity.as_user()
+    notifications = Notification.objects.filter(user=user).order_by(
         "-created_at"
     )
     note_payload = []

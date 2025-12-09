@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from stream_server_django.common.identity import get_chat_identity
+
 from stream_server_django.chat.models import RoomMute, UserMute
 
 from .serializers import (
@@ -26,8 +28,10 @@ class MuteStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, username: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         target = get_object_or_404(User, username=username)
-        muted = UserMute.objects.filter(user=request.user, target=target).exists()
+        muted = UserMute.objects.filter(user=user, target=target).exists()
         serializer = MuteStatusOut({"muted": muted})
         return Response(serializer.data)
 
@@ -36,8 +40,10 @@ class MutedUsersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         mutes = (
-            UserMute.objects.filter(user=request.user)
+            UserMute.objects.filter(user=user)
             .select_related("target")
             .order_by("target__username")
         )
@@ -50,8 +56,10 @@ class MutedChannelsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         mutes = (
-            RoomMute.objects.filter(user=request.user)
+            RoomMute.objects.filter(user=user)
             .select_related("room")
             .order_by("room__uuid")
         )
@@ -64,8 +72,10 @@ class MuteUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, username: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         target = get_object_or_404(User, username=username)
-        UserMute.objects.get_or_create(user=request.user, target=target)
+        UserMute.objects.get_or_create(user=user, target=target)
         serializer = MuteActionOut({"status": "ok"})
         return Response(serializer.data)
 
@@ -74,7 +84,9 @@ class UnmuteUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, username: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         target = get_object_or_404(User, username=username)
-        UserMute.objects.filter(user=request.user, target=target).delete()
+        UserMute.objects.filter(user=user, target=target).delete()
         serializer = MuteActionOut({"status": "ok"})
         return Response(serializer.data)
