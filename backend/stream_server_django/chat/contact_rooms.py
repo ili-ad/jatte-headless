@@ -14,6 +14,10 @@ from .models import Room
 
 User = get_user_model()
 
+CONTACT_ROOM_KIND = "contact"
+
+__all__ = ["CONTACT_ROOM_KIND", "get_or_create_contact_room"]
+
 
 def _user_identifiers(user: User) -> List[str]:
     """Return stable identifiers associated with the given user.
