@@ -84,10 +84,21 @@ export async function triggerAgentReplyIfEnabled(
         (message as any).sent_by ??
         (message as any).user?.id;
 
+    const snapshot = channel.messageComposer.configState.getSnapshot();
+    const aiConfig = (channel as any).agentConfig ?? extractRoomAgentConfig(snapshot);
+
     const isAgentLab =
         (channel as any).uuid === 'agent-lab' || channel.cid === 'messaging:agent-lab';
 
-    if (!isAgentLab) {
+    const isAgentEnabled = aiConfig?.enabled ?? isAgentLab;
+
+    if (!isAgentEnabled) {
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[agent] skip invokeAgent: agent disabled for channel', {
+                cid: channel.cid,
+                uuid: (channel as any).uuid,
+            });
+        }
         return;
     }
 
@@ -105,8 +116,6 @@ export async function triggerAgentReplyIfEnabled(
         return;
     }
 
-    const snapshot = channel.messageComposer.configState.getSnapshot();
-    const aiConfig = (channel as any).agentConfig ?? extractRoomAgentConfig(snapshot);
     const botUserId = aiConfig?.botUserId;
     if (botUserId && authorId === botUserId) {
         console.log('[agent] bail: message from bot user, not echoing');
