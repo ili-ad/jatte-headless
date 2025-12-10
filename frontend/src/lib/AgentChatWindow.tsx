@@ -17,7 +17,7 @@ import {
 import {StopAIGenerationButton} from '@iliad/stream-chat-shim/components/MessageInput/StopAIGenerationButton';
 import { useEffect } from 'react';
 
-import { AgentMessage } from '@/app/agent/AgentMessage';
+import { AgentMessage } from '../app/agent/AgentMessage';
 
 
 import { useChat } from './ChatProvider';

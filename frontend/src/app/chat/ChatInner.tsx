@@ -3,7 +3,7 @@
 
 import { PropsWithChildren } from 'react';
 
-import { AgentChatWindow, ChatProvider, ChatWindow } from '@/chat-kit';
+import { AgentChatWindow, ChatProvider, ChatWindow } from '../../chat-kit';
 
 interface ChatInnerProps {
   roomSlug?: string;

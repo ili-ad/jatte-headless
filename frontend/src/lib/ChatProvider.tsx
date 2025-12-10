@@ -2,8 +2,8 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import type { Channel as ChannelType, ChatClient } from '@/lib/stream-adapter';
-import { Channel as AdapterChannel } from '@/lib/stream-adapter';
+import type { Channel as ChannelType, ChatClient } from './stream-adapter';
+import { Channel as AdapterChannel } from './stream-adapter';
 import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
