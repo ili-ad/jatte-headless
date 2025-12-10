@@ -152,6 +152,12 @@ class Room(models.Model):
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.client} - {self.uuid}"
 
+    @property
+    def cid(self) -> str:
+        """Return the canonical Stream-style channel identifier for the room."""
+
+        return f"messaging:{self.uuid}"
+
 
 class Draft(models.Model):
     """Per-user draft message for a room."""
