@@ -21,7 +21,7 @@ without notice.
 Example usage inside an app route:
 
 ```ts
-import { ChatProvider, ChatWindow } from '@/chat-kit';
+import { ChatProvider, ChatWindow } from '@jatte-headless/chat-kit';
 
 export default function ContactChat() {
   return (
@@ -43,7 +43,7 @@ Low-level usage is available but most apps should stick to `ChatProvider` +
 `ChatWindow`:
 
 ```ts
-import { ChatClient, Channel } from '@/chat-kit';
+import { ChatClient, Channel } from '@jatte-headless/chat-kit';
 
 const client = new ChatClient({ baseUrl: '/api/chat' });
 const channel = new Channel(client, { cid: 'messaging:general' });
@@ -64,7 +64,7 @@ frontend/src/app/* (routes & demo UIs)
 ```
 
 - Do **not** import directly from `libs/*` or `lib/stream-adapter` in app code.
-- Use `@/chat-kit` as the single entrypoint for chat UI and client APIs.
+- Use the `chat-kit` entrypoint as the single source for chat UI and client APIs.
 
 ## Import guidelines
 
@@ -73,14 +73,14 @@ frontend/src/app/* (routes & demo UIs)
   ```ts
   import { ChatProvider, ChatWindow } from '@jatte-headless/chat-kit';
   // or, inside this repo:
-  import { ChatProvider, ChatWindow } from '@/chat-kit';
+  import { ChatProvider, ChatWindow } from '../chat-kit';
   ```
 
 - 🚫 **Don’t do this in app code:**
 
   ```ts
   // Internal only:
-  import { Channel } from '@/lib/stream-adapter';
+  import { Channel } from '../lib/stream-adapter';
   import { Chat } from 'libs/stream-chat-shim';
   ```
 

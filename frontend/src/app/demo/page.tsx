@@ -2,10 +2,10 @@
 
 'use client'
 
-//import { ChatProvider, useChat } from '@/lib/ChatProvider';
-import { ChatProvider, useChat } from '@/lib/ChatProvider';
-import AgentChatWindow from '@/lib/AgentChatWindow';
-import ChatGuard from '@/components/ChatGuard';
+//import { ChatProvider, useChat } from '../../lib/ChatProvider';
+import { ChatProvider, useChat } from '../../lib/ChatProvider';
+import AgentChatWindow from '../../lib/AgentChatWindow';
+import ChatGuard from '../../components/ChatGuard';
 import { useEffect } from 'react';
 
 function HelloWorldSender() {

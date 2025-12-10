@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-import ChatGuard from '@/components/ChatGuard';
+import ChatGuard from '../../components/ChatGuard';
 
 /**
  * Dedicated agent chat sandbox.
