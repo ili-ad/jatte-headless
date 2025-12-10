@@ -1,6 +1,6 @@
 'use client'
 import { Component, ReactNode } from 'react'
-import ChatGuard from '@/components/ChatGuard'
+import ChatGuard from '../components/ChatGuard'
 import { AuthError } from './errors'
 
 interface Props { children: ReactNode }

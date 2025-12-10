@@ -1,5 +1,5 @@
 // frontend/src/lib/getStreamClient.ts
-import { ChatClient } from '@/chat-kit/client';
+import { ChatClient } from '../chat-kit/client';
 
 // If you still want a generic alias, keep it here:
 export type AnyClient = ChatClient;

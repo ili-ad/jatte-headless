@@ -7,7 +7,7 @@ import {
   getSidecarItemById,
   type SidecarItemDef,
   type SidecarSuggestion,
-} from '@/lib/sidecarCatalog';
+} from '../../lib/sidecarCatalog';
 
 function labelForSidecarItem(def: SidecarItemDef): string {
   return def.shortLabel || def.label;
