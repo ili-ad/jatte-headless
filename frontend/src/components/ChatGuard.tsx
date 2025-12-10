@@ -1,7 +1,7 @@
 'use client'
 import { ReactNode } from 'react'
-import { useSession } from '@/lib/SessionProvider'
-import Button from '@/components/ui/button'
+import { useSession } from '../lib/SessionProvider'
+import Button from './ui/button'
 
 export default function ChatGuard({ children, whenUnauthed = 'inline' }: { children: ReactNode; whenUnauthed?: 'inline' | 'redirect' }) {
   const { session, loading } = useSession()

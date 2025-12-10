@@ -3,8 +3,8 @@
 'use client'
 import { FormEvent, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
-import { useSession } from '@/lib/SessionProvider'
+import { supabase } from '../../lib/supabaseClient'
+import { useSession } from '../../lib/SessionProvider'
 
 export default function LoginPage() {
   const router = useRouter()

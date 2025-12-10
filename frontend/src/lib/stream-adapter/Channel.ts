@@ -834,7 +834,7 @@ export class Channel {
     /** Return the parent ChatClient instance */
     getClient() { return this.client; }
 
-    // at top of file you already have: import { API, apiFetch } from '@/lib/api';
+    // at top of file you already have: import { API, apiFetch } from '../api';
 
     /**
      * Config stub for the Stream UI.
