@@ -6,7 +6,7 @@ import type { Channel as ChannelType, ChatClient } from './stream-adapter';
 import { Channel as AdapterChannel } from './stream-adapter';
 import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
-import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
+import { setAuthToken } from '@iliad/stream-chat-shim';
 import { useSession } from './SessionProvider';
 
 export const chatClient: ChatClient = getStreamClient();

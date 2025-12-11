@@ -1,4 +1,4 @@
-import { setAuthToken } from '@iliad/stream-chat-shim/api/chatAPI';
+import { setAuthToken } from '@iliad/stream-chat-shim';
 
 import { supabase } from './supabaseClient';
 

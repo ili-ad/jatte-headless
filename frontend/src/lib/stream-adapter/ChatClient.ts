@@ -7,8 +7,8 @@ import { TokenManager } from './tokenManager';
 
 const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User, Message } from './types';
-import type { AIState } from '@iliad/stream-chat-shim/components/AIStateIndicator/hooks/useAIState';
-import { AIStates } from '@iliad/stream-chat-shim/components/AIStateIndicator/hooks/useAIState';
+import type { AIState } from '@iliad/stream-chat-shim';
+import { AIStates } from '@iliad/stream-chat-shim';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */

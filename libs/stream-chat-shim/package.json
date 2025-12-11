@@ -1,8 +1,8 @@
 {
   "name": "@iliad/stream-chat-shim",
-  "version": "0.0.1",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
 
   "dependencies": {
     "@popperjs/core": "^2.11.8",       
