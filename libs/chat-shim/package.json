@@ -3,5 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "main": "index.js",
-  "types": "index.d.ts"  
+  "types": "index.d.ts",
+  "dependencies": {
+    "@iliad/stream-chat-shim": "workspace:*"
+  }
 }

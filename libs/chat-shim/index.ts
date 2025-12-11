@@ -6,9 +6,13 @@ import {
   chatAPI,
   type SyncUserRequest,
   type SyncUserResponse,
-} from "../stream-chat-shim/src/api/chatAPI";
-import { WS_BASE as DEFAULT_WS_BASE } from "../stream-chat-shim/src/config/env";
+// } from "../stream-chat-shim/src/api/chatAPI";
+// import { WS_BASE as DEFAULT_WS_BASE } from "../stream-chat-shim/src/config/env";
+// import { createStore } from "./stateStore";
+} from "@iliad/stream-chat-shim/src/api/chatAPI";
+import { WS_BASE as DEFAULT_WS_BASE } from "@iliad/stream-chat-shim/src/config/env";
 import { createStore } from "./stateStore";
+
 
 /* ----- public types the UI already references ---------------------- */
 export type LocalMessage = any;
