@@ -5,14 +5,14 @@
   – no duplicate helpers
   – survives builds where Channel isn’t exported at all
 ───────────────────────────────────────────────────────────────────────────*/
-import { MessageComposer as MC } from 'chat-shim';
+import { MessageComposer as MC } from './index.js';
 
 /* ――― try to discover a Channel-like class if the shim exposes one ――― */
 const RawChannel: any =
   // common names that appear in different Stream builds
-  (require('chat-shim') as any).Channel ??
-  (require('chat-shim') as any).BaseChannel ??
-  (require('chat-shim') as any).StreamChannel ??
+  (require('./index.js') as any).Channel ??
+  (require('./index.js') as any).BaseChannel ??
+  (require('./index.js') as any).StreamChannel ??
   null;
 
 /* ---------- 1 · make every Channel instance carry the fields UI expects */
