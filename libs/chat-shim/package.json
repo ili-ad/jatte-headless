@@ -1,5 +1,7 @@
 {
-  "name": "@iliad/chat-shim",
+  "name": "chat-shim",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "main": "index.js",
+  "types": "index.d.ts"  
 }
