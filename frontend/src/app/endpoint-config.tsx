@@ -2,8 +2,10 @@
 
 import { API_BASE, WS_BASE } from "@/config/endpoints";
 import { configureWebsocketBase as configureChatShim } from "chat-shim";
-import { configureWebsocketBase as configureStreamShimWs } from "@iliad/stream-chat-shim/client";
-import { configureApiBase } from "@iliad/stream-chat-shim/api/chatAPI";
+import {
+  configureApiBase,
+  configureWebsocketBase as configureStreamShimWs,
+} from "@iliad/stream-chat-shim";
 
 configureChatShim(WS_BASE);
 configureStreamShimWs(WS_BASE);
