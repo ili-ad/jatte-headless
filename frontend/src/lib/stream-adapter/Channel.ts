@@ -6,7 +6,7 @@ import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { buildAttachmentManager } from './composer/attachments';
-import { WS_BASE } from '@iliad/stream-chat-shim/config/env';
+import { WS_BASE } from '@iliad/stream-chat-shim';
 import {
     clearAgentTypingTimer,
     normalizeMessagesWithDisplayName,
