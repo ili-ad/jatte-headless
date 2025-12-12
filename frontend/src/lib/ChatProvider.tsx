@@ -20,11 +20,22 @@ import { AuthError } from './errors';
 import { MAX_BOOTSTRAP_ATTEMPTS } from '../chat-kit/lib/bootstrapFetchPolicy';
 import { nextDelayMs, shouldRetry } from '../chat-kit/lib/bootstrapFetchPolicy';
 import { setAccessToken } from './authTokenStore';
+import { apiFetch } from './api';
 
 export const chatClient: ChatClient = getStreamClient();
 
 const ROOM_UUID_COOKIE_PREFIX = 'jatte.room_uuid.';
 const ROOM_UUID_COOKIE_MAX_AGE_DAYS = 60;
+
+function slugifyCookieKey(raw: string) {
+  const slug = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug || 'default';
+}
 
 function getCookie(name: string) {
   const cookies = typeof document !== 'undefined' ? document.cookie.split(';') : [];
@@ -87,9 +98,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   useEffect(() => {
     let cancelled = false;
     const label = roomSlug;
-    const cookieKey = `${ROOM_UUID_COOKIE_PREFIX}${label}`;
+    const cookieKey = `${ROOM_UUID_COOKIE_PREFIX}${slugifyCookieKey(label)}`;
 
     setRoomUuid(null);
+    setBootstrapStatus({ kind: 'connecting' });
 
     const cachedUuid = getCookie(cookieKey);
     if (cachedUuid) {
@@ -99,13 +111,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
       };
     }
 
-    setBootstrapStatus({ kind: 'connecting' });
-
     (async () => {
       try {
-        const res = await fetch('/api/rooms/resolve/', {
+        const res = await apiFetch('/rooms/resolve/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ label }),
         });
 
@@ -148,7 +157,9 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     if (!session || !roomUuid) {
       setChannel(null);
       setRoomConfig(null);
-      setBootstrapStatus({ kind: 'connecting' });
+      setBootstrapStatus((status) =>
+        status.kind === 'error' ? status : { kind: 'connecting' },
+      );
       setAuthToken(null);
       setAccessToken(null);
 
