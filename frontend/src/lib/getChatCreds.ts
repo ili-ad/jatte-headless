@@ -1,8 +1,9 @@
 import { setAuthToken } from '@iliad/stream-chat-shim';
 
-import { supabase } from './supabaseClient';
+import { getSupabaseClient } from './supabaseClient';
 
 export async function getChatCreds() {
+  const supabase = getSupabaseClient();
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error('No Supabase session');
