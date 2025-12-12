@@ -14,15 +14,11 @@ def _decode_unverified(token: str) -> dict:
         return {}
 
 
-def is_guest_identity(request: Request) -> bool:
-    """Return ``True`` when the authenticated request represents a guest session.
+def is_at_least_guest_identity(request: Request) -> bool:
+    """Return ``True`` when the request includes a valid Supabase JWT identity.
 
-    Supabase anonymous sessions typically include markers like ``is_anonymous`` or
-    an ``app_metadata.provider`` of ``"anonymous"``. We attempt to detect those
-    claims without re-verifying the JWT signature (the DRF authentication class
-    has already validated the token). If no explicit marker is present, we treat
-    any validated Supabase JWT as at least a guest for the limited read-only
-    access granted by the config-state endpoint.
+    True for any validated Supabase JWT—either an anonymous session or a logged-in
+    user. False when there is no JWT / no authenticated identity on the request.
     """
 
     token = getattr(request, "auth", None)
