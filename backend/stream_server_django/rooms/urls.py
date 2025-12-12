@@ -10,6 +10,8 @@ app_name = "stream_server_django.rooms"
 urlpatterns = [
     path("rooms/", views.list_rooms, name="list"),
     path("rooms/active/", views.list_active_rooms, name="list-active"),
+    path("api/rooms/resolve/", views.resolve_room, name="resolve"),
+    re_path(r"^api/rooms/resolve/?$", views.resolve_room),
     path(
         "api/rooms/<path:cid>/members/",
         views.list_room_members_cid,
@@ -24,5 +26,14 @@ urlpatterns = [
     re_path(
         r"^api/rooms/(?P<room_uuid>[^/]+)/config-state/?$",
         RoomConfigStateView.as_view(),
+    ),
+    path(
+        "api/rooms/<str:room_uuid>/messages/",
+        views.room_messages,
+        name="messages",
+    ),
+    re_path(
+        r"^api/rooms/(?P<room_uuid>[^/]+)/messages/?$",
+        views.room_messages,
     ),
 ]
