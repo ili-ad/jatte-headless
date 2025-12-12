@@ -27,14 +27,8 @@ export const chatClient: ChatClient = getStreamClient();
 const ROOM_UUID_COOKIE_PREFIX = 'jatte.room_uuid.';
 const ROOM_UUID_COOKIE_MAX_AGE_DAYS = 60;
 
-function slugifyCookieKey(raw: string) {
-  const slug = raw
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-+|-+$/g, '');
-
-  return slug || 'default';
+function cookieKeyForLabel(label: string) {
+  return `${ROOM_UUID_COOKIE_PREFIX}${label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 }
 
 function getCookie(name: string) {
@@ -98,9 +92,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   useEffect(() => {
     let cancelled = false;
     const label = roomSlug;
-    const cookieKey = `${ROOM_UUID_COOKIE_PREFIX}${slugifyCookieKey(label)}`;
+    const cookieKey = cookieKeyForLabel(label);
 
     setRoomUuid(null);
+    setRoomConfig(null);
     setBootstrapStatus({ kind: 'connecting' });
 
     const cachedUuid = getCookie(cookieKey);
@@ -157,9 +152,12 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     if (!session || !roomUuid) {
       setChannel(null);
       setRoomConfig(null);
-      setBootstrapStatus((status) =>
-        status.kind === 'error' ? status : { kind: 'connecting' },
-      );
+      setBootstrapStatus((status) => {
+        if (status.kind === 'error' && !roomUuid) {
+          return status;
+        }
+        return { kind: 'connecting' };
+      });
       setAuthToken(null);
       setAccessToken(null);
 
