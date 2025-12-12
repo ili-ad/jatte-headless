@@ -8,6 +8,7 @@ from uuid import uuid4
 import zlib
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils.text import slugify
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -224,16 +225,45 @@ def resolve_room(request: Request) -> Response:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    normalized_label = label.strip()
+    raw_label = label
+    display_name = raw_label.strip()
+    slug = slugify(display_name)
+
+    normalized_candidates = {display_name, slug}
     room = Room.objects.filter(client=client_identifier).filter(
-        Q(data__label=normalized_label) | Q(data__slug=normalized_label)
+        Q(data__label__in={raw_label, *normalized_candidates})
+        | Q(data__slug__in=normalized_candidates)
     ).first()
     if room is None:
         room = Room.objects.create(
             uuid=str(uuid4()),
             client=client_identifier,
-            data={"label": normalized_label, "slug": normalized_label, "name": label},
+            data={"label": raw_label, "slug": slug, "name": display_name},
         )
+    else:
+        data = room.data if isinstance(room.data, dict) else {}
+        updated = False
+
+        if "label" not in data:
+            data["label"] = raw_label
+            updated = True
+        if slug and data.get("slug") is None:
+            data["slug"] = slug
+            updated = True
+
+        name_candidate = data.get("name") if isinstance(data, dict) else None
+        if isinstance(name_candidate, str) and name_candidate.strip():
+            display_name = name_candidate.strip()
+            if name_candidate != display_name:
+                data["name"] = display_name
+                updated = True
+        else:
+            data["name"] = display_name
+            updated = True
+
+        if updated:
+            room.data = data
+            room.save(update_fields=["data"])
 
     name = None
     if isinstance(room.data, dict):
@@ -270,10 +300,17 @@ def room_messages(request: Request, room_uuid: str) -> Response:
     channel, _ = Channel.objects.get_or_create(
         uuid=room.uuid, defaults={"client": room.client or identity.username}
     )
+
+    sender_identifier = (
+        getattr(identity, "supabase_uid", None)
+        or identity.username
+        or str(identity.id)
+    )
+
     message = Message.objects.create(
         channel=channel,
         body=serializer.validated_data["body"],
-        sent_by=identity.username,
+        sent_by=sender_identifier,
         custom_data=custom_data,
     )
     room.messages.add(message)
