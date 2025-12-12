@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stream_server_django.accounts_supabase.utils import is_guest_identity
+from stream_server_django.accounts_supabase.utils import is_at_least_guest_identity
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.chat.utils import canonical_cid
 
@@ -38,11 +38,8 @@ class RoomConfigStateView(APIView):
     def get(self, request: Request, room_uuid: str) -> Response:
         room = get_room_or_404(room_uuid)
         if not user_has_room_access(request.user, room):
-            if not (is_public_agent_room(room) and is_guest_identity(request)):
+            if not (is_public_agent_room(room) and is_at_least_guest_identity(request)):
                 return Response(status=status.HTTP_403_FORBIDDEN)
-
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_403_FORBIDDEN)
 
         canonical = canonical_cid(room_uuid, room_uuid=room.uuid)
         composer = deepcopy(_DEFAULT_COMPOSER_CONFIG)
