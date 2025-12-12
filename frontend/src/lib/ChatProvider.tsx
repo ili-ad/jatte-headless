@@ -23,6 +23,25 @@ import { setAccessToken } from './authTokenStore';
 
 export const chatClient: ChatClient = getStreamClient();
 
+const ROOM_UUID_COOKIE_PREFIX = 'jatte.room_uuid.';
+const ROOM_UUID_COOKIE_MAX_AGE_DAYS = 60;
+
+function getCookie(name: string) {
+  const cookies = typeof document !== 'undefined' ? document.cookie.split(';') : [];
+  for (const raw of cookies) {
+    const [key, ...rest] = raw.trim().split('=');
+    if (decodeURIComponent(key) === name) {
+      return decodeURIComponent(rest.join('=') ?? '');
+    }
+  }
+  return null;
+}
+
+function setCookie(name: string, value: string, maxAgeDays = ROOM_UUID_COOKIE_MAX_AGE_DAYS) {
+  const expires = new Date(Date.now() + maxAgeDays * 24 * 60 * 60 * 1000);
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; expires=${expires.toUTCString()}`;
+}
+
 export type BootstrapStatus =
   | { kind: 'connecting' }
   | { kind: 'retrying'; attempt: number; retryInMs: number }
@@ -58,6 +77,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   const { session } = useSession();
   const [client] = useState<ChatClient>(() => chatClient);
   const [channel, setChannel] = useState<ChannelType | null>(null);
+  const [roomUuid, setRoomUuid] = useState<string | null>(null);
   const [roomConfig, setRoomConfig] = useState<Record<string, any> | null>(null);
   const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>({ kind: 'connecting' });
   const [bootstrapRunId, setBootstrapRunId] = useState(0);
@@ -65,10 +85,67 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   const retryBootstrap = useCallback(() => setBootstrapRunId((id) => id + 1), []);
 
   useEffect(() => {
+    let cancelled = false;
+    const label = roomSlug;
+    const cookieKey = `${ROOM_UUID_COOKIE_PREFIX}${label}`;
+
+    setRoomUuid(null);
+
+    const cachedUuid = getCookie(cookieKey);
+    if (cachedUuid) {
+      setRoomUuid(cachedUuid);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setBootstrapStatus({ kind: 'connecting' });
+
+    (async () => {
+      try {
+        const res = await fetch('/api/rooms/resolve/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`resolve failed with status ${res.status}`);
+        }
+
+        const data = await res.json().catch(() => ({}));
+        const uuid = data?.room_uuid ?? data?.uuid;
+
+        if (!uuid) {
+          throw new Error('resolve response missing room_uuid');
+        }
+
+        if (cancelled) return;
+
+        setCookie(cookieKey, uuid);
+        setRoomUuid(uuid);
+      } catch (err) {
+        console.error('[ChatProvider] failed to resolve room', err);
+        if (!cancelled) {
+          setBootstrapStatus({
+            kind: 'error',
+            message: 'Could not start chat. Please try again.',
+            retryable: true,
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomSlug, bootstrapRunId]);
+
+  useEffect(() => {
     let mounted = true;
 
     // When the Supabase session is gone, tear down the channel and (optionally) disconnect.
-    if (!session) {
+    if (!session || !roomUuid) {
       setChannel(null);
       setRoomConfig(null);
       setBootstrapStatus({ kind: 'connecting' });
@@ -115,7 +192,8 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
           return;
         }
 
-        const chan = channelFactory.call(client, 'messaging', roomSlug) as AdapterChannel;
+        const chan = channelFactory.call(client, 'messaging', roomUuid) as AdapterChannel;
+        chan.data = { ...chan.data, name: roomSlug };
         await chan.watch();
 
         console.info('[ChatProvider] channel created', {
@@ -149,7 +227,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
         }
       }
     };
-  }, [client, session, roomSlug]);
+    }, [client, roomSlug, roomUuid, session]);
 
 
 
