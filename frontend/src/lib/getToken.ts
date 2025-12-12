@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+import { getSupabaseClient } from './supabaseClient'
 import { apiFetch } from './api'
 
 export interface TokenData {
@@ -7,6 +7,7 @@ export interface TokenData {
 }
 
 export async function getToken(): Promise<TokenData> {
+  const supabase = getSupabaseClient()
   const { data } = await supabase.auth.getSession()
   const session = data.session
   if (!session) throw new Error('not authenticated')
