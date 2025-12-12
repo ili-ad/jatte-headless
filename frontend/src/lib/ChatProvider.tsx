@@ -167,7 +167,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     setRoomConfig(null);
   }, [channel, bootstrapRunId]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!channel || typeof (channel as any).getConfigState !== 'function') return;
 
     let cancelled = false;
@@ -176,6 +176,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     let countdownTimer: ReturnType<typeof setInterval> | null = null;
     let refreshTimer: ReturnType<typeof setInterval> | null = null;
     let abortController = new AbortController();
+    let refreshAbortController: AbortController | null = null;
 
     const clearTimers = () => {
       if (retryTimeout) clearTimeout(retryTimeout);
@@ -229,14 +230,28 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
         setBootstrapStatus({ kind: 'ready' });
 
         refreshTimer = setInterval(() => {
-          void (channel as any)
-            .getConfigState(true)
-            .catch((err: unknown) => {
+          if (cancelled) return;
+          refreshAbortController?.abort();
+          refreshAbortController = new AbortController();
+
+          void (async () => {
+            try {
+              const refreshed = await (channel as any).getConfigState(true, {
+                signal: refreshAbortController?.signal,
+              });
+              if (cancelled) return;
+              setRoomConfig(refreshed ?? null);
+            } catch (err) {
+              if (cancelled) return;
+              if (err instanceof DOMException && err.name === 'AbortError') {
+                return;
+              }
               if (process.env.NODE_ENV !== 'production') {
                 // eslint-disable-next-line no-console
                 console.warn('[agent/config] background config-state refresh failed', err);
               }
-            });
+            }
+          })();
         }, 90_000);
       } catch (err) {
         if (cancelled) return;
@@ -269,6 +284,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     return () => {
       cancelled = true;
       abortController.abort();
+      refreshAbortController?.abort();
       clearTimers();
     };
   }, [channel, bootstrapRunId]);

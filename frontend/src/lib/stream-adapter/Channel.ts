@@ -557,14 +557,8 @@ export class Channel {
                         // should not be tied to streaming callbacks; polling `/config-state` while
                         // streaming would overload the backend without providing new info.
 
-                        // 1) get the token from the ChatClient
-                        const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
-                        const tokenFromStore = getAccessToken();
-                        const token: string | null =
-                            tokenFromStore ??
-                            (typeof client.getToken === 'function'
-                                ? client.getToken()
-                                : client.jwt ?? null); // fall back to the private field at runtime
+                        // 1) get the token from the auth token store (single source of truth)
+                        const token = getAccessToken();
 
                         if (!token) {
                             throw new AuthError('Missing auth token (auth not ready)', 401);
