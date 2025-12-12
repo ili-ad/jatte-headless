@@ -1,0 +1,84 @@
+{
+  "entrypoints": ["agent-lab"],
+  "identifierStrategy": {
+    "entrypointLabel": "agent-lab",
+    "conversationId": "room_uuid",
+    "persistence": {
+      "storage": "cookie-or-localStorage",
+      "key": "jatte.room_uuid"
+    },
+    "notes": "UI currently passes the label directly as the room id; add resolve + storage to switch to UUID."
+  },
+  "endpoints": [
+    {
+      "name": "resolveRoom",
+      "method": "POST",
+      "path": "/api/rooms/resolve/",
+      "purpose": "entrypoint label -> per-user room_uuid",
+      "request": { "label": "string" },
+      "response": { "room_uuid": "string", "name": "string?" },
+      "implemented": false
+    },
+    {
+      "name": "configState",
+      "method": "GET",
+      "path": "/api/rooms/{room_uuid}/config-state/",
+      "headers": ["Authorization: Bearer <token>"],
+      "response": {
+        "composer": {
+          "file_uploads": "boolean?",
+          "max_length": "number?",
+          "cooldown_seconds": "number?"
+        }
+      },
+      "callSites": [
+        "src/lib/ChatProvider.tsx: getConfigState bootstrap",
+        "src/lib/stream-adapter/Channel.ts: getConfigState"
+      ]
+    },
+    {
+      "name": "listMessages",
+      "method": "GET",
+      "path": "/api/rooms/{room_uuid}/messages/",
+      "headers": ["Authorization: Bearer <token>"],
+      "response": {
+        "messages": [
+          {
+            "id": "string",
+            "text": "string",
+            "user_id": "string",
+            "created_at": "string",
+            "updated_at": "string?",
+            "deleted_at": "string?"
+          }
+        ]
+      },
+      "callSites": [
+        "src/lib/stream-adapter/Channel.ts: query",
+        "src/lib/stream-adapter/Channel.ts: watch"
+      ]
+    },
+    {
+      "name": "sendMessage",
+      "method": "POST",
+      "path": "/api/rooms/{room_uuid}/messages/",
+      "headers": ["Authorization: Bearer <token>", "Content-Type: application/json"],
+      "request": {
+        "body": "string",
+        "text": "string",
+        "client_generated_id": "string?",
+        "custom_data": "object?",
+        "poll": "object?",
+        "reply_to": "string?",
+        "show_in_channel": "boolean?"
+      },
+      "response": { "message": "Message" },
+      "callSites": ["src/lib/stream-adapter/Channel.ts: sendMessage"]
+    }
+  ],
+  "nextProxy": {
+    "path": "/api/rooms/[...path]",
+    "backend": "${BACKEND}/api/rooms/",
+    "file": "src/app/api/rooms/[...path]/route.ts"
+  }
+}
