@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 
 from stream_server_django.chat.models import Room
@@ -66,3 +67,21 @@ def user_has_room_access(user, room: Room) -> bool:
         return True
 
     return False
+
+
+def is_public_agent_room(room: Room) -> bool:
+    """Return ``True`` when ``room`` is eligible for public agent access.
+
+    Public rooms are defined via the ``PUBLIC_AGENT_ROOM_SLUGS`` setting, which
+    is a comma-separated list of identifiers (room ``uuid`` or ``client``) that
+    may be read by guest/anonymous Supabase sessions for limited endpoints like
+    ``config-state``. The default is closed (no public rooms).
+    """
+
+    allowlist = getattr(settings, "PUBLIC_AGENT_ROOM_SLUGS", []) or []
+    if not allowlist:
+        return False
+
+    room_data = room.data if isinstance(room.data, dict) else {}
+    candidates = [room.uuid, room.client, room_data.get("slug"), room_data.get("room_slug")]
+    return any(candidate in allowlist for candidate in candidates if candidate)
