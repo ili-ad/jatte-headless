@@ -539,7 +539,10 @@ export class Channel {
                     return this.configState.getLatestValue();
                 },
 
-                async getConfigState(force = false): Promise<ConfigState> {
+                async getConfigState(
+                    force = false,
+                    options?: { signal?: AbortSignal },
+                ): Promise<ConfigState> {
                     if (!force && channelRef.configStateCache) {
                         return channelRef.configStateCache;
                     }
@@ -567,10 +570,15 @@ export class Channel {
                         // 2) use the channel’s UUID from the adapter, not `this`
                         const res = await apiFetch(`/rooms/${channelRef.uuid}/config-state/`, {
                             headers: { Authorization: `Bearer ${token}` },
+                            signal: options?.signal,
                         });
 
                         if (!res.ok) {
-                            throw new Error('getConfigState failed');
+                            const error = new Error('getConfigState failed') as Error & {
+                                status?: number;
+                            };
+                            error.status = res.status;
+                            throw error;
                         }
 
                         let raw: any;
@@ -884,8 +892,11 @@ export class Channel {
         }
     }
 
-    async getConfigState(force = false): Promise<ConfigState> {
-        return this.messageComposer.getConfigState(force);
+    async getConfigState(
+        force = false,
+        options?: { signal?: AbortSignal },
+    ): Promise<ConfigState> {
+        return this.messageComposer.getConfigState(force, options);
     }
 
 

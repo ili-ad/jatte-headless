@@ -62,9 +62,10 @@ var originalFetch = global.fetch;
                 return [4 /*yield*/, channel.messageComposer.getConfigState()];
             case 1:
                 cfg = _a.sent();
-                (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/config-state/', {
-                    headers: { Authorization: 'Bearer jwt-test' },
-                });
+        (0, vitest_1.expect)(global.fetch).toHaveBeenCalledWith(
+            '/api/rooms/room1/config-state/',
+            (0, vitest_1.expect).objectContaining({ headers: { Authorization: 'Bearer jwt-test' } }),
+        );
                 (0, vitest_1.expect)(cfg.text.enabled).toBe(false);
                 (0, vitest_1.expect)(channel.messageComposer.configState.getSnapshot().text.enabled).toBe(false);
                 return [2 /*return*/];
