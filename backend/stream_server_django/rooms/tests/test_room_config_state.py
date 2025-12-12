@@ -22,7 +22,8 @@ django.setup()
 
 from django.contrib.auth import get_user_model  # noqa: E402  pylint: disable=wrong-import-position
 from django.core.management import call_command  # noqa: E402  pylint: disable=wrong-import-position
-from django.urls import reverse  # noqa: E402  pylint: disable=wrong-import-position
+from django.test import override_settings  # noqa: E402  pylint: disable=wrong-import-position
+import jwt  # noqa: E402  pylint: disable=wrong-import-position
 from rest_framework.test import APITestCase  # noqa: E402  pylint: disable=wrong-import-position
 
 call_command("migrate", run_syncdb=True, verbosity=0)
@@ -41,10 +42,16 @@ class RoomConfigStateTests(APITestCase):
             client=self.user.username,
             data={"composer": {"file_uploads": False, "max_length": 9000}},
         )
-        self.url = reverse("rooms:config-state", kwargs={"room_uuid": self.room.uuid})
+        self.url = f"/api/rooms/{self.room.uuid}/config-state/"
 
     def authenticate(self) -> None:
         self.client.force_authenticate(self.user)
+
+    def guest_token(self, sub: str = "anon-user") -> str:
+        return jwt.encode(
+            {"sub": sub, "is_anonymous": True, "app_metadata": {"provider": "anonymous"}},
+            "secret",
+        )
 
     def test_returns_composer_payload(self) -> None:
         """The response should wrap the composer settings in a `composer` key."""
@@ -74,7 +81,7 @@ class RoomConfigStateTests(APITestCase):
 
         User = get_user_model()
         outsider = User.objects.create_user(username="outsider", password="pw")
-        url = reverse("rooms:config-state", kwargs={"room_uuid": self.room.uuid})
+        url = f"/api/rooms/{self.room.uuid}/config-state/"
 
         self.client.force_authenticate(outsider)
         response = self.client.get(url)
@@ -84,7 +91,7 @@ class RoomConfigStateTests(APITestCase):
         """Requests referencing an unknown room should 404."""
 
         self.authenticate()
-        url = reverse("rooms:config-state", kwargs={"room_uuid": "missing-room"})
+        url = "/api/rooms/missing-room/config-state/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
@@ -92,9 +99,45 @@ class RoomConfigStateTests(APITestCase):
         """The endpoint should accept `messaging:` style identifiers."""
 
         self.authenticate()
-        url = reverse(
-            "rooms:config-state", kwargs={"room_uuid": f"messaging:{self.room.uuid}"}
-        )
+        url = f"/api/rooms/messaging:{self.room.uuid}/config-state/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("composer", response.data)
+        self.assertIn("composer", response.data.get("config", {}))
+
+    @override_settings(PUBLIC_AGENT_ROOM_SLUGS=["agent-lab"])
+    def test_guest_can_read_public_agent_room(self) -> None:
+        """Guest Supabase sessions may read config for public agent rooms."""
+
+        User = get_user_model()
+        guest_user = User.objects.create_user(
+            username="anon-uid",
+            email="anon@example.com",
+            password="pw",
+            supabase_uid="anon-uid",
+        )
+        room = Room.objects.create(uuid="agent-lab", client="agent-lab", data={})
+
+        url = f"/api/rooms/{room.uuid}/config-state/"
+        self.client.force_authenticate(guest_user, token=self.guest_token("anon-uid"))
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("config", response.data)
+
+    @override_settings(PUBLIC_AGENT_ROOM_SLUGS=["agent-lab"])
+    def test_guest_rejected_for_non_public_room(self) -> None:
+        """Guests should still be blocked from rooms that are not public."""
+
+        User = get_user_model()
+        guest_user = User.objects.create_user(
+            username="anon-uid-2",
+            email="anon2@example.com",
+            password="pw",
+            supabase_uid="anon-uid-2",
+        )
+        private_room = Room.objects.create(uuid="private-room", client="private-room", data={})
+        url = f"/api/rooms/{private_room.uuid}/config-state/"
+        self.client.force_authenticate(guest_user, token=self.guest_token("anon-uid-2"))
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)

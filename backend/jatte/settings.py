@@ -95,6 +95,9 @@ def _split_env(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+PUBLIC_AGENT_ROOM_SLUGS = _split_env("PUBLIC_AGENT_ROOM_SLUGS")
+
+
 CHAT_ATTACHMENTS_BUCKET = os.environ.get("CHAT_ATTACHMENTS_BUCKET")
 CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO = os.environ.get(
     "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_JSON"
