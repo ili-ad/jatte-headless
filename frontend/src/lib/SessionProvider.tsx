@@ -1,7 +1,7 @@
 'use client'
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './supabaseClient'
+import { getSupabaseClient } from './supabaseClient'
 
 interface SessionContextValue {
   session: Session | null
@@ -24,6 +24,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const supabase = getSupabaseClient()
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setLoading(false)

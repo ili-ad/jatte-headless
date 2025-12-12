@@ -1,6 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let injected: SupabaseClient | null = null
 
-export const supabase = createClient(url, key)
+export function setSupabaseClient(client: SupabaseClient) {
+  injected = client
+}
+
+export function getSupabaseClient(): SupabaseClient {
+  if (injected) return injected
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  injected = createClient(url, key)
+  return injected
+}
