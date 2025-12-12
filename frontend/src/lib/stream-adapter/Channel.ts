@@ -5,6 +5,7 @@ import { ChatClient } from './ChatClient';
 import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
 import { AuthError } from '../errors';
+import { getAccessToken } from '../authTokenStore';
 import { buildAttachmentManager } from './composer/attachments';
 import { WS_BASE } from '@iliad/stream-chat-shim';
 import {
@@ -558,13 +559,15 @@ export class Channel {
 
                         // 1) get the token from the ChatClient
                         const client = channelRef.client as any;          // channelRef is the adapter, client is the ChatClient
+                        const tokenFromStore = getAccessToken();
                         const token: string | null =
-                            typeof client.getToken === 'function'
-                            ? client.getToken()
-                            : client.jwt ?? null; // fall back to the private field at runtime
+                            tokenFromStore ??
+                            (typeof client.getToken === 'function'
+                                ? client.getToken()
+                                : client.jwt ?? null); // fall back to the private field at runtime
 
                         if (!token) {
-                            throw new Error('getConfigState: missing JWT token');
+                            throw new AuthError('Missing auth token (auth not ready)', 401);
                         }
 
                         // 2) use the channel’s UUID from the adapter, not `this`

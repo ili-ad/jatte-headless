@@ -19,6 +19,7 @@ import { useSession } from './SessionProvider';
 import { AuthError } from './errors';
 import { MAX_BOOTSTRAP_ATTEMPTS } from '../chat-kit/lib/bootstrapFetchPolicy';
 import { nextDelayMs, shouldRetry } from '../chat-kit/lib/bootstrapFetchPolicy';
+import { setAccessToken } from './authTokenStore';
 
 export const chatClient: ChatClient = getStreamClient();
 
@@ -72,6 +73,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
       setRoomConfig(null);
       setBootstrapStatus({ kind: 'connecting' });
       setAuthToken(null);
+      setAccessToken(null);
 
       const maybeDisconnect = (client as any).disconnectUser;
       if (typeof maybeDisconnect === 'function') {
@@ -91,6 +93,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
       try {
         const { userID, userToken } = await getChatCreds();
         setAuthToken(userToken);
+        setAccessToken(userToken);
 
         // Try to use the adapter’s connectUser if it exists.
         const maybeConnect = (client as any).connectUser;
@@ -125,6 +128,8 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
         setChannel(chan);
       } catch (err) {
         console.error('[ChatProvider] failed to initialize chat client/channel', err);
+        setAuthToken(null);
+        setAccessToken(null);
         setBootstrapStatus({
           kind: 'error',
           message: 'Could not start chat. Please try again.',
@@ -180,7 +185,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
 
     const toStatusCode = (err: unknown) => {
       if (typeof (err as any)?.status === 'number') return (err as any).status as number;
-      if (err instanceof AuthError) return 401;
+      if (err instanceof AuthError) return err.status ?? 401;
       return null;
     };
 
@@ -211,7 +216,9 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     };
 
     const attemptFetch = async () => {
-      setBootstrapStatus({ kind: 'connecting' });
+      if (attempt === 1) {
+        setBootstrapStatus({ kind: 'connecting' });
+      }
 
       try {
         const config = await (channel as any).getConfigState(attempt > 1, {
