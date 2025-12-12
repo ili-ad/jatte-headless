@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Iterable
+from uuid import uuid4
 
 import zlib
 from django.contrib.auth import get_user_model
@@ -12,16 +13,24 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
 )
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from stream_server_django.accounts_supabase.utils import is_at_least_guest_identity
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.chat.mixins import RoomFromCIDMixin
-from stream_server_django.chat.models import Room
+from stream_server_django.chat.models import Channel, Message, Room
+from stream_server_django.common.identity import ChatIdentity
 
-from .serializers import RoomListSerializer
+from .serializers import (
+    MessageContractCreateSerializer,
+    MessageContractSerializer,
+    RoomListSerializer,
+)
+from .utils import get_room_or_404, is_public_agent_room, user_has_room_access
 
 User = get_user_model()
 
@@ -192,3 +201,102 @@ def _append_member(
     if user:
         payload["user"] = user
     members.append(payload)
+
+
+@api_view(["POST"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([IsAuthenticated])
+def resolve_room(request: Request) -> Response:
+    """Resolve or create a per-user room for the provided label."""
+
+    label = request.data.get("label")
+    if not isinstance(label, str) or not label.strip():
+        return Response(
+            {"detail": "A non-empty 'label' field is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    identity = ChatIdentity(request.user)
+    client_identifier = identity.username or identity.supabase_uid or str(identity.id)
+    if not client_identifier:
+        return Response(
+            {"detail": "Unable to resolve user identity."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    normalized_label = label.strip()
+    room = Room.objects.filter(client=client_identifier).filter(
+        Q(data__label=normalized_label) | Q(data__slug=normalized_label)
+    ).first()
+    if room is None:
+        room = Room.objects.create(
+            uuid=str(uuid4()),
+            client=client_identifier,
+            data={"label": normalized_label, "slug": normalized_label, "name": label},
+        )
+
+    name = None
+    if isinstance(room.data, dict):
+        name_candidate = room.data.get("name")
+        name = name_candidate if isinstance(name_candidate, str) else None
+
+    return Response({"room_uuid": room.uuid, "name": name})
+
+
+@api_view(["GET", "POST"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([IsAuthenticated])
+def room_messages(request: Request, room_uuid: str) -> Response:
+    """List or create messages scoped to the given room."""
+
+    room = get_room_or_404(room_uuid)
+    if not _can_access_room(request, room):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == "GET":
+        messages = room.messages.order_by("created_at")
+        serializer = MessageContractSerializer(messages, many=True)
+        return Response({"messages": serializer.data})
+
+    serializer = MessageContractCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    identity = ChatIdentity(request.user)
+
+    custom_data = dict(serializer.validated_data.get("custom_data") or {})
+    client_generated_id = serializer.validated_data.get("client_generated_id")
+    if client_generated_id:
+        custom_data["client_generated_id"] = client_generated_id
+
+    channel, _ = Channel.objects.get_or_create(
+        uuid=room.uuid, defaults={"client": room.client or identity.username}
+    )
+    message = Message.objects.create(
+        channel=channel,
+        body=serializer.validated_data["body"],
+        sent_by=identity.username,
+        custom_data=custom_data,
+    )
+    room.messages.add(message)
+
+    output = MessageContractSerializer(message)
+    return Response({"message": output.data})
+
+
+def _can_access_room(request: Request, room: Room) -> bool:
+    if user_has_room_access(request.user, room):
+        return True
+
+    if not (is_public_agent_room(room) and is_at_least_guest_identity(request)):
+        return False
+
+    identity = ChatIdentity(request.user)
+    identifiers = _user_identifiers(identity)
+    return bool(room.client and room.client in identifiers)
+
+
+def _user_identifiers(identity: ChatIdentity) -> set[str]:
+    identifiers: set[str] = set()
+    for value in (identity.username, identity.supabase_uid, identity.id):
+        if value:
+            identifiers.add(str(value))
+    return identifiers
