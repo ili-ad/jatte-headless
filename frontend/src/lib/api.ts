@@ -51,7 +51,10 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
       lastToast = now;
       toast.error('Authentication required');
     }
-    throw new AuthError(res.statusText);
+
+    const error = new AuthError(res.statusText) as AuthError & { status?: number };
+    error.status = res.status;
+    throw error;
   }
 
   return res;

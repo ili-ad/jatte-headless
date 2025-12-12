@@ -22,9 +22,10 @@ import { AgentMessage } from '../app/agent/AgentMessage';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
+import ChatBootstrapNotice from './ChatBootstrapNotice';
 
 export default function AgentChatWindow() {
-  const { client, channel } = useChat();
+  const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
 
   useEffect(() => {
     if (!channel) return undefined;
@@ -87,6 +88,11 @@ export default function AgentChatWindow() {
   }, [aiState, isAgentBusy, channel]);
 
 
+  const ready = client && channel && bootstrapStatus.kind === 'ready';
+
+  if (!ready) {
+    return <ChatBootstrapNotice status={bootstrapStatus} onRetry={retryBootstrap} />;
+  }
 
   if (!client || !channel) return null;
 
