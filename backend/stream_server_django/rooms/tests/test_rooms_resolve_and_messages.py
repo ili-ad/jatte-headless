@@ -1,78 +1,129 @@
-"""Tests covering room resolution and message creation identifiers."""
-
 from __future__ import annotations
 
-import os
-import sys
-from pathlib import Path
+import json
+from types import SimpleNamespace
+from uuid import uuid4
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-os.environ.setdefault("DATABASE_URL", "sqlite:///db.sqlite3")
-os.environ.setdefault("DATABASE_SSL_REQUIRE", "false")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jatte.settings")
-import django
-from django.core.management import call_command
+import pytest
+from django.conf import settings
+from django.urls import reverse
+from rest_framework.test import APIClient
 
-django.setup()
-call_command("migrate", run_syncdb=True, verbosity=0)
+from stream_server_django.rooms.models import Room, Message
 
 
-from django.contrib.auth import get_user_model  # noqa: E402  pylint: disable=wrong-import-position
-from rest_framework.test import APITestCase  # noqa: E402  pylint: disable=wrong-import-position
-from stream_server_django.chat.models import Message, Room  # noqa: E402  pylint: disable=wrong-import-position
+@pytest.mark.django_db
+class TestRoomsResolveAndMessages:
+    """
+    Contract tests for:
+      - POST /api/rooms/resolve/
+      - GET/POST /api/rooms/<room_uuid>/messages/
 
-User = get_user_model()
+    These tests intentionally avoid any custom Django setup/migrate calls.
+    They assume the test runner has configured Django and created the test DB.
+    """
 
+    def _force_auth(self, client: APIClient, *, supabase_uid: str, username: str | None = None):
+        """
+        Minimal authenticated identity stub.
 
-class ResolveRoomEndpointTests(APITestCase):
-    """Ensure resolve-room normalizes display names and preserves labels."""
+        We bypass authentication plumbing and set request.user/request.auth by force_authenticate,
+        because the contract we care about is:
+          - room resolve returns a stable room_uuid and normalized name
+          - message POST returns message.user_id populated for guests
 
-    def setUp(self) -> None:
-        self.user = User.objects.create_user(
-            username="resolver-user",
-            email="resolver@example.com",
-            password="pw",
-            supabase_uid="resolver-uid",
+        If your project requires auth to flow through DevTokenOrJWTAuthentication end-to-end,
+        replace this with a helper that generates a real JWT and passes Authorization headers.
+        """
+        from rest_framework.test import force_authenticate
+
+        # user-like object
+        user = SimpleNamespace(
+            is_authenticated=True,
+            username=username or "",
         )
 
-    def test_resolve_room_normalizes_name_and_keeps_label(self) -> None:
-        self.client.force_authenticate(self.user)
-        response = self.client.post(
-            "/api/rooms/resolve/", {"label": "  agent-lab  "}, format="json"
+        # auth-like object (claims or token). Our code checks request.auth presence.
+        auth = {"sub": supabase_uid, "email": f"{supabase_uid}@example.com"}
+
+        force_authenticate(client, user=user, token=auth)
+
+    def test_resolve_normalizes_name_and_preserves_label(self):
+        client = APIClient()
+        self._force_auth(client, supabase_uid="guest-sub-123", username="")
+
+        # Ensure allowlist includes this label so resolve creates a "public agent room"
+        # If your resolve endpoint doesn't require allowlisting, you can drop this.
+        if hasattr(settings, "PUBLIC_AGENT_ROOM_SLUGS"):
+            # Most implementations treat this as a list; ensure our label is allowed
+            settings.PUBLIC_AGENT_ROOM_SLUGS = list(set(settings.PUBLIC_AGENT_ROOM_SLUGS or []) | {"agent-lab"})
+
+        payload = {"label": "  agent-lab  "}
+        resp = client.post("/api/rooms/resolve/", data=payload, format="json")
+        assert resp.status_code == 200, resp.content
+
+        data = resp.json()
+        assert "room_uuid" in data
+        assert data["name"] == "agent-lab"  # normalized
+
+        room_uuid = data["room_uuid"]
+
+        # Verify DB stored both raw label and normalized name (if your impl stores them)
+        room = Room.objects.get(uuid=room_uuid)
+        assert room.data.get("label") == "  agent-lab  "
+        assert room.data.get("name") == "agent-lab"
+        assert room.data.get("slug") in {"agent-lab", "agent-lab"}  # slugify result
+
+    def test_post_message_sets_user_id_for_guest(self):
+        client = APIClient()
+        supabase_uid = "guest-sub-999"
+        self._force_auth(client, supabase_uid=supabase_uid, username="")
+
+        # Create a room that is owned by this guest identity
+        room = Room.objects.create(
+            uuid=uuid4(),
+            client=supabase_uid,  # important: access control ties room to identity
+            data={"label": "agent-lab", "slug": "agent-lab", "name": "agent-lab"},
         )
 
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertEqual(payload["name"], "agent-lab")
+        # Send a message
+        payload = {"text": "hello world", "client_generated_id": "cgid-1"}
+        resp = client.post(f"/api/rooms/{room.uuid}/messages/", data=payload, format="json")
+        assert resp.status_code == 200, resp.content
 
-        room = Room.objects.get(uuid=payload["room_uuid"])
-        self.assertEqual(room.data.get("name"), "agent-lab")
-        self.assertEqual(room.data.get("label"), "  agent-lab  ")
-        self.assertEqual(room.data.get("slug"), "agent-lab")
+        out = resp.json()
+        assert "message" in out
+        msg = out["message"]
 
+        # user_id should be stable for guests (prefer supabase_uid)
+        assert msg["user_id"] in {supabase_uid}  # or your fallback behavior
+        assert msg["text"] == "hello world"
+        assert msg.get("client_generated_id") == "cgid-1"
 
-class RoomMessagesSenderIdentityTests(APITestCase):
-    """Verify message creation uses a stable sender identifier."""
+        # List messages should include it
+        resp2 = client.get(f"/api/rooms/{room.uuid}/messages/")
+        assert resp2.status_code == 200, resp2.content
+        out2 = resp2.json()
+        assert "messages" in out2
+        assert len(out2["messages"]) == 1
+        assert out2["messages"][0]["text"] == "hello world"
+        assert out2["messages"][0]["user_id"] in {supabase_uid}
 
-    def setUp(self) -> None:
-        self.user = User.objects.create(
-            username="",
-            email="guest@example.com",
-            supabase_uid="guest-uid",
+    def test_guest_cannot_access_other_users_room(self):
+        """
+        Privacy check: guest A cannot read/post messages in guest B's room.
+        """
+        client = APIClient()
+        self._force_auth(client, supabase_uid="guest-a", username="")
+
+        room = Room.objects.create(
+            uuid=uuid4(),
+            client="guest-b",
+            data={"label": "agent-lab", "slug": "agent-lab", "name": "agent-lab"},
         )
-        self.room = Room.objects.create(uuid="message-room", client=self.user.supabase_uid)
-        self.url = f"/api/rooms/{self.room.uuid}/messages/"
 
-    def test_guest_message_uses_supabase_identifier(self) -> None:
-        self.client.force_authenticate(self.user)
+        resp = client.get(f"/api/rooms/{room.uuid}/messages/")
+        assert resp.status_code in {403, 404}, resp.content
 
-        response = self.client.post(self.url, {"text": "hello"}, format="json")
-
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()["message"]
-        self.assertEqual(payload["user_id"], self.user.supabase_uid)
-
-        message = Message.objects.get(id=payload["id"])
-        self.assertEqual(message.sent_by, self.user.supabase_uid)
+        resp2 = client.post(f"/api/rooms/{room.uuid}/messages/", data={"text": "nope"}, format="json")
+        assert resp2.status_code in {403, 404}, resp2.content
