@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 import { AuthError } from './errors';
-import { chatClient } from './ChatProvider';   // ← adjust the path/name if needed
+import { getAccessToken } from './authTokenStore';
 
 let lastToast = 0;
 
@@ -16,8 +16,11 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   /* ------------------------------------------------------------------ */
   const headers = new Headers(opts.headers);
 
-  if (!headers.has('Authorization') && chatClient?.['jwt']) {
-    headers.set('Authorization', `Bearer ${chatClient['jwt']}`);
+  if (!headers.has('Authorization')) {
+    const token = getAccessToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
   }
 
   // Default to JSON unless the caller already set Content-Type
@@ -52,7 +55,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
       toast.error('Authentication required');
     }
 
-    const error = new AuthError(res.statusText) as AuthError & { status?: number };
+    const error = new AuthError(res.statusText, res.status);
     error.status = res.status;
     throw error;
   }
