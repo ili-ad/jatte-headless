@@ -11,9 +11,16 @@ import {
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
+import ChatBootstrapNotice from './ChatBootstrapNotice';
 
 export default function ChatWindow() {
-  const { client, channel } = useChat();
+  const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
+
+  const ready = client && channel && bootstrapStatus.kind === 'ready';
+
+  if (!ready) {
+    return <ChatBootstrapNotice status={bootstrapStatus} onRetry={retryBootstrap} />;
+  }
 
   if (!client || !channel) return null;
 

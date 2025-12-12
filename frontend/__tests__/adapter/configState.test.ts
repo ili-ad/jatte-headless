@@ -25,9 +25,10 @@ test('getConfigState fetches config and updates store', async () => {
   const client = new ChatClient('u1', 'jwt-test');
   const channel = client.channel('messaging', 'room1');
   const cfg = await (channel.messageComposer as any).getConfigState();
-  expect(global.fetch).toHaveBeenCalledWith('/api/rooms/room1/config-state/', {
-    headers: { Authorization: 'Bearer jwt-test' },
-  });
+  expect(global.fetch).toHaveBeenCalledWith(
+    '/api/rooms/room1/config-state/',
+    expect.objectContaining({ headers: { Authorization: 'Bearer jwt-test' } }),
+  );
   expect(cfg.composer.text.enabled).toBe(false);
   expect(cfg.ai.enabled).toBe(true);
   expect(channel.messageComposer.configState.getSnapshot().composer.text.enabled).toBe(false);

@@ -1,23 +1,48 @@
 //frontend/src/lib/ChatProvider.tsx
 'use client';
 
-import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import {
+  ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { Channel as ChannelType, ChatClient } from './stream-adapter';
 import { Channel as AdapterChannel } from './stream-adapter';
 import { getStreamClient } from './getStreamClient';
 import { getChatCreds } from './getChatCreds';
 import { setAuthToken } from '@iliad/stream-chat-shim';
 import { useSession } from './SessionProvider';
+import { AuthError } from './errors';
+import { MAX_BOOTSTRAP_ATTEMPTS } from '../chat-kit/lib/bootstrapFetchPolicy';
+import { nextDelayMs, shouldRetry } from '../chat-kit/lib/bootstrapFetchPolicy';
 
 export const chatClient: ChatClient = getStreamClient();
+
+export type BootstrapStatus =
+  | { kind: 'connecting' }
+  | { kind: 'retrying'; attempt: number; retryInMs: number }
+  | { kind: 'ready' }
+  | { kind: 'error'; code?: number; message: string; retryable: boolean };
 
 interface ChatContextValue {
   client: ChatClient | null;
   channel: ChannelType | null;
   roomConfig: Record<string, any> | null;
+  bootstrapStatus: BootstrapStatus;
+  retryBootstrap: () => void;
 }
 
-const ChatContext = createContext<ChatContextValue>({ client: null, channel: null, roomConfig: null });
+const ChatContext = createContext<ChatContextValue>({
+  client: null,
+  channel: null,
+  roomConfig: null,
+  bootstrapStatus: { kind: 'connecting' },
+  retryBootstrap: () => {},
+});
 
 export function useChat() {
   return useContext(ChatContext);
@@ -33,6 +58,10 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   const [client] = useState<ChatClient>(() => chatClient);
   const [channel, setChannel] = useState<ChannelType | null>(null);
   const [roomConfig, setRoomConfig] = useState<Record<string, any> | null>(null);
+  const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>({ kind: 'connecting' });
+  const [bootstrapRunId, setBootstrapRunId] = useState(0);
+
+  const retryBootstrap = useCallback(() => setBootstrapRunId((id) => id + 1), []);
 
   useEffect(() => {
     let mounted = true;
@@ -41,6 +70,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     if (!session) {
       setChannel(null);
       setRoomConfig(null);
+      setBootstrapStatus({ kind: 'connecting' });
       setAuthToken(null);
 
       const maybeDisconnect = (client as any).disconnectUser;
@@ -95,6 +125,11 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
         setChannel(chan);
       } catch (err) {
         console.error('[ChatProvider] failed to initialize chat client/channel', err);
+        setBootstrapStatus({
+          kind: 'error',
+          message: 'Could not start chat. Please try again.',
+          retryable: true,
+        });
       }
     })();
 
@@ -123,41 +158,121 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
   }, [channel]);
 
   useEffect(() => {
+    setBootstrapStatus({ kind: 'connecting' });
+    setRoomConfig(null);
+  }, [channel, bootstrapRunId]);
+
+  useEffect(() => {
     if (!channel || typeof (channel as any).getConfigState !== 'function') return;
 
     let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let attempt = 1;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let countdownTimer: ReturnType<typeof setInterval> | null = null;
+    let refreshTimer: ReturnType<typeof setInterval> | null = null;
+    let abortController = new AbortController();
 
-    const loadConfigState = async (force = false) => {
-      if (cancelled) return;
+    const clearTimers = () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (countdownTimer) clearInterval(countdownTimer);
+      if (refreshTimer) clearInterval(refreshTimer);
+    };
+
+    const toStatusCode = (err: unknown) => {
+      if (typeof (err as any)?.status === 'number') return (err as any).status as number;
+      if (err instanceof AuthError) return 401;
+      return null;
+    };
+
+    const setRetryingState = (nextAttempt: number, delayMs: number) => {
+      const startedAt = Date.now();
+      setBootstrapStatus({ kind: 'retrying', attempt: nextAttempt, retryInMs: delayMs });
+      countdownTimer = setInterval(() => {
+        const remaining = Math.max(0, delayMs - (Date.now() - startedAt));
+        setBootstrapStatus({ kind: 'retrying', attempt: nextAttempt, retryInMs: remaining });
+      }, 200);
+    };
+
+    const handleTerminalError = (status: number | null, err: unknown, retryable: boolean) => {
+      const message =
+        status === 401 || status === 403
+          ? "You're not authorized to access this room yet."
+          : 'Could not load chat configuration.';
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.warn('[agent/config] config-state bootstrap failed', { status, err, retryable });
+      }
+      setBootstrapStatus({
+        kind: 'error',
+        code: status ?? undefined,
+        message,
+        retryable,
+      });
+    };
+
+    const attemptFetch = async () => {
+      setBootstrapStatus({ kind: 'connecting' });
+
       try {
-        const config = await (channel as any).getConfigState(force);
-        if (!cancelled) {
-          setRoomConfig(config ?? null);
-          if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.log('[agent/config] loaded config-state', { cid: (channel as any).cid, config });
-          }
-        }
+        const config = await (channel as any).getConfigState(attempt > 1, {
+          signal: abortController.signal,
+        });
+        if (cancelled) return;
+        setRoomConfig(config ?? null);
+        setBootstrapStatus({ kind: 'ready' });
+
+        refreshTimer = setInterval(() => {
+          void (channel as any)
+            .getConfigState(true)
+            .catch((err: unknown) => {
+              if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.warn('[agent/config] background config-state refresh failed', err);
+              }
+            });
+        }, 90_000);
       } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.warn('[agent/config] getConfigState failed', err);
+        if (cancelled) return;
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
         }
+
+        const status = toStatusCode(err);
+        const retryable = shouldRetry(status, err);
+
+        if (!retryable || attempt >= MAX_BOOTSTRAP_ATTEMPTS) {
+          handleTerminalError(status, err, retryable);
+          return;
+        }
+
+        const delayMs = nextDelayMs(attempt);
+        setRetryingState(attempt + 1, delayMs);
+        attempt += 1;
+        retryTimeout = setTimeout(() => {
+          abortController.abort();
+          abortController = new AbortController();
+          if (countdownTimer) clearInterval(countdownTimer);
+          void attemptFetch();
+        }, delayMs);
       }
     };
 
-    void loadConfigState();
-    timer = setInterval(() => { void loadConfigState(true); }, 90_000);
+    void attemptFetch();
 
     return () => {
       cancelled = true;
-      if (timer) clearInterval(timer);
+      abortController.abort();
+      clearTimers();
     };
-  }, [channel]);
+  }, [channel, bootstrapRunId]);
+
+  const contextValue = useMemo(
+    () => ({ client, channel, roomConfig, bootstrapStatus, retryBootstrap }),
+    [bootstrapStatus, channel, client, retryBootstrap, roomConfig],
+  );
 
   return (
-    <ChatContext.Provider value={{ client, channel, roomConfig }}>
+    <ChatContext.Provider value={contextValue}>
       {children}
     </ChatContext.Provider>
   );
