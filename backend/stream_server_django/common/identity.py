@@ -162,7 +162,9 @@ class PrincipalBackedIdentity(ChatIdentity):
         the result. If no loader is provided, leave the base user as-is.
         """
 
-        if self._user is None and self._user_loader is not None:
+        if self._user_loader is not None and (
+            self._user is None or isinstance(self._user, AnonymousUser)
+        ):
             self._user = self._user_loader()
         return self._user if self._user is not None else self.user
 
