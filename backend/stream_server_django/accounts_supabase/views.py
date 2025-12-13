@@ -106,11 +106,30 @@ def _normalize_profile_mapping(data):
     return normalized
 
 
+def _get_user_identifier(user) -> str | None:
+    """
+    Return a best-effort identifier string for the current user, without assuming
+    the concrete User model has a `username` field.
+
+    We still return it under the response key `username` to preserve the API contract.
+    """
+    UserModel = get_user_model()
+    username_field = getattr(UserModel, "USERNAME_FIELD", "username") or "username"
+
+    # try the model's configured USERNAME_FIELD first, then fall back to `username`
+    val = getattr(user, username_field, None)
+    if not val and username_field != "username":
+        val = getattr(user, "username", None)
+
+    return str(val) if val else None
+
+
 def serialize_current_user(user, *, session=None):
     payload = {
         "id": getattr(user, "id", None),
-        "username": getattr(user, "username", None),
+        "username": _get_user_identifier(user),
     }
+
 
     profile_data: dict[str, Any] = {
         "display_name": None,
@@ -232,10 +251,16 @@ class ClientIDView(APIView):
         return Response({"client_id": uuid.uuid4().hex})
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ["id", "username"]
+class UserSerializer(serializers.Serializer):
+    id = serializers.JSONField(required=False)
+    username = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    def to_representation(self, instance):
+        return {
+            "id": getattr(instance, "id", None),
+            "username": _get_user_identifier(instance),
+        }
+
 
 
 class QueryUsersView(generics.ListAPIView):
@@ -263,7 +288,8 @@ class RefreshTokenView(APIView):
 
     def get(self, request):
         token = jwt.encode(
-            {"sub": request.user.username, "email": request.user.email},
+            {"sub": _get_user_identifier(request.user) or str(getattr(request.user, "id", "")),
+            "email": getattr(request.user, "email", "") or ""},
             settings.SUPABASE_JWT_SECRET,
             algorithm="HS256",
         )
