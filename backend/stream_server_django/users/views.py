@@ -16,12 +16,15 @@ class UsersDirectoryView(APIView):
 
     def get(self, request, *args, **kwargs):
         UserModel = get_user_model()
-        users = (
-            UserModel.objects.all()
-            .order_by("id")
-            .values("id", "username")
-        )
-        return Response(list(users))
+        username_field = getattr(UserModel, "USERNAME_FIELD", "username")
+        users = [
+            {
+                "id": user.id,
+                "username": getattr(user, username_field, getattr(user, "username", None)),
+            }
+            for user in UserModel.objects.all().order_by("id")
+        ]
+        return Response(users)
 
 
 class CurrentUserView(APIView):
@@ -32,4 +35,5 @@ class CurrentUserView(APIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        return Response({"id": user.id, "username": user.username})
+        username_field = getattr(user, "USERNAME_FIELD", "username")
+        return Response({"id": user.id, "username": getattr(user, username_field, getattr(user, "username", None))})

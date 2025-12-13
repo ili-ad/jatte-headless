@@ -31,6 +31,7 @@ urlpatterns = [
     path("api/connection-id/", ConnectionIDView.as_view(), name="connection-id"),
     re_path(r"^api/connection-id/?$", ConnectionIDView.as_view()),
     path("api/ws-auth/live/", WebsocketAuthView.as_view(), name="ws-auth-live"),
+    re_path(r"^api/ws-auth/live/?$", WebsocketAuthView.as_view()),
 ]
 
 
@@ -39,4 +40,5 @@ urlpatterns += [
     path("", include("stream_server_django.accounts_supabase.urls")),
     path("", include("stream_server_django.auth.urls")),
     path("", include("stream_server_django.chat_addons.urls")),
+    path("", include("stream_server_django.core.urls")),
 ]
