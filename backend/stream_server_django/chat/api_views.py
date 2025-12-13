@@ -2445,21 +2445,23 @@ class RegisterSubscriptionsView(APIView):
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-def post(self, request):
-    identity = get_chat_identity(request)
-    user = identity.as_user()
+    def post(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
 
-    # Frontend may POST with an empty body (Content-Length: 0). Treat that as a no-op.
-    data_in = request.data
-    if not data_in:
-        data_in = {"subscriptions": []}
+        # Frontend may POST with an empty body (Content-Length: 0). Treat that as a no-op.
+        data_in = request.data
+        if not data_in:
+            data_in = {"subscriptions": []}
 
-    serializer = RegisterSubscriptionsSerializer(data=data_in)
-    serializer.is_valid(raise_exception=True)
+        serializer = RegisterSubscriptionsSerializer(data=data_in)
+        serializer.is_valid(raise_exception=True)
 
-    client_id = serializer.validated_data.get("client_id")
-    data = serializer.save(user=user)
+        client_id = serializer.validated_data.get("client_id")
+        data = serializer.save(user=user)
 
-    broadcast_subscriptions_registered(user, client_id, data)
-    return Response(data, status=status.HTTP_201_CREATED)
+        broadcast_subscriptions_registered(user, client_id, data)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
 
