@@ -1582,7 +1582,7 @@ export class Channel {
 
     /** Fetch pinned messages for this channel */
     async pinnedMessages() {
-        const res = await apiFetch(`/rooms/${this.uuid}/pinned/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/pinned/`, {
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
         if (!res.ok) throw new Error('pinnedMessages failed');
@@ -1620,7 +1620,7 @@ export class Channel {
 
     /** Archive this channel */
     async archive() {
-        const res = await apiFetch(`/rooms/${this.uuid}/archive/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/archive/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -1629,7 +1629,7 @@ export class Channel {
 
     /** Unarchive this channel */
     async unarchive() {
-        const res = await apiFetch(`/rooms/${this.uuid}/unarchive/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/unarchive/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -1638,7 +1638,7 @@ export class Channel {
 
     /** Hide this channel */
     async hide() {
-        const res = await apiFetch(`/rooms/${this.uuid}/hide/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/hide/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
@@ -1648,7 +1648,7 @@ export class Channel {
 
     /** Show this channel */
     async show() {
-        const res = await apiFetch(`/rooms/${this.uuid}/show/`, {
+        const res = await apiFetch(`${API.ROOMS}${this.uuid}/show/`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${this.client['jwt']}` },
         });
