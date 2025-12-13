@@ -63,19 +63,26 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         if not uid:
             raise exceptions.AuthenticationFailed("No 'sub' claim found")
 
-        email = decoded.get("email")
-        if not email:
-            raise exceptions.AuthenticationFailed("No 'email' claim found")
+        email = decoded.get("email") or ""  # anonymous users often have empty email
+        # email = decoded.get("email")
+        # if not email:
+        #     raise exceptions.AuthenticationFailed("No 'email' claim found")
 
         # Use get_or_create, and ensure supabase_uid is set
         user, created = User.objects.get_or_create(
             username=uid,
-            defaults={'email': email, 'supabase_uid': uid}
+            defaults={"email": email, "supabase_uid": uid},
         )
-        # If the user exists but supabase_uid is not set, update it
+        # ensure supabase_uid set
         if not created and not user.supabase_uid:
             user.supabase_uid = uid
             user.save(update_fields=["supabase_uid"])
+
+        # OPTIONAL: if the user later becomes “real” (email login) and email arrives,
+        # populate it once.
+        if email and not user.email:
+            user.email = email
+            user.save(update_fields=["email"])
 
         # Return the original JWT so views can forward it if needed
         return (user, token)

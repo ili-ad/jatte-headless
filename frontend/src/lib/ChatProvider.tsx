@@ -106,6 +106,14 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
       };
     }
 
+    // NEW: don't attempt resolve until we have a Supabase session
+    if (!session) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+
     (async () => {
       try {
         const res = await apiFetch('/rooms/resolve/', {
@@ -143,7 +151,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
     return () => {
       cancelled = true;
     };
-  }, [roomSlug, bootstrapRunId]);
+  }, [roomSlug, bootstrapRunId, session?.user?.id]);
 
   useEffect(() => {
     let mounted = true;
