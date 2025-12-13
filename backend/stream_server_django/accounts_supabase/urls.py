@@ -1,11 +1,12 @@
 # accounts/urls.py
 from django.urls import path, re_path
+from stream_server_django.core.views import UserAgentView
+
 from .views import (
     SyncUserView,
     SessionView,
     ClientIDView,
     QueryUsersView,
-    UserAgentView,
     CurrentUserView,
 )
 from .views import RefreshTokenView, DisconnectedView, InitializedView
