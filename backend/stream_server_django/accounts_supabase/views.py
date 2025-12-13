@@ -206,7 +206,11 @@ class SyncUserView(APIView):
         request.session['disconnected'] = False
         request.session['initialized'] = True
 
-        user.refresh_from_db()
+        # request.user may be a Django model instance OR a lightweight principal object
+        # (e.g. SupabasePrincipal) in downstream integrations.
+        refresh = getattr(user, "refresh_from_db", None)
+        if callable(refresh):
+            refresh()
 
         payload = serialize_current_user(user, session=request.session)
         return Response(payload, status=status.HTTP_201_CREATED)
