@@ -1,7 +1,6 @@
 from django.urls import path, re_path
 
-from stream_server_django.accounts_supabase.views import UserAgentView
-from .views import AppSettingsView, about, get_tag, get_user_agent, index
+from .views import AppSettingsView, UserAgentView, about, get_tag, get_user_agent, index
 
 app_name = "stream_server_django.core"
 
