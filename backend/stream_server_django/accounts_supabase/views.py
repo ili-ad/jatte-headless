@@ -5,6 +5,7 @@ import logging
 import uuid
 
 import jwt
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import generics, serializers, status
@@ -12,11 +13,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stream_server_django.accounts_supabase.models import UserProfile
 from stream_server_django.common.auth_utils import get_chat_authentication_classes
+from stream_server_django.core.views import UserAgentView  # noqa: F401 (re-export)
 
 
 logger = logging.getLogger(__name__)
+
+PROFILE_SESSION_KEY = "user_profile"
 
 class SyncUserRequestSerializer(serializers.Serializer):
     display_name = serializers.CharField(
@@ -30,45 +33,114 @@ class SyncUserRequestSerializer(serializers.Serializer):
     )
 
 
-class CurrentUserSerializer(serializers.ModelSerializer):
-    display_name = serializers.CharField(
-        source="profile.display_name", allow_null=True, required=False
-    )
-    image_url = serializers.CharField(
-        source="profile.image_url", allow_null=True, required=False
-    )
-    extra = serializers.SerializerMethodField()
+def _get_profile_model():
+    try:
+        return apps.get_model("accounts_supabase", "UserProfile")
+    except (LookupError, ValueError):
+        return None
+    except Exception:
+        logger.exception("accounts_supabase.UserProfile lookup failed")
+        return None
 
-    class Meta:
-        model = get_user_model()
-        fields = ["id", "username", "display_name", "image_url", "extra"]
 
-    def get_extra(self, obj):
-        profile = getattr(obj, "profile", None)
-        if not profile:
-            return {}
-        extra = getattr(profile, "extra", {})
-        if isinstance(extra, Mapping):
-            return extra
+def _get_profile(user):
+    profile_model = _get_profile_model()
+    if not profile_model:
+        return None
+
+    try:
+        return profile_model.objects.filter(user=user).first()
+    except Exception:
+        logger.exception("UserProfile lookup failed", extra={"user_id": getattr(user, "id", None)})
+        return None
+
+
+def _ensure_profile(user):
+    profile_model = _get_profile_model()
+    if not profile_model:
+        return None
+    try:
+        profile, _ = profile_model.objects.get_or_create(user=user)
+        return profile
+    except Exception:
+        logger.exception("UserProfile get_or_create failed", extra={"user_id": getattr(user, "id", None)})
+        return None
+
+
+def _get_session_profile(session):
+    if session is None:
         return {}
+    profile_data = session.get(PROFILE_SESSION_KEY) or {}
+    if not isinstance(profile_data, Mapping):
+        return {}
+    return dict(profile_data)
 
 
-def serialize_current_user(user):
-    data = CurrentUserSerializer(user).data
-    profile = getattr(user, "profile", None)
+def _persist_session_profile(session, profile_data):
+    if session is None:
+        return
+    session[PROFILE_SESSION_KEY] = profile_data
+
+
+def _apply_user_field_updates(user, profile_updates):
+    update_fields = []
+    for key in ("display_name", "image_url", "extra"):
+        if key in profile_updates and hasattr(user, key):
+            setattr(user, key, profile_updates[key])
+            update_fields.append(key)
+    if update_fields and hasattr(user, "save"):
+        try:
+            user.save(update_fields=update_fields)
+        except Exception:
+            logger.exception("Saving user profile fields failed", extra={"user_id": getattr(user, "id", None)})
+
+
+def _normalize_profile_mapping(data):
+    normalized = {
+        "display_name": data.get("display_name") or None,
+        "image_url": data.get("image_url") or None,
+        "extra": data.get("extra") or {},
+    }
+    if not isinstance(normalized["extra"], Mapping):
+        normalized["extra"] = {}
+    return normalized
+
+
+def serialize_current_user(user, *, session=None):
+    payload = {
+        "id": getattr(user, "id", None),
+        "username": getattr(user, "username", None),
+    }
+
+    profile_data: dict[str, Any] = {
+        "display_name": None,
+        "image_url": None,
+        "extra": {},
+    }
+
+    profile = _get_profile(user)
     if profile:
-        data["display_name"] = profile.display_name or None
-        data["image_url"] = profile.image_url or None
-        extra = getattr(profile, "extra", {})
-        if isinstance(extra, Mapping):
-            data["extra"] = extra
-        else:
-            data["extra"] = {}
-    else:
-        data.setdefault("display_name", None)
-        data.setdefault("image_url", None)
-        data.setdefault("extra", {})
-    return data
+        profile_data = {
+            "display_name": getattr(profile, "display_name", None) or None,
+            "image_url": getattr(profile, "image_url", None) or None,
+            "extra": getattr(profile, "extra", {}) or {},
+        }
+
+    if profile_data["display_name"] is None or profile_data["image_url"] is None or not profile_data["extra"]:
+        session_profile = _get_session_profile(session)
+        profile_data = {
+            **profile_data,
+            **_normalize_profile_mapping(session_profile),
+        }
+
+    for field in ("display_name", "image_url", "extra"):
+        candidate = getattr(user, field, None)
+        if candidate and (field != "extra" or isinstance(candidate, Mapping)):
+            profile_data[field] = candidate
+
+    profile_data = _normalize_profile_mapping(profile_data)
+    payload.update(profile_data)
+    return payload
 
 
 class SyncUserView(APIView):
@@ -78,7 +150,7 @@ class SyncUserView(APIView):
 
     def post(self, request):
         user = request.user
-        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile = _ensure_profile(user)
 
         incoming_data: Mapping[str, Any]
         if isinstance(request.data, Mapping):
@@ -109,26 +181,34 @@ class SyncUserView(APIView):
             existing_extra.update(additional)
             validated["extra"] = existing_extra
 
-        update_fields = []
-        if "display_name" in validated:
-            profile.display_name = validated["display_name"] or ""
-            update_fields.append("display_name")
-        if "image_url" in validated:
-            profile.image_url = validated["image_url"] or ""
-            update_fields.append("image_url")
-        if "extra" in validated:
-            profile.extra = validated["extra"]
-            update_fields.append("extra")
+        profile_updates = _normalize_profile_mapping(validated)
+        profile_updates = {key: value for key, value in profile_updates.items() if key in validated}
+        if profile:
+            update_fields = []
+            if "display_name" in validated:
+                profile.display_name = profile_updates["display_name"] or ""
+                update_fields.append("display_name")
+            if "image_url" in validated:
+                profile.image_url = profile_updates["image_url"] or ""
+                update_fields.append("image_url")
+            if "extra" in validated:
+                profile.extra = profile_updates["extra"]
+                update_fields.append("extra")
 
-        if update_fields:
-            profile.save(update_fields=update_fields)
+            if update_fields:
+                profile.save(update_fields=update_fields)
+        else:
+            session_profile = _get_session_profile(request.session)
+            session_profile.update(profile_updates)
+            _persist_session_profile(request.session, session_profile)
+            _apply_user_field_updates(user, session_profile)
 
         request.session['disconnected'] = False
         request.session['initialized'] = True
 
         user.refresh_from_db()
 
-        payload = serialize_current_user(user)
+        payload = serialize_current_user(user, session=request.session)
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
@@ -150,44 +230,6 @@ class ClientIDView(APIView):
 
     def get(self, request):
         return Response({"client_id": uuid.uuid4().hex})
-
-
-class UserAgentSerializer(serializers.Serializer):
-    user_agent = serializers.CharField(required=False, allow_blank=True)
-
-
-class UserAgentView(APIView):
-    authentication_classes = get_chat_authentication_classes()
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        serializer = UserAgentSerializer(data=request.data or {})
-        serializer.is_valid(raise_exception=True)
-        user_agent = serializer.validated_data.get(
-            "user_agent",
-            request.META.get("HTTP_USER_AGENT", ""),
-        )
-        if user_agent is None:
-            user_agent = request.META.get("HTTP_USER_AGENT", "")
-
-        request.session['user_agent'] = user_agent
-        return Response({"user_agent": user_agent}, status=status.HTTP_201_CREATED)
-
-    def get(self, request):
-        user_agent = request.session.get("user_agent")
-        if user_agent is None:
-            user_agent = request.META.get("HTTP_USER_AGENT", "")
-
-        request_id = getattr(request, "request_id", None) or request.headers.get(
-            "X-Request-ID"
-        ) or request.META.get("HTTP_X_REQUEST_ID")
-        user_id = getattr(getattr(request, "user", None), "id", None)
-        logger.info(
-            "user-agent.get request_id=%s user_id=%s",
-            request_id,
-            user_id,
-        )
-        return Response({"user_agent": user_agent})
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -212,7 +254,7 @@ class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(serialize_current_user(request.user))
+        return Response(serialize_current_user(request.user, session=request.session))
 
 
 class RefreshTokenView(APIView):
