@@ -1,0 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export interface SupabaseClientFactory {
+  createBrowserClient(): SupabaseClient
+}
+
