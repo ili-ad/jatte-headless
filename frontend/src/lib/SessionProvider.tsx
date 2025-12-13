@@ -1,46 +1,13 @@
 'use client'
-import { ReactNode, createContext, useContext, useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { getSupabaseClient } from './supabaseClient'
+import type { ReactNode } from 'react'
 
-interface SessionContextValue {
-  session: Session | null
-  setSession: (s: Session | null) => void
-  loading: boolean
-}
-
-const SessionContext = createContext<SessionContextValue>({
-  session: null,
-  setSession: () => {},
-  loading: true,
-})
+import { SupabaseHubProvider, useSupabaseHub } from './supabase'
 
 export function useSession() {
-  return useContext(SessionContext)
+  const { session, setSession, status } = useSupabaseHub()
+  return { session, setSession, loading: status === 'loading' }
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const supabase = getSupabaseClient()
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setLoading(false)
-    })
-    const { data: listener } = supabase.auth.onAuthStateChange((_, s) => {
-      setSession(s)
-      setLoading(false)
-    })
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
-
-  return (
-    <SessionContext.Provider value={{ session, setSession, loading }}>
-      {children}
-    </SessionContext.Provider>
-  )
+  return <SupabaseHubProvider>{children}</SupabaseHubProvider>
 }
