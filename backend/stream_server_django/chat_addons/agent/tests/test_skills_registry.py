@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[3]
+BASE_DIR = Path(__file__).resolve().parents[4]
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
@@ -22,7 +22,7 @@ import jwt
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -57,6 +57,18 @@ class SkillRegistryTests(TestCase):
 
         skills = registry.enabled_for_room(cid)
         self.assertEqual([skill.name for skill in skills], ["dummy.echo"])
+
+    @override_settings(
+        AGENT_SKILL_PACKAGES=
+        [
+            "stream_server_django.chat_addons.agent.skills",
+            "stream_server_django.chat_addons.agent.tests.fixture_skills",
+        ]
+    )
+    def test_registry_discovers_fixture_skills(self) -> None:
+        registry.clear_cache()
+        metas = registry.list_all()
+        self.assertTrue(any(meta.name == "fixture.hello" for meta in metas))
 
 
 class SkillPolicyViewTests(APITestCase):
