@@ -25,47 +25,50 @@ export function stopAgentTyping(channel: Channel, botUserId: string) {
 }
 
 export function getBotUserIdForChannel(channel: Channel): string | null {
-  const snapshot = channel.messageComposer?.configState?.getSnapshot?.()
+    const snapshot = channel.messageComposer?.configState?.getSnapshot?.();
 
-  // Prefer the cached channel-level config (Option A). Snapshot is a fallback only.
-  const agentConfig = (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null)
+    // Prefer cached channel-level config; snapshot is fallback only.
+    const agentConfig =
+        (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null);
 
-  // If agent isn't enabled, there is no bot identity. Full stop.
-  if (!agentConfig?.enabled) return null
+    // If agent isn't enabled, there is no bot identity.
+    if (!agentConfig?.enabled) return null;
 
-  // If backend provided an explicit bot user id, use it.
-  if (agentConfig.botUserId) return agentConfig.botUserId
+    // If backend provided an explicit bot user id, use it.
+    if (agentConfig.botUserId) return agentConfig.botUserId;
 
-  // If enabled but botUserId missing, this is a misconfig. Warn and fallback deterministically.
-  // This keeps the UI functional while making the bug obvious in dev.
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[agent] enabled but missing botUserId; using fallback', {
-      cid: (channel as any).cid,
-      uuid: (channel as any).uuid ?? (channel as any).data?.uuid,
-    })
-  }
+    if (process.env.NODE_ENV !== 'production') {
+        console.warn('[agent] enabled but missing botUserId; using deterministic fallback', {
+            cid: (channel as any).cid,
+            uuid: (channel as any).uuid ?? (channel as any).data?.uuid,
+        });
+    }
 
-  const prefix = 'ai-bot'
-  const uuid =
-    (channel as any).uuid ??
-    (channel as any).data?.uuid ??
-    (channel as any).roomUuid ??
-    ((): string | null => {
-      const cid = (channel as any).cid ?? (channel as any).data?.cid
-      if (!cid) return null
-      const parts = String(cid).split(':', 2)
-      return parts.length === 2 ? parts[1] : String(cid)
-    })()
-  if (uuid) return `${prefix}-${String(uuid)}`
+    // Backend canonical fallback is: ai-bot-<room_uuid> (full UUID, not sliced).
+    const directUuid =
+        (channel as any).uuid ??
+        (channel as any).data?.uuid ??
+        (channel as any).roomUuid ??
+        null;
 
-  const cid = (channel as any).cid ?? null
-  if (cid) {
-    const safe = String(cid).replace(/[^a-zA-Z0-9_-]/g, "-")
-    return `${prefix}-${safe}`
-  }
+    if (directUuid) return `ai-bot-${String(directUuid)}`;
 
-  return prefix
+    // Derive UUID from cid when possible, e.g. "messaging:<uuid>"
+    const cid = (channel as any).cid as string | undefined;
+    if (cid && cid.includes(':')) {
+        const derived = cid.split(':', 2)[1];
+        if (derived) return `ai-bot-${derived}`;
+    }
+
+    // Last-resort deterministic fallback: based on cid
+    if (cid) {
+        const safe = String(cid).replace(/[^a-zA-Z0-9_-]/g, '-');
+        return `ai-bot-${safe}`;
+    }
+
+    return 'ai-bot';
 }
+
 
 
 
@@ -122,24 +125,19 @@ export async function triggerAgentReplyIfEnabled(
         (message as any).user?.id;
 
     /**
-     * Ensure config-state has been fetched at least once before deciding
-     * whether to invoke the agent. This prevents “first message after mount”
-     * from skipping agent invocation due to missing config hydration.
+     * Ensure config-state is fetched at least once before deciding enablement.
+     * If config fetch fails, treat as disabled (no surprise cost).
      */
     try {
         await channel.messageComposer?.getConfigState?.();
     } catch {
-        // If config-state fetch fails, we treat as disabled (no cost surprises).
+        // no-op: disabled-by-default behavior below
     }
 
     const snapshot = channel.messageComposer?.configState?.getSnapshot?.();
+    const aiConfig = (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null);
 
-    // Prefer the typed channel-level config (set by Channel.ts hydration). Snapshot is fallback only.
-    const aiConfig =
-        (channel as any).agentConfig ??
-        (snapshot ? extractRoomAgentConfig(snapshot) : null);
-
-    // Explicit opt-in only: agent runs ONLY when config-state says enabled.
+    // EXPLICIT OPT-IN ONLY: no "agent-lab" special casing.
     const isAgentEnabled = Boolean(aiConfig?.enabled);
 
     if (!isAgentEnabled) {
@@ -166,9 +164,10 @@ export async function triggerAgentReplyIfEnabled(
         return;
     }
 
+    // Use the helper (consistent identity + correct fallback)
     const botUserId = getBotUserIdForChannel(channel);
 
-    // Safety: if the message was authored by the bot, don’t re-trigger.
+    // Safety: if this message is from the bot, don’t re-trigger.
     if (botUserId && authorId === botUserId) {
         if (process.env.NODE_ENV !== 'production') {
             console.log('[agent] bail: message from bot user, not echoing', {
@@ -196,7 +195,7 @@ export async function triggerAgentReplyIfEnabled(
         });
     }
 
-    // Typing indicator should always be attributed to the bot identity.
+    // Typing indicator should be attributed to the bot (not the author).
     if (botUserId) startAgentTyping(channel, botUserId);
 
     try {
@@ -204,13 +203,12 @@ export async function triggerAgentReplyIfEnabled(
             (channel as any).uuid ??
             (channel as any).data?.uuid ??
             (channel as any).roomUuid ??
-            undefined;
+            (channel.cid?.includes(':') ? channel.cid.split(':', 2)[1] : undefined);
 
         const reply = await invokeAgent(channel.cid, {
             roomUUID,
             lastHumanMessageId: String(message.id),
-            clientGeneratedId:
-                client_generated_id ?? (message as any).client_generated_id,
+            clientGeneratedId: client_generated_id ?? (message as any).client_generated_id,
         });
 
         if ('status' in reply && reply.status === 'queued') {

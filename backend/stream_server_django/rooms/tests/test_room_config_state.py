@@ -204,7 +204,7 @@ class RoomResolveAIDefaultTests(APITestCase):
         self.assertTrue(response.data["config"]["ai"]["enabled"])
 
     def test_agent_lab_slug_is_not_auto_enabled(self) -> None:
-        """Agent Lab slug should behave like any other room unless configured."""
+        """The 'agent-lab' label behaves like any other room unless explicitly configured."""
 
         self.authenticate()
         room_uuid = self._resolve_room("agent-lab")
