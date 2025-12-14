@@ -14,7 +14,7 @@ import {
     triggerAgentReplyIfEnabled,
     withDisplayName,
 } from './channelAgentExtensions';
-import { type RoomAgentConfig } from '../chat-addons/agentApi';
+import { extractRoomAgentConfig, type RoomAgentConfig } from '../chat-addons/agentApi';
 
 type ConfigState = {
     attachments: {
@@ -584,6 +584,9 @@ export class Channel {
                         } catch {
                             raw = {};
                         }
+
+                        const agentConfig = extractRoomAgentConfig(raw);
+                        (channelRef as any).agentConfig = agentConfig ?? undefined;
 
                         const snapshot = this.configState.getSnapshot();
                         const composer = (raw && (raw.composer ?? raw)) || {};
