@@ -36,6 +36,8 @@ class NotificationEscalationTests(APITestCase):
             password="secret",
             supabase_uid="admin-uid",
         )
+        self.admin.is_staff = True
+        self.admin.save(update_fields=["is_staff"])
         self.client.force_authenticate(user=self.admin)
         self.oncall_url = reverse("notifications-oncall")
         self.heartbeat_url = reverse("notifications-presence")
@@ -130,3 +132,16 @@ class NotificationEscalationTests(APITestCase):
         self.assertEqual(body_second["notified"], body_first["notified"])
         self.assertEqual(EscalationRecord.objects.count(), 1)
         self.assertEqual(Notification.objects.count(), 1)
+
+    def test_non_staff_rejected(self) -> None:
+        non_staff = User.objects.create_user(
+            username="member",
+            email="member@example.com",
+            password="secret",
+            supabase_uid="member-uid",
+        )
+        self.client.force_authenticate(user=non_staff)
+
+        response = self.client.get(self.oncall_url)
+
+        self.assertEqual(response.status_code, 403)
