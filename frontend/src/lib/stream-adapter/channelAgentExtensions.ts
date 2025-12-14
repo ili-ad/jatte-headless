@@ -84,8 +84,8 @@ export async function triggerAgentReplyIfEnabled(
         (message as any).sent_by ??
         (message as any).user?.id;
 
-    const snapshot = channel.messageComposer.configState.getSnapshot();
-    const aiConfig = (channel as any).agentConfig ?? extractRoomAgentConfig(snapshot);
+    const snapshot = channel.messageComposer?.configState?.getSnapshot?.();
+    const aiConfig = (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null);
 
     const isAgentLab =
         (channel as any).uuid === 'agent-lab' || channel.cid === 'messaging:agent-lab';
