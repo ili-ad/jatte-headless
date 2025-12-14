@@ -33,6 +33,8 @@ from .serializers import (
 )
 from .utils import get_room_or_404, is_public_agent_room, user_has_room_access
 
+from stream_server_django.chat_addons.agent.utils import _persist_default_agent_state
+
 User = get_user_model()
 
 _DEFAULT_LIMIT = 50
@@ -234,7 +236,8 @@ def resolve_room(request: Request) -> Response:
         Q(data__label__in={raw_label, *normalized_candidates})
         | Q(data__slug__in=normalized_candidates)
     ).first()
-    if room is None:
+    created = room is None
+    if created:
         room = Room.objects.create(
             uuid=str(uuid4()),
             client=client_identifier,
@@ -264,6 +267,14 @@ def resolve_room(request: Request) -> Response:
         if updated:
             room.data = data
             room.save(update_fields=["data"])
+
+    if created:
+        _persist_default_agent_state(
+            room=room,
+            room_slug=slug,
+            purpose=request.data.get("purpose"),
+            cid=room.cid,
+        )
 
     name = None
     if isinstance(room.data, dict):
