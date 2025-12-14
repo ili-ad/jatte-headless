@@ -585,11 +585,30 @@ export class Channel {
                             raw = {};
                         }
 
-                        const agentConfig = extractRoomAgentConfig(raw);
-                        (channelRef as any).agentConfig = agentConfig ?? undefined;
+                        /**
+                         * Hydrate agent config from /config-state so the agent gate can make a
+                         * decision immediately on send (without waiting on websocket AI indicator events).
+                         *
+                         * IMPORTANT:
+                         * - agent enablement + bot identity live in config-state
+                         * - typing/streaming AI “indicator” state still comes from websocket events
+                         */
+                        const parsedAgentConfig = extractRoomAgentConfig(raw) ?? undefined;
+
+                        // Prefer setting the actual typed field on Channel so downstream code
+                        // (withDisplayName / triggerAgentReplyIfEnabled) can read it deterministically.
+                        channelRef.agentConfig = parsedAgentConfig;
+
+                        // Also mirror it on an "any" property for legacy callsites that read
+                        // (channel as any).agentConfig.
+                        (channelRef as any).agentConfig = parsedAgentConfig;
 
                         const snapshot = this.configState.getSnapshot();
-                        const composer = (raw && (raw.composer ?? raw)) || {};
+
+                        // Backends sometimes nest composer under config/composer; sometimes return it
+                        // at the top level. Accept both.
+                        const composer = (raw && (raw.composer ?? raw.config?.composer ?? raw.config ?? raw)) || {};
+
 
                         // AI state is driven exclusively by ai_indicator websocket events.
                         // Do not attempt to derive AI state from config-state responses.
