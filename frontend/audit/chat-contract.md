@@ -5,7 +5,7 @@
 - **Backend response today:** No explicit room-lookup call is made. `channelFactory.call(client, 'messaging', roomSlug)` assumes the slug *is* the room UUID, so the backend must already recognize that identifier.
 - **Persistence:** There is no cookie/localStorage storage of a room UUID. Changing pages recreates the channel using the provided slug; if the slug is not a stable per-user UUID, the conversation will not resume.
 - **Required future behavior:** Treat the entrypoint label (e.g., `agent-lab`) as a bootstrap hint only. The client should call a **room resolve/create** endpoint to obtain a per-user `room_uuid`, persist it (cookie/localStorage, e.g., `jatte.room_uuid`), and reuse that UUID for all subsequent calls (`config-state`, message list/send, websocket `cid`).
-- **Agent lab special-casing:** Agent helpers infer AI enablement whenever `channel.uuid === 'agent-lab'` or `cid === 'messaging:agent-lab'`, reinforcing that the entrypoint slug is currently treated as the room id. This logic would need to switch to the resolved room UUID. 【F:src/lib/stream-adapter/channelAgentExtensions.ts†L77-L104】
+- **Agent enablement:** Agent helpers rely on `config.ai.enabled` and the derived bot identity (explicit `botUserId` or `ai-bot-<room_uuid>` fallback). The entrypoint slug is not treated as a special identifier when deciding whether to invoke the agent. 【F:src/lib/stream-adapter/channelAgentExtensions.ts†L80-L150】
 
 ### Expected bootstrap flow
 1. UI mounts chat (chat bubble/page) with an entrypoint label (`agent-lab`).
@@ -56,14 +56,14 @@ All calls go through the Next proxy at `/app/api/rooms/[...path]`, which forward
 ### Ancillary room calls observed (not required for echo MVP)
 - Members: `GET /api/rooms/{room_uuid}/members/` to build `members` map during bootstrap. 【F:src/lib/stream-adapter/Channel.ts†L977-L985】【F:src/lib/stream-adapter/Channel.ts†L1019-L1027】
 - Draft clear: `DELETE /api/rooms/{room_uuid}/draft/` when composer clears. 【F:src/lib/stream-adapter/Channel.ts†L137-141】
-- AI helpers: Agent invocation endpoints use the channel `cid`; these currently treat `agent-lab` as the identifier and would need to accept the resolved UUID.
+- AI helpers: Agent invocation endpoints use the channel `cid` derived from the resolved room UUID; entrypoint labels like `agent-lab` behave the same as any other slug.
 
 ## Call-site index (frontend)
 - **Channel construction:** `ChatProvider` creates `Channel` with `roomSlug` and calls `watch()`. 【F:src/lib/ChatProvider.tsx†L117-L129】
 - **Config-state fetch:** `Channel#getConfigState` called from `ChatProvider` bootstrap and refresh loop. 【F:src/lib/ChatProvider.tsx†L170-L219】【F:src/lib/stream-adapter/Channel.ts†L543-L629】
 - **Message list:** `Channel#query` and `Channel#watch` fetch `/messages/` to hydrate history. 【F:src/lib/stream-adapter/Channel.ts†L949-L986】【F:src/lib/stream-adapter/Channel.ts†L996-L1017】
 - **Send message:** `Channel#sendMessage` posts to `/messages/` with composed payload. 【F:src/lib/stream-adapter/Channel.ts†L1410-L1449】
-- **Agent auto-invoke heuristic:** `channelAgentExtensions.ts` checks `uuid === 'agent-lab'` before invoking AI. 【F:src/lib/stream-adapter/channelAgentExtensions.ts†L77-L104】
+- **Agent auto-invoke heuristic:** `channelAgentExtensions.ts` invokes AI only when `config.ai.enabled` is true for the room and the message author is not the bot user. 【F:src/lib/stream-adapter/channelAgentExtensions.ts†L110-L185】
 
 ## Minimal echo-mode response shapes
 - **Config state:** `{ composer: { file_uploads?: boolean, max_length?: number, cooldown_seconds?: number } }` (or these fields at top-level). Missing fields fall back to prior snapshot; no AI state expected from this endpoint. 【F:src/lib/stream-adapter/Channel.ts†L588-L620】
@@ -73,5 +73,5 @@ All calls go through the Next proxy at `/app/api/rooms/[...path]`, which forward
 
 ## Gaps to close
 - Add a resolve/create endpoint call on chat mount to translate entrypoint label → `room_uuid` and persist it.
-- Replace hard-coded `agent-lab` comparisons with checks against the resolved `room_uuid` to ensure AI enablement follows the actual room.
+- Ensure AI enablement continues to follow `config.ai.enabled` for the resolved `room_uuid` instead of any hard-coded label heuristics.
 - Store and reuse `room_uuid` across routes so the chat bubble/page resumes the same conversation without relying on the label.

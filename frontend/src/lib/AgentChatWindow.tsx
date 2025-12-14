@@ -23,6 +23,7 @@ import { AgentMessage } from '../app/agent/AgentMessage';
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 import ChatBootstrapNotice from './ChatBootstrapNotice';
+import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions';
 
 export default function AgentChatWindow() {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
@@ -30,6 +31,7 @@ export default function AgentChatWindow() {
   useEffect(() => {
     if (!channel) return undefined;
 
+    const botUserId = getBotUserIdForChannel(channel as any);
     const store: any = (channel as any).stateStore;
     const logSnapshot = () => {
       try {
@@ -40,8 +42,11 @@ export default function AgentChatWindow() {
 
           const messages: any[] = snapshot.messages ?? [];
           const aiMessages = messages.filter((m) => {
-            const uid = m?.user?.id ?? m?.user_id;
-            return uid === 'ai-bot-agent-lab' || Boolean((m as any).ai_generated);
+            const uid = m?.user?.id ?? m?.user_id ?? m?.sent_by;
+            return (
+              (botUserId && uid === botUserId) ||
+              Boolean((m as any).custom_data?.ai_generated)
+            );
           });
 
           // eslint-disable-next-line no-console
@@ -75,6 +80,8 @@ export default function AgentChatWindow() {
   const { aiState } = useAIState(channel as any);
 
   const isAgentBusy = aiState === AIStates.Thinking || aiState === AIStates.Generating;
+
+  const botUserId = channel ? getBotUserIdForChannel(channel as any) : null;
 
   useEffect(() => {
     if (!channel) return;
@@ -139,6 +146,7 @@ export default function AgentChatWindow() {
                 <AgentMessage
                   {...props}
                   currentUserId={(client as any)?.user?.id}
+                  botUserId={botUserId}
                 />
               )}
             />
