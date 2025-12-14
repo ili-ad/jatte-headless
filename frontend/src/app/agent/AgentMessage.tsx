@@ -26,6 +26,7 @@ export type AgentMessageProps = MessageProps & {
     messageId?: string;
   }) => void;
   currentStateSlug?: string;
+  botUserId?: string | null;
 };
 
 export function AgentMessage(props: AgentMessageProps) {
@@ -52,7 +53,8 @@ export function AgentMessage(props: AgentMessageProps) {
 
   const authorId = getAuthorId(message);
   const isAgent =
-    authorId === 'ai-bot-agent-lab' || Boolean((message as any).custom_data?.ai_generated);
+    (props.botUserId && authorId === props.botUserId) ||
+    Boolean((message as any).custom_data?.ai_generated);
 
   const customData = (message as any)?.custom_data ?? {};
   const rag = customData?.rag as { used?: boolean; k?: number } | undefined;

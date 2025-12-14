@@ -203,6 +203,17 @@ class RoomResolveAIDefaultTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["config"]["ai"]["enabled"])
 
+    def test_agent_lab_slug_is_not_auto_enabled(self) -> None:
+        """Agent Lab slug should behave like any other room unless configured."""
+
+        self.authenticate()
+        room_uuid = self._resolve_room("agent-lab")
+
+        policy = AgentRoomPolicy.objects.get(cid=f"messaging:{room_uuid}")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertFalse(policy.agent_enabled)
+        self.assertFalse(flag.agent_enabled)
+
     def test_generic_room_persists_disabled_default(self) -> None:
         self.authenticate()
         room_uuid = self._resolve_room("general-chat")

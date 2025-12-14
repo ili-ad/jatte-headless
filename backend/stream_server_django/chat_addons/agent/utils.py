@@ -50,6 +50,8 @@ def _default_agent_enabled(room_slug: str | None = None, purpose: str | None = N
     configured_slugs = getattr(settings, "DEFAULT_AGENT_ENABLED_SLUGS", []) or []
     configured_purposes = getattr(settings, "DEFAULT_AGENT_ENABLED_PURPOSES", []) or []
 
+    # Example local/dev override: DEFAULT_AGENT_ENABLED_SLUGS=agent-lab,support
+
     normalized_slug = slugify(room_slug) if room_slug else None
     slug_candidates = {normalized_slug} if normalized_slug else set()
     support_slug = slugify("support/contact-us")
