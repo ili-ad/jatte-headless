@@ -16,6 +16,7 @@ from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTA
 from stream_server_django.chat.models import Room
 from stream_server_django.chat.utils import canonical_cid
 from stream_server_django.common.identity import get_chat_identity
+from stream_server_django.chat_addons.permissions import IsChatStaff
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
@@ -36,7 +37,7 @@ class AdminQueueView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
 
     def get(self, request: Request) -> Response:
         identity = get_chat_identity(request)
@@ -65,7 +66,7 @@ class ClaimRoomView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
     throttle_classes = [ClaimRoomRateThrottle]
 
     @audit_action(action=AuditTrail.Action.CLAIM, cid_kwarg="cid")
@@ -103,7 +104,7 @@ class GatingRulesView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
 
     def get(self, request: Request) -> Response:
         rules = gating.get_rules()
@@ -122,7 +123,7 @@ class IntakeListView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
 
     def get(self, request: Request) -> Response:
         status_param = request.query_params.get("status")
@@ -157,7 +158,7 @@ class ApproveIntakeView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
     throttle_classes = [IntakeWriteRateThrottle]
 
     @audit_action(action=AuditTrail.Action.APPROVE, target_kwarg="message_id")
@@ -190,7 +191,7 @@ class RejectIntakeView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
     throttle_classes = [IntakeWriteRateThrottle]
 
     @audit_action(action=AuditTrail.Action.REJECT, target_kwarg="message_id")
@@ -237,7 +238,7 @@ class AuditTrailListView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [
         DevTokenOrJWTAuthentication
     ]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
 
     def get(self, request: Request) -> Response:
         limit_param = request.query_params.get("limit")

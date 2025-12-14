@@ -92,6 +92,8 @@ class SmsBridgeSendTests(APITestCase):
             password="secret",
             supabase_uid="admin-uid",
         )
+        self.agent.is_staff = True
+        self.agent.save(update_fields=["is_staff"])
         self.url = reverse("sms-send")
 
     @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
@@ -119,6 +121,20 @@ class SmsBridgeSendTests(APITestCase):
         self.assertEqual(relay.status, SmsRelay.STATUS_PENDING)
         self.assertEqual(relay.external_id, "ext-2")
         mocked_broadcast.assert_called_once()
+
+    def test_non_staff_denied(self) -> None:
+        payload = {"cid": "messaging:room-2", "to": "+15551239999", "text": "Hi"}
+        non_staff = User.objects.create_user(
+            username="member",
+            email="member@example.com",
+            password="secret",
+            supabase_uid="member-uid",
+        )
+        self.client.force_authenticate(user=non_staff)
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 403)
 
 
 @override_settings(ROOT_URLCONF="jatte.urls", SMS_WEBHOOK_SECRET="super-secret")
