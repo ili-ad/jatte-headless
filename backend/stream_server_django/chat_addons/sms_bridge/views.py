@@ -20,6 +20,7 @@ from stream_server_django.chat.api_views import _broadcast_to_cid
 from stream_server_django.chat.models import Message
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.consumers import broadcast_message_update
+from stream_server_django.chat_addons.permissions import IsChatStaff
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
@@ -115,7 +116,7 @@ class SmsWebhookView(APIView):
 
 class SmsSendView(APIView):
     authentication_classes: list[type[BaseAuthentication]] = [DevTokenOrJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
     throttle_classes = [SmsSendRateThrottle]
 
     @audit_action(action=AuditTrail.Action.SMS_SEND)
