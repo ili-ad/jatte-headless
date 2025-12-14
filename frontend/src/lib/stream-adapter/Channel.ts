@@ -975,41 +975,81 @@ export class Channel {
             const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
+
             if (res.ok) {
-                const first: Message[] = await res.json();
+                const payload: any = await res.json().catch(() => ({}));
+                const rawList: Message[] = Array.isArray(payload)
+                    ? payload
+                    : (payload?.messages ?? payload?.results ?? []);
+
+                const nextCursor = Array.isArray(payload) ? null : (payload?.next ?? null);
+
+                // Ensure chronological order (oldest → newest)
+                const first = [...rawList].sort((a: any, b: any) => {
+                    const ta = new Date(a?.created_at ?? 0).getTime();
+                    const tb = new Date(b?.created_at ?? 0).getTime();
+                    return ta - tb;
+                });
+
                 const me = this.client.user?.id;
+
+                const patch: any = {
+                    messages: first,
+                    latestMessages: first,
+                    messagePagination: {
+                        ...this._state.messagePagination,
+                        hasPrev: Boolean(nextCursor),
+                        hasNext: false,
+                    },
+                };
+
                 if (me) {
-                    this.bump({
-                        messages: first,
-                        latestMessages: first,
-                        read: {
-                            ...this._state.read,
-                            [me]: {
-                                last_read: new Date(),
-                                last_read_message_id: first.at(-1)?.id,
-                                unread_messages: 0,
-                            },
+                    const last = first.length ? first[first.length - 1] : undefined;
+                    patch.read = {
+                        ...this._state.read,
+                        [me]: {
+                            last_read: new Date(),
+                            last_read_message_id: last?.id,
+                            unread_messages: 0,
                         },
-                    });
-                } else {
-                    this.bump({ messages: first, latestMessages: first });
+                    };
                 }
+
+                this.bump(patch);
             }
 
             const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
+
             if (memRes.ok) {
-                const list = (await memRes.json()) as { id: string }[];
+                const payload: any = await memRes.json().catch(() => ({}));
+                const list: any[] = Array.isArray(payload)
+                    ? payload
+                    : (payload?.members ?? payload?.results ?? []);
+
                 const map: Record<string, { user: { id: string } }> = {};
-                for (const m of list) map[m.id] = { user: { id: m.id } };
+                for (const m of list) {
+                    const id =
+                        (m as any).id ??
+                        (m as any).user_id ??
+                        (m as any).user?.id;
+
+                    if (id) map[String(id)] = { user: { id: String(id) } };
+                }
+
                 this.bump({ members: map });
             }
-        } catch {
-            /* ignore network errors */
+        } catch (err) {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.warn('[Channel.query] failed to hydrate history', err);
+            }
         }
+
         this.initialized = true;
     }
+
 
     async watch() {
         if (this.socket) return;
@@ -1020,35 +1060,79 @@ export class Channel {
             const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
+
             if (res.ok) {
-                const first: Message[] = await res.json();
+                const payload: any = await res.json().catch(() => ({}));
+                const rawList: Message[] = Array.isArray(payload)
+                    ? payload
+                    : (payload?.messages ?? payload?.results ?? []);
+
+                const nextCursor = Array.isArray(payload) ? null : (payload?.next ?? null);
+
+                // Ensure chronological order (oldest → newest)
+                const first = [...rawList].sort((a: any, b: any) => {
+                    const ta = new Date(a?.created_at ?? 0).getTime();
+                    const tb = new Date(b?.created_at ?? 0).getTime();
+                    return ta - tb;
+                });
+
                 const me = this.client.user?.id;
-                if (!me) return;
-                this.bump({
+                const last = first.length ? first[first.length - 1] : undefined;
+
+                const patch: any = {
                     messages: first,
-                    latestMessages: first,                   // 🔹 keep mirror
-                    read: {
+                    latestMessages: first, // keep mirror
+                    messagePagination: {
+                        ...this._state.messagePagination,
+                        hasPrev: Boolean(nextCursor),
+                        hasNext: false,
+                    },
+                };
+
+                // Only set read state if we know who "me" is; do not bail out of watch().
+                if (me) {
+                    patch.read = {
                         ...this._state.read,
                         [me]: {
                             last_read: new Date(),
-                            last_read_message_id: first.at(-1)?.id,
-                            unread_messages: 0
-                        }
-                    },
-                });
+                            last_read_message_id: last?.id,
+                            unread_messages: 0,
+                        },
+                    };
+                }
+
+                this.bump(patch);
             }
 
             const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
                 headers: { Authorization: `Bearer ${this.client['jwt']}` },
             });
+
             if (memRes.ok) {
-                const list = await memRes.json() as { id: string }[];
+                const payload: any = await memRes.json().catch(() => ({}));
+                const list: any[] = Array.isArray(payload)
+                    ? payload
+                    : (payload?.members ?? payload?.results ?? []);
+
                 const map: Record<string, { user: { id: string } }> = {};
-                for (const m of list) map[m.id] = { user: { id: m.id } };
+                for (const m of list) {
+                    const id =
+                        (m as any).id ??
+                        (m as any).user_id ??
+                        (m as any).user?.id;
+
+                    if (id) map[String(id)] = { user: { id: String(id) } };
+                }
+
                 this.bump({ members: map });
             }
+        } catch (err) {
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.warn('[Channel.watch] failed to hydrate history', err);
+            }
+        }
 
-        } catch {/* fine for MVP */ }
 
         this.initialized = true;
 
