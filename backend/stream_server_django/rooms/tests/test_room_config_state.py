@@ -108,6 +108,28 @@ class RoomConfigStateTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("composer", response.data.get("config", {}))
 
+    def test_room_flag_overrides_disabled_policy(self) -> None:
+        """A room-level flag should enable the agent even if policy disables it."""
+
+        self.authenticate()
+        AgentRoomPolicy.objects.create(cid=self.room.cid, agent_enabled=False)
+        RoomAgentFlag.objects.create(room=self.room, agent_enabled=True)
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["config"]["ai"]["enabled"])
+
+    def test_room_flag_overrides_enabled_policy(self) -> None:
+        """A room-level flag should disable the agent even if policy enables it."""
+
+        self.authenticate()
+        AgentRoomPolicy.objects.create(cid=self.room.cid, agent_enabled=True)
+        RoomAgentFlag.objects.create(room=self.room, agent_enabled=False)
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["config"]["ai"]["enabled"])
+
     @override_settings(PUBLIC_AGENT_ROOM_SLUGS=["agent-lab"])
     def test_guest_can_read_public_agent_room(self) -> None:
         """Guest Supabase sessions may read config for public agent rooms."""
