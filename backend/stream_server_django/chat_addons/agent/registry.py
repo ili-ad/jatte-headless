@@ -8,11 +8,12 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from django.db import transaction
+from django.conf import settings
 
 from .models import AgentRoomPolicy
 from .skills import Skill
 
-_SKILLS_PACKAGE = "stream_server_django.chat_addons.agent.skills"
+_DEFAULT_SKILL_PACKAGES = ("stream_server_django.chat_addons.agent.skills",)
 
 
 @dataclass(frozen=True)
@@ -28,19 +29,31 @@ class SkillNotFoundError(LookupError):
     """Raised when an unknown skill is requested."""
 
 
-def _skills_root() -> Path:
-    return Path(importlib.import_module(_SKILLS_PACKAGE).__file__).resolve().parent
+def _skill_packages() -> tuple[str, ...]:
+    packages = getattr(settings, "AGENT_SKILL_PACKAGES", None)
+    if packages is None:
+        return _DEFAULT_SKILL_PACKAGES
+    if isinstance(packages, str):
+        return (packages,)
+    if isinstance(packages, (list, tuple)):
+        return tuple(packages)
+    raise TypeError("AGENT_SKILL_PACKAGES must be a string or sequence of strings")
+
+
+def _skills_root(package: str) -> Path:
+    return Path(importlib.import_module(package).__file__).resolve().parent
 
 
 def _iter_skill_modules() -> Iterable[str]:
-    root = _skills_root()
     importlib.invalidate_caches()
-    for child in sorted(root.iterdir()):
-        if not child.is_dir() or child.name.startswith("__"):
-            continue
-        module = child / "skill.py"
-        if module.exists():
-            yield f"{_SKILLS_PACKAGE}.{child.name}.skill"
+    for package in _skill_packages():
+        root = _skills_root(package)
+        for child in sorted(root.iterdir()):
+            if not child.is_dir() or child.name.startswith("__"):
+                continue
+            module = child / "skill.py"
+            if module.exists():
+                yield f"{package}.{child.name}.skill"
 
 
 def _iter_skill_classes() -> Iterable[type[Skill]]:
