@@ -21,6 +21,8 @@ class AdminConsoleQueueTests(APITestCase):
             password="secret",
             supabase_uid="op1",
         )
+        self.operator.is_staff = True
+        self.operator.save(update_fields=["is_staff"])
         self.other_operator = User.objects.create_user(
             username="op2",
             email="op2@example.com",
@@ -66,7 +68,7 @@ class AdminConsoleQueueTests(APITestCase):
 
     def test_claim_rejected_when_owned_by_other(self):
         room = Room.objects.create(uuid="claim-r2", client="stream")
-          RoomOwnership.objects.create(room=room, owner=self.other_operator)
+        RoomOwnership.objects.create(room=room, owner=self.other_operator)
 
         token = self.make_token(self.operator)
         url = reverse("claim-room", kwargs={"cid": "messaging:claim-r2"})
@@ -101,6 +103,21 @@ class AdminConsoleQueueTests(APITestCase):
         self.assertEqual(len(response_new.json()["results"]), 1)
         self.assertEqual(response_new.json()["results"][0]["cid"], "messaging:mine-new")
 
+    def test_non_staff_denied(self):
+        Room.objects.create(uuid="queue-r3", client="stream")
+        non_staff = User.objects.create_user(
+            username="visitor",
+            email="visitor@example.com",
+            password="secret",
+            supabase_uid="visitor",
+        )
+        token = self.make_token(non_staff)
+        url = reverse("list-admin-queue")
+
+        response = self.client.get(url, {"status": "new"}, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        self.assertEqual(response.status_code, 403)
+
 
 class GatingRulesAPITests(APITestCase):
     def setUp(self):
@@ -110,6 +127,8 @@ class GatingRulesAPITests(APITestCase):
             password="secret",
             supabase_uid="gate-admin",
         )
+        self.operator.is_staff = True
+        self.operator.save(update_fields=["is_staff"])
 
     def make_token(self, user: User) -> str:
         return jwt.encode(
@@ -165,6 +184,8 @@ class IntakeWorkflowTests(APITestCase):
             password="secret",
             supabase_uid="admin",
         )
+        self.operator.is_staff = True
+        self.operator.save(update_fields=["is_staff"])
         self.visitor = User.objects.create_user(
             username="visitor",
             email="visitor@example.com",

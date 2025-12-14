@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.common.identity import get_chat_identity
+from stream_server_django.chat_addons.permissions import IsChatStaff
 
 from stream_server_django.chat_addons.admin_console.models import MessageIntake
 
@@ -29,7 +30,7 @@ ESCALATION_COOLDOWN_SEC = getattr(settings, "ESCALATION_COOLDOWN_SEC", 300)
 
 class NotificationsBaseView(APIView):
     authentication_classes: List[type[BaseAuthentication]] = [DevTokenOrJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsChatStaff]
 
 
 class IntakeSummaryView(NotificationsBaseView):
