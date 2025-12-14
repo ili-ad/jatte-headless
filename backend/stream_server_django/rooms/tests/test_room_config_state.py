@@ -29,6 +29,10 @@ from rest_framework.test import APITestCase  # noqa: E402  pylint: disable=wrong
 call_command("migrate", run_syncdb=True, verbosity=0)
 
 from stream_server_django.chat.models import Room  # noqa: E402  pylint: disable=wrong-import-position
+from stream_server_django.chat_addons.agent.models import (  # noqa: E402  pylint: disable=wrong-import-position
+    AgentRoomPolicy,
+    RoomAgentFlag,
+)
 
 
 class RoomConfigStateTests(APITestCase):
@@ -141,3 +145,52 @@ class RoomConfigStateTests(APITestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
+
+
+class RoomResolveAIDefaultTests(APITestCase):
+    """Validate AI defaults are applied at room creation time."""
+
+    def setUp(self) -> None:
+        User = get_user_model()
+        self.user = User.objects.create_user(username="resolver", password="pw")
+
+    def authenticate(self) -> None:
+        self.client.force_authenticate(self.user)
+
+    def _resolve_room(self, label: str, purpose: str | None = None) -> str:
+        payload: dict[str, str] = {"label": label}
+        if purpose:
+            payload["purpose"] = purpose
+        response = self.client.post("/api/rooms/resolve/", data=payload, format="json")
+        self.assertEqual(response.status_code, 200)
+        room_uuid = response.data["room_uuid"]
+        self.assertTrue(room_uuid)
+        return room_uuid
+
+    def test_support_room_persists_enabled_default(self) -> None:
+        self.authenticate()
+        room_uuid = self._resolve_room("support/contact-us", purpose="support")
+
+        policy = AgentRoomPolicy.objects.get(cid=f"messaging:{room_uuid}")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertTrue(policy.agent_enabled)
+        self.assertTrue(flag.agent_enabled)
+
+        url = f"/api/rooms/{room_uuid}/config-state/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["config"]["ai"]["enabled"])
+
+    def test_generic_room_persists_disabled_default(self) -> None:
+        self.authenticate()
+        room_uuid = self._resolve_room("general-chat")
+
+        policy = AgentRoomPolicy.objects.get(cid=f"messaging:{room_uuid}")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertFalse(policy.agent_enabled)
+        self.assertFalse(flag.agent_enabled)
+
+        url = f"/api/rooms/{room_uuid}/config-state/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["config"]["ai"]["enabled"])
