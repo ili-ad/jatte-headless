@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { Channel } from '../../chat-kit/client';
+import { getBotUserIdForChannel } from '../../lib/stream-adapter/channelAgentExtensions';
 
 type AgentAIState = 'idle' | 'thinking' | 'generating' | 'error';
 
@@ -17,16 +18,18 @@ export function AgentAIStateBanner({ channel }: Props) {
             return undefined;
         }
 
+        const botUserId = getBotUserIdForChannel(channel as any);
+
+        const isAgentMessage = (msg: any) => {
+            const authorId = msg?.sent_by ?? msg?.user?.id ?? msg?.user_id;
+            return (botUserId && authorId === botUserId) || msg?.custom_data?.ai_generated;
+        };
+
         const handler = (event: any) => {
             if (!event?.message) return;
             const msg = event.message;
 
-            const isAgentMessage =
-                msg.sent_by === 'ai-bot-agent-lab' ||
-                msg.user?.id === 'ai-bot-agent-lab' ||
-                msg.custom_data?.ai_generated;
-
-            if (!isAgentMessage) return;
+            if (!isAgentMessage(msg)) return;
 
             const raw = msg.custom_data?.ai_state as string | undefined;
 
@@ -44,7 +47,7 @@ export function AgentAIStateBanner({ channel }: Props) {
         const messages = channel.state?.messages ?? [];
         const lastAgent = [...messages]
             .reverse()
-            .find((m: any) => m.custom_data?.ai_generated);
+            .find((m: any) => isAgentMessage(m));
         if (lastAgent?.custom_data?.ai_state) {
             handler({ message: lastAgent });
         }

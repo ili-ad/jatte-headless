@@ -45,21 +45,26 @@ export function getBotUserIdForChannel(channel: Channel): string | null {
     })
   }
 
+  const prefix = 'ai-bot'
   const uuid =
     (channel as any).uuid ??
     (channel as any).data?.uuid ??
     (channel as any).roomUuid ??
-    null
-
-  if (uuid) return `ai-bot-${String(uuid).slice(0, 8)}`
+    ((): string | null => {
+      const cid = (channel as any).cid ?? (channel as any).data?.cid
+      if (!cid) return null
+      const parts = String(cid).split(':', 2)
+      return parts.length === 2 ? parts[1] : String(cid)
+    })()
+  if (uuid) return `${prefix}-${String(uuid)}`
 
   const cid = (channel as any).cid ?? null
   if (cid) {
     const safe = String(cid).replace(/[^a-zA-Z0-9_-]/g, "-")
-    return `ai-bot-${safe.slice(-12)}`
+    return `${prefix}-${safe}`
   }
 
-  return 'ai-bot'
+  return prefix
 }
 
 
