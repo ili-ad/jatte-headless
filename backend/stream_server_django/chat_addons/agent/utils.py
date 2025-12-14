@@ -33,13 +33,13 @@ def agent_enabled_for_room(room_identifier: str, room: Room | None = None) -> bo
     canonical = canonical_cid(room_identifier, room_uuid=getattr(room, "uuid", None))
     room_obj = room or Room.objects.filter(uuid=room_uuid_from_identifier(room_identifier)).first()
 
+    flag = RoomAgentFlag.objects.filter(room=room_obj).first() if room_obj else None
+    if flag is not None:
+        return bool(flag.agent_enabled)
+
     policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
     if policy is not None:
         return bool(policy.agent_enabled)
-
-    if room_obj:
-        flag = RoomAgentFlag.objects.filter(room=room_obj).first()
-        return bool(flag.agent_enabled) if flag else False
 
     return False
 
