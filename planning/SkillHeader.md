@@ -15,7 +15,8 @@
 - Validate inputs in `execute`; return structured errors via `{"error": {...}}` (do not raise).
 
 **Discovery & flags**
-- Skills are discovered by the registry from `backend/chat_addons/agent/skills/**/skill.py`.
+- Skills are discovered by the registry from `backend/chat_addons/agent/skills/**/skill.py` by default.
+- Host projects can add `AGENT_SKILL_PACKAGES` to Django settings to include extra roots (e.g. `my_site.agent_skills.skills`).
 - Per-room flags live in `AgentRoomPolicy.enabled_skills` (strings = skill names).
 
 **Testing**
