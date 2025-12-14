@@ -24,13 +24,45 @@ export function stopAgentTyping(channel: Channel, botUserId: string) {
     channel.simulateTypingStop(botUserId);
 }
 
-export function getBotUserIdForChannel(channel: Channel) {
-    const snapshot = channel.messageComposer?.configState?.getSnapshot?.();
-    const agentConfig = snapshot
-        ? (channel as any).agentConfig ?? extractRoomAgentConfig(snapshot)
-        : (channel as any).agentConfig;
-    return agentConfig?.botUserId ?? 'ai-bot-agent-lab';
+export function getBotUserIdForChannel(channel: Channel): string | null {
+  const snapshot = channel.messageComposer?.configState?.getSnapshot?.()
+
+  // Prefer the cached channel-level config (Option A). Snapshot is a fallback only.
+  const agentConfig = (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null)
+
+  // If agent isn't enabled, there is no bot identity. Full stop.
+  if (!agentConfig?.enabled) return null
+
+  // If backend provided an explicit bot user id, use it.
+  if (agentConfig.botUserId) return agentConfig.botUserId
+
+  // If enabled but botUserId missing, this is a misconfig. Warn and fallback deterministically.
+  // This keeps the UI functional while making the bug obvious in dev.
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[agent] enabled but missing botUserId; using fallback', {
+      cid: (channel as any).cid,
+      uuid: (channel as any).uuid ?? (channel as any).data?.uuid,
+    })
+  }
+
+  const uuid =
+    (channel as any).uuid ??
+    (channel as any).data?.uuid ??
+    (channel as any).roomUuid ??
+    null
+
+  if (uuid) return `ai-bot-${String(uuid).slice(0, 8)}`
+
+  const cid = (channel as any).cid ?? null
+  if (cid) {
+    const safe = String(cid).replace(/[^a-zA-Z0-9_-]/g, "-")
+    return `ai-bot-${safe.slice(-12)}`
+  }
+
+  return 'ai-bot'
 }
+
+
 
 export function resolveDisplayNameForMessage(channel: Channel, message: Message) {
     const user = (message as any).user ?? {};
@@ -84,13 +116,26 @@ export async function triggerAgentReplyIfEnabled(
         (message as any).sent_by ??
         (message as any).user?.id;
 
+    /**
+     * Ensure config-state has been fetched at least once before deciding
+     * whether to invoke the agent. This prevents “first message after mount”
+     * from skipping agent invocation due to missing config hydration.
+     */
+    try {
+        await channel.messageComposer?.getConfigState?.();
+    } catch {
+        // If config-state fetch fails, we treat as disabled (no cost surprises).
+    }
+
     const snapshot = channel.messageComposer?.configState?.getSnapshot?.();
-    const aiConfig = (channel as any).agentConfig ?? (snapshot ? extractRoomAgentConfig(snapshot) : null);
 
-    const isAgentLab =
-        (channel as any).uuid === 'agent-lab' || channel.cid === 'messaging:agent-lab';
+    // Prefer the typed channel-level config (set by Channel.ts hydration). Snapshot is fallback only.
+    const aiConfig =
+        (channel as any).agentConfig ??
+        (snapshot ? extractRoomAgentConfig(snapshot) : null);
 
-    const isAgentEnabled = aiConfig?.enabled ?? isAgentLab;
+    // Explicit opt-in only: agent runs ONLY when config-state says enabled.
+    const isAgentEnabled = Boolean(aiConfig?.enabled);
 
     if (!isAgentEnabled) {
         if (process.env.NODE_ENV !== 'production') {
@@ -116,42 +161,61 @@ export async function triggerAgentReplyIfEnabled(
         return;
     }
 
-    const botUserId = aiConfig?.botUserId;
+    const botUserId = getBotUserIdForChannel(channel);
+
+    // Safety: if the message was authored by the bot, don’t re-trigger.
     if (botUserId && authorId === botUserId) {
-        console.log('[agent] bail: message from bot user, not echoing');
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[agent] bail: message from bot user, not echoing', {
+                cid: channel.cid,
+                botUserId,
+            });
+        }
         return;
     }
 
     if (!message.id) {
-        console.log('[agent] bail: missing message id');
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[agent] bail: missing message id', { cid: channel.cid });
+        }
         return;
     }
 
-    console.log('[agent] trigger echo', {
-        cid: channel.cid,
-        uuid: (channel as any).uuid,
-        authorId,
-        botUserId,
-        messageId: message.id,
-    });
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('[agent] invoking agent', {
+            cid: channel.cid,
+            uuid: (channel as any).uuid,
+            authorId,
+            botUserId,
+            messageId: message.id,
+        });
+    }
 
-    const typingUserId = botUserId ?? authorId;
-    startAgentTyping(channel, typingUserId);
+    // Typing indicator should always be attributed to the bot identity.
+    if (botUserId) startAgentTyping(channel, botUserId);
 
     try {
+        const roomUUID =
+            (channel as any).uuid ??
+            (channel as any).data?.uuid ??
+            (channel as any).roomUuid ??
+            undefined;
+
         const reply = await invokeAgent(channel.cid, {
-            roomUUID: (channel as any).uuid,
+            roomUUID,
             lastHumanMessageId: String(message.id),
             clientGeneratedId:
                 client_generated_id ?? (message as any).client_generated_id,
         });
 
         if ('status' in reply && reply.status === 'queued') {
-            console.log('[agent] agent job queued', reply);
+            if (process.env.NODE_ENV !== 'production') {
+                console.log('[agent] agent job queued', reply);
+            }
             return;
         }
 
-        (reply.messages ?? []).forEach(agentMessage => {
+        (reply.messages ?? []).forEach((agentMessage) => {
             const normalized = {
                 id: Number(agentMessage.id) || agentMessage.id,
                 room_uuid: agentMessage.room_uuid,
@@ -164,14 +228,19 @@ export async function triggerAgentReplyIfEnabled(
                 status: 'received' as const,
             };
 
-            (channel as any).integrateIncomingMessage(normalized as any, normalized.id as any);
+            (channel as any).integrateIncomingMessage(
+                normalized as any,
+                normalized.id as any,
+            );
         });
 
-        console.log('[agent] echo reply integrated', reply);
-
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[agent] agent reply integrated', reply);
+        }
     } catch (err) {
         console.error('[agent] failed to request reply', err);
     } finally {
-        stopAgentTyping(channel, typingUserId);
+        if (botUserId) stopAgentTyping(channel, botUserId);
     }
 }
+
