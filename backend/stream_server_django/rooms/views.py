@@ -25,6 +25,7 @@ from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTA
 from stream_server_django.chat.mixins import RoomFromCIDMixin
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.common.identity import ChatIdentity
+from stream_server_django.chat_addons.agent.utils import apply_default_agent_policy
 
 from .serializers import (
     MessageContractCreateSerializer,
@@ -228,17 +229,19 @@ def resolve_room(request: Request) -> Response:
     raw_label = label
     display_name = raw_label.strip()
     slug = slugify(display_name)
+    purpose = request.data.get("purpose") if isinstance(request.data.get("purpose"), str) else None
 
     normalized_candidates = {display_name, slug}
     room = Room.objects.filter(client=client_identifier).filter(
         Q(data__label__in={raw_label, *normalized_candidates})
         | Q(data__slug__in=normalized_candidates)
     ).first()
+    created = room is None
     if room is None:
         room = Room.objects.create(
             uuid=str(uuid4()),
             client=client_identifier,
-            data={"label": raw_label, "slug": slug, "name": display_name},
+            data={"label": raw_label, "slug": slug, "name": display_name, "purpose": purpose},
         )
     else:
         data = room.data if isinstance(room.data, dict) else {}
@@ -261,6 +264,10 @@ def resolve_room(request: Request) -> Response:
             data["name"] = display_name
             updated = True
 
+        if purpose and data.get("purpose") is None:
+            data["purpose"] = purpose
+            updated = True
+
         if updated:
             room.data = data
             room.save(update_fields=["data"])
@@ -269,6 +276,9 @@ def resolve_room(request: Request) -> Response:
     if isinstance(room.data, dict):
         name_candidate = room.data.get("name")
         name = name_candidate if isinstance(name_candidate, str) else None
+
+    if created:
+        apply_default_agent_policy(room, room_slug=slug, purpose=purpose)
 
     return Response({"room_uuid": room.uuid, "name": name})
 

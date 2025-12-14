@@ -29,6 +29,11 @@ from rest_framework.test import APITestCase  # noqa: E402  pylint: disable=wrong
 call_command("migrate", run_syncdb=True, verbosity=0)
 
 from stream_server_django.chat.models import Room  # noqa: E402  pylint: disable=wrong-import-position
+from stream_server_django.chat.utils import canonical_cid  # noqa: E402  pylint: disable=wrong-import-position
+from stream_server_django.chat_addons.agent.models import (  # noqa: E402  pylint: disable=wrong-import-position
+    AgentRoomPolicy,
+    RoomAgentFlag,
+)
 
 
 class RoomConfigStateTests(APITestCase):
@@ -141,3 +146,88 @@ class RoomConfigStateTests(APITestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
+
+
+class RoomResolveAgentDefaultsTests(APITestCase):
+    """Verify agent enablement defaults are persisted and surfaced in config-state."""
+
+    def setUp(self) -> None:
+        User = get_user_model()
+        self.user = User.objects.create_user(username="agent-policy-user", password="pw")
+        self.client.force_authenticate(self.user)
+
+    def _resolve_room(self, label: str, **extra: object) -> str:
+        payload = {"label": label, **extra}
+        response = self.client.post("/api/rooms/resolve/", data=payload, format="json")
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.data["room_uuid"]
+
+    def _config_state(self, room_uuid: str) -> dict:
+        response = self.client.get(f"/api/rooms/{room_uuid}/config-state/")
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.data
+
+    def test_agent_lab_defaults_to_enabled(self) -> None:
+        room_uuid = self._resolve_room("agent-lab")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertTrue(flag.agent_enabled)
+
+        payload = self._config_state(room_uuid)
+        self.assertTrue(payload["config"]["ai"]["enabled"])
+
+    def test_support_defaults_to_enabled(self) -> None:
+        room_uuid = self._resolve_room("Contact Us", purpose="support")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertTrue(flag.agent_enabled)
+
+        payload = self._config_state(room_uuid)
+        self.assertTrue(payload["config"]["ai"]["enabled"])
+
+    def test_generic_room_defaults_to_disabled(self) -> None:
+        room_uuid = self._resolve_room("general chat")
+        flag = RoomAgentFlag.objects.get(room__uuid=room_uuid)
+        self.assertFalse(flag.agent_enabled)
+
+        payload = self._config_state(room_uuid)
+        self.assertFalse(payload["config"]["ai"]["enabled"])
+
+    def test_flag_overrides_policy(self) -> None:
+        room_uuid = self._resolve_room("agent-lab")
+        RoomAgentFlag.objects.filter(room__uuid=room_uuid).update(agent_enabled=False)
+
+        canonical = canonical_cid(room_uuid, room_uuid=room_uuid)
+        AgentRoomPolicy.objects.update_or_create(
+            cid=canonical,
+            defaults={"agent_enabled": True},
+        )
+
+        payload = self._config_state(room_uuid)
+        self.assertFalse(payload["config"]["ai"]["enabled"])
+
+    def test_existing_room_flag_is_not_overwritten(self) -> None:
+        room = Room.objects.create(
+            uuid="existing-room", client=self.user.username, data={"label": "agent-lab", "slug": "agent-lab"}
+        )
+        RoomAgentFlag.objects.create(room=room, agent_enabled=False)
+
+        room_uuid = self._resolve_room("agent-lab")
+        self.assertEqual(room_uuid, room.uuid)
+
+        flag = RoomAgentFlag.objects.get(room=room)
+        self.assertFalse(flag.agent_enabled)
+
+        payload = self._config_state(room_uuid)
+        self.assertFalse(payload["config"]["ai"]["enabled"])
+
+    def test_config_state_persists_disabled_default(self) -> None:
+        room = Room.objects.create(uuid="manual-room", client=self.user.username, data={"label": "manual"})
+
+        payload = self._config_state(room.uuid)
+        self.assertFalse(payload["config"]["ai"]["enabled"])
+
+        flag = RoomAgentFlag.objects.get(room=room)
+        self.assertFalse(flag.agent_enabled)
+
+        canonical = canonical_cid(room.uuid, room_uuid=room.uuid)
+        policy = AgentRoomPolicy.objects.get(cid=canonical)
+        self.assertFalse(policy.agent_enabled)
