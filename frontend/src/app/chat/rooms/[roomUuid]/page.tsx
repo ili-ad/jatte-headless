@@ -1,11 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-
-import { ChatProvider } from '@/lib/ChatProvider'
-import ChatWindow from '@/lib/ChatWindow'
-import { useSession } from '@/lib/SessionProvider'
+import ChatGuard from '../../../../components/ChatGuard'
+import ChatInner from '../../ChatInner'
 
 const ROOM_UUID_COOKIE_PREFIX = 'jatte.room_uuid.'
 const ROOM_UUID_COOKIE_MAX_AGE_DAYS = 60
@@ -20,59 +17,27 @@ function setCookie(name: string, value: string, maxAgeDays = ROOM_UUID_COOKIE_MA
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; expires=${expires.toUTCString()}; samesite=lax`
 }
 
-export default function ChatRoomPage({ params }: { params: { roomUuid: string } }) {
+export default function RoomPage({ params }: { params: { roomUuid: string } }) {
   const roomUuid = decodeURIComponent(params.roomUuid)
-  const roomSlug = useMemo(() => roomUuid, [roomUuid])
-
-  const { session, loading } = useSession()
+  const label = useMemo(() => roomUuid, [roomUuid])
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setCookie(cookieKeyForLabel(roomSlug), roomUuid)
+    setCookie(cookieKeyForLabel(label), roomUuid)
     setReady(true)
-  }, [roomSlug, roomUuid])
-
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-4xl p-6 text-sm text-gray-600">
-        Loading session…
-      </main>
-    )
-  }
-
-  if (!session) {
-    return (
-      <main className="mx-auto max-w-4xl p-6">
-        <h1 className="text-lg font-semibold">Conversation</h1>
-        <p className="mt-2 text-sm text-gray-600">You must be signed in to view this room.</p>
-        <div className="mt-4">
-          <Link href="/chat/admin" className="text-sm text-blue-600 hover:underline">
-            Back to admin
-          </Link>
-        </div>
-      </main>
-    )
-  }
+  }, [label, roomUuid])
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">Conversation</h1>
-          <p className="text-xs text-gray-500">{roomUuid}</p>
-        </div>
-        <Link href="/chat/admin" className="text-sm text-blue-600 hover:underline">
-          Back to admin
-        </Link>
-      </div>
-
-      {!ready ? (
-        <div className="text-sm text-gray-500">Preparing room…</div>
+    <ChatGuard whenUnauthed="redirect">
+      {ready ? (
+        <ChatInner
+          roomSlug={label}
+          heading="Conversation"
+          description={roomUuid}
+        />
       ) : (
-        <ChatProvider roomSlug={roomSlug}>
-          <ChatWindow />
-        </ChatProvider>
+        <div style={{ padding: 24, color: '#6b7280' }}>Preparing conversation…</div>
       )}
-    </main>
+    </ChatGuard>
   )
 }
