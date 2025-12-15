@@ -541,8 +541,17 @@ class AgentService:
         handoff_message = policy.handoff_message or self.canned_text
 
         skills = enabled_for_room(cid)
+
         tool_schemas = build_tool_schemas(skills) if skills else []
+
+        # Allow lookup by BOTH internal skill name (e.g. "smalltalk.greet")
+        # and tool schema name (e.g. "smalltalk_greet").
         skill_lookup = {skill.name: skill for skill in skills}
+        for skill in skills:
+            tool_name = getattr(skill, "_tool_name", None)
+            if isinstance(tool_name, str) and tool_name and tool_name not in skill_lookup:
+                skill_lookup[tool_name] = skill
+
 
         tool_hops = 0
         turn = 0
