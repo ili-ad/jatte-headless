@@ -1,8 +1,8 @@
 name: memory_smoke
 cid: messaging:eval-memory
 skills:
-  - memory.store
-  - memory.recall
+  - memory_store
+  - memory_recall
 policy:
   tool_hop_cap: 3
   turn_cap: 4
@@ -11,12 +11,12 @@ steps:
     expect:
       reply_contains: "remember"
       tools_used:
-        - memory.store
+        - memory_store
       memory_add: true
       status: "ok"
   - user: "What's the wifi password?"
     expect:
       reply_contains: "BlueBird42"
       tools_used:
-        - memory.recall
+        - memory_recall
       status: "ok"

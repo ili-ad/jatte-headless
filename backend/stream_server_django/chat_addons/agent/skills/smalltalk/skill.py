@@ -29,10 +29,19 @@ def _log_execution(ctx: ConversationCtx, skill_name: str, ok: bool, start: float
 class SmalltalkGreetSkill(Skill):
     """Offer a short, friendly greeting."""
 
-    name = "smalltalk.greet"
+    name = "smalltalk_greet"
     description = "Offer a brief, friendly greeting and ask how to help."
-    input_schema = {"name": {"type": "string", "optional": True}}
-    output_schema = {"text": "string"}
+    input_schema = {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {"text": {"type": "string"}},
+        "required": ["text"],
+        "additionalProperties": False,
+    }
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:  # noqa: D401 - simple predicate
         _ = ctx

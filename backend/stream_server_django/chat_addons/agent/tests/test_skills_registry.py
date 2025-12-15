@@ -39,7 +39,7 @@ class SkillRegistryTests(TestCase):
 
     def test_registry_discovers_dummy_skill(self) -> None:
         metas = registry.list_all()
-        self.assertTrue(any(meta.name == "dummy.echo" for meta in metas))
+        self.assertTrue(any(meta.name == "dummy_echo" for meta in metas))
 
     def test_registry_execute_returns_payload(self) -> None:
         ctx = {
@@ -48,15 +48,15 @@ class SkillRegistryTests(TestCase):
             "now": timezone.now(),
             "metadata": {},
         }
-        payload = registry.execute("dummy.echo", {"message": "ping"}, ctx)
+        payload = registry.execute("dummy_echo", {"message": "ping"}, ctx)
         self.assertTrue(payload["echoed"].startswith("ping"))
 
     def test_enabled_for_room_respects_policy(self) -> None:
         cid = "messaging:test-room"
-        registry.set_policy(cid, True, ["dummy.echo"])
+        registry.set_policy(cid, True, ["dummy_echo"])
 
         skills = registry.enabled_for_room(cid)
-        self.assertEqual([skill.name for skill in skills], ["dummy.echo"])
+        self.assertEqual([skill.name for skill in skills], ["dummy_echo"])
 
     @override_settings(
         AGENT_SKILL_PACKAGES=
@@ -68,7 +68,7 @@ class SkillRegistryTests(TestCase):
     def test_registry_discovers_fixture_skills(self) -> None:
         registry.clear_cache()
         metas = registry.list_all()
-        self.assertTrue(any(meta.name == "fixture.hello" for meta in metas))
+        self.assertTrue(any(meta.name == "fixture_hello" for meta in metas))
 
 
 class SkillPolicyViewTests(APITestCase):
@@ -102,7 +102,7 @@ class SkillPolicyViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
         self.assertEqual(payload["cid"], "messaging:room-a")
-        self.assertTrue(any(item["name"] == "dummy.echo" for item in payload["skills"]))
+        self.assertTrue(any(item["name"] == "dummy_echo" for item in payload["skills"]))
 
     def test_put_skills_updates_policy(self) -> None:
         registry.clear_cache()
@@ -111,7 +111,7 @@ class SkillPolicyViewTests(APITestCase):
             url,
             {
                 "cid": "messaging:room-b",
-                "skills": [{"name": "dummy.echo", "enabled": True}],
+                "skills": [{"name": "dummy_echo", "enabled": True}],
             },
             format="json",
             **self.auth_headers(),
@@ -119,8 +119,8 @@ class SkillPolicyViewTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
-        self.assertTrue(any(item["enabled"] for item in payload["skills"] if item["name"] == "dummy.echo"))
+        self.assertTrue(any(item["enabled"] for item in payload["skills"] if item["name"] == "dummy_echo"))
 
         policy = AgentRoomPolicy.objects.get(cid="messaging:room-b")
-        self.assertEqual(policy.enabled_skills, ["dummy.echo"])
+        self.assertEqual(policy.enabled_skills, ["dummy_echo"])
         self.assertFalse(policy.agent_enabled)

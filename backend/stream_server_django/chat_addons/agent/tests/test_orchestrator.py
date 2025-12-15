@@ -79,7 +79,7 @@ class AgentPolicyApiTests(APITestCase):
         payload = {
             "cid": "messaging:policy-room",
             "agent_enabled": True,
-            "enabled_skills": ["utility.calc", "utility.calc"],
+            "enabled_skills": ["utility_calc", "utility_calc"],
             "tool_hop_cap": 3,
             "turn_cap": 4,
             "auto_reply_mode": AgentRoomPolicy.AUTO_REPLY_MANUAL,
@@ -90,7 +90,7 @@ class AgentPolicyApiTests(APITestCase):
         updated = put_response.json()
         self.assertEqual(updated["cid"], "messaging:policy-room")
         self.assertTrue(updated["agent_enabled"])
-        self.assertEqual(updated["enabled_skills"], ["utility.calc"])
+        self.assertEqual(updated["enabled_skills"], ["utility_calc"])
         self.assertEqual(updated["tool_hop_cap"], 3)
         self.assertEqual(updated["turn_cap"], 4)
         self.assertEqual(updated["auto_reply_mode"], AgentRoomPolicy.AUTO_REPLY_MANUAL)
@@ -125,7 +125,7 @@ class AgentOrchestratorTests(APITestCase):
         AgentRoomPolicy.objects.create(
             cid="messaging:calc-room",
             agent_enabled=True,
-            enabled_skills=["utility.calc"],
+            enabled_skills=["utility_calc"],
             tool_hop_cap=2,
             turn_cap=4,
         )
@@ -135,7 +135,7 @@ class AgentOrchestratorTests(APITestCase):
                 "content": json.dumps(
                     {
                         "tool_calls": [
-                            {"name": "utility.calc", "arguments": {"expr": "2*(3+4)"}}
+                            {"name": "utility_calc", "arguments": {"expr": "2*(3+4)"}}
                         ]
                     }
                 ),
@@ -156,7 +156,7 @@ class AgentOrchestratorTests(APITestCase):
 
         run = AgentRun.objects.get()
         self.assertEqual(run.status, AgentRun.STATUS_OK)
-        self.assertEqual(run.tools_used, ["utility.calc"])
+        self.assertEqual(run.tools_used, ["utility_calc"])
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
@@ -164,7 +164,7 @@ class AgentOrchestratorTests(APITestCase):
         AgentRoomPolicy.objects.create(
             cid="messaging:fallback-room",
             agent_enabled=True,
-            enabled_skills=["utility.calc"],
+            enabled_skills=["utility_calc"],
             tool_hop_cap=2,
             turn_cap=4,
         )
@@ -184,7 +184,7 @@ class AgentOrchestratorTests(APITestCase):
 
         run = AgentRun.objects.get()
         self.assertEqual(run.status, AgentRun.STATUS_OK)
-        self.assertEqual(run.tools_used, ["utility.calc"])
+        self.assertEqual(run.tools_used, ["utility_calc"])
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
@@ -192,7 +192,7 @@ class AgentOrchestratorTests(APITestCase):
         AgentRoomPolicy.objects.create(
             cid="messaging:cap-room",
             agent_enabled=True,
-            enabled_skills=["utility.calc"],
+            enabled_skills=["utility_calc"],
             tool_hop_cap=0,
             turn_cap=2,
             handoff_message="Let me connect you with a teammate.",
@@ -203,7 +203,7 @@ class AgentOrchestratorTests(APITestCase):
                 "content": json.dumps(
                     {
                         "tool_calls": [
-                            {"name": "utility.calc", "arguments": {"expr": "1+1"}}
+                            {"name": "utility_calc", "arguments": {"expr": "1+1"}}
                         ]
                     }
                 ),

@@ -12,10 +12,20 @@ _MEMORY_SERVICE = MemoryService()
 class RememberSkill(Skill):
     """Store a fact in the per-room scratchpad."""
 
-    name = "memory.remember"
+    name = "memory_remember"
     description = "Store a short fact in the agent memory for this room."
-    input_schema = {"text": "string"}
-    output_schema = {"ok": True}
+    input_schema = {
+        "type": "object",
+        "properties": {"text": {"type": "string"}},
+        "required": ["text"],
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {"ok": {"type": "boolean"}},
+        "required": ["ok"],
+        "additionalProperties": False,
+    }
     enabled_by_default = False
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:  # noqa: D401 - simple predicate
@@ -38,16 +48,36 @@ class RememberSkill(Skill):
 class RecallSkill(Skill):
     """Fetch recent facts from the scratchpad matching a query."""
 
-    name = "memory.recall"
+    name = "memory_recall"
     description = "Recall previously saved facts relevant to a query."
     input_schema = {
-        "query": "string",
-        "k": {"type": "number", "optional": True},
+        "type": "object",
+        "properties": {
+            "query": {"type": "string"},
+            "k": {"type": "integer"},
+        },
+        "required": ["query"],
+        "additionalProperties": False,
     }
     output_schema = {
-        "items": [
-            {"text": "string", "created_at": "string", "role": "string"}
-        ]
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string"},
+                        "created_at": {"type": "string"},
+                        "role": {"type": "string"},
+                    },
+                    "required": ["text", "role", "created_at"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["items"],
+        "additionalProperties": False,
     }
     enabled_by_default = False
 

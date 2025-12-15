@@ -544,8 +544,7 @@ class AgentService:
 
         tool_schemas = build_tool_schemas(skills) if skills else []
 
-        # Allow lookup by BOTH internal skill name (e.g. "smalltalk.greet")
-        # and tool schema name (e.g. "smalltalk_greet").
+        # Allow lookup by skill name and any tool alias attached by the schema builder.
         skill_lookup = {skill.name: skill for skill in skills}
         for skill in skills:
             tool_name = getattr(skill, "_tool_name", None)
