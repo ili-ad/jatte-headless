@@ -9,6 +9,8 @@ import {
   type SidecarSuggestion,
 } from '../../lib/sidecarCatalog';
 
+type SidecarAction = { label: string; url: string; reason?: string };
+
 function labelForSidecarItem(def: SidecarItemDef): string {
   return def.shortLabel || def.label;
 }
@@ -60,6 +62,7 @@ export function AgentMessage(props: AgentMessageProps) {
   const rag = customData?.rag as { used?: boolean; k?: number } | undefined;
 
   const sidecarSuggestions = (customData?.sidecar_items ?? []) as SidecarSuggestion[];
+  const sidecarActions = (customData?.sidecar_actions ?? []) as SidecarAction[];
 
   const resolvedSidecarItems = (sidecarSuggestions ?? [])
     .map((suggestion) => {
@@ -85,6 +88,34 @@ export function AgentMessage(props: AgentMessageProps) {
 
     // eslint-disable-next-line no-console
     console.log('[agent/sidecar click]', { def, suggestion });
+  };
+
+  const handleSidecarActionClick = (action: SidecarAction) => {
+    if (!action?.url) return;
+
+    if (action.url.startsWith('/')) {
+      router.push(action.url);
+      return;
+    }
+
+    window.open(action.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const sidecarButtonStyle: React.CSSProperties = {
+    marginLeft: '2.5rem',
+    marginTop: '0.33rem',
+    marginBottom: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    columnGap: '0.25rem',
+    fontSize: '0.80rem',
+    color: '#FFF',
+    paddingTop: '0.5rem',
+    paddingBottom: '0.5rem',
+    paddingLeft: '1.0rem',
+    paddingRight: '1.0rem',
+    borderRadius: '10rem',
+    border: 'none',
   };
 
   return (
@@ -126,26 +157,33 @@ export function AgentMessage(props: AgentMessageProps) {
                 className="agent-forms-button"
                 onClick={() => handleSidecarClick(suggestion)}
 
-                style={{
-                  marginLeft: '2.5rem',
-                  marginTop: '0.33rem',
-                  marginBottom: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  columnGap: '0.25rem',
-                  fontSize: '0.80rem',
-                  color: '#FFF',
-                  paddingTop: '0.5rem',
-                  paddingBottom: '0.5rem',
-                  paddingLeft: '1.0rem',
-                  paddingRight: '1.0rem',
-                  borderRadius: '10rem',
-                  border: 'none',
-                }}
+                style={sidecarButtonStyle}
 
                 title={suggestion.reason || def.blurb || labelForSidecarItem(def)}
               >
                 {labelForSidecarItem(def)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isAgent && sidecarActions.length > 0 && (
+        <div className="agent-forms-cta-row">
+          <span className="agent-forms-label">Suggested actions:</span>
+          <div className="agent-forms-buttons">
+            {sidecarActions.map((action, index) => (
+              <button
+                key={`${action.url}-${index}`}
+                type="button"
+                className="agent-forms-button"
+                onClick={() => handleSidecarActionClick(action)}
+
+                style={sidecarButtonStyle}
+
+                title={action.reason || action.label}
+              >
+                {action.label}
               </button>
             ))}
           </div>
