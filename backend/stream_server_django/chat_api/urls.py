@@ -45,9 +45,13 @@ urlpatterns += [
 
 
 urlpatterns += [
+    # IMPORTANT: include chat_addons BEFORE chat.urls so /api/chat/agent/<cid>/invoke
+    # resolves to the agent orchestration endpoint (not the echo endpoint).
+    path("", include("stream_server_django.chat_addons.urls")),
+
     path("", include("stream_server_django.chat.urls")),
     path("", include("stream_server_django.accounts_supabase.urls")),
     path("", include("stream_server_django.auth.urls")),
-    path("", include("stream_server_django.chat_addons.urls")),
     path("", include("stream_server_django.core.urls")),
 ]
+
