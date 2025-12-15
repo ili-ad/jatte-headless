@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
-from stream_server_django.chat.models import Room
+from stream_server_django.chat.models import Channel, Draft, Message, ReadState, Room
 from stream_server_django.chat.utils import canonical_cid
 from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat_addons.permissions import IsChatStaff
@@ -98,6 +98,34 @@ class ClaimRoomView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ResetRoomView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated, IsChatStaff]
+
+    def post(self, request: Request, room_uuid: str) -> Response:
+        room = _get_room(room_uuid)
+        messages_qs = Message.objects.filter(rooms=room)
+        deleted_messages = messages_qs.count()
+        channel = Channel.objects.filter(uuid=room.uuid, client=room.client).first()
+
+        with transaction.atomic():
+            if channel:
+                ReadState.objects.filter(channel=channel).delete()
+            Draft.objects.filter(room=room).delete()
+            messages_qs.delete()
+
+        return Response(
+            {
+                "ok": True,
+                "room_uuid": room.uuid,
+                "deleted_messages": deleted_messages,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class GatingRulesView(APIView):
@@ -290,10 +318,11 @@ class AuditTrailListView(APIView):
 
 
 def _get_room(cid: str) -> Room:
-    if ":" in cid:
-        _, room_uuid = cid.split(":", 1)
+    cid_str = str(cid)
+    if ":" in cid_str:
+        _, room_uuid = cid_str.split(":", 1)
     else:
-        room_uuid = cid
+        room_uuid = cid_str
     room = Room.objects.filter(uuid=room_uuid).first()
     if not room:
         raise Http404("Room not found")

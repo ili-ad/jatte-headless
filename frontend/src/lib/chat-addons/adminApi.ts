@@ -59,3 +59,11 @@ export async function claimRoom(cid: string): Promise<ClaimRoomResponse> {
   }
   return (await res.json()) as ClaimRoomResponse;
 }
+
+export async function resetRoom(roomUuid: string) {
+  const res = await apiFetch(`/chat/admin/rooms/${roomUuid}/reset/`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`reset failed: ${res.status}`);
+  return res.json();
+}
