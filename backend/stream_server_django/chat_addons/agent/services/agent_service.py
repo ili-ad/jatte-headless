@@ -769,7 +769,15 @@ class AgentService:
                         reply_text = llm_result.content
                         break
 
-                    tool_calls, potential_text = parse_tool_instructions(llm_result.content)
+                    tool_calls = list(getattr(llm_result, "tool_calls", []) or [])
+                    potential_text = llm_result.content
+
+                    if not tool_calls:
+                        fallback_calls, potential_text = parse_tool_instructions(
+                            llm_result.content
+                        )
+                        if fallback_calls:
+                            tool_calls = fallback_calls
 
                     if tool_calls:
                         if tool_hop_cap == 0 or tool_hops >= tool_hop_cap:
