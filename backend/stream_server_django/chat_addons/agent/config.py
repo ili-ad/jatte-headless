@@ -37,6 +37,30 @@ def _get_env_str(name: str, default: str) -> str:
     )
 
 
+def _get_env_bool(name: str, default: bool) -> bool:
+    value = getattr(settings, name, None)
+    if value is None:
+        value = os.environ.get(name, default)
+
+    if isinstance(value, bool):
+        return value
+
+    try:
+        normalized = str(value).strip().lower()
+    except Exception:  # pragma: no cover - defensive fallback
+        return bool(default)
+
+    truthy = {"true", "1", "yes", "on"}
+    falsy = {"false", "0", "no", "off"}
+
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+
+    return bool(default)
+
+
 def _clamp(value: int, lower: int, upper: int) -> int:
     return max(lower, min(upper, value))
 
@@ -48,3 +72,6 @@ AGENT_MAX_TOKENS: int = _get_env_int("AGENT_MAX_TOKENS", 6000)
 AGENT_DAILY_BUDGET_USD: Decimal = _get_env_decimal("AGENT_DAILY_BUDGET_USD", "0.50")
 AGENT_USER_ID: str = _get_env_str("AGENT_USER_ID", "ai-bot")
 MEMORY_MAX_LINES: int = _clamp(_get_env_int("MEMORY_MAX_LINES", 80), 60, 100)
+AGENT_USE_RAG_DEFAULT: bool = _get_env_bool("AGENT_USE_RAG", False)
+AGENT_RAG_STATE_DEFAULT: str | None = _get_env_str("AGENT_RAG_STATE", "").strip() or None
+AGENT_RAG_TOPIC_DEFAULT: str | None = _get_env_str("AGENT_RAG_TOPIC", "").strip() or None
