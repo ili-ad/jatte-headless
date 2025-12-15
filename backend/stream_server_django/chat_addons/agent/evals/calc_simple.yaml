@@ -1,7 +1,7 @@
 name: calc_simple
 cid: messaging:eval-calc
 skills:
-  - utility.calc
+  - utility_calc
 policy:
   tool_hop_cap: 2
   turn_cap: 4
@@ -10,5 +10,5 @@ steps:
     expect:
       reply_contains: "14"
       tools_used:
-        - utility.calc
+        - utility_calc
       status: "ok"

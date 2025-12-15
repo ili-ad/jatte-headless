@@ -33,10 +33,22 @@ def _log_execution(ctx: ConversationCtx, skill_name: str, ok: bool, start: float
 class UtilityTimeNowSkill(Skill):
     """Return the current UTC time."""
 
-    name = "utility.time_now"
+    name = "utility_time_now"
     description = "Return the current time (UTC) in ISO 8601 and epoch."
-    input_schema: dict[str, Any] = {}
-    output_schema = {"iso_utc": "string", "epoch_secs": "number"}
+    input_schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "iso_utc": {"type": "string"},
+            "epoch_secs": {"type": "number"},
+        },
+        "required": ["iso_utc", "epoch_secs"],
+        "additionalProperties": False,
+    }
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:  # noqa: D401 - simple predicate
         _ = ctx
@@ -58,10 +70,27 @@ class UtilityTimeNowSkill(Skill):
 class UtilityCalcSkill(Skill):
     """Safely evaluate arithmetic expressions."""
 
-    name = "utility.calc"
+    name = "utility_calc"
     description = "Safely evaluate a simple arithmetic expression (+,-,*,/, parentheses)."
-    input_schema = {"expr": {"type": "string"}}
-    output_schema = {"result": "number"}
+    input_schema = {
+        "type": "object",
+        "properties": {"expr": {"type": "string"}},
+        "required": ["expr"],
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "result": {"type": "number"},
+            "error": {
+                "type": "object",
+                "properties": {"message": {"type": "string"}},
+                "required": ["message"],
+                "additionalProperties": False,
+            },
+        },
+        "additionalProperties": False,
+    }
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:  # noqa: D401 - simple predicate
         _ = ctx

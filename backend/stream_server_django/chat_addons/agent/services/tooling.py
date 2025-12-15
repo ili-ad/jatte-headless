@@ -17,43 +17,44 @@ class ToolCall:
     arguments: dict[str, Any]
 
 
-_TOOL_NAME_BAD_CHARS = re.compile(r"[^a-zA-Z0-9_-]+")
-
-
-def _normalize_tool_name(raw: str) -> str:
-    """
-    OpenAI tool names must match ^[a-zA-Z0-9_-]+$ (no dots).
-    We keep skill.name as-is (internal id), but expose a safe tool name.
-    """
-    candidate = str(raw or "").strip()
-    if not candidate:
-        return "tool"
-
-    candidate = candidate.replace(".", "_").replace("/", "_")
-    candidate = _TOOL_NAME_BAD_CHARS.sub("_", candidate).strip("_")
-    if not candidate:
-        candidate = "tool"
-    if candidate[0].isdigit():
-        candidate = f"tool_{candidate}"
-    return candidate
+_TOOL_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 def build_tool_schemas(skills: Sequence[Skill]) -> list[dict[str, Any]]:
     """Return OpenAI-compatible tool schema entries for ``skills``."""
 
     tools: list[dict[str, Any]] = []
-    used_names: set[str] = set()
 
     for skill in skills:
-        base = _normalize_tool_name(getattr(skill, "name", "") or "")
-        tool_name = base
-        i = 2
-        while tool_name in used_names:
-            tool_name = f"{base}_{i}"
-            i += 1
-        used_names.add(tool_name)
+        tool_name = getattr(skill, "name", "")
+        if not isinstance(tool_name, str) or not tool_name:
+            raise ValueError(f"Skill {skill.__class__.__name__} is missing a name")
+        if not _TOOL_NAME_PATTERN.fullmatch(tool_name):
+            raise ValueError(
+                f"Skill {tool_name!r} has invalid name; must match ^[a-zA-Z0-9_-]+$"
+            )
 
-        # Attach for downstream lookup (agent_service will use this).
+        input_schema = getattr(skill, "input_schema", {}) or {}
+        if not isinstance(input_schema, dict):
+            raise ValueError(f"Skill {tool_name} input_schema must be a dict")
+        if input_schema.get("type") != "object":
+            raise ValueError(f"Skill {tool_name} input_schema must declare type=object")
+        properties = input_schema.get("properties")
+        if not isinstance(properties, dict):
+            raise ValueError(f"Skill {tool_name} input_schema must include properties dict")
+
+        output_schema = getattr(skill, "output_schema", {}) or {}
+        if not isinstance(output_schema, dict):
+            raise ValueError(f"Skill {tool_name} output_schema must be a dict")
+        if output_schema:
+            if output_schema.get("type") != "object":
+                raise ValueError(f"Skill {tool_name} output_schema must declare type=object")
+            output_properties = output_schema.get("properties")
+            if not isinstance(output_properties, dict):
+                raise ValueError(
+                    f"Skill {tool_name} output_schema must include properties dict"
+                )
+
         setattr(skill, "_tool_name", tool_name)
 
         tools.append(
@@ -62,8 +63,7 @@ def build_tool_schemas(skills: Sequence[Skill]) -> list[dict[str, Any]]:
                 "function": {
                     "name": tool_name,
                     "description": skill.description,
-                    "parameters": skill.input_schema or {},
-                    "returns": skill.output_schema or {},
+                    "parameters": input_schema,
                 },
             }
         )
@@ -123,14 +123,18 @@ def infer_args_from_text(skill: Skill, text: str) -> dict[str, Any]:
     """Best-effort arguments for fallback execution using ``text``."""
 
     schema = getattr(skill, "input_schema", {}) or {}
-    if not isinstance(schema, dict) or not schema:
+    if not isinstance(schema, dict):
+        return {}
+
+    properties = schema.get("properties")
+    if not isinstance(properties, dict) or not properties:
         return {}
 
     # Prefer the first declared string field.
-    for key, spec in schema.items():
+    for key, spec in properties.items():
         if isinstance(spec, dict) and spec.get("type") == "string":
             return {key: text}
-    first_key = next(iter(schema.keys()), None)
+    first_key = next(iter(properties.keys()), None)
     if isinstance(first_key, str):
         return {first_key: text}
     return {}

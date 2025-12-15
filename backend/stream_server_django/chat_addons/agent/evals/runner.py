@@ -296,8 +296,8 @@ def _evaluate_expectations(expect: dict[str, Any], result) -> list[str]:  # type
                 "missing expected tools: " + ", ".join(sorted(missing))
             )
 
-    if expect.get("memory_add") and "memory.store" not in result.tools_used:
-        reasons.append("memory.store was not invoked for memory_add expectation")
+    if expect.get("memory_add") and "memory_store" not in result.tools_used:
+        reasons.append("memory_store was not invoked for memory_add expectation")
 
     if "status" in expect:
         status = str(expect["status"])

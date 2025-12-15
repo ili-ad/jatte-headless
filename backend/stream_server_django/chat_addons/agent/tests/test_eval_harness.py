@@ -76,7 +76,7 @@ def test_management_command_nonzero_on_failure(tmp_path: Path) -> None:
 name: temp_failure
 cid: messaging:eval-temp-failure
 skills:
-  - utility.calc
+  - utility_calc
 policy:
   tool_hop_cap: 1
   turn_cap: 2
