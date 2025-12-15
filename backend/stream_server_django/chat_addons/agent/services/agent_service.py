@@ -840,6 +840,7 @@ class AgentService:
 
         # NEW: strip SIDECAR_JSON and collect sidecar suggestions
         clean_reply_text, sidecar_items = extract_sidecar_metadata(reply_text)
+        sidecar_actions = meta.get("sidecar_actions")
         reply_text = clean_reply_text
 
         latency_ms = int((time.perf_counter() - start) * 1000)
@@ -867,6 +868,8 @@ class AgentService:
                 # NEW: attach sidecar suggestions, if any
                 if sidecar_items:
                     custom_data["sidecar_items"] = sidecar_items
+                if sidecar_actions:
+                    custom_data["sidecar_actions"] = sidecar_actions
 
                 ai_message.custom_data = custom_data
                 ai_message.updated_at = timezone.now()
@@ -893,6 +896,8 @@ class AgentService:
                 if sidecar_items:
                     extra_custom_data = {**(message.custom_data or {})}
                     extra_custom_data["sidecar_items"] = sidecar_items
+                    if sidecar_actions:
+                        extra_custom_data["sidecar_actions"] = sidecar_actions
                     self._update_message(message, custom_data=extra_custom_data)
 
             self._mark_provenance(message)
