@@ -1,5 +1,5 @@
 // Ultra-minimal stub for MVP build
-// Provide tiny React components so the demo compiles without the real package
+// Provide tiny React components so the sandbox build compiles without the real package
 import React from 'react';
 
 export const Chat = ({ children }: { children?: React.ReactNode }) => React.createElement('div', null, children);

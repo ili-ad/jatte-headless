@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const user = { email: 'demo@example.com', password: 'password' }
+const user = { email: 'sample@example.com', password: 'password' }
 
 // Mock Supabase sign-in and backend token endpoint
 async function setupRoutes(page) {
@@ -26,12 +26,12 @@ async function setupRoutes(page) {
   })
 }
 
-test('login \u2192 hello-world', async ({ page }) => {
+test('login → chat view', async ({ page }) => {
   await setupRoutes(page)
   await page.goto('/login')
   await page.getByPlaceholder('Email').fill(user.email)
   await page.getByPlaceholder('Password').fill(user.password)
   await page.getByRole('button', { name: /login/i }).click()
-  await page.waitForURL('**/demo')
-  await expect(page.getByText('hello world')).toBeVisible()
+  await page.waitForURL('**/chat')
+  await expect(page.getByPlaceholder('Type your message')).toBeVisible()
 })

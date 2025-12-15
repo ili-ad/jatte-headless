@@ -62,7 +62,7 @@ export async function ensureAuthenticated(page: Page, credentials: Credentials):
   await passwordField.fill(credentials.password)
 
   await Promise.all([
-    page.waitForURL('**/demo', { timeout: 10000 }),
+    page.waitForURL('**/chat', { timeout: 10000 }),
     page.getByRole('button', { name: /login/i }).click(),
   ])
 

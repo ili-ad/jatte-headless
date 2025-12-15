@@ -307,7 +307,7 @@ export default function ChatAdminPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">Chat Admin</h1>
         <p className="text-sm text-neutral-500">
-          Claim inbound conversations and jump into the Stream demo UI.
+          Claim inbound conversations and open the conversation view.
         </p>
       </header>
 
@@ -348,6 +348,7 @@ export default function ChatAdminPage() {
             const agentError = status.error;
             const showLoadingState = status.loading && !status.initialized;
             const promptValue = invokePrompts[row.cid] ?? '';
+            const roomUuid = row.cid.includes(':') ? row.cid.split(':', 2)[1] : row.cid;
             const isInvoking = Boolean(invoking[row.cid]);
             const disableToggle = statusLoading || toggling;
             const disableInvoke =
@@ -417,10 +418,10 @@ export default function ChatAdminPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Link
-                      href={`/demo?cid=${encodeURIComponent(row.cid)}`}
+                      href={`/chat/rooms/${encodeURIComponent(roomUuid)}`}
                       className="inline-flex items-center rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-neutral-400"
                     >
-                      Open in demo
+                      Open conversation
                     </Link>
                     {activeTab === 'new' ? (
                       <button
