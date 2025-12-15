@@ -4,7 +4,7 @@ import { ensureAuthenticated } from './utils/auth'
 const MESSAGE_TEXT = 'hello world'
 
 const credentials = {
-  email: process.env.E2E_USER_EMAIL ?? 'demo@example.com',
+  email: process.env.E2E_USER_EMAIL ?? 'sample@example.com',
   password: process.env.E2E_USER_PASSWORD ?? 'password',
 }
 
@@ -15,7 +15,7 @@ test('message persists after refresh', async ({ page }, testInfo) => {
   })
 
   try {
-    await page.goto('/demo')
+    await page.goto('/chat')
     const input = await ensureAuthenticated(page, credentials)
 
     await expect(input).toBeVisible({ timeout: 5000 })

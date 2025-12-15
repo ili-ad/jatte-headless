@@ -24,7 +24,7 @@ export default function LoginPage() {
       return
     }
     setSession(data.session)
-    const next = searchParams.get('next') || '/demo'
+    const next = searchParams.get('next') || '/chat'
     router.push(next.startsWith('/') ? next : `/${next}`)
   }
 

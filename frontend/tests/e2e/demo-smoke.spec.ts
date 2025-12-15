@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-test('demo shows hello world', async ({ page }) => {
-  await page.goto('/demo')
-  await expect(page.getByText('hello world')).toBeVisible()
+test('chat page requires authentication', async ({ page }) => {
+  await page.goto('/chat')
+  await page.waitForURL('**/login')
+  await expect(page).toHaveURL(/\/login/)
 })

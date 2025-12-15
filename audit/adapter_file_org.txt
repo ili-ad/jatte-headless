@@ -72,7 +72,7 @@ Inside frontend/src, the tree is compact and coherent:
 
 FrontendTree
 
-app/ (routes & demo UIs: /chat, /agent, /demo, /chat-admin, etc.)
+app/ (routes & sandbox UIs: /chat, /agent, /chat-admin, etc.)
 
 chat-kit/ (curated surface you just introduced)
 
