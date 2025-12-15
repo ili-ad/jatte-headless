@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const user = { email: 'demo@example.com', password: 'password' }
+const user = { email: 'sample@example.com', password: 'password' }
 
 async function setupRoutes(page) {
   await page.route('**/auth/v1/token?grant_type=password', async route => {
@@ -28,9 +28,9 @@ async function setupRoutes(page) {
   })
 }
 
-test('demo echo message', async ({ page }) => {
+test('chat echo message', async ({ page }) => {
   await setupRoutes(page)
-  await page.goto('/demo')
+  await page.goto('/chat')
   await page.getByPlaceholder('Type your message').fill('hello')
   await page.keyboard.press('Enter')
   await expect(page.getByText('hello')).toBeVisible()

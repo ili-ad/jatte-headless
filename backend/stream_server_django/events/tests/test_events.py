@@ -72,7 +72,7 @@ class EventsApiTests(APITestCase):
 
     def test_dispatch_event_persists_notification(self) -> None:
         dispatch_url = reverse("events:dispatch-event")
-        event_payload = {"event": {"type": "demo.event", "payload": {"cid": "alpha", "value": 42}}}
+        event_payload = {"event": {"type": "sample.event", "payload": {"cid": "alpha", "value": 42}}}
 
         dispatch_response = self.client.post(
             dispatch_url, event_payload, format="json", **self.auth_headers()
@@ -82,7 +82,7 @@ class EventsApiTests(APITestCase):
         self.assertEqual(dispatch_response.json(), {"event": event_payload["event"]})
 
         stored = EventNotification.objects.get()
-        self.assertEqual(stored.event_type, "demo.event")
+        self.assertEqual(stored.event_type, "sample.event")
         self.assertEqual(stored.payload, {"cid": "alpha", "value": 42})
         self.assertEqual(stored.cid, "alpha")
 
@@ -91,7 +91,7 @@ class EventsApiTests(APITestCase):
         self.assertEqual(list_response.status_code, 200)
         notifications = list_response.json()
         self.assertEqual(len(notifications), 1)
-        self.assertEqual(notifications[0]["type"], "demo.event")
+        self.assertEqual(notifications[0]["type"], "sample.event")
         self.assertEqual(notifications[0]["payload"], {"cid": "alpha", "value": 42})
         self.assertIn("ts", notifications[0])
 

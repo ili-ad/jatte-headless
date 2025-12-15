@@ -46,7 +46,7 @@
 ## 9. Message reactions
 - `POST /api/messages/{id}/reactions/{type}/` upserts reactions, persisting rows and broadcasting `reaction.new` with canonical `cid` and reaction metadata.【F:backend/chat/api_views.py†L581-L615】
 - `DELETE` on the same path clears the reaction and fires `reaction.deleted` events.【F:backend/chat/api_views.py†L617-L647】
-- Pytests confirm persistence but still expect the legacy `type == emoji` frame; our run hit these assertions, demonstrating that the backend now emits canonical event names (`reaction.new`/`reaction.deleted`).【F:backend/chat/tests/test_reactions.py†L60-L142】
+- Pytests confirm persistence but still expect the legacy `type == emoji` frame; our run hit these assertions, showing that the backend now emits canonical event names (`reaction.new`/`reaction.deleted`).【F:backend/chat/tests/test_reactions.py†L60-L142】
 
 ## 10. Pins & message actions
 - `POST /api/messages/{id}/pin/` and `DELETE /api/messages/{id}/unpin/` manage `Pin` rows, with pins driving `message.updated` broadcasts when toggled during updates.【F:backend/chat/api_views.py†L662-L684】【F:backend/chat/tests/test_ws_handshake_parity.py†L95-L108】

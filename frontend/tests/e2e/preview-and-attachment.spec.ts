@@ -26,7 +26,7 @@ test.describe('link preview and attachment round-trip', () => {
   test('link preview round-trip', async ({ page, request }) => {
     const user = await provisionUser(request)
 
-    await page.goto('/demo')
+    await page.goto('/chat')
     const composer = await ensureAuthenticated(page, {
       email: user.email,
       password: user.password,
@@ -65,7 +65,7 @@ test.describe('link preview and attachment round-trip', () => {
   test('attachment round-trip', async ({ page, request }) => {
     const user = await provisionUser(request)
 
-    await page.goto('/demo')
+    await page.goto('/chat')
     const composer = await ensureAuthenticated(page, {
       email: user.email,
       password: user.password,

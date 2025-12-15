@@ -13,10 +13,11 @@
 │   │           └── route.ts
 │   ├── chat
 │   │   ├── ChatInner.tsx
+│   │   ├── rooms
+│   │   │   └── [roomUuid]
+│   │   │       └── page.tsx
 │   │   └── page.tsx
 │   ├── chat-admin
-│   │   └── page.tsx
-│   ├── demo
 │   │   └── page.tsx
 │   ├── endpoint-config.tsx
 │   ├── favicon.ico
@@ -71,4 +72,4 @@
 │   └── supabaseClient.ts
 └── stream-chat-react-shim.ts
 
-17 directories, 54 files
+18 directories, 54 files
