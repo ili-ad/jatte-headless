@@ -160,6 +160,54 @@ class AgentOrchestratorTests(APITestCase):
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
+    def test_structured_tool_calls_in_messages(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
+        AgentRoomPolicy.objects.create(
+            cid="messaging:structured-tool-room",
+            agent_enabled=True,
+            enabled_skills=["utility_calc"],
+            tool_hop_cap=2,
+            turn_cap=4,
+        )
+
+        responses = [
+            {
+                "content": "",
+                "messages": [
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": "utility_calc",
+                                    "arguments": "{\"expr\":\"2*(3+4)\"}",
+                                }
+                            }
+                        ],
+                    }
+                ],
+                "tokens_used": 5,
+                "cost_usd": Decimal("0"),
+            },
+            {"content": "14", "tokens_used": 4, "cost_usd": Decimal("0")},
+        ]
+        service = self._service(responses)
+
+        reply = service.generate(
+            cid="messaging:structured-tool-room", user_id="user-structured", text="2*(3+4)"
+        )
+
+        self.assertEqual(reply.text, "14")
+        self.assertEqual(Message.objects.count(), 1)
+        self.assertEqual(Message.objects.first().body, "14")
+        mock_broadcast.assert_called()
+        mock_notify.assert_not_called()
+
+        run = AgentRun.objects.get()
+        self.assertEqual(run.status, AgentRun.STATUS_OK)
+        self.assertIn("utility_calc", run.tools_used)
+
+    @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
+    @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
     def test_fallback_path(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
         AgentRoomPolicy.objects.create(
             cid="messaging:fallback-room",
