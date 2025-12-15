@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -16,22 +17,57 @@ class ToolCall:
     arguments: dict[str, Any]
 
 
+_TOOL_NAME_BAD_CHARS = re.compile(r"[^a-zA-Z0-9_-]+")
+
+
+def _normalize_tool_name(raw: str) -> str:
+    """
+    OpenAI tool names must match ^[a-zA-Z0-9_-]+$ (no dots).
+    We keep skill.name as-is (internal id), but expose a safe tool name.
+    """
+    candidate = str(raw or "").strip()
+    if not candidate:
+        return "tool"
+
+    candidate = candidate.replace(".", "_").replace("/", "_")
+    candidate = _TOOL_NAME_BAD_CHARS.sub("_", candidate).strip("_")
+    if not candidate:
+        candidate = "tool"
+    if candidate[0].isdigit():
+        candidate = f"tool_{candidate}"
+    return candidate
+
+
 def build_tool_schemas(skills: Sequence[Skill]) -> list[dict[str, Any]]:
     """Return OpenAI-compatible tool schema entries for ``skills``."""
 
     tools: list[dict[str, Any]] = []
+    used_names: set[str] = set()
+
     for skill in skills:
+        base = _normalize_tool_name(getattr(skill, "name", "") or "")
+        tool_name = base
+        i = 2
+        while tool_name in used_names:
+            tool_name = f"{base}_{i}"
+            i += 1
+        used_names.add(tool_name)
+
+        # Attach for downstream lookup (agent_service will use this).
+        setattr(skill, "_tool_name", tool_name)
+
         tools.append(
             {
                 "type": "function",
                 "function": {
-                    "name": skill.name,
+                    "name": tool_name,
                     "description": skill.description,
                     "parameters": skill.input_schema or {},
                     "returns": skill.output_schema or {},
                 },
             }
         )
+
     return tools
 
 
