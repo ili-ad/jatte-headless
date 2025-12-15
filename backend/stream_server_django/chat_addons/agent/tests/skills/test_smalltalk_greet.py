@@ -36,7 +36,7 @@ def _ctx() -> dict:
 def test_smalltalk_greet_is_registered() -> None:
     registry.clear_cache()
     metas = registry.list_all()
-    assert any(meta.name == "smalltalk.greet" for meta in metas)
+    assert any(meta.name == "smalltalk_greet" for meta in metas)
 
 
 def test_smalltalk_greet_can_handle_and_execute(caplog: pytest.LogCaptureFixture) -> None:

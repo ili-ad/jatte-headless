@@ -234,7 +234,7 @@ class AgentViewsTests(APITestCase):
             run_id="r-1",
             cid="messaging:test-room",
             user_id="user",
-            tools_used=["utility.calc"],
+            tools_used=["utility_calc"],
             status=AgentRun.STATUS_OK,
             latency_ms=101,
             tokens_in=21,
@@ -245,7 +245,7 @@ class AgentViewsTests(APITestCase):
             run_id="r-2",
             cid="messaging:test-room",
             user_id="user",
-            tools_used=["utility.calc"],
+            tools_used=["utility_calc"],
             status=AgentRun.STATUS_HANDOFF,
             latency_ms=102,
             tokens_in=22,
@@ -256,7 +256,7 @@ class AgentViewsTests(APITestCase):
             run_id="r-3",
             cid="messaging:test-room",
             user_id="user",
-            tools_used=["utility.calc"],
+            tools_used=["utility_calc"],
             status=AgentRun.STATUS_ERROR,
             latency_ms=103,
             tokens_in=23,
@@ -315,7 +315,7 @@ class AgentViewsTests(APITestCase):
         service.simulate.return_value = AgentSimulationResult(
             reply="It's 14.",
             status="ok",
-            tools_used=["utility.calc"],
+            tools_used=["utility_calc"],
             latency_ms=115,
             tokens_in=200,
             tokens_out=40,
@@ -336,7 +336,7 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
         self.assertEqual(payload["reply"], "It's 14.")
-        self.assertEqual(payload["tools_used"], ["utility.calc"])
+        self.assertEqual(payload["tools_used"], ["utility_calc"])
         self.assertEqual(payload["tokens_in"], 200)
         self.assertEqual(payload["tokens_out"], 40)
         self.assertAlmostEqual(payload["cost_usd"], 0.002)

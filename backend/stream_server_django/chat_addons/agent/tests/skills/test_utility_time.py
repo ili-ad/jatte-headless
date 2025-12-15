@@ -38,8 +38,8 @@ def _ctx() -> dict:
 def test_utility_skills_registered() -> None:
     registry.clear_cache()
     names = {meta.name for meta in registry.list_all()}
-    assert "utility.time_now" in names
-    assert "utility.calc" in names
+    assert "utility_time_now" in names
+    assert "utility_calc" in names
 
 
 def test_time_now_can_handle() -> None:

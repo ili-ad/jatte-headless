@@ -73,10 +73,24 @@ class _EvalMemorySkill(Skill):
 class MemoryStoreSkill(_EvalMemorySkill):
     """Capture simple key/value memories for eval flows."""
 
-    name = "memory.store"
+    name = "memory_store"
     description = "Store a short fact for later recall."
-    input_schema = {"text": {"type": "string"}}
-    output_schema = {"stored": "boolean", "key": "string", "value": "string"}
+    input_schema = {
+        "type": "object",
+        "properties": {"text": {"type": "string"}},
+        "required": ["text"],
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "stored": {"type": "boolean"},
+            "key": {"type": "string"},
+            "value": {"type": "string"},
+        },
+        "required": ["stored", "key", "value"],
+        "additionalProperties": False,
+    }
 
     def can_handle(self, text: str, ctx) -> bool:  # type: ignore[override]
         _ = ctx
@@ -96,10 +110,24 @@ class MemoryStoreSkill(_EvalMemorySkill):
 class MemoryRecallSkill(_EvalMemorySkill):
     """Retrieve stored memories for eval flows."""
 
-    name = "memory.recall"
+    name = "memory_recall"
     description = "Recall a previously stored fact."
-    input_schema = {"text": {"type": "string"}}
-    output_schema = {"found": "boolean", "key": "string", "value": "string"}
+    input_schema = {
+        "type": "object",
+        "properties": {"text": {"type": "string"}},
+        "required": ["text"],
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "found": {"type": "boolean"},
+            "key": {"type": "string"},
+            "value": {"type": "string"},
+        },
+        "required": ["found", "key", "value"],
+        "additionalProperties": False,
+    }
 
     def can_handle(self, text: str, ctx) -> bool:  # type: ignore[override]
         _ = ctx
@@ -118,10 +146,8 @@ class MemoryRecallSkill(_EvalMemorySkill):
 
 def _ensure_stub_skills_registered() -> None:
     skills = registry._load_all_skills()  # type: ignore[attr-defined]
-    if "memory.store" not in skills:
-        skills["memory.store"] = MemoryStoreSkill()
-    if "memory.recall" not in skills:
-        skills["memory.recall"] = MemoryRecallSkill()
+    skills["memory_store"] = MemoryStoreSkill()
+    skills["memory_recall"] = MemoryRecallSkill()
 
 
 @dataclass(slots=True)
@@ -205,13 +231,13 @@ class LLMStub:
                 continue
         if len(candidates) == 1:
             skill = candidates[0]
-            if skill.name == "utility.calc":
+            if skill.name == "utility_calc":
                 args = {"expr": self._extract_math_expr(text)}
             else:
                 args = infer_args_from_text(skill, text) or {"text": text}
             return skill, args
-        if self._looks_like_math(text) and "utility.calc" in available_names:
-            skill = skill_lookup.get("utility.calc")
+        if self._looks_like_math(text) and "utility_calc" in available_names:
+            skill = skill_lookup.get("utility_calc")
             if skill is not None:
                 args = {"expr": self._extract_math_expr(text)}
                 return skill, args
@@ -238,7 +264,7 @@ class LLMStub:
             payload = json.loads(payload_raw)
         except (TypeError, ValueError):
             payload = {}
-        if name == "utility.calc":
+        if name == "utility_calc":
             if isinstance(payload, dict):
                 if "result" in payload:
                     return str(payload["result"])
@@ -246,12 +272,12 @@ class LLMStub:
                 if isinstance(error, dict) and "message" in error:
                     return str(error["message"])
             return "Could not compute that."
-        if name == "memory.store":
+        if name == "memory_store":
             if isinstance(payload, dict) and payload.get("stored"):
                 key = payload.get("key") or "that"
                 return f"I'll remember {key}."
             return "I wasn't able to remember that."
-        if name == "memory.recall":
+        if name == "memory_recall":
             if isinstance(payload, dict) and payload.get("found"):
                 value = payload.get("value") or ""
                 key = payload.get("key") or "it"

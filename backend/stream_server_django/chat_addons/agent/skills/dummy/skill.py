@@ -8,10 +8,19 @@ from ..context import ConversationCtx
 
 
 class DummyEchoSkill(Skill):
-    name = "dummy.echo"
+    name = "dummy_echo"
     description = "Echo back provided arguments for integration testing."
-    input_schema = {"type": "object", "properties": {"message": {"type": "string"}}}
-    output_schema = {"type": "object", "properties": {"echoed": {"type": "string"}}}
+    input_schema = {
+        "type": "object",
+        "properties": {"message": {"type": "string"}},
+        "additionalProperties": False,
+    }
+    output_schema = {
+        "type": "object",
+        "properties": {"echoed": {"type": "string"}},
+        "required": ["echoed"],
+        "additionalProperties": False,
+    }
     enabled_by_default = False
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:

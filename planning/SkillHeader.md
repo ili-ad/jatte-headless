@@ -7,7 +7,7 @@
 - Any side-effect (booking, writes) must call a domain interface in `backend/chatcore/services.py`.
 
 **Naming**
-- Each skill has a **globally-unique dotted name**: e.g., `smalltalk.greet`, `utility.time_now`, `utility.calc`.
+- Each skill has a **globally-unique name** matching `^[a-zA-Z0-9_-]+$`: e.g., `smalltalk_greet`, `utility_time_now`, `utility_calc`.
 - Keep names stable; description <= 140 chars (used in tool definition later).
 
 **Schema**
