@@ -15,6 +15,7 @@ from stream_server_django.accounts_supabase.views import (
 from stream_server_django.auth.views import WebsocketAuthView
 from stream_server_django.chat.api_views import ConnectionIDView, WsAuthView as LegacyWsAuthView
 from stream_server_django.chat.views import TokenView
+from stream_server_django.rooms.views import resolve_room
 
 
 urlpatterns = [
@@ -32,6 +33,14 @@ urlpatterns = [
     re_path(r"^api/connection-id/?$", ConnectionIDView.as_view()),
     path("api/ws-auth/live/", WebsocketAuthView.as_view(), name="ws-auth-live"),
     re_path(r"^api/ws-auth/live/?$", WebsocketAuthView.as_view()),
+]
+
+
+urlpatterns += [
+    # Room bootstrap resolver must be defined BEFORE including stream_server_django.chat.urls,
+    # otherwise "resolve" is captured by /api/rooms/<uuid>/ and POST returns 405.
+    path("api/rooms/resolve/", resolve_room, name="room-resolve"),
+    re_path(r"^api/rooms/resolve/?$", resolve_room),
 ]
 
 
