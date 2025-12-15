@@ -25,6 +25,11 @@ from ..common_audit.throttling import (
     AgentToggleRateThrottle,
 )
 from . import registry
+from .config import (
+    AGENT_RAG_STATE_DEFAULT,
+    AGENT_RAG_TOPIC_DEFAULT,
+    AGENT_USE_RAG_DEFAULT,
+)
 from .models import AgentRoomPolicy, AgentRun, RoomAgentFlag
 from .serializers import (
     AgentInvocationSerializer,
@@ -336,6 +341,7 @@ class AgentLLMInvokeView(APIView):
             # -----------------------------
             trace_id = serializer.validated_data.get("trace_id")
 
+            use_rag = AGENT_USE_RAG_DEFAULT
             meta: dict[str, Any] = {
                 "source": "AgentLLMInvokeView",
                 "invocation": "llm_invoke",
@@ -343,14 +349,14 @@ class AgentLLMInvokeView(APIView):
                 "room_uuid": str(room.uuid),
                 "room_name": getattr(room, "name", None),
                 "request_id": trace_id,
-                # 🔹 current hard-coded RAG flags
-                "use_rag": True,
-                "state": "FL",
-                # optionally: "rag_topic": "noc_compliance" or whatever
+                "use_rag": use_rag,
+                "state": AGENT_RAG_STATE_DEFAULT if use_rag else None,
+                "rag_topic": AGENT_RAG_TOPIC_DEFAULT if use_rag else None,
             }
 
             service = get_agent_service()
             meta["job_request_id"] = trace_id
+            meta = {k: v for k, v in meta.items() if v is not None}
 
             job_id = service.enqueue_generate(
                 cid=canonical,
@@ -474,8 +480,8 @@ class AgentRagView(APIView):
             "trace_id": serializer.validated_data.get("trace_id"),
             # RAG flags:
             "use_rag": True,
-            "state": "FL",
-            # Optionally: "rag_topic": "noc_compliance" or similar, if you want.            
+            "state": AGENT_RAG_STATE_DEFAULT,
+            "rag_topic": AGENT_RAG_TOPIC_DEFAULT,
         }
 
         service = get_agent_service()
