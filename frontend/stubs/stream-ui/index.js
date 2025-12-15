@@ -16,7 +16,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageInput = exports.MessageList = exports.Window = exports.Channel = exports.Chat = void 0;
 // Ultra-minimal stub for MVP build
-// Provide tiny React components so the demo compiles without the real package
+// Provide tiny React components so the sandbox build compiles without the real package
 var react_1 = require("react");
 var Chat = function (_a) {
     var children = _a.children;

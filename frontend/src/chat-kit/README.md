@@ -60,7 +60,7 @@ frontend/src/lib/stream-adapter (ChatClient, Channel, MiniStore)
 ↓
 frontend/src/chat-kit (public UI + client API)
 ↓
-frontend/src/app/* (routes & demo UIs)
+frontend/src/app/* (routes & sandbox UIs)
 ```
 
 - Do **not** import directly from `libs/*` or `lib/stream-adapter` in app code.
