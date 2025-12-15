@@ -9,6 +9,7 @@ import {
   type AdminQueueStatus,
   claimRoom,
   listAdminQueue,
+  resetRoom,
 } from '../../lib/chat-addons/adminApi';
 import {
   disableAgent,
@@ -61,6 +62,7 @@ export default function ChatAdminPage() {
     new: { ...DEFAULT_QUEUE_STATE },
     mine: { ...DEFAULT_QUEUE_STATE },
   });
+  const [resettingRoom, setResettingRoom] = useState<string | null>(null);
   const [agentStates, setAgentStates] = useState<Record<string, AgentStatusState>>({});
   const [invokePrompts, setInvokePrompts] = useState<Record<string, string>>({});
   const [invoking, setInvoking] = useState<Record<string, boolean>>({});
@@ -158,6 +160,28 @@ export default function ChatAdminPage() {
         toast.error(message);
       } finally {
         setClaimingCid(null);
+      }
+    },
+    [loadQueue],
+  );
+
+  const handleReset = useCallback(
+    async (roomUuid: string) => {
+      const confirmed = window.confirm('Reset clears all messages in this room. Continue?');
+      if (!confirmed) {
+        return;
+      }
+      setResettingRoom(roomUuid);
+      try {
+        await resetRoom(roomUuid);
+        toast.success('Room reset');
+        void loadQueue('new');
+        void loadQueue('mine');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to reset room';
+        toast.error(message);
+      } finally {
+        setResettingRoom(null);
       }
     },
     [loadQueue],
@@ -350,6 +374,7 @@ export default function ChatAdminPage() {
             const promptValue = invokePrompts[row.cid] ?? '';
             const roomUuid = row.cid.includes(':') ? row.cid.split(':', 2)[1] : row.cid;
             const isInvoking = Boolean(invoking[row.cid]);
+            const isResetting = resettingRoom === roomUuid;
             const disableToggle = statusLoading || toggling;
             const disableInvoke =
               isInvoking || promptValue.trim().length === 0 || statusLoading;
@@ -423,6 +448,14 @@ export default function ChatAdminPage() {
                     >
                       Open conversation
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleReset(roomUuid)}
+                      disabled={isResetting}
+                      className="inline-flex items-center rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isResetting ? 'Resetting…' : 'Reset'}
+                    </button>
                     {activeTab === 'new' ? (
                       <button
                         type="button"
