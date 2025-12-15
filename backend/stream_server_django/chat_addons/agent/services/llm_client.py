@@ -12,9 +12,10 @@ import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from decimal import Decimal
+import json
 from typing import Any, Callable, Iterable, Protocol
 
 from django.core.cache import caches
@@ -30,6 +31,7 @@ from ..config import (
     AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
+from .tooling import ToolCall
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class LLMResult:
     model: str
     latency_ms: int
     cost_usd: Decimal
+    tool_calls: list[ToolCall] = field(default_factory=list)
     reason: str = "ok"
 
 
@@ -219,12 +222,49 @@ class LLMClient:
             if raw_cost is not None
             else self._estimate_cost(tokens_used)
         )
+        tool_calls: list[ToolCall] = []
+        messages = payload.get("messages")
+        if isinstance(messages, list):
+            for message in messages:
+                if not isinstance(message, dict):
+                    continue
+                raw_tool_calls = message.get("tool_calls")
+                if not isinstance(raw_tool_calls, list):
+                    continue
+                for entry in raw_tool_calls:
+                    if not isinstance(entry, dict):
+                        continue
+                    function = entry.get("function") or {}
+                    if not isinstance(function, dict):
+                        continue
+                    name = function.get("name")
+                    if not isinstance(name, str) or not name:
+                        continue
+                    raw_arguments = function.get("arguments", "")
+                    arguments: dict[str, Any]
+                    if isinstance(raw_arguments, str):
+                        try:
+                            parsed_args = json.loads(raw_arguments)
+                        except ValueError:
+                            arguments = {"input": raw_arguments}
+                        else:
+                            if isinstance(parsed_args, dict):
+                                arguments = parsed_args
+                            else:
+                                arguments = {"input": parsed_args}
+                    elif isinstance(raw_arguments, dict):
+                        arguments = raw_arguments
+                    else:
+                        arguments = {"input": str(raw_arguments)} if raw_arguments is not None else {}
+
+                    tool_calls.append(ToolCall(name=name, arguments=arguments))
         return LLMResult(
             content=content,
             tokens_used=tokens_used,
             model=model,
             latency_ms=latency_ms,
             cost_usd=cost,
+            tool_calls=tool_calls,
         )
 
     def _estimate_cost(self, tokens: int) -> Decimal:
@@ -378,18 +418,31 @@ class LLMClient:
                 on_update(buffer)
 
         try:
-            payload = self._execute_with_timeout(
-                lambda: self.provider.run_streaming(
-                    messages=message_list,
-                    tools=tools,
-                    model=call_model,
-                    max_tokens=call_max_tokens,
-                    timeout=None,
-                    on_update=_wrapped_on_update,
-                ),
-                timeout=float(call_timeout) if call_timeout is not None else None,
-            )
-            elapsed = time.perf_counter() - start
+            if tools:
+                payload = self._execute_with_timeout(
+                    lambda: self.provider.run(
+                        messages=message_list,
+                        tools=tools,
+                        model=call_model,
+                        max_tokens=call_max_tokens,
+                        timeout=float(call_timeout) if call_timeout is not None else None,
+                    ),
+                    timeout=float(call_timeout) if call_timeout is not None else None,
+                )
+                elapsed = time.perf_counter() - start
+            else:
+                payload = self._execute_with_timeout(
+                    lambda: self.provider.run_streaming(
+                        messages=message_list,
+                        tools=tools,
+                        model=call_model,
+                        max_tokens=call_max_tokens,
+                        timeout=None,
+                        on_update=_wrapped_on_update,
+                    ),
+                    timeout=float(call_timeout) if call_timeout is not None else None,
+                )
+                elapsed = time.perf_counter() - start
         except (APITimeoutError, TimeoutError) as exc:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             timeout_extra = {"model": call_model, "timeout": call_timeout, "latency_ms": elapsed_ms}
@@ -403,6 +456,8 @@ class LLMClient:
             latency_ms = int((time.perf_counter() - start) * 1000)
 
         result = self._coerce_result(payload, model=call_model, latency_ms=latency_ms)
+        if tools and on_update and result.content:
+            on_update(result.content)
         guard.record_cost(result.cost_usd)
         logger.info(
             "agent.llm.success.streaming",
