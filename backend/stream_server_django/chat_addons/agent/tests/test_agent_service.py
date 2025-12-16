@@ -142,6 +142,30 @@ class _StreamingChunkProvider:
         }
 
 
+class _ToolCallProvider:
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
+        return {
+            "content": "",
+            "messages": [
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_123",
+                            "function": {
+                                "name": "utility_calc",
+                                "arguments": "{\"expr\":\"2+2\"}",
+                            },
+                        }
+                    ],
+                }
+            ],
+            "tokens_used": 1,
+            "cost_usd": 0,
+        }
+
+
 def test_agent_service_generate_returns_canned_reply() -> None:
     client = LLMClient(provider=CannedProvider())
     service = AgentService(llm_client=client)
@@ -154,6 +178,15 @@ def test_agent_service_generate_returns_canned_reply() -> None:
     assert reply.messages is not None
     assert len(reply.messages) == 1
     assert reply.messages[0].body == "Let me connect you with a teammate."
+
+
+def test_llm_client_preserves_tool_call_id() -> None:
+    client = LLMClient(provider=_ToolCallProvider())
+
+    result = client.run([{"role": "user", "content": "calc"}])
+
+    assert result.tool_calls
+    assert result.tool_calls[0].id == "call_123"
 
 
 def test_llm_client_enforces_timeout() -> None:

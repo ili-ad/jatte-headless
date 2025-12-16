@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, replace
 from typing import Any, Sequence
 
 from ..skills import Skill
@@ -15,6 +16,15 @@ class ToolCall:
 
     name: str
     arguments: dict[str, Any]
+    id: str | None = None
+
+
+def ensure_tool_call_id(tc: ToolCall) -> ToolCall:
+    """Return ``tc`` with a stable ``id`` populated."""
+
+    if tc.id:
+        return tc
+    return replace(tc, id=f"call_{uuid.uuid4().hex}")
 
 
 _TOOL_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -98,6 +108,9 @@ def parse_tool_instructions(content: str) -> tuple[list[ToolCall], str]:
             name = entry.get("name")
             if not isinstance(name, str) or not name:
                 continue
+            call_id = entry.get("id")
+            if not isinstance(call_id, str) or not call_id:
+                call_id = None
             arguments = entry.get("arguments", {})
             if isinstance(arguments, str):
                 try:
@@ -106,7 +119,7 @@ def parse_tool_instructions(content: str) -> tuple[list[ToolCall], str]:
                     arguments = {"input": arguments}
             if not isinstance(arguments, dict):
                 arguments = {}
-            calls.append(ToolCall(name=name, arguments=arguments))
+            calls.append(ensure_tool_call_id(ToolCall(name=name, arguments=arguments, id=call_id)))
 
     final_text = payload.get("final") or payload.get("reply")
     if final_text is None:
@@ -140,4 +153,10 @@ def infer_args_from_text(skill: Skill, text: str) -> dict[str, Any]:
     return {}
 
 
-__all__ = ["ToolCall", "build_tool_schemas", "infer_args_from_text", "parse_tool_instructions"]
+__all__ = [
+    "ToolCall",
+    "build_tool_schemas",
+    "ensure_tool_call_id",
+    "infer_args_from_text",
+    "parse_tool_instructions",
+]
