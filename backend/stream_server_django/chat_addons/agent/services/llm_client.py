@@ -31,10 +31,125 @@ from ..config import (
     AGENT_MODEL,
     AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
+    AGENT_TOOL_MESSAGE_SANITIZER_MODE,
 )
 from .tooling import ToolCall
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Message sanitization
+# ---------------------------------------------------------------------------
+
+
+def _normalize_mode(mode: str | None) -> str:
+    normalized = str(mode or "drop").strip().lower()
+    if normalized not in {"drop", "system", "off"}:
+        return "drop"
+    return normalized
+
+
+def _summarize_tool_message(message: dict[str, Any]) -> str:
+    tool_call_id = message.get("tool_call_id")
+    content = message.get("content")
+    content_text = str(content) if content is not None else ""
+    truncated = content_text[:200]
+    prefix = "(tool result dropped"
+    if isinstance(tool_call_id, str) and tool_call_id:
+        prefix += f"; orphan tool_call_id={tool_call_id}"
+    prefix += ")"
+    if truncated:
+        return f"{prefix} {truncated}"
+    return prefix
+
+
+def sanitize_messages_for_openai(
+    messages: list[dict[str, Any]], mode: str
+) -> tuple[list[dict[str, Any]], dict[str, int | str]]:
+    """Defensively sanitize tool messages before hitting OpenAI.
+
+    Returns the sanitized list along with a stats mapping for logging.
+    """
+
+    normalized_mode = _normalize_mode(mode)
+    sanitized: list[dict[str, Any]] = []
+    active_tool_call_ids: set[str] = set()
+    tool_phase_active = False
+
+    dropped = 0
+    converted = 0
+
+    for message in messages:
+        if not isinstance(message, dict):
+            active_tool_call_ids = set()
+            tool_phase_active = False
+            sanitized.append(message)
+            continue
+
+        role = str(message.get("role", "")).lower()
+
+        if role == "assistant" and isinstance(message.get("tool_calls"), list):
+            raw_tool_calls = message["tool_calls"]
+            active_tool_call_ids = {
+                tc.get("id")
+                for tc in raw_tool_calls
+                if isinstance(tc, dict)
+                and isinstance(tc.get("id"), str)
+                and tc.get("id")
+            }
+            tool_phase_active = True
+            sanitized.append(message)
+            continue
+
+        if role == "tool":
+            tool_call_id = message.get("tool_call_id")
+            valid = (
+                tool_phase_active
+                and isinstance(tool_call_id, str)
+                and bool(tool_call_id)
+                and tool_call_id in active_tool_call_ids
+            )
+            if valid or normalized_mode == "off":
+                sanitized.append(message)
+            elif normalized_mode == "system":
+                sanitized.append({"role": "system", "content": _summarize_tool_message(message)})
+                converted += 1
+            else:
+                dropped += 1
+            continue
+
+        tool_phase_active = False
+        active_tool_call_ids = set()
+        sanitized.append(message)
+
+    stats: dict[str, int | str] = {
+        "dropped": dropped,
+        "converted": converted,
+        "total_in": len(messages),
+        "total_out": len(sanitized),
+        "mode": normalized_mode,
+    }
+
+    return sanitized, stats
+
+
+def _log_sanitizer_stats(stats: dict[str, int | str], *, context: dict[str, Any] | None = None) -> None:
+    if not stats["dropped"] and not stats["converted"]:
+        return
+
+    context_fields = {"cid", "trace_id", "job_id"}
+    extra = {
+        "dropped_tool_messages": stats["dropped"],
+        "converted_tool_messages": stats["converted"],
+        "total_messages_in": stats["total_in"],
+        "total_messages_out": stats["total_out"],
+        "sanitizer_mode": stats["mode"],
+    }
+    if context:
+        extra.update({k: v for k, v in context.items() if k in context_fields})
+
+    logger.warning("agent.llm.messages_sanitized", extra=extra)
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +317,7 @@ class LLMClient:
         )
         self.default_max_tokens = default_max_tokens or AGENT_MAX_TOKENS
         self.cost_guard = cost_guard or DailyCostGuard()
+        self.sanitizer_mode = AGENT_TOOL_MESSAGE_SANITIZER_MODE
 
     # ---- internal helpers -------------------------------------------------
 
@@ -325,11 +441,17 @@ class LLMClient:
         projected_cost = self._estimate_cost(call_max_tokens)
         guard.ensure_within_budget(projected_cost)
 
+        message_list = list(messages)
+        sanitized_messages, sanitizer_stats = sanitize_messages_for_openai(
+            message_list, self.sanitizer_mode
+        )
+        _log_sanitizer_stats(sanitizer_stats)
+
         start = time.perf_counter()
         try:
             payload = self._execute_with_timeout(
                 lambda: self.provider.run(
-                    messages=list(messages),
+                    messages=sanitized_messages,
                     tools=tools,
                     model=call_model,
                     max_tokens=call_max_tokens,
@@ -384,6 +506,10 @@ class LLMClient:
         guard.ensure_within_budget(projected_cost)
 
         message_list = list(messages)
+        sanitized_messages, sanitizer_stats = sanitize_messages_for_openai(
+            message_list, self.sanitizer_mode
+        )
+        _log_sanitizer_stats(sanitizer_stats, context=context)
 
         log_context = {"model": call_model, "timeout": call_timeout}
         if context:
@@ -426,7 +552,7 @@ class LLMClient:
             if tools:
                 payload = self._execute_with_timeout(
                     lambda: self.provider.run(
-                        messages=message_list,
+                        messages=sanitized_messages,
                         tools=tools,
                         model=call_model,
                         max_tokens=call_max_tokens,
@@ -438,7 +564,7 @@ class LLMClient:
             else:
                 payload = self._execute_with_timeout(
                     lambda: self.provider.run_streaming(
-                        messages=message_list,
+                        messages=sanitized_messages,
                         tools=tools,
                         model=call_model,
                         max_tokens=call_max_tokens,
