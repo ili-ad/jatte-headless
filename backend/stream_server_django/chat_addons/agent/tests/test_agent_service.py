@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import json
 import os
 import sys
 import time
@@ -17,6 +19,7 @@ import django
 django.setup()
 
 import pytest
+from django.conf import settings
 
 from stream_server_django.chat_addons.agent.services.agent_service import AgentReply, AgentService
 from stream_server_django.chat_addons.agent.services.llm_client import (
@@ -166,6 +169,47 @@ class _ToolCallProvider:
         }
 
 
+class _SequencedToolProvider:
+    def __init__(self, *, include_tool_call: bool, final_text: str = "done") -> None:
+        self.include_tool_call = include_tool_call
+        self.final_text = final_text
+        self.calls: list[list[dict]] = []
+
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (tools, model, max_tokens, timeout)
+        self.calls.append(copy.deepcopy(list(messages)))
+        if self.include_tool_call and len(self.calls) == 1:
+            return {
+                "content": "",
+                "messages": [
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_ordering",
+                                "type": "function",
+                                "function": {
+                                    "name": "utility_calc",
+                                    "arguments": json.dumps({"expr": "2+2"}),
+                                },
+                            }
+                        ],
+                    }
+                ],
+                "tokens_used": 1,
+                "cost_usd": Decimal("0"),
+            }
+
+        if len(self.calls) == 1:
+            return {"content": "", "tokens_used": 1, "cost_usd": Decimal("0")}
+
+        return {
+            "content": self.final_text,
+            "tokens_used": 1,
+            "cost_usd": Decimal("0"),
+        }
+
+
 def test_agent_service_generate_returns_canned_reply() -> None:
     client = LLMClient(provider=CannedProvider())
     service = AgentService(llm_client=client)
@@ -259,6 +303,82 @@ def test_agent_service_streaming_timeout_sets_idle_state(monkeypatch) -> None:
     assert timeout_message.custom_data.get("ai_generated") is True
     assert timeout_message.custom_data.get("ai_state") == "AI_STATE_IDLE"
     assert timeout_message.custom_data.get("error_reason") == "timeout"
+
+
+def test_tool_call_messages_follow_assistant_invocation(db) -> None:
+    AgentRoomPolicy.objects.update_or_create(
+        cid="messaging:tool-order", defaults={"agent_enabled": True, "enabled_skills": ["utility_calc"]}
+    )
+    provider = _SequencedToolProvider(include_tool_call=True)
+    client = LLMClient(provider=provider)
+    service = AgentService(llm_client=client)
+
+    reply = service.generate(cid="messaging:tool-order", user_id="user-llm", text="2+2")
+
+    assert reply.reason == AgentRun.STATUS_OK
+    assert len(provider.calls) >= 2
+    messages = provider.calls[1]
+
+    assistant_index = next(
+        i
+        for i, message in enumerate(messages)
+        if message.get("role") == "assistant" and message.get("tool_calls")
+    )
+    assistant_message = messages[assistant_index]
+    tool_calls = assistant_message["tool_calls"]
+    assert isinstance(tool_calls, list)
+    tool_ids = [tc.get("id") for tc in tool_calls if isinstance(tc, dict)]
+    assert tool_ids
+
+    following = messages[assistant_index + 1 : assistant_index + 1 + len(tool_ids)]
+    assert all(msg.get("role") == "tool" for msg in following)
+    assert [msg.get("tool_call_id") for msg in following] == tool_ids
+
+
+def test_fallback_tool_invocation_inserts_assistant_and_results(db) -> None:
+    AgentRoomPolicy.objects.update_or_create(
+        cid="messaging:fallback-order",
+        defaults={"agent_enabled": True, "enabled_skills": ["utility_calc"]},
+    )
+    provider = _SequencedToolProvider(include_tool_call=False, final_text="all set")
+    client = LLMClient(provider=provider)
+    service = AgentService(llm_client=client)
+
+    reply = service.generate(cid="messaging:fallback-order", user_id="user-fallback", text="2+2")
+
+    assert reply.reason == AgentRun.STATUS_OK
+    assert len(provider.calls) >= 2
+    messages = provider.calls[1]
+
+    assistant_index = next(
+        i
+        for i, message in enumerate(messages)
+        if message.get("role") == "assistant" and message.get("tool_calls")
+    )
+    tool_ids = [
+        tc.get("id")
+        for tc in messages[assistant_index].get("tool_calls", [])
+        if isinstance(tc, dict)
+    ]
+    assert tool_ids
+
+    following = messages[assistant_index + 1 : assistant_index + 1 + len(tool_ids)]
+    assert all(msg.get("role") == "tool" for msg in following)
+    assert [msg.get("tool_call_id") for msg in following] == tool_ids
+
+
+def test_sanitize_drops_orphan_tool_messages(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "DEBUG", True)
+    service = AgentService(llm_client=LLMClient(provider=CannedProvider()))
+
+    messages = [
+        {"role": "user", "content": "hi"},
+        {"role": "tool", "tool_call_id": "abc", "content": "result"},
+    ]
+
+    sanitized = service._sanitize_tool_messages(messages, meta={"cid": "cid"})
+
+    assert sanitized == [{"role": "user", "content": "hi"}]
 
 
 def test_llm_client_streaming_emits_incremental_updates() -> None:
