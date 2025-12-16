@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -31,7 +32,7 @@ from ..config import (
     AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
-from .tooling import ToolCall, ensure_tool_call_id
+from .tooling import ToolCall
 
 logger = logging.getLogger(__name__)
 
@@ -257,10 +258,11 @@ class LLMClient:
                     else:
                         arguments = {"input": str(raw_arguments)} if raw_arguments is not None else {}
 
-                    call_id = entry.get("id") if isinstance(entry.get("id"), str) else None
-                    tool_calls.append(
-                        ensure_tool_call_id(ToolCall(name=name, arguments=arguments, id=call_id))
-                    )
+                    call_id = entry.get("id")
+                    if not isinstance(call_id, str) or not call_id:
+                        call_id = f"call_{uuid.uuid4().hex}"
+
+                    tool_calls.append(ToolCall(name=name, arguments=arguments, id=call_id))
         return LLMResult(
             content=content,
             tokens_used=tokens_used,
