@@ -31,7 +31,7 @@ from ..config import (
     AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
-from .tooling import ToolCall
+from .tooling import ToolCall, ensure_tool_call_id
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +257,10 @@ class LLMClient:
                     else:
                         arguments = {"input": str(raw_arguments)} if raw_arguments is not None else {}
 
-                    tool_calls.append(ToolCall(name=name, arguments=arguments))
+                    call_id = entry.get("id") if isinstance(entry.get("id"), str) else None
+                    tool_calls.append(
+                        ensure_tool_call_id(ToolCall(name=name, arguments=arguments, id=call_id))
+                    )
         return LLMResult(
             content=content,
             tokens_used=tokens_used,

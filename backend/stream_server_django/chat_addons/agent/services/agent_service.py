@@ -5,8 +5,8 @@ import json
 import logging
 import os
 import time
-import uuid
 import threading
+import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -42,6 +42,7 @@ from ..services.llm_client import BudgetExceeded, LLMClient, LLMResult
 from ..services.tooling import (
     ToolCall,
     build_tool_schemas,
+    ensure_tool_call_id,
     infer_args_from_text,
     parse_tool_instructions,
 )
@@ -1024,7 +1025,10 @@ class AgentService:
         handoff_message: str | None = None,
         room: Room | None = None,
         run_id: str | None = None,
-    ) -> LLMResult:
+        ) -> LLMResult:
+        sanitized_messages = self._sanitize_tool_messages(messages)
+        messages[:] = sanitized_messages
+
         timeout = (meta or {}).get("timeout")
         cid = (meta or {}).get("cid")
         streaming_timeout = (
@@ -1248,7 +1252,27 @@ class AgentService:
     ) -> list[str]:
         executed: list[str] = []
         remaining = limit if limit is None else max(limit, 0)
-        for call in calls:
+        calls_with_ids = [ensure_tool_call_id(call) for call in calls]
+
+        if calls_with_ids:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.name,
+                                "arguments": json.dumps(call.arguments),
+                            },
+                        }
+                        for call in calls_with_ids
+                    ],
+                }
+            )
+
+        for call in calls_with_ids:
             if remaining is not None and remaining <= 0:
                 break
             skill = skill_lookup.get(call.name)
@@ -1266,6 +1290,7 @@ class AgentService:
             messages.append(
                 {
                     "role": "tool",
+                    "tool_call_id": call.id,
                     "name": skill.name,
                     "content": self._serialize_json(payload),
                 }
@@ -1294,18 +1319,50 @@ class AgentService:
         if not args and text:
             args = {"text": text}
         try:
-            payload = skill.execute(args, ctx)
+            executed = self._execute_tool_calls(
+                [ToolCall(name=skill.name, arguments=args)],
+                {skill.name: skill},
+                ctx,
+                messages,
+                limit=1,
+            )
+            return bool(executed)
         except Exception:  # pragma: no cover - defensive
             logger.exception("agent.fallback.failure", extra={"tool": skill.name})
             return False
-        messages.append(
-            {
-                "role": "tool",
-                "name": skill.name,
-                "content": self._serialize_json(payload),
-            }
-        )
-        return True
+
+    def _sanitize_tool_messages(
+        self, messages: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        sanitized: list[dict[str, Any]] = []
+        latest_tool_call_ids: set[str] = set()
+
+        for message in messages:
+            role = message.get("role") if isinstance(message, dict) else None
+            if role == "assistant" and isinstance(message.get("tool_calls"), list):
+                latest_tool_call_ids = {
+                    tc.get("id")
+                    for tc in message.get("tool_calls", [])
+                    if isinstance(tc, dict) and isinstance(tc.get("id"), str)
+                }
+                sanitized.append(message)
+                continue
+
+            if role == "tool":
+                tool_call_id = message.get("tool_call_id")
+                if tool_call_id and tool_call_id in latest_tool_call_ids:
+                    sanitized.append(message)
+                else:
+                    logger.debug(
+                        "agent.tool.orphaned_message_dropped",
+                        extra={"tool_call_id": tool_call_id},
+                    )
+                continue
+
+            latest_tool_call_ids = set()
+            sanitized.append(message)
+
+        return sanitized
 
     def _serialize_json(self, payload: Any) -> str:
         try:
