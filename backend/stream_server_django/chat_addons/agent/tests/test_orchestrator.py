@@ -262,15 +262,17 @@ class AgentOrchestratorTests(APITestCase):
         second_call_messages = provider.calls[1]["messages"]
 
         self.assertGreaterEqual(len(second_call_messages), 2)
-        assistant_call_message = second_call_messages[-2]
-        tool_result_message = second_call_messages[-1]
-
-        self.assertEqual(assistant_call_message.get("role"), "assistant")
-        self.assertEqual(tool_result_message.get("role"), "tool")
-        self.assertEqual(
-            assistant_call_message.get("tool_calls", [{}])[0].get("id"),
-            tool_result_message.get("tool_call_id"),
-        )
+        for index, message in enumerate(second_call_messages):
+            if message.get("role") != "tool":
+                continue
+            assistant_call_message = second_call_messages[index - 1]
+            self.assertEqual(assistant_call_message.get("role"), "assistant")
+            tool_ids = {
+                tc.get("id")
+                for tc in assistant_call_message.get("tool_calls", [])
+                if isinstance(tc, dict)
+            }
+            self.assertIn(message.get("tool_call_id"), tool_ids)
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
@@ -299,6 +301,46 @@ class AgentOrchestratorTests(APITestCase):
         run = AgentRun.objects.get()
         self.assertEqual(run.status, AgentRun.STATUS_OK)
         self.assertEqual(run.tools_used, ["utility_calc"])
+
+    @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
+    @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
+    def test_fallback_tool_messages_prefixed(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
+        AgentRoomPolicy.objects.create(
+            cid="messaging:fallback-ordering-room",
+            agent_enabled=True,
+            enabled_skills=["utility_calc"],
+            tool_hop_cap=2,
+            turn_cap=4,
+        )
+
+        responses = [
+            {"content": "", "tokens_used": 3, "cost_usd": Decimal("0")},
+            {"content": "14", "tokens_used": 2, "cost_usd": Decimal("0")},
+        ]
+
+        provider = _SequencedProvider(responses)
+        service = AgentService(llm_client=LLMClient(provider=provider))
+
+        reply = service.generate(
+            cid="messaging:fallback-ordering-room", user_id="user-2", text="2*(3+4)"
+        )
+
+        self.assertEqual(reply.text, "14")
+        self.assertGreaterEqual(len(provider.calls), 2)
+        second_call_messages = provider.calls[1]["messages"]
+
+        for index, message in enumerate(second_call_messages):
+            if message.get("role") != "tool":
+                continue
+            self.assertGreater(index, 0)
+            assistant_message = second_call_messages[index - 1]
+            self.assertEqual(assistant_message.get("role"), "assistant")
+            tool_ids = {
+                tc.get("id")
+                for tc in assistant_message.get("tool_calls", [])
+                if isinstance(tc, dict)
+            }
+            self.assertIn(message.get("tool_call_id"), tool_ids)
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
@@ -337,3 +379,24 @@ class AgentOrchestratorTests(APITestCase):
         run = AgentRun.objects.get()
         self.assertEqual(run.status, AgentRun.STATUS_CAPPED)
         self.assertEqual(run.tools_used, [])
+
+    def test_orphan_tool_messages_are_sanitized(self) -> None:
+        responses = [
+            {"content": "ignored", "tokens_used": 1, "cost_usd": Decimal("0")}
+        ]
+
+        provider = _SequencedProvider(responses)
+        service = AgentService(llm_client=LLMClient(provider=provider))
+
+        messages = [
+            {"role": "tool", "content": "dangling"},
+            {"role": "user", "content": "hi"},
+        ]
+
+        with self.assertLogs("agent", level="WARNING") as logs:
+            service._call_llm(messages, [], {"cid": "messaging:orphan"})
+
+        self.assertEqual(len(provider.calls), 1)
+        sent_messages = provider.calls[0]["messages"]
+        self.assertTrue(all(msg.get("role") != "tool" for msg in sent_messages))
+        self.assertTrue(any("orphaned_message_dropped" in record.getMessage() for record in logs.records))
