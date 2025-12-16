@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from django.db import transaction
 from django.http import Http404
@@ -17,6 +20,7 @@ from stream_server_django.chat.models import Channel, Draft, Message, ReadState,
 from stream_server_django.chat.utils import canonical_cid
 from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat_addons.permissions import IsChatStaff
+from stream_server_django.chat_addons.agent.utils import _persist_default_agent_state
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
@@ -108,15 +112,7 @@ class ResetRoomView(APIView):
 
     def post(self, request: Request, room_uuid: str) -> Response:
         room = _get_room(room_uuid)
-        messages_qs = Message.objects.filter(rooms=room)
-        deleted_messages = messages_qs.count()
-        channel = Channel.objects.filter(uuid=room.uuid, client=room.client).first()
-
-        with transaction.atomic():
-            if channel:
-                ReadState.objects.filter(channel=channel).delete()
-            Draft.objects.filter(room=room).delete()
-            messages_qs.delete()
+        deleted_messages = _reset_room(room)
 
         return Response(
             {
@@ -126,6 +122,62 @@ class ResetRoomView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ResetNewRoomView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated, IsChatStaff]
+
+    def post(self, request: Request, room_uuid: str) -> Response:
+        room = _get_room(room_uuid)
+        label = _get_room_label(room)
+        label_slug = _slugify_label(label)
+
+        deleted_messages = _reset_room(room)
+
+        data = room.data if isinstance(room.data, dict) else {}
+        new_data = dict(data) if isinstance(data, dict) else {}
+
+        if label:
+            new_data["label"] = label
+            name_candidate = new_data.get("name") if isinstance(new_data, dict) else None
+            if not isinstance(name_candidate, str) or not name_candidate.strip():
+                new_data["name"] = label.strip()
+            if label_slug:
+                new_data["slug"] = label_slug
+
+        new_room = Room.objects.create(
+            uuid=str(uuid4()),
+            client=room.client,
+            url=room.url,
+            data=new_data,
+        )
+
+        _persist_default_agent_state(room=new_room, room_slug=label_slug, cid=new_room.cid)
+
+        response = Response(
+            {
+                "ok": True,
+                "old_room_uuid": room.uuid,
+                "new_room_uuid": new_room.uuid,
+                "deleted_messages": deleted_messages,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        if label_slug:
+            cookie_name = f"jatte.room_uuid.{label_slug}"
+            response.set_cookie(
+                cookie_name,
+                new_room.uuid,
+                expires=datetime.utcnow() + timedelta(days=60),
+                path="/",
+                samesite="Lax",
+            )
+
+        return response
 
 
 class GatingRulesView(APIView):
@@ -315,6 +367,42 @@ class AuditTrailListView(APIView):
         ]
 
         return Response({"results": results, "next": next_cursor})
+
+
+def _reset_room(room: Room) -> int:
+    messages_qs = Message.objects.filter(rooms=room)
+    deleted_messages = messages_qs.count()
+    channel = Channel.objects.filter(uuid=room.uuid, client=room.client).first()
+
+    with transaction.atomic():
+        if channel:
+            ReadState.objects.filter(channel=channel).delete()
+        Draft.objects.filter(room=room).delete()
+        messages_qs.delete()
+
+    return deleted_messages
+
+
+def _get_room_label(room: Room) -> str | None:
+    data = room.data if isinstance(room.data, dict) else {}
+    label = data.get("label") if isinstance(data, dict) else None
+    if isinstance(label, str) and label.strip():
+        return label
+
+    name = data.get("name") if isinstance(data, dict) else None
+    if isinstance(name, str) and name.strip():
+        return name
+
+    return None
+
+
+def _slugify_label(label: str | None) -> str | None:
+    if not isinstance(label, str):
+        return None
+    normalized = label.strip().lower()
+    if not normalized:
+        return None
+    return re.sub(r"[^a-z0-9]+", "-", normalized)
 
 
 def _get_room(cid: str) -> Room:
