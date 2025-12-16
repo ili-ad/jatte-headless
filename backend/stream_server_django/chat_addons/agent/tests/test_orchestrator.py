@@ -38,9 +38,19 @@ class _SequencedProvider:
         self._responses = list(responses)
         self.calls: list[dict] = []
 
-    def run(self, *, messages, tools, model, max_tokens):  # pragma: no cover - simple shim
+    def run(
+        self, *, messages, tools, model, max_tokens, timeout=None
+    ):  # pragma: no cover - simple shim
         index = len(self.calls)
-        self.calls.append({"messages": list(messages), "tools": tools, "model": model, "max_tokens": max_tokens})
+        self.calls.append(
+            {
+                "messages": list(messages),
+                "tools": tools,
+                "model": model,
+                "max_tokens": max_tokens,
+                "timeout": timeout,
+            }
+        )
         payload = self._responses[min(index, len(self._responses) - 1)]
         return payload
 
@@ -205,6 +215,62 @@ class AgentOrchestratorTests(APITestCase):
         run = AgentRun.objects.get()
         self.assertEqual(run.status, AgentRun.STATUS_OK)
         self.assertIn("utility_calc", run.tools_used)
+
+    @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
+    @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
+    def test_tool_messages_follow_assistant_calls(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
+        AgentRoomPolicy.objects.create(
+            cid="messaging:structured-tool-room",
+            agent_enabled=True,
+            enabled_skills=["utility_calc"],
+            tool_hop_cap=2,
+            turn_cap=4,
+        )
+
+        responses = [
+            {
+                "content": "",
+                "messages": [
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_123",
+                                "function": {
+                                    "name": "utility_calc",
+                                    "arguments": "{\"expr\":\"2*(3+4)\"}",
+                                },
+                            }
+                        ],
+                    }
+                ],
+                "tokens_used": 5,
+                "cost_usd": Decimal("0"),
+            },
+            {"content": "14", "tokens_used": 4, "cost_usd": Decimal("0")},
+        ]
+
+        provider = _SequencedProvider(responses)
+        service = AgentService(llm_client=LLMClient(provider=provider))
+
+        reply = service.generate(
+            cid="messaging:structured-tool-room", user_id="user-structured", text="2*(3+4)"
+        )
+
+        self.assertEqual(reply.text, "14")
+        self.assertGreaterEqual(len(provider.calls), 2)
+        second_call_messages = provider.calls[1]["messages"]
+
+        self.assertGreaterEqual(len(second_call_messages), 2)
+        assistant_call_message = second_call_messages[-2]
+        tool_result_message = second_call_messages[-1]
+
+        self.assertEqual(assistant_call_message.get("role"), "assistant")
+        self.assertEqual(tool_result_message.get("role"), "tool")
+        self.assertEqual(
+            assistant_call_message.get("tool_calls", [{}])[0].get("id"),
+            tool_result_message.get("tool_call_id"),
+        )
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
