@@ -1322,7 +1322,9 @@ class AgentService:
     ) -> list[dict[str, Any]]:
         sanitized: list[dict[str, Any]] = []
         latest_tool_call_ids: set[str] = set()
+        last_message_had_tool_calls = False
         cid = (meta or {}).get("cid")
+        debug_mode = bool(getattr(settings, "DEBUG", False))
 
         for index, message in enumerate(messages):
             role = message.get("role") if isinstance(message, dict) else None
@@ -1332,25 +1334,28 @@ class AgentService:
                     for tc in message.get("tool_calls", [])
                     if isinstance(tc, dict) and isinstance(tc.get("id"), str)
                 }
+                last_message_had_tool_calls = bool(latest_tool_call_ids)
                 sanitized.append(message)
                 continue
 
             if role == "tool":
                 tool_call_id = message.get("tool_call_id")
-                if tool_call_id and tool_call_id in latest_tool_call_ids:
+                if last_message_had_tool_calls and tool_call_id in latest_tool_call_ids:
                     sanitized.append(message)
                 else:
-                    logger.warning(
-                        "agent.tool.orphaned_message_dropped",
-                        extra={
-                            "cid": cid,
-                            "tool_call_id": tool_call_id,
-                            "index": index,
-                        },
-                    )
+                    if debug_mode:
+                        logger.warning(
+                            "agent.tool.orphaned_message_dropped",
+                            extra={
+                                "cid": cid,
+                                "tool_call_id": tool_call_id,
+                                "index": index,
+                            },
+                        )
                 continue
 
             latest_tool_call_ids = set()
+            last_message_had_tool_calls = False
             sanitized.append(message)
 
         return sanitized
@@ -1499,7 +1504,6 @@ def set_agent_service(service: AgentService | None) -> None:
     global _service_override
     _service_override = service
 def _assistant_tool_calls_message(tool_calls: list[ToolCall]) -> dict[str, Any]:
-    ensured_calls = [ensure_tool_call_id(tc) for tc in tool_calls]
     return {
         "role": "assistant",
         "tool_calls": [
@@ -1511,7 +1515,7 @@ def _assistant_tool_calls_message(tool_calls: list[ToolCall]) -> dict[str, Any]:
                     "arguments": json.dumps(tc.arguments, default=str, ensure_ascii=False),
                 },
             }
-            for tc in ensured_calls
+            for tc in tool_calls
         ],
     }
 
