@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -45,8 +46,19 @@ class SmalltalkGreetSkill(Skill):
 
     def can_handle(self, text: str, ctx: ConversationCtx) -> bool:  # noqa: D401 - simple predicate
         _ = ctx
-        lowered = text.lower()
-        return any(token in lowered for token in ("hello", "hi", "hey"))
+        normalized = " ".join(text.strip().lower().split())
+        pure_greetings = {"hi", "hello", "hey", "bonjour", "salut"}
+        help_only = {"help"}
+        max_len = 32
+
+        if normalized in pure_greetings or normalized in help_only:
+            return True
+
+        starts_with_greeting = re.match(r"^(hi|hello|hey|bonjour|salut)\b", normalized)
+        if starts_with_greeting and len(normalized) <= max_len:
+            return True
+
+        return False
 
     def execute(self, args: dict[str, Any], ctx: ConversationCtx) -> dict[str, Any]:
         start = time.perf_counter()
