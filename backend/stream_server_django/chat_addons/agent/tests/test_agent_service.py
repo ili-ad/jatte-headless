@@ -28,6 +28,7 @@ from stream_server_django.chat_addons.agent.services.llm_client import (
     CostGuard,
     LLMClient,
 )
+from stream_server_django.chat_addons.agent.registry import enabled_for_room
 from stream_server_django.chat_addons.agent.models import AgentRoomPolicy, AgentRun
 from stream_server_django.chat.models import Message
 
@@ -324,8 +325,7 @@ def test_tool_call_messages_follow_assistant_invocation(db) -> None:
         for i, message in enumerate(messages)
         if message.get("role") == "assistant" and message.get("tool_calls")
     )
-    assistant_message = messages[assistant_index]
-    tool_calls = assistant_message["tool_calls"]
+    tool_calls = messages[assistant_index]["tool_calls"]
     assert isinstance(tool_calls, list)
     tool_ids = [tc.get("id") for tc in tool_calls if isinstance(tc, dict)]
     assert tool_ids
@@ -333,6 +333,56 @@ def test_tool_call_messages_follow_assistant_invocation(db) -> None:
     following = messages[assistant_index + 1 : assistant_index + 1 + len(tool_ids)]
     assert all(msg.get("role") == "tool" for msg in following)
     assert [msg.get("tool_call_id") for msg in following] == tool_ids
+
+
+def test_tool_failure_emits_tool_message(monkeypatch, db) -> None:
+    cid = "messaging:tool-failure"
+    AgentRoomPolicy.objects.update_or_create(
+        cid=cid, defaults={"agent_enabled": True, "enabled_skills": ["utility_calc"]}
+    )
+    provider = _SequencedToolProvider(include_tool_call=True, final_text="handled")
+    client = LLMClient(provider=provider)
+    service = AgentService(llm_client=client)
+
+    failing_skill = next(
+        (skill for skill in enabled_for_room(cid) if skill.name == "utility_calc"),
+        None,
+    )
+    assert failing_skill is not None
+
+    def boom(args, ctx):
+        _ = (args, ctx)
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(failing_skill, "execute", boom)
+
+    reply = service.generate(cid=cid, user_id="user-tool-failure", text="2+2")
+
+    assert reply.reason == AgentRun.STATUS_OK
+    assert reply.text == "handled"
+    assert len(provider.calls) >= 2
+
+    messages = provider.calls[1]
+
+    assistant_index = next(
+        i
+        for i, message in enumerate(messages)
+        if message.get("role") == "assistant" and message.get("tool_calls")
+    )
+    tool_calls = messages[assistant_index]["tool_calls"]
+    tool_ids = [tc.get("id") for tc in tool_calls if isinstance(tc, dict)]
+    assert tool_ids
+
+    following = messages[assistant_index + 1 : assistant_index + 1 + len(tool_ids)]
+    assert all(msg.get("role") == "tool" for msg in following)
+    assert [msg.get("tool_call_id") for msg in following] == tool_ids
+
+    for msg in following:
+        payload = json.loads(msg.get("content"))
+        assert payload.get("ok") is False
+        assert payload.get("tool") == "utility_calc"
+        assert payload.get("type") == "RuntimeError"
+        assert payload.get("error") == "kaboom"
 
 
 def test_fallback_tool_invocation_inserts_assistant_and_results(db) -> None:
