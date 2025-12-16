@@ -75,3 +75,7 @@ MEMORY_MAX_LINES: int = _clamp(_get_env_int("MEMORY_MAX_LINES", 80), 60, 100)
 AGENT_USE_RAG_DEFAULT: bool = _get_env_bool("AGENT_USE_RAG", False)
 AGENT_RAG_STATE_DEFAULT: str | None = _get_env_str("AGENT_RAG_STATE", "").strip() or None
 AGENT_RAG_TOPIC_DEFAULT: str | None = _get_env_str("AGENT_RAG_TOPIC", "").strip() or None
+_SANITIZER_DEFAULT = "system" if getattr(settings, "DEBUG", False) else "drop"
+AGENT_TOOL_MESSAGE_SANITIZER_MODE: str = _get_env_str(
+    "AGENT_TOOL_MESSAGE_SANITIZER_MODE", _SANITIZER_DEFAULT
+)
