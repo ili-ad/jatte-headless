@@ -1263,22 +1263,42 @@ class AgentService:
             if remaining is not None and remaining <= 0:
                 break
             skill = skill_lookup.get(call.name)
+            tool_name = skill.name if skill else call.name
+            content: str
+
             if not skill:
                 logger.warning("agent.tool.unknown", extra={"tool": call.name})
-                continue
-            try:
-                payload = skill.execute(call.arguments, ctx)
-            except Exception:  # pragma: no cover - defensive
-                logger.exception("agent.tool.failure", extra={"tool": call.name})
-                continue
-            executed.append(skill.name)
-            if remaining is not None:
-                remaining -= 1
+                content = json.dumps(
+                    {
+                        "ok": False,
+                        "error": "Unknown tool",
+                        "type": "ToolNotFound",
+                        "tool": call.name,
+                    }
+                )
+            else:
+                try:
+                    payload = skill.execute(call.arguments, ctx)
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.exception("agent.tool.failure", extra={"tool": call.name})
+                    content = json.dumps(
+                        {
+                            "ok": False,
+                            "error": str(exc),
+                            "type": exc.__class__.__name__,
+                            "tool": call.name,
+                        }
+                    )
+                else:
+                    executed.append(skill.name)
+                    if remaining is not None:
+                        remaining -= 1
+                    content = self._serialize_json(payload)
             messages.append(
                 _tool_result_message(
                     call.id or "",
-                    self._serialize_json(payload),
-                    name=skill.name,
+                    content,
+                    name=tool_name,
                 )
             )
         return executed
