@@ -108,9 +108,11 @@ def parse_tool_instructions(content: str) -> tuple[list[ToolCall], str]:
             name = entry.get("name")
             if not isinstance(name, str) or not name:
                 continue
+
             call_id = entry.get("id")
-            if not isinstance(call_id, str) or not call_id:
-                call_id = None
+            if not isinstance(call_id, str) or not call_id.strip():
+                call_id = f"call_{uuid.uuid4().hex}"
+
             arguments = entry.get("arguments", {})
             if isinstance(arguments, str):
                 try:
@@ -118,8 +120,9 @@ def parse_tool_instructions(content: str) -> tuple[list[ToolCall], str]:
                 except ValueError:
                     arguments = {"input": arguments}
             if not isinstance(arguments, dict):
-                arguments = {}
-            calls.append(ensure_tool_call_id(ToolCall(name=name, arguments=arguments, id=call_id)))
+                arguments = {"input": arguments}
+
+            calls.append(ToolCall(name=name, arguments=arguments, id=call_id))
 
     final_text = payload.get("final") or payload.get("reply")
     if final_text is None:
