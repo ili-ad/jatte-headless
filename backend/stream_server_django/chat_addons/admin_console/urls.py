@@ -7,6 +7,7 @@ from .views import (
     ClaimRoomView,
     GatingRulesView,
     IntakeListView,
+    ResetNewRoomView,
     ResetRoomView,
     RejectIntakeView,
 )
@@ -18,6 +19,11 @@ urlpatterns = [
         "rooms/<uuid:room_uuid>/reset/",
         ResetRoomView.as_view(),
         name="reset-room",
+    ),
+    path(
+        "rooms/<uuid:room_uuid>/reset-new/",
+        ResetNewRoomView.as_view(),
+        name="reset-room-new",
     ),
     path("gating-rules/", GatingRulesView.as_view(), name="get-gating-rules"),
     path("intake/", IntakeListView.as_view(), name="list-intake"),
