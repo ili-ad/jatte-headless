@@ -1005,6 +1005,8 @@ class AgentService:
         tools: list[dict[str, Any]],
         meta: dict[str, Any] | None,
     ) -> LLMResult:
+        sanitized_messages = self._sanitize_tool_messages(messages, meta=meta)
+        messages[:] = sanitized_messages
         timeout = (meta or {}).get("timeout")
         fallback_timeout = getattr(self.llm_client, "default_timeout", None)
         return self.llm_client.run(
@@ -1026,7 +1028,7 @@ class AgentService:
         room: Room | None = None,
         run_id: str | None = None,
         ) -> LLMResult:
-        sanitized_messages = self._sanitize_tool_messages(messages)
+        sanitized_messages = self._sanitize_tool_messages(messages, meta=meta)
         messages[:] = sanitized_messages
 
         timeout = (meta or {}).get("timeout")
@@ -1255,22 +1257,7 @@ class AgentService:
         calls_with_ids = [ensure_tool_call_id(call) for call in calls]
 
         if calls_with_ids:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": call.id,
-                            "type": "function",
-                            "function": {
-                                "name": call.name,
-                                "arguments": json.dumps(call.arguments),
-                            },
-                        }
-                        for call in calls_with_ids
-                    ],
-                }
-            )
+            messages.append(_assistant_tool_calls_message(calls_with_ids))
 
         for call in calls_with_ids:
             if remaining is not None and remaining <= 0:
@@ -1288,12 +1275,11 @@ class AgentService:
             if remaining is not None:
                 remaining -= 1
             messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": call.id,
-                    "name": skill.name,
-                    "content": self._serialize_json(payload),
-                }
+                _tool_result_message(
+                    call.id or "",
+                    self._serialize_json(payload),
+                    name=skill.name,
+                )
             )
         return executed
 
@@ -1332,12 +1318,13 @@ class AgentService:
             return False
 
     def _sanitize_tool_messages(
-        self, messages: list[dict[str, Any]]
+        self, messages: list[dict[str, Any]], *, meta: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         sanitized: list[dict[str, Any]] = []
         latest_tool_call_ids: set[str] = set()
+        cid = (meta or {}).get("cid")
 
-        for message in messages:
+        for index, message in enumerate(messages):
             role = message.get("role") if isinstance(message, dict) else None
             if role == "assistant" and isinstance(message.get("tool_calls"), list):
                 latest_tool_call_ids = {
@@ -1353,9 +1340,13 @@ class AgentService:
                 if tool_call_id and tool_call_id in latest_tool_call_ids:
                     sanitized.append(message)
                 else:
-                    logger.debug(
+                    logger.warning(
                         "agent.tool.orphaned_message_dropped",
-                        extra={"tool_call_id": tool_call_id},
+                        extra={
+                            "cid": cid,
+                            "tool_call_id": tool_call_id,
+                            "index": index,
+                        },
                     )
                 continue
 
@@ -1507,3 +1498,33 @@ def set_agent_service(service: AgentService | None) -> None:
 
     global _service_override
     _service_override = service
+def _assistant_tool_calls_message(tool_calls: list[ToolCall]) -> dict[str, Any]:
+    ensured_calls = [ensure_tool_call_id(tc) for tc in tool_calls]
+    return {
+        "role": "assistant",
+        "tool_calls": [
+            {
+                "id": tc.id,
+                "type": "function",
+                "function": {
+                    "name": tc.name,
+                    "arguments": json.dumps(tc.arguments, default=str, ensure_ascii=False),
+                },
+            }
+            for tc in ensured_calls
+        ],
+    }
+
+
+def _tool_result_message(
+    tool_call_id: str, content: str, *, name: str | None = None
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "content": content,
+    }
+    if name:
+        payload["name"] = name
+    return payload
+
