@@ -21,7 +21,11 @@ django.setup()
 import pytest
 from django.conf import settings
 
-from stream_server_django.chat_addons.agent.services.agent_service import AgentReply, AgentService
+from stream_server_django.chat_addons.agent.services.agent_service import (
+    AgentReply,
+    AgentService,
+    HandoffReason,
+)
 from stream_server_django.chat_addons.agent.services.llm_client import (
     BudgetExceeded,
     CannedProvider,
@@ -383,6 +387,58 @@ def test_tool_failure_emits_tool_message(monkeypatch, db) -> None:
         assert payload.get("tool") == "utility_calc"
         assert payload.get("type") == "RuntimeError"
         assert payload.get("error") == "kaboom"
+
+
+def test_tool_exception_marks_handoff_metadata(monkeypatch, db) -> None:
+    cid = "messaging:tool-handoff"
+    AgentRoomPolicy.objects.update_or_create(
+        cid=cid, defaults={"agent_enabled": True, "enabled_skills": ["utility_calc"]}
+    )
+    provider = _SequencedToolProvider(include_tool_call=True, final_text="")
+    client = LLMClient(provider=provider)
+    service = AgentService(llm_client=client)
+
+    failing_skill = next(
+        (skill for skill in enabled_for_room(cid) if skill.name == "utility_calc"),
+        None,
+    )
+    assert failing_skill is not None
+
+    def boom(args, ctx):
+        _ = (args, ctx)
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(failing_skill, "execute", boom)
+
+    reply = service.generate(cid=cid, user_id="user-tool-handoff", text="2+2")
+
+    assert reply.messages
+    final_message: Message = reply.messages[0]
+    agent_meta = final_message.custom_data.get("agent", {})
+
+    assert agent_meta.get("handoff") is True
+    assert agent_meta.get("handoff_reason") == HandoffReason.TOOL_EXCEPTION
+    assert "RuntimeError" in (agent_meta.get("handoff_detail") or "")
+    assert agent_meta.get("last_tool_name") == "utility_calc"
+    assert agent_meta.get("last_tool_call_id")
+
+
+def test_no_tools_enabled_marks_handoff_reason(db) -> None:
+    cid = "messaging:no-tools"
+    AgentRoomPolicy.objects.update_or_create(
+        cid=cid, defaults={"agent_enabled": False, "enabled_skills": []}
+    )
+    service = AgentService(llm_client=LLMClient(provider=CannedProvider()))
+
+    reply = service.generate(cid=cid, user_id="user-no-tools", text="hello")
+
+    assert reply.messages
+    final_message: Message = reply.messages[0]
+    agent_meta = final_message.custom_data.get("agent", {})
+
+    assert agent_meta.get("handoff") is True
+    assert agent_meta.get("handoff_reason") == HandoffReason.NO_TOOLS_ENABLED
+    assert agent_meta.get("handoff_detail")
 
 
 def test_fallback_tool_invocation_inserts_assistant_and_results(db) -> None:
