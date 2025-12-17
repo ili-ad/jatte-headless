@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -20,6 +21,7 @@ from stream_server_django.chat.models import Channel, Draft, Message, ReadState,
 from stream_server_django.chat.utils import canonical_cid
 from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat_addons.permissions import IsChatStaff
+from stream_server_django.chat_addons.agent.models import AgentRoomPolicy, AgentRun
 from stream_server_django.chat_addons.agent.utils import _persist_default_agent_state
 
 from ..common_audit.decorators import audit_action
@@ -28,6 +30,7 @@ from ..common_audit.throttling import ClaimRoomRateThrottle, IntakeWriteRateThro
 
 from .models import MessageIntake
 from .serializers import (
+    AgentRunDebugQuerySerializer,
     ClaimRoomSerializer,
     GatingRulesSerializer,
     IntakeActionResponseSerializer,
@@ -232,6 +235,157 @@ class IntakeListView(APIView):
         }
         serializer = IntakeListResponseSerializer(payload)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AgentRunDebugView(APIView):
+    authentication_classes: list[type[BaseAuthentication]] = [
+        DevTokenOrJWTAuthentication
+    ]
+    permission_classes = [IsAuthenticated, IsChatStaff]
+
+    def get(self, request: Request):
+        serializer = AgentRunDebugQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            canonical = canonical_cid(serializer.validated_data["cid"])
+        except ValueError as exc:
+            raise ValidationError({"cid": "Invalid cid"}) from exc
+        limit = serializer.validated_data.get("limit") or 10
+        fmt = serializer.validated_data.get("format", "text")
+
+        runs = list(
+            AgentRun.objects.filter(cid=canonical).order_by("-created_at")[:limit]
+        )
+        policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
+
+        policy_tool_hop_cap = getattr(policy, "tool_hop_cap", None) if policy else None
+        policy_turn_cap = getattr(policy, "turn_cap", None) if policy else None
+
+        run_payloads: list[dict] = []
+        for run in runs:
+            run_tool_hop_cap = getattr(run, "tool_hop_cap", None)
+            run_turn_cap = getattr(run, "turn_cap", None)
+            run_payloads.append(
+                {
+                    "run_id": run.run_id,
+                    "created_at": run.created_at.isoformat(),
+                    "status": run.status,
+                    "handoff": run.handoff,
+                    "handoff_reason": run.handoff_reason,
+                    "handoff_detail": run.handoff_detail,
+                    "tool_hop_cap": run_tool_hop_cap
+                    if run_tool_hop_cap is not None
+                    else policy_tool_hop_cap,
+                    "turn_cap": run_turn_cap if run_turn_cap is not None else policy_turn_cap,
+                    "tools_used": run.tools_used,
+                    "tokens_in": run.tokens_in,
+                    "tokens_out": run.tokens_out,
+                    "cost_usd": float(run.cost_usd),
+                    "last_tool_name": run.last_tool_name,
+                    "last_tool_call_id": run.last_tool_call_id,
+                    "last_tool_args_preview": run.last_tool_args_preview,
+                }
+            )
+
+        if fmt == "json":
+            return Response(
+                {
+                    "cid": canonical,
+                    "limit": limit,
+                    "policy_tool_hop_cap": policy_tool_hop_cap,
+                    "policy_turn_cap": policy_turn_cap,
+                    "results": run_payloads,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        pre_lines = [
+            "cid: {cid}".format(cid=canonical),
+            f"limit: {limit}",
+        ]
+        if policy_tool_hop_cap is not None or policy_turn_cap is not None:
+            pre_lines.append(
+                "policy tool_hop_cap={tool_hop_cap} turn_cap={turn_cap}".format(
+                    tool_hop_cap=policy_tool_hop_cap,
+                    turn_cap=policy_turn_cap,
+                )
+            )
+        pre_lines.append("")
+
+        for index, payload in enumerate(run_payloads, start=1):
+            pre_lines.append(
+                "#{idx} run_id={run_id} created_at={created_at} status={status}".format(
+                    idx=index,
+                    run_id=payload["run_id"],
+                    created_at=payload["created_at"],
+                    status=payload["status"],
+                )
+            )
+            pre_lines.append(
+                "handoff={handoff} reason={reason} detail=\"{detail}\"".format(
+                    handoff=payload["handoff"],
+                    reason=payload["handoff_reason"],
+                    detail=payload["handoff_detail"],
+                )
+            )
+            if payload["tool_hop_cap"] is not None or payload["turn_cap"] is not None:
+                pre_lines.append(
+                    "tool_hop_cap={tool_hop_cap} turn_cap={turn_cap}".format(
+                        tool_hop_cap=payload["tool_hop_cap"],
+                        turn_cap=payload["turn_cap"],
+                    )
+                )
+            pre_lines.append(f"tools_used={json.dumps(payload['tools_used'])}")
+            pre_lines.append(
+                "last_tool={name} call_id={call_id}".format(
+                    name=payload["last_tool_name"],
+                    call_id=payload["last_tool_call_id"],
+                )
+            )
+            if payload["last_tool_args_preview"]:
+                pre_lines.append(
+                    f"last_tool_args_preview={payload['last_tool_args_preview']}"
+                )
+            pre_lines.append(
+                "tokens_in={tokens_in} tokens_out={tokens_out} cost_usd={cost_usd}".format(
+                    tokens_in=payload["tokens_in"],
+                    tokens_out=payload["tokens_out"],
+                    cost_usd=payload["cost_usd"],
+                )
+            )
+            pre_lines.append("---")
+
+        pre_body = "\n".join(pre_lines).strip()
+
+        html_body = f"""<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <title>Agent Runs Debug</title>
+</head>
+<body>
+  <button id=\"copy-btn\" type=\"button\">Copy</button>
+  <pre id=\"runs\" style=\"white-space: pre-wrap; font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;\">{pre_body}</pre>
+  <script>
+    const copyBtn = document.getElementById('copy-btn');
+    const pre = document.getElementById('runs');
+    if (copyBtn && pre && navigator.clipboard) {{
+      copyBtn.addEventListener('click', async () => {{
+        try {{
+          await navigator.clipboard.writeText(pre.innerText);
+          copyBtn.textContent = 'Copied';
+          setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+        }} catch (err) {{
+          copyBtn.textContent = 'Copy failed';
+        }}
+      }});
+    }}
+  </script>
+</body>
+</html>"""
+
+        return HttpResponse(html_body, content_type="text/html")
 
 
 class ApproveIntakeView(APIView):
