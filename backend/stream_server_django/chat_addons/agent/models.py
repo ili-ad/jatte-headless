@@ -111,6 +111,12 @@ class AgentRun(models.Model):
     tokens_in = models.PositiveIntegerField(default=0)
     tokens_out = models.PositiveIntegerField(default=0)
     cost_usd = models.DecimalField(max_digits=10, decimal_places=6, default=Decimal("0"))
+    handoff = models.BooleanField(default=False)
+    handoff_reason = models.CharField(max_length=64, blank=True, default="")
+    handoff_detail = models.TextField(blank=True, default="")
+    last_tool_name = models.CharField(max_length=128, blank=True, default="")
+    last_tool_call_id = models.CharField(max_length=128, blank=True, default="")
+    last_tool_args_preview = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

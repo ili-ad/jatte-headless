@@ -64,6 +64,7 @@ ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
 
 
 class HandoffReason:
+    CAPPED = "CAPPED"
     TOOL_EXCEPTION = "TOOL_EXCEPTION"
     TOOL_EMPTY_RESULT = "TOOL_EMPTY_RESULT"
     NO_TOOLS_ENABLED = "NO_TOOLS_ENABLED"
@@ -76,6 +77,10 @@ class HandoffReason:
 
 class CancelledError(Exception):
     """Raised when an in-flight agent run has been cancelled."""
+
+
+class ToolCallProtocolError(Exception):
+    """Raised when tool call sequencing breaks expected protocol."""
 
 
 def mark_agent_state(
@@ -304,6 +309,12 @@ class AgentService:
                 "latency_ms": 0,
                 "tokens_in": 0,
                 "tokens_out": 0,
+                "handoff": False,
+                "handoff_reason": "",
+                "handoff_detail": "",
+                "last_tool_name": "",
+                "last_tool_call_id": "",
+                "last_tool_args_preview": "",
             },
         )
 
@@ -840,7 +851,7 @@ class AgentService:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
                             _note_handoff(
-                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                HandoffReason.CAPPED,
                                 "tool hop cap reached",
                             )
                             break
@@ -861,7 +872,7 @@ class AgentService:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
                             _note_handoff(
-                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                HandoffReason.CAPPED,
                                 "tool hop cap reached",
                             )
                             break
@@ -884,7 +895,7 @@ class AgentService:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
                             _note_handoff(
-                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                HandoffReason.CAPPED,
                                 "tool hop cap reached",
                             )
                             break
@@ -896,7 +907,7 @@ class AgentService:
                     run_status = AgentRun.STATUS_CAPPED
                     handoff_triggered = True
                     _note_handoff(
-                        HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                        HandoffReason.CAPPED,
                         "turn cap reached",
                     )
 
@@ -913,6 +924,12 @@ class AgentService:
             run_status = AgentRun.STATUS_CANCELLED
             if ai_message is not None:
                 reply_text = ai_message.body or reply_text
+        except ToolCallProtocolError as exc:
+            reason = "protocol_error"
+            reply_text = handoff_message
+            run_status = AgentRun.STATUS_ERROR
+            handoff_triggered = True
+            _note_handoff(HandoffReason.TOOL_CALL_PROTOCOL_ERROR, str(exc))
         except BudgetExceeded as exc:
             reason = "budget_exceeded"
             reply_text = handoff_message
@@ -1037,6 +1054,12 @@ class AgentService:
                 tokens_in=tokens_in,
                 tokens_out=tokens_out,
                 cost=total_cost,
+                handoff=handoff_triggered,
+                handoff_reason=handoff_reason,
+                handoff_detail=handoff_detail,
+                last_tool_name=last_tool_name,
+                last_tool_call_id=last_tool_call_id,
+                last_tool_args_preview=last_tool_args_preview,
             )
 
         return AgentOrchestrationResult(
@@ -1668,6 +1691,12 @@ class AgentService:
         tokens_in: int,
         tokens_out: int,
         cost: Decimal,
+        handoff: bool,
+        handoff_reason: str | None,
+        handoff_detail: str | None,
+        last_tool_name: str | None,
+        last_tool_call_id: str | None,
+        last_tool_args_preview: str | None,
     ) -> None:
         AgentRun.objects.update_or_create(
             run_id=run_id,
@@ -1680,6 +1709,12 @@ class AgentService:
                 "tokens_in": max(tokens_in, 0),
                 "tokens_out": tokens_out,
                 "cost_usd": cost,
+                "handoff": handoff,
+                "handoff_reason": handoff_reason or "",
+                "handoff_detail": handoff_detail or "",
+                "last_tool_name": last_tool_name or "",
+                "last_tool_call_id": last_tool_call_id or "",
+                "last_tool_args_preview": last_tool_args_preview or "",
             },
         )
 
