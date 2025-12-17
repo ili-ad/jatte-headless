@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AdminQueueView,
+    AgentRunDebugView,
     AuditTrailListView,
     ApproveIntakeView,
     ClaimRoomView,
@@ -14,6 +15,7 @@ from .views import (
 
 urlpatterns = [
     path("queue/", AdminQueueView.as_view(), name="list-admin-queue"),
+    path("agent-runs/", AgentRunDebugView.as_view(), name="admin-agent-runs"),
     path("rooms/<path:cid>/claim/", ClaimRoomView.as_view(), name="claim-room"),
     path(
         "rooms/<uuid:room_uuid>/reset/",

@@ -448,6 +448,14 @@ export default function ChatAdminPage() {
                     >
                       Open conversation
                     </Link>
+                    <a
+                      href={`/chat/admin/agent-runs/?cid=${encodeURIComponent(row.cid)}&limit=10&format=text`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-neutral-400"
+                    >
+                      Debug
+                    </a>
                     <button
                       type="button"
                       onClick={() => handleReset(roomUuid)}
