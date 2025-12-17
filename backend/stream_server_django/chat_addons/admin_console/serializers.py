@@ -49,3 +49,11 @@ class IntakeActionResponseSerializer(serializers.Serializer):
     message_id = serializers.CharField()
     status = serializers.CharField()
     muted = serializers.BooleanField()
+
+
+class AgentRunDebugQuerySerializer(serializers.Serializer):
+    cid = serializers.CharField()
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=50, default=10)
+    format = serializers.ChoiceField(
+        choices=("text", "json"), required=False, default="text"
+    )
