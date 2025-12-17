@@ -8,9 +8,12 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[3]
+BASE_DIR = Path(__file__).resolve().parents[5]
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+BACKEND_DIR = BASE_DIR / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.jatte.settings")
 
@@ -25,6 +28,7 @@ from stream_server_django.chat_addons.agent.services.agent_service import (
     AgentReply,
     AgentService,
     HandoffReason,
+    ToolCallProtocolError,
 )
 from stream_server_django.chat_addons.agent.services.llm_client import (
     BudgetExceeded,
@@ -148,6 +152,12 @@ class _StreamingChunkProvider:
             "tokens_used": len(buffer),
             "cost_usd": Decimal("0.0005"),
         }
+
+
+class _ProtocolErrorProvider:
+    def run(self, *, messages, tools, model, max_tokens, timeout=None):
+        _ = (messages, tools, model, max_tokens, timeout)
+        raise ToolCallProtocolError("orphan tool message")
 
 
 class _ToolCallProvider:
@@ -423,6 +433,44 @@ def test_tool_exception_marks_handoff_metadata(monkeypatch, db) -> None:
     assert agent_meta.get("last_tool_call_id")
 
 
+def test_tool_cap_sets_capped_reason(db) -> None:
+    cid = "messaging:cap-reason"
+    AgentRoomPolicy.objects.update_or_create(
+        cid=cid,
+        defaults={
+            "agent_enabled": True,
+            "enabled_skills": ["utility_calc"],
+            "tool_hop_cap": 1,
+            "turn_cap": 3,
+        },
+    )
+    provider = _SequencedToolProvider(include_tool_call=True, final_text="handled")
+    client = LLMClient(provider=provider)
+    service = AgentService(llm_client=client)
+
+    reply = service.generate(cid=cid, user_id="user-cap", text="2+2")
+
+    assert reply.messages
+    assert reply.reason == AgentRun.STATUS_CAPPED
+    final_message: Message = reply.messages[0]
+    agent_meta = final_message.custom_data.get("agent", {})
+
+    assert agent_meta.get("handoff_reason") == HandoffReason.CAPPED
+    assert agent_meta.get("handoff_detail") == "tool hop cap reached"
+    assert agent_meta.get("last_tool_name") == "utility_calc"
+    assert agent_meta.get("last_tool_call_id")
+    assert "2+2" in (agent_meta.get("last_tool_args_preview") or "")
+
+    run = AgentRun.objects.order_by("-created_at").first()
+    assert run
+    assert run.handoff is True
+    assert run.handoff_reason == HandoffReason.CAPPED
+    assert run.handoff_detail == "tool hop cap reached"
+    assert run.last_tool_name == "utility_calc"
+    assert run.last_tool_call_id
+    assert "2+2" in run.last_tool_args_preview
+
+
 def test_no_tools_enabled_marks_handoff_reason(db) -> None:
     cid = "messaging:no-tools"
     AgentRoomPolicy.objects.update_or_create(
@@ -439,6 +487,30 @@ def test_no_tools_enabled_marks_handoff_reason(db) -> None:
     assert agent_meta.get("handoff") is True
     assert agent_meta.get("handoff_reason") == HandoffReason.NO_TOOLS_ENABLED
     assert agent_meta.get("handoff_detail")
+
+
+def test_protocol_errors_mark_handoff_reason(db) -> None:
+    cid = "messaging:protocol-error"
+    AgentRoomPolicy.objects.update_or_create(
+        cid=cid,
+        defaults={"agent_enabled": True, "enabled_skills": ["utility_calc"]},
+    )
+    service = AgentService(llm_client=LLMClient(provider=_ProtocolErrorProvider()))
+
+    reply = service.generate(cid=cid, user_id="user-protocol", text="hi")
+
+    assert reply.messages
+    final_message: Message = reply.messages[0]
+    agent_meta = final_message.custom_data.get("agent", {})
+
+    assert agent_meta.get("handoff_reason") == HandoffReason.TOOL_CALL_PROTOCOL_ERROR
+    assert "orphan tool message" in (agent_meta.get("handoff_detail") or "")
+
+    run = AgentRun.objects.order_by("-created_at").first()
+    assert run
+    assert run.handoff is True
+    assert run.handoff_reason == HandoffReason.TOOL_CALL_PROTOCOL_ERROR
+    assert "orphan tool message" in run.handoff_detail
 
 
 def test_fallback_tool_invocation_inserts_assistant_and_results(db) -> None:
