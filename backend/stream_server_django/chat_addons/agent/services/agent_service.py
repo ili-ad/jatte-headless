@@ -45,6 +45,7 @@ from ..services.tooling import (
     ensure_tool_call_id,
     infer_args_from_text,
     parse_tool_instructions,
+    preview_tool_args,
 )
 from ..skills import ConversationCtx, Skill
 from ...common_audit.models import MessageProvenance
@@ -60,6 +61,17 @@ AGENT_STREAMING_DEBUG = bool(
 )
 
 ACTIVE_WINDOW_SEC = getattr(settings, "ACTIVE_WINDOW_SEC", 120)
+
+
+class HandoffReason:
+    TOOL_EXCEPTION = "TOOL_EXCEPTION"
+    TOOL_EMPTY_RESULT = "TOOL_EMPTY_RESULT"
+    NO_TOOLS_ENABLED = "NO_TOOLS_ENABLED"
+    TOOL_CALL_PROTOCOL_ERROR = "TOOL_CALL_PROTOCOL_ERROR"
+    LLM_ERROR = "LLM_ERROR"
+    TIMEOUT = "TIMEOUT"
+    BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
+    UNKNOWN = "UNKNOWN"
 
 
 class CancelledError(Exception):
@@ -532,9 +544,15 @@ class AgentService:
         reply_text = ""
         reason = "ok"
         handoff_triggered = False
+        handoff_reason: str | None = None
+        handoff_detail: str | None = None
+        last_tool_name: str | None = None
+        last_tool_call_id: str | None = None
+        last_tool_args_preview: str | None = None
         agent_run: AgentRun | None = None
 
         room = self._get_room_for_cid(cid)
+        room_uuid = getattr(room, "uuid", None)
 
         policy = self._get_policy(cid)
         tool_hop_cap = max(int(policy.tool_hop_cap), 0)
@@ -545,12 +563,36 @@ class AgentService:
 
         tool_schemas = build_tool_schemas(skills) if skills else []
 
+        if not skills:
+            _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
+
         # Allow lookup by skill name and any tool alias attached by the schema builder.
         skill_lookup = {skill.name: skill for skill in skills}
         for skill in skills:
             tool_name = getattr(skill, "_tool_name", None)
             if isinstance(tool_name, str) and tool_name and tool_name not in skill_lookup:
                 skill_lookup[tool_name] = skill
+
+        def _note_handoff(reason_code: str, detail: str | None = None) -> None:
+            nonlocal handoff_reason, handoff_detail
+            if handoff_reason in (None, HandoffReason.UNKNOWN):
+                handoff_reason = reason_code
+            if detail:
+                handoff_detail = detail
+
+        def _remember_tool_attempt(call: ToolCall, skill: Skill | None) -> None:
+            nonlocal last_tool_name, last_tool_call_id, last_tool_args_preview
+            tool_label = getattr(skill, "name", None) or call.name
+            last_tool_name = tool_label
+            last_tool_call_id = call.id
+            last_tool_args_preview = preview_tool_args(call.arguments)
+
+        def _note_tool_exception(call: ToolCall, skill: Skill | None, exc: Exception) -> None:
+            _remember_tool_attempt(call, skill)
+            _note_handoff(
+                HandoffReason.TOOL_EXCEPTION,
+                detail=f"{exc.__class__.__name__}: {exc}",
+            )
 
 
         tool_hops = 0
@@ -721,6 +763,10 @@ class AgentService:
                 reply_text = handoff_message
                 run_status = AgentRun.STATUS_HANDOFF
                 handoff_triggered = True
+                _note_handoff(
+                    HandoffReason.NO_TOOLS_ENABLED,
+                    "agent disabled for room",
+                )
             else:
                 while turn < turn_cap:
                     turn += 1
@@ -768,6 +814,15 @@ class AgentService:
                         run_status = AgentRun.STATUS_ERROR
                         handoff_triggered = True
                         reply_text = llm_result.content
+                        if llm_result.reason == "timeout":
+                            _note_handoff(HandoffReason.TIMEOUT, "llm timeout")
+                        elif llm_result.reason == "budget_exceeded":
+                            _note_handoff(HandoffReason.BUDGET_EXCEEDED, "budget exceeded")
+                        else:
+                            _note_handoff(
+                                HandoffReason.LLM_ERROR,
+                                detail=llm_result.reason,
+                            )
                         break
 
                     tool_calls = list(getattr(llm_result, "tool_calls", []) or [])
@@ -784,6 +839,10 @@ class AgentService:
                         if tool_hop_cap == 0 or tool_hops >= tool_hop_cap:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
+                            _note_handoff(
+                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                "tool hop cap reached",
+                            )
                             break
                         remaining = tool_hop_cap - tool_hops if tool_hop_cap else None
                         executed = self._execute_tool_calls(
@@ -792,6 +851,8 @@ class AgentService:
                             ctx,
                             messages,
                             limit=remaining,
+                            on_before_execute=_remember_tool_attempt,
+                            on_exception=_note_tool_exception,
                         )
                         if executed:
                             tools_used.extend(executed)
@@ -799,6 +860,10 @@ class AgentService:
                         if tool_hops >= tool_hop_cap and turn < turn_cap:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
+                            _note_handoff(
+                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                "tool hop cap reached",
+                            )
                             break
                         continue
 
@@ -818,6 +883,10 @@ class AgentService:
                         elif candidate and tool_hop_cap == 0:
                             run_status = AgentRun.STATUS_CAPPED
                             handoff_triggered = True
+                            _note_handoff(
+                                HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                                "tool hop cap reached",
+                            )
                             break
 
                     reply_text = potential_text or ""
@@ -826,34 +895,46 @@ class AgentService:
                 else:
                     run_status = AgentRun.STATUS_CAPPED
                     handoff_triggered = True
+                    _note_handoff(
+                        HandoffReason.TOOL_CALL_PROTOCOL_ERROR,
+                        "turn cap reached",
+                    )
 
                 if not reply_text.strip():
                     reply_text = handoff_message
                     if run_status != AgentRun.STATUS_CAPPED:
                         run_status = AgentRun.STATUS_HANDOFF
                     handoff_triggered = True
+                    if handoff_reason is None:
+                        _note_handoff(HandoffReason.UNKNOWN, "empty reply")
 
         except CancelledError:
             reason = "cancelled"
             run_status = AgentRun.STATUS_CANCELLED
             if ai_message is not None:
                 reply_text = ai_message.body or reply_text
-        except BudgetExceeded:
+        except BudgetExceeded as exc:
             reason = "budget_exceeded"
             reply_text = handoff_message
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
+            _note_handoff(HandoffReason.BUDGET_EXCEEDED, str(exc))
         except TimeoutError:
             reason = "timeout"
             reply_text = self.streaming_timeout_text
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
-        except Exception:  # pragma: no cover - defensive log
+            _note_handoff(HandoffReason.TIMEOUT, "stream timeout")
+        except Exception as exc:  # pragma: no cover - defensive log
             reason = "error"
             reply_text = handoff_message
             run_status = AgentRun.STATUS_ERROR
             handoff_triggered = True
+            _note_handoff(HandoffReason.UNKNOWN, str(exc))
             logger.exception("agent.generate.failure", extra={"cid": cid})
+
+        if handoff_triggered and handoff_reason is None:
+            _note_handoff(HandoffReason.UNKNOWN, reason if reason != "ok" else None)
 
         # NEW: strip SIDECAR_JSON and collect sidecar suggestions
         clean_reply_text, sidecar_items = extract_sidecar_metadata(reply_text)
@@ -876,8 +957,6 @@ class AgentService:
                     error_reason = "timeout"
                 elif run_status == AgentRun.STATUS_CANCELLED:
                     error_reason = "cancelled"
-                if handoff_triggered:
-                    custom_data["agent"] = {"handoff": True}
                 if rag_enabled:
                     custom_data.setdefault("rag", {})
                     custom_data["rag"].update({"used": rag_used, "k": rag_k})
@@ -887,6 +966,18 @@ class AgentService:
                     custom_data["sidecar_items"] = sidecar_items
                 if sidecar_actions:
                     custom_data["sidecar_actions"] = sidecar_actions
+
+                if handoff_triggered:
+                    custom_data = self._apply_handoff_metadata(
+                        cid=cid,
+                        room_uuid=room_uuid,
+                        custom_data=custom_data,
+                        reason=handoff_reason,
+                        detail=handoff_detail,
+                        last_tool_name=last_tool_name,
+                        last_tool_call_id=last_tool_call_id,
+                        last_tool_args_preview=last_tool_args_preview,
+                    )
 
                 ai_message.custom_data = custom_data
                 ai_message.updated_at = timezone.now()
@@ -910,12 +1001,24 @@ class AgentService:
                     cid=cid, text=reply_text, handoff=handoff_triggered
                 )
                 # NEW: attach sidecar suggestions to this message too
+                custom_data_for_message = {**(message.custom_data or {})}
                 if sidecar_items:
-                    extra_custom_data = {**(message.custom_data or {})}
-                    extra_custom_data["sidecar_items"] = sidecar_items
-                    if sidecar_actions:
-                        extra_custom_data["sidecar_actions"] = sidecar_actions
-                    self._update_message(message, custom_data=extra_custom_data)
+                    custom_data_for_message["sidecar_items"] = sidecar_items
+                if sidecar_actions:
+                    custom_data_for_message["sidecar_actions"] = sidecar_actions
+                if handoff_triggered:
+                    custom_data_for_message = self._apply_handoff_metadata(
+                        cid=cid,
+                        room_uuid=room_uuid,
+                        custom_data=custom_data_for_message,
+                        reason=handoff_reason,
+                        detail=handoff_detail,
+                        last_tool_name=last_tool_name,
+                        last_tool_call_id=last_tool_call_id,
+                        last_tool_args_preview=last_tool_args_preview,
+                    )
+                if custom_data_for_message != message.custom_data:
+                    self._update_message(message, custom_data=custom_data_for_message)
 
             self._mark_provenance(message)
             if handoff_triggered:
@@ -1251,6 +1354,8 @@ class AgentService:
         messages: list[dict[str, Any]],
         *,
         limit: int | None,
+        on_before_execute: Callable[[ToolCall, Skill | None], None] | None = None,
+        on_exception: Callable[[ToolCall, Skill | None, Exception], None] | None = None,
     ) -> list[str]:
         executed: list[str] = []
         remaining = limit if limit is None else max(limit, 0)
@@ -1266,6 +1371,9 @@ class AgentService:
             tool_name = skill.name if skill else call.name
             content: str
 
+            if on_before_execute:
+                on_before_execute(call, skill)
+
             if not skill:
                 logger.warning("agent.tool.unknown", extra={"tool": call.name})
                 content = json.dumps(
@@ -1278,9 +1386,13 @@ class AgentService:
                 )
             else:
                 try:
+                    if on_before_execute:
+                        on_before_execute(call, skill)
                     payload = skill.execute(call.arguments, ctx)
                 except Exception as exc:  # pragma: no cover - defensive
                     logger.exception("agent.tool.failure", extra={"tool": call.name})
+                    if on_exception:
+                        on_exception(call, skill, exc)
                     content = json.dumps(
                         {
                             "ok": False,
@@ -1331,6 +1443,8 @@ class AgentService:
                 ctx,
                 messages,
                 limit=1,
+                on_before_execute=_remember_tool_attempt,
+                on_exception=_note_tool_exception,
             )
             return bool(executed)
         except Exception:  # pragma: no cover - defensive
@@ -1385,6 +1499,74 @@ class AgentService:
             return json.dumps(payload, default=str)
         except TypeError:  # pragma: no cover - defensive
             return json.dumps({"result": str(payload)})
+
+    def _apply_handoff_metadata(
+        self,
+        *,
+        cid: str,
+        room_uuid: str | None,
+        custom_data: dict[str, Any],
+        reason: str | None,
+        detail: str | None,
+        last_tool_name: str | None,
+        last_tool_call_id: str | None,
+        last_tool_args_preview: str | None,
+    ) -> dict[str, Any]:
+        detail_preview = detail
+        if detail_preview and len(detail_preview) > 300:
+            detail_preview = detail_preview[:299] + "…"
+
+        agent_payload = dict(custom_data.get("agent") or {})
+        agent_payload.update(
+            {
+                "handoff": True,
+                "handoff_reason": reason or HandoffReason.UNKNOWN,
+                "handoff_detail": detail_preview,
+                "last_tool_name": last_tool_name,
+                "last_tool_call_id": last_tool_call_id,
+                "last_tool_args_preview": last_tool_args_preview,
+            }
+        )
+
+        merged = {**custom_data, "agent": agent_payload, "ai_generated": True}
+        self._log_handoff(
+            cid=cid,
+            room_uuid=room_uuid,
+            reason=agent_payload["handoff_reason"],
+            detail=detail_preview,
+            last_tool_name=last_tool_name,
+            last_tool_call_id=last_tool_call_id,
+            last_tool_args_preview=last_tool_args_preview,
+        )
+        return merged
+
+    def _log_handoff(
+        self,
+        *,
+        cid: str,
+        room_uuid: str | None,
+        reason: str,
+        detail: str | None,
+        last_tool_name: str | None,
+        last_tool_call_id: str | None,
+        last_tool_args_preview: str | None,
+    ) -> None:
+        detail_preview = detail
+        if detail_preview and len(detail_preview) > 300:
+            detail_preview = detail_preview[:299] + "…"
+
+        logger.warning(
+            "agent.handoff",
+            extra={
+                "cid": cid,
+                "room_uuid": room_uuid,
+                "handoff_reason": reason,
+                "handoff_detail": detail_preview,
+                "last_tool_name": last_tool_name,
+                "last_tool_call_id": last_tool_call_id,
+                "last_tool_args_preview": last_tool_args_preview,
+            },
+        )
 
     def _persist_message(
         self, *, cid: str, text: str, custom_data: dict[str, Any] | None = None

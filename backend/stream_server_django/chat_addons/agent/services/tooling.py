@@ -161,5 +161,29 @@ __all__ = [
     "build_tool_schemas",
     "ensure_tool_call_id",
     "infer_args_from_text",
+    "preview_tool_args",
     "parse_tool_instructions",
 ]
+
+
+_EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def preview_tool_args(arguments: dict[str, Any], *, limit: int = 300) -> str:
+    """Return a redacted, truncated preview of tool call arguments."""
+
+    try:
+        rendered = json.dumps(arguments, default=str, ensure_ascii=False)
+    except Exception:  # pragma: no cover - defensive
+        rendered = str(arguments)
+
+    redacted = _EMAIL_PATTERN.sub("[redacted_email]", rendered)
+    redacted = re.sub(
+        r"(?i)(api[_-]?key|token|authorization)\s*[:=]\s*[^,\s]+",
+        r"\1:[redacted]",
+        redacted,
+    )
+
+    if len(redacted) > limit:
+        return redacted[: limit - 1] + "…"
+    return redacted
