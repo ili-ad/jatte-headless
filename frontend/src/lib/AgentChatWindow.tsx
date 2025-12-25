@@ -15,7 +15,7 @@ import {
   useAIState,
 } from '@iliad/stream-chat-shim';
 import { StopAIGenerationButton } from '@iliad/stream-chat-shim';
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 
 import { AgentMessage } from '../app/agent/AgentMessage';
 
@@ -25,7 +25,8 @@ import ErrorBoundary from './ErrorBoundary';
 import ChatBootstrapNotice from './ChatBootstrapNotice';
 import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions';
 
-function useStreamMessagingTheme() {
+
+function useStreamChatThemeClass() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -38,14 +39,19 @@ function useStreamMessagingTheme() {
     return () => obs.disconnect();
   }, []);
 
-  return isDark ? 'messaging dark' : 'messaging light';
+  // IMPORTANT:
+  // - Our CSS bundle (stream-chat-shim v2) defines theme variables on `.str-chat__theme-dark` / `.str-chat__theme-light`.
+  // - Stream's newer "messaging dark/light" classes alone won't change colors unless your CSS contains those selectors.
+  return isDark
+    ? 'messaging dark str-chat__theme-dark'
+    : 'messaging light str-chat__theme-light';
 }
 
 export default function AgentChatWindow() {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
 
   
-  const streamTheme = useStreamMessagingTheme();
+  const streamTheme = useStreamChatThemeClass();
 useEffect(() => {
     if (!channel) return undefined;
 
@@ -155,7 +161,7 @@ useEffect(() => {
   };
 
   return (
-    <Chat client={client as any} theme={streamTheme}>
+    <Chat client={client as any} theme={streamTheme} key={streamTheme}>>
       <ErrorBoundary>
         <Channel channel={channel as any}>
           <Window>
