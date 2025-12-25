@@ -51,7 +51,7 @@ const ready = client && channel && bootstrapStatus.kind === 'ready';
   if (!client || !channel) return null;
 
   return (
-    <Chat client={client as any} theme={streamTheme} key={streamTheme}>>
+    <Chat client={client as any} theme={streamTheme} key={streamTheme}>
       <ErrorBoundary>
         <Channel channel={channel as any}>
           <Window>
