@@ -15,7 +15,7 @@ import {
   useAIState,
 } from '@iliad/stream-chat-shim';
 import { StopAIGenerationButton } from '@iliad/stream-chat-shim';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AgentMessage } from '../app/agent/AgentMessage';
 
@@ -25,10 +25,28 @@ import ErrorBoundary from './ErrorBoundary';
 import ChatBootstrapNotice from './ChatBootstrapNotice';
 import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions';
 
+function useStreamMessagingTheme() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => setIsDark(root.classList.contains('dark'));
+    update();
+
+    const obs = new MutationObserver(update);
+    obs.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+
+  return isDark ? 'messaging dark' : 'messaging light';
+}
+
 export default function AgentChatWindow() {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
 
-  useEffect(() => {
+  
+  const streamTheme = useStreamMessagingTheme();
+useEffect(() => {
     if (!channel) return undefined;
 
     const botUserId = getBotUserIdForChannel(channel as any);
@@ -137,7 +155,7 @@ export default function AgentChatWindow() {
   };
 
   return (
-    <Chat client={client as any} theme="messaging light">
+    <Chat client={client as any} theme={streamTheme}>
       <ErrorBoundary>
         <Channel channel={channel as any}>
           <Window>
