@@ -59,6 +59,10 @@ export const useCreateChatContext = (value: ChatContextValue) => {
       mutedUsersLength,
       navOpen,
       isMessageAIGenerated,
+
+      // IMPORTANT: allow theme to react to app-level dark-mode toggles.
+      // Without this, ChatContext will stay stuck on the initial theme ("messaging light").
+      theme,
     ],
   );
 
