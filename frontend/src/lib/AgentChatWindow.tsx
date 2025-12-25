@@ -161,7 +161,7 @@ useEffect(() => {
   };
 
   return (
-    <Chat client={client as any} theme={streamTheme} key={streamTheme}>>
+    <Chat client={client as any} theme={streamTheme} key={streamTheme}>
       <ErrorBoundary>
         <Channel channel={channel as any}>
           <Window>
