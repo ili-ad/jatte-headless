@@ -4,7 +4,14 @@ from textwrap import shorten
 
 from django.core.management.base import BaseCommand, CommandError
 
-from stream_server_django.chat_addons.agent.services.vector_memory import embed_query, search_similar
+from stream_server_django.chat_addons.agent.config import (
+    AGENT_RAG_STATE_DEFAULT,
+    AGENT_RAG_TOPIC_DEFAULT,
+)
+from stream_server_django.chat_addons.agent.services.vector_memory import (
+    embed_query,
+    search_similar,
+)
 
 
 class Command(BaseCommand):
@@ -20,7 +27,7 @@ class Command(BaseCommand):
             "--state",
             dest="state",
             default=None,
-            help="Optional state filter (e.g. FL). Defaults to FL if omitted.",
+            help="Optional corpus/state filter (e.g. FL).",
         )
         parser.add_argument(
             "--topic",
@@ -41,9 +48,14 @@ class Command(BaseCommand):
         if not prompt:
             raise CommandError("You must provide a prompt question.")
 
-        state = options["state"] or "FL"
-        topic = options["topic"]
+        state = options["state"] or AGENT_RAG_STATE_DEFAULT
+        topic = options["topic"] or AGENT_RAG_TOPIC_DEFAULT
         k = options["k"]
+
+        if not state:
+            raise CommandError(
+                "Missing --state (or AGENT_RAG_STATE). Provide a corpus key to test."
+            )
 
         self.stdout.write(
             f"[RAG] prompt={prompt!r} state={state!r} topic={topic!r} k={k}"

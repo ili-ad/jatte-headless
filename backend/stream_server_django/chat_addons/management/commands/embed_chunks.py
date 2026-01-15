@@ -6,9 +6,10 @@ import os
 from typing import List
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandParser
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from stream_server_django.chat_addons.agent.models import DocumentChunk
+from stream_server_django.chat_addons.agent.config import AGENT_RAG_STATE_DEFAULT
 
 
 class Command(BaseCommand):
@@ -18,8 +19,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--state",
             type=str,
-            default="FL",
-            help="State code to embed chunks for (default: FL).",
+            default=AGENT_RAG_STATE_DEFAULT,
+            help="Corpus/state key to embed chunks for.",
         )
         parser.add_argument(
             "--model",
@@ -40,10 +41,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options) -> None:
-        state: str = options["stream_server_django.state"]
+        state: str | None = options["state"] or AGENT_RAG_STATE_DEFAULT
         model: str = options["model"]
         batch_size: int = options["batch_size"]
         dry_run: bool = options["dry_run"]
+
+        if not state:
+            raise CommandError(
+                "Missing --state (or AGENT_RAG_STATE). Please provide a corpus key."
+            )
 
         api_key = (
             getattr(settings, "OPENAI_API_KEY", None)

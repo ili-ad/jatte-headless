@@ -1,8 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Tuple
-
-from .sidecar_catalog import SIDECAR_ITEM_DEFS
+from typing import Any, Dict, List, Set, Tuple
 
 
 # Match a trailing line of the form:
@@ -14,7 +12,11 @@ SIDECAR_JSON_RE = re.compile(
 )
 
 
-def extract_sidecar_metadata(raw_text: str) -> Tuple[str, List[Dict[str, str]]]:
+def extract_sidecar_metadata(
+    raw_text: str,
+    *,
+    allowed_ids: Set[str],
+) -> Tuple[str, List[Dict[str, str]]]:
     """
     Given the full LLM answer text, optionally including a SIDECAR_JSON trailer,
     return a tuple of:
@@ -26,7 +28,7 @@ def extract_sidecar_metadata(raw_text: str) -> Tuple[str, List[Dict[str, str]]]:
     - If there is no SIDECAR_JSON line, returns (raw_text, []).
     - If the JSON is malformed, the SIDECAR_JSON line is stripped but the
       suggestions list is empty.
-    - Only ids present in SIDECAR_ITEM_DEFS are kept.
+    - Only ids present in allowed_ids are kept.
     """
     if not raw_text:
         return raw_text, []
@@ -48,7 +50,6 @@ def extract_sidecar_metadata(raw_text: str) -> Tuple[str, List[Dict[str, str]]]:
         clean = raw_text[: match.start()].rstrip()
         return clean, []
 
-    allowed_ids = {item.id for item in SIDECAR_ITEM_DEFS}
     suggestions: List[Dict[str, str]] = []
 
     for item in parsed:
