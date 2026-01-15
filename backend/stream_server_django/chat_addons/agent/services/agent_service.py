@@ -25,7 +25,8 @@ from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.utils import canonical_cid
 
-from .sidecar_catalog import SIDECAR_ITEM_DEFS, SidecarItemDef
+from .sidecar_catalog import SidecarItemDef
+from ..extensions import build_rag_system_prompt, get_sidecar_defs
 from ..sidecar_metadata import extract_sidecar_metadata
 from .vector_memory import embed_query, search_similar
 from .metrics import estimate_prompt_tokens
@@ -33,6 +34,8 @@ from .metrics import estimate_prompt_tokens
 from ..config import (
     AGENT_MAX_TOKENS,
     AGENT_MODEL,
+    AGENT_RAG_STATE_DEFAULT,
+    AGENT_RAG_TOPIC_DEFAULT,
     AGENT_STREAMING_TIMEOUT_SEC,
     AGENT_TIMEOUT_SEC,
 )
@@ -202,7 +205,7 @@ def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
     for item in items_list:
         kind = item.kind or "item"
         # Example line:
-        # - FL_NOC (form): Florida Notice of Commencement – Record this to start the project...
+        # - ITEM_ID (form): Example Form – Short description...
         lines.append(
             f"- {item.id} ({kind}): {item.label} – {item.blurb}"
         )
@@ -214,7 +217,7 @@ def _build_sidecar_prompt_block(items: Iterable[SidecarItemDef]) -> str:
     )
     lines.append("Then output a FINAL machine-readable line on its own:")
     lines.append(
-        'SIDECAR_JSON: [{"id": "FL_NOC", "reason": "To record a notice of commencement"}, ...]'
+        'SIDECAR_JSON: [{"id": "ITEM_ID", "reason": "To take the next step"}, ...]'
     )
     lines.append("- Use only sidecar item ids from the list above.")
     lines.append("- Suggest at most 3 items.")
@@ -623,22 +626,32 @@ class AgentService:
             or getattr(self.llm_client, "default_timeout", None)
             or AGENT_TIMEOUT_SEC
         )
+        state = meta_payload.get("state") or AGENT_RAG_STATE_DEFAULT
+        topic = meta_payload.get("rag_topic") or AGENT_RAG_TOPIC_DEFAULT
+
+        sidecar_defs = get_sidecar_defs(meta_payload)
+        if state:
+            state_upper = state.upper()
+            sidecar_defs = [
+                item
+                for item in sidecar_defs
+                if not item.state or item.state.upper() == state_upper
+            ]
 
         if rag_enabled:
-            # For now, default to Florida; can be generalized later.
-            state = meta_payload.get("state") or "FL"
-            topic = meta_payload.get("rag_topic")  # optional narrowing
-
-            try:
-                query_emb = embed_query(message_text)
-                chunks = search_similar(
-                    state=state,
-                    query_embedding=query_emb,
-                    k=int(meta_payload.get("rag_k", 5)),
-                    topic=topic,
-                )
-            except Exception:
-                # If RAG fails, we fall back silently to non-RAG behavior.
+            if state:
+                try:
+                    query_emb = embed_query(message_text)
+                    chunks = search_similar(
+                        state=state,
+                        query_embedding=query_emb,
+                        k=int(meta_payload.get("rag_k", 5)),
+                        topic=topic,
+                    )
+                except Exception:
+                    # If RAG fails, we fall back silently to non-RAG behavior.
+                    chunks = []
+            else:
                 chunks = []
 
             rag_used = bool(chunks)
@@ -679,37 +692,15 @@ class AgentService:
 
                 context_block = "\n\n---\n\n".join(context_pieces)
 
-                rag_system = (
-                    "You are a Florida construction lien assistant for contractors and suppliers, "
-                    "not for lawyers. Your job is to explain Florida lien issues in plain English "
-                    "and give practical next steps a contractor can follow.\n\n"
-                    "Use the following context excerpts from my internal notes and caselaw summaries "
-                    "as your primary source. If the context does not address the question, say so and "
-                    "answer based on your general knowledge of Florida lien law, but prefer the context "
-                    "whenever there is any tension.\n\n"
-                    "Before you answer, silently decide whether the user's question is simple, moderate, "
-                    "or complex from a Florida contractor's point of view. Do NOT mention this "
-                    "classification in your answer.\n\n"
-                    "Format your answer as follows:\n"
-                    "1. Start with a short section titled 'Bottom line for you' that is one concise "
-                    "paragraph a busy contractor can read in under 20 seconds.\n"
-                    "2. Then add a section titled 'Practical steps' with 3–6 short, concrete bullets "
-                    "describing what they should do next (e.g., demand letters, lien deadlines, when to "
-                    "talk to a lawyer).\n"
-                    "3. If helpful, finish with a single line titled 'For your lawyer' that gives at most "
-                    "one or two Florida statute numbers (e.g., chapter 713 sections) or one key case name "
-                    "drawn from the context. Do not write long case summaries.\n\n"
-                    "Keep the tone calm, direct, and contractor-friendly. Avoid legal jargon where possible; "
-                    "if you must use a legal term, briefly explain it in plain language. Assume the user "
-                    "interface already shows that this is AI-generated and not legal advice, so do NOT start "
-                    "with a long disclaimer. At most, you may end with one short sentence noting that this is "
-                    "general information, not advice for a specific case.\n\n"
-                    "=== CONTEXT START ===\n"
-                    f"{context_block}\n"
-                    "=== CONTEXT END ==="
+                rag_system = build_rag_system_prompt(
+                    question=message_text,
+                    context_block=context_block,
+                    meta=meta_payload,
+                    state=state,
+                    topic=topic,
                 )
 
-                sidecar_block = _build_sidecar_prompt_block(SIDECAR_ITEM_DEFS)
+                sidecar_block = _build_sidecar_prompt_block(sidecar_defs)
                 if sidecar_block:
                     rag_system = rag_system + "\n\n" + sidecar_block + "\n"
 
@@ -731,7 +722,10 @@ class AgentService:
         if not rag_enabled:
             logger.info("agent.rag.disabled", extra={"cid": cid})
         elif not meta_payload.get("rag_context"):
-            logger.info("agent.rag.no_chunks", extra={"cid": cid, "state": state, "topic": topic})
+            logger.info(
+                "agent.rag.no_chunks",
+                extra={"cid": cid, "state": state, "topic": topic},
+            )
 
         # From here on, use meta_payload instead of the original `meta`
         meta = meta_payload
@@ -954,7 +948,33 @@ class AgentService:
             _note_handoff(HandoffReason.UNKNOWN, reason if reason != "ok" else None)
 
         # NEW: strip SIDECAR_JSON and collect sidecar suggestions
-        clean_reply_text, sidecar_items = extract_sidecar_metadata(reply_text)
+        allowed_ids = {item.id for item in sidecar_defs}
+        clean_reply_text, sidecar_items = extract_sidecar_metadata(
+            reply_text,
+            allowed_ids=allowed_ids,
+        )
+        if sidecar_items:
+            def_by_id = {item.id: item for item in sidecar_defs}
+            enriched_items: list[dict[str, str]] = []
+            for suggestion in sidecar_items:
+                item_id = suggestion.get("id")
+                if not item_id:
+                    continue
+                definition = def_by_id.get(str(item_id))
+                if not definition:
+                    continue
+                enriched_items.append(
+                    {
+                        "id": str(item_id),
+                        "reason": str(suggestion.get("reason") or ""),
+                        "kind": definition.kind,
+                        "label": definition.label,
+                        "shortLabel": definition.short_label,
+                        "slug": definition.slug,
+                        "blurb": definition.blurb,
+                    }
+                )
+            sidecar_items = enriched_items
         sidecar_actions = meta.get("sidecar_actions")
         reply_text = clean_reply_text
 
@@ -1768,4 +1788,3 @@ def _tool_result_message(
     if name:
         payload["name"] = name
     return payload
-

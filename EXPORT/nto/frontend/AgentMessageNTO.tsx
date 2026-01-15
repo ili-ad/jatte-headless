@@ -7,36 +7,12 @@ import {
   getSidecarItemById,
   type SidecarItemDef,
   type SidecarSuggestion,
-} from '../../lib/sidecarCatalog';
+} from './sidecarCatalog';
 
 type SidecarAction = { label: string; url: string; reason?: string };
 
 function labelForSidecarItem(def: SidecarItemDef): string {
   return def.shortLabel || def.label;
-}
-
-function defFromSuggestion(
-  suggestion: SidecarSuggestion,
-): SidecarItemDef | undefined {
-  if (!suggestion?.id) return undefined;
-  if (
-    suggestion.label ||
-    suggestion.shortLabel ||
-    suggestion.kind ||
-    suggestion.slug ||
-    suggestion.blurb
-  ) {
-    return {
-      id: suggestion.id,
-      kind: suggestion.kind ?? 'item',
-      label: suggestion.label ?? suggestion.id,
-      shortLabel: suggestion.shortLabel ?? suggestion.label ?? suggestion.id,
-      slug: suggestion.slug ?? '',
-      blurb: suggestion.blurb ?? '',
-      state: suggestion.state,
-    };
-  }
-  return getSidecarItemById(suggestion.id);
 }
 
 function getAuthorId(message: any): string | undefined {
@@ -55,7 +31,7 @@ export type AgentMessageProps = MessageProps & {
   botUserId?: string | null;
 };
 
-export function AgentMessage(props: AgentMessageProps) {
+export function AgentMessageNTO(props: AgentMessageProps) {
   const { currentUserId: _currentUserId, onFormClick, currentStateSlug, ...messageProps } = props;
   const { message } = messageProps;
   const router = useRouter();
@@ -63,18 +39,9 @@ export function AgentMessage(props: AgentMessageProps) {
   if (!message) {
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
-      console.warn('[AgentMessage] rendered without message prop', props);
+      console.warn('[AgentMessageNTO] rendered without message prop', props);
     }
     return null;
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log('[AgentMessage] render message', {
-      id: (message as any).id,
-      user_id: (message as any).user_id ?? message.user?.id,
-      text: message.text,
-    });
   }
 
   const authorId = getAuthorId(message);
@@ -83,23 +50,21 @@ export function AgentMessage(props: AgentMessageProps) {
     Boolean((message as any).custom_data?.ai_generated);
 
   const customData = (message as any)?.custom_data ?? {};
-  const rag = customData?.rag as
-    | { used?: boolean; k?: number; source_label?: string }
-    | undefined;
+  const rag = customData?.rag as { used?: boolean; k?: number } | undefined;
 
   const sidecarSuggestions = (customData?.sidecar_items ?? []) as SidecarSuggestion[];
   const sidecarActions = (customData?.sidecar_actions ?? []) as SidecarAction[];
 
   const resolvedSidecarItems = (sidecarSuggestions ?? [])
     .map((suggestion) => {
-      const def = defFromSuggestion(suggestion);
+      const def = suggestion?.id ? getSidecarItemById(suggestion.id) : undefined;
       if (!def) return null;
       return { def, suggestion };
     })
     .filter(Boolean) as Array<{ def: SidecarItemDef; suggestion: SidecarSuggestion }>;
 
   const handleSidecarClick = (suggestion: SidecarSuggestion) => {
-    const def = defFromSuggestion(suggestion);
+    const def = suggestion?.id ? getSidecarItemById(suggestion.id) : undefined;
     if (!def) return;
 
     if (onFormClick) {
@@ -146,30 +111,26 @@ export function AgentMessage(props: AgentMessageProps) {
 
   return (
     <div className="space-y-1">
-      {/* Default Stream/adapter message bubble */}
       <MessageSimple {...messageProps} />
 
       {isAgent && rag?.used && (
         <div
-          // “meta” line: small, grey text, indented to line up under the bubble
           style={{
-            marginLeft: '2.5rem',      // roughly the avatar gutter
+            marginLeft: '2.5rem',
             marginTop: '0.33rem',
             marginBottom: '0.5rem',
             display: 'flex',
             alignItems: 'center',
-            columnGap: '0.25rem',      // ~4px
+            columnGap: '0.25rem',
             fontSize: '0.80rem',
-            color: '#6b7280',          // Tailwind neutral-500-ish
+            color: '#6b7280',
             paddingTop: '0.5rem',
             paddingBottom: '0.5rem',
           }}
         >
           <span style={{fontSize: '1.1rem',}}>ⓘ</span>
           <span>
-            {rag.source_label
-              ? `Based on ${rag.k ?? 1} sections from ${rag.source_label}.`
-              : `Based on ${rag.k ?? 1} retrieved sections.`}
+            Based on {rag.k ?? 1} sections from NTO&apos;s lien library.
           </span>
         </div>
       )}
@@ -184,9 +145,7 @@ export function AgentMessage(props: AgentMessageProps) {
                 type="button"
                 className="agent-forms-button"
                 onClick={() => handleSidecarClick(suggestion)}
-
                 style={sidecarButtonStyle}
-
                 title={suggestion.reason || def.blurb || labelForSidecarItem(def)}
               >
                 {labelForSidecarItem(def)}
@@ -206,9 +165,7 @@ export function AgentMessage(props: AgentMessageProps) {
                 type="button"
                 className="agent-forms-button"
                 onClick={() => handleSidecarActionClick(action)}
-
                 style={sidecarButtonStyle}
-
                 title={action.reason || action.label}
               >
                 {action.label}

@@ -167,8 +167,8 @@ class DocumentChunk(models.Model):
     """
     A single retrievable chunk of a source document used for RAG.
 
-    For now we assume all chunks are Florida lien-law text, but we keep
-    `state` and `topic` to future-proof for other jurisdictions and domains.
+    `state` and `topic` act as lightweight corpus namespaces so host apps can
+    store multiple jurisdictions or domains in the same table.
     """
 
     # High-level context
