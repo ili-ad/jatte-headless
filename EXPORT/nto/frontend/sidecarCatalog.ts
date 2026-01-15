@@ -19,7 +19,26 @@ export type SidecarSuggestion = {
   state?: string;
 };
 
-export const SIDECAR_ITEM_DEFS: SidecarItemDef[] = [];
+export const SIDECAR_ITEM_DEFS: SidecarItemDef[] = [
+  {
+    id: 'FL_NOC',
+    kind: 'form',
+    state: 'FL',
+    label: 'Florida Notice of Commencement',
+    shortLabel: 'Notice of Commencement',
+    slug: 'notice-of-commencement',
+    blurb: 'Record this to start the project and lock in lien priority.',
+  },
+  {
+    id: 'FL_NTO_SUB',
+    kind: 'form',
+    state: 'FL',
+    label: 'Florida Notice to Owner (Subcontractor)',
+    shortLabel: 'Subcontractor NTO',
+    slug: 'notice-to-owner-sub',
+    blurb: 'Preserves lien rights for subs and suppliers.',
+  },
+];
 
 export function getSidecarItemById(id: string): SidecarItemDef | undefined {
   return SIDECAR_ITEM_DEFS.find((item) => item.id === id);
