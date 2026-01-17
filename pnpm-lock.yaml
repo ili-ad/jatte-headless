@@ -105,6 +105,9 @@ importers:
       '@iliad/stream-ui':
         specifier: file:../libs/stream-ui
         version: stream-ui@file:libs/stream-ui
+      '@supabase/ssr':
+        specifier: ^0.4.0
+        version: 0.4.1(@supabase/supabase-js@2.50.0)
       '@supabase/supabase-js':
         specifier: 2.50.0
         version: 2.50.0
@@ -182,20 +185,103 @@ importers:
         specifier: ^1.5.0
         version: 1.6.1(@types/node@20.19.1)(jsdom@24.1.3)(terser@5.43.1)
 
+  libs/chat-shim:
+    dependencies:
+      '@iliad/stream-chat-shim':
+        specifier: workspace:*
+        version: link:../stream-chat-shim
+
   libs/stream-chat-shim:
     dependencies:
+      '@braintree/sanitize-url':
+        specifier: ^6.0.4
+        version: 6.0.4
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
+      '@react-aria/focus':
+        specifier: ^3
+        version: 3.20.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      chat-shim:
+        specifier: workspace:*
+        version: link:../chat-shim
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      emoji-regex:
+        specifier: ^9.2.0
+        version: 9.2.2
+      fix-webm-duration:
+        specifier: ^1.0.5
+        version: 1.0.6
+      hast-util-find-and-replace:
+        specifier: ^5.0.1
+        version: 5.0.1
+      i18next:
+        specifier: ^25.2.1
+        version: 25.2.1(typescript@5.8.3)
+      linkifyjs:
+        specifier: ^4.3.2
+        version: 4.3.2
+      lodash.debounce:
+        specifier: ^4.0.8
+        version: 4.0.8
+      lodash.defaultsdeep:
+        specifier: ^4.6.1
+        version: 4.6.1
+      lodash.mergewith:
+        specifier: ^4.6.2
+        version: 4.6.2
+      lodash.throttle:
+        specifier: ^4.1.1
+        version: 4.1.1
+      lodash.uniqby:
+        specifier: ^4.7.0
+        version: 4.7.0
+      nanoid:
+        specifier: ^3.3.4
+        version: 3.3.11
       react:
         specifier: '>=18'
         version: 18.2.0
       react-dom:
         specifier: '>=18'
         version: 18.2.0(react@18.2.0)
+      react-dropzone:
+        specifier: ^14.2.3
+        version: 14.3.8(react@18.2.0)
+      react-fast-compare:
+        specifier: ^3.2.2
+        version: 3.2.2
+      react-image-gallery:
+        specifier: 1.2.12
+        version: 1.2.12(react@18.2.0)
+      react-player:
+        specifier: 2.10.1
+        version: 2.10.1(react@18.2.0)
       react-popper:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      react-textarea-autosize:
+        specifier: ^8.3.0
+        version: 8.5.9(@types/react@19.1.8)(react@18.2.0)
+      react-virtuoso:
+        specifier: ^2.16.5
+        version: 2.19.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
+      unist-builder:
+        specifier: ^4.0.0
+        version: 4.0.0
+      unist-util-visit:
+        specifier: ^5.0.0
+        version: 5.0.0
+      use-sync-external-store:
+        specifier: ^1.4.0
+        version: 1.5.0(react@18.2.0)
+
+  libs/stream-value-shim: {}
 
 packages:
 
@@ -1265,6 +1351,11 @@ packages:
   '@supabase/realtime-js@2.11.10':
     resolution: {integrity: sha512-SJKVa7EejnuyfImrbzx+HaD9i6T784khuw1zP+MBD7BmJYChegGxYigPzkKX8CK8nGuDntmeSD3fvriaH0EGZA==}
 
+  '@supabase/ssr@0.4.1':
+    resolution: {integrity: sha512-000i7y4ITXjXU0T1JytZYU33VbUNklX9YN47hCweaLKsTBAEigJJJCeq3G+/IiwEggBt58Vu0KQ3UGXON7OmDQ==}
+    peerDependencies:
+      '@supabase/supabase-js': ^2.43.4
+
   '@supabase/storage-js@2.7.1':
     resolution: {integrity: sha512-asYHcyDR1fKqrMpytAS1zjyEfvxuOIp1CIXX7ji4lHHcJKqyk+sLl/Vxgm4sN6u8zvuUtae9e4kDxQP2qrwWBA==}
 
@@ -2015,6 +2106,10 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  cookie@0.6.0:
+    resolution: {integrity: sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==}
+    engines: {node: '>= 0.6'}
 
   create-jest@29.7.0:
     resolution: {integrity: sha512-Adz2bdH0Vq3F53KEMJOoftQFutWCukm6J24wbPWRO4k1kMY7gS7ds/uoJkNuV8wDCtWWnuwGcJwpWcih+zEW1Q==}
@@ -3235,8 +3330,8 @@ packages:
       react: '>= 0.14.0'
       react-dom: '>= 0.14.0'
 
-  linkifyjs@4.3.1:
-    resolution: {integrity: sha512-DRSlB9DKVW04c4SUdGvKK5FR6be45lTU9M76JnngqPeeGDqPwYc0zdUErtsNVMtxPXgUWV4HbXbnC4sNyBxkYg==}
+  linkifyjs@4.3.2:
+    resolution: {integrity: sha512-NT1CJtq3hHIreOianA8aSXn6Cw0JzYOuDQbOrSPe7gqFnCpKP++MQe3ODgO3oh2GJFORkAAdqredOa60z63GbA==}
 
   load-script@1.0.0:
     resolution: {integrity: sha512-kPEjMFtZvwL9TaZo0uZ2ml+Ye9HUMmPwbYRJ324qF9tqMejwykJ5ggTyvzmrbBeapCAbk98BSbTeovHEEP1uCA==}
@@ -4767,6 +4862,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -5855,6 +5951,13 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@supabase/ssr@0.4.1(@supabase/supabase-js@2.50.0)':
+    dependencies:
+      '@supabase/supabase-js': 2.50.0
+      cookie: 0.6.0
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.44.0
+
   '@supabase/storage-js@2.7.1':
     dependencies:
       '@supabase/node-fetch': 2.6.15
@@ -6728,6 +6831,8 @@ snapshots:
   confbox@0.1.8: {}
 
   convert-source-map@2.0.0: {}
+
+  cookie@0.6.0: {}
 
   create-jest@29.7.0(@types/node@20.19.1):
     dependencies:
@@ -8410,7 +8515,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  linkifyjs@4.3.1: {}
+  linkifyjs@4.3.2: {}
 
   load-script@1.0.0: {}
 
@@ -9712,7 +9817,7 @@ snapshots:
       fix-webm-duration: 1.0.6
       hast-util-find-and-replace: 5.0.1
       i18next: 25.2.1(typescript@5.8.3)
-      linkifyjs: 4.3.1
+      linkifyjs: 4.3.2
       lodash.debounce: 4.0.8
       lodash.defaultsdeep: 4.6.1
       lodash.mergewith: 4.6.2
@@ -9755,7 +9860,7 @@ snapshots:
       form-data: 4.0.3
       isomorphic-ws: 5.0.0(ws@8.18.2)
       jsonwebtoken: 9.0.2
-      linkifyjs: 4.3.1
+      linkifyjs: 4.3.2
       ws: 8.18.2
     transitivePeerDependencies:
       - bufferutil
