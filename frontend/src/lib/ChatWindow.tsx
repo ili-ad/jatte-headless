@@ -7,10 +7,11 @@ import {
   MessageList,
   TypingIndicator,
   MessageInput,
+  ComponentProvider,
+  useComponentContext,
 } from '@iliad/stream-chat-shim';
-import type { AvatarProps, MessageProps } from '@iliad/stream-chat-shim';
-import type { ComponentType } from 'react';
-import { useEffect, useState } from 'react';
+import type { ComponentContextValue } from '@iliad/stream-chat-shim';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
@@ -19,7 +20,7 @@ import ChatBootstrapNotice from './ChatBootstrapNotice';
 
 type ChatWindowProps = {
   showComposer?: boolean;
-  Avatar?: ComponentType<AvatarProps>;
+  Avatar?: ComponentContextValue['Avatar'];
 };
 
 function useStreamChatThemeClass() {
@@ -45,6 +46,11 @@ function useStreamChatThemeClass() {
 
 export default function ChatWindow({ showComposer = true, Avatar }: ChatWindowProps) {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
+  const baseComponents = useComponentContext();
+  const mergedComponents = useMemo(
+    () => (Avatar ? { ...baseComponents, Avatar } : baseComponents),
+    [Avatar, baseComponents],
+  );
 
   const streamTheme = useStreamChatThemeClass();
   const ready = client && channel && bootstrapStatus.kind === 'ready';
@@ -56,16 +62,18 @@ export default function ChatWindow({ showComposer = true, Avatar }: ChatWindowPr
   if (!client || !channel) return null;
 
   return (
-    <Chat client={client as any} theme={streamTheme} key={streamTheme}>
-      <ErrorBoundary>
-        <Channel channel={channel as any} Avatar={Avatar}>
-          <Window>
-            <MessageList />
-            <TypingIndicator />
-            {showComposer && <MessageInput maxRows={6} minRows={1} />}
-          </Window>
-        </Channel>
-      </ErrorBoundary>
-    </Chat>
+    <ComponentProvider value={mergedComponents}>
+      <Chat client={client as any} theme={streamTheme} key={streamTheme}>
+        <ErrorBoundary>
+          <Channel channel={channel as any} Avatar={Avatar}>
+            <Window>
+              <MessageList />
+              <TypingIndicator />
+              {showComposer && <MessageInput maxRows={6} minRows={1} />}
+            </Window>
+          </Channel>
+        </ErrorBoundary>
+      </Chat>
+    </ComponentProvider>
   );
 }

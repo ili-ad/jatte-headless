@@ -2,7 +2,7 @@
 
 // Agent-only chat UI. Plain chat uses ChatWindow from ./ChatWindow.
 
-import type { AvatarProps, MessageProps } from '@iliad/stream-chat-shim';
+import type { MessageProps } from '@iliad/stream-chat-shim';
 import {
   Chat,
   Channel,
@@ -13,10 +13,12 @@ import {
   AIStateIndicator,
   AIStates,
   useAIState,
+  ComponentProvider,
+  useComponentContext,
 } from '@iliad/stream-chat-shim';
 import { StopAIGenerationButton } from '@iliad/stream-chat-shim';
-import type { ComponentType } from 'react';
-import { useEffect, useState } from 'react';
+import type { ComponentContextValue } from '@iliad/stream-chat-shim';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AgentMessage } from '../app/agent/AgentMessage';
 
@@ -27,7 +29,7 @@ import ChatBootstrapNotice from './ChatBootstrapNotice';
 import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions';
 
 type AgentChatWindowProps = {
-  Avatar?: ComponentType<AvatarProps>;
+  Avatar?: ComponentContextValue['Avatar'];
 };
 
 function useStreamChatThemeClass() {
@@ -53,6 +55,11 @@ function useStreamChatThemeClass() {
 
 export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
+  const baseComponents = useComponentContext();
+  const mergedComponents = useMemo(
+    () => (Avatar ? { ...baseComponents, Avatar } : baseComponents),
+    [Avatar, baseComponents],
+  );
 
   const streamTheme = useStreamChatThemeClass();
   useEffect(() => {
@@ -163,54 +170,56 @@ export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
   };
 
   return (
-    <Chat client={client as any} theme={streamTheme} key={streamTheme}>
-      <ErrorBoundary>
-        <Channel channel={channel as any} Avatar={Avatar}>
-          <Window>
-            <MessageList
-              Message={(props: MessageProps) => (
-                <AgentMessage
-                  {...props}
-                  currentUserId={(client as any)?.user?.id}
-                  botUserId={botUserId}
-                />
-              )}
-            />
-            <TypingIndicator />
-            <div
-              className="chat-footer-status-row"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '0 16px',
-                minHeight: 28,
-              }}
-            >
-              {isAgentBusy && <StopAIGenerationButton onClick={handleStopAgent} />}
-              <AIStateIndicator />
-            </div>
-            <MessageInput
-              maxRows={6}
-              minRows={1}
-              hideSendButton={isAgentBusy}
-              additionalTextareaProps={{
-                disabled: isAgentBusy,
-              }}
-              overrideSubmitHandler={
-                isAgentBusy
-                  ? () => {
-                      // Agent is busy; ignore sends instead of causing a 409.
-                      // eslint-disable-next-line no-console
-                      console.warn('[agent/ui] blocked send while agent busy');
-                      return;
-                    }
-                  : undefined
-              }
-            />
-          </Window>
-        </Channel>
-      </ErrorBoundary>
-    </Chat>
+    <ComponentProvider value={mergedComponents}>
+      <Chat client={client as any} theme={streamTheme} key={streamTheme}>
+        <ErrorBoundary>
+          <Channel channel={channel as any} Avatar={Avatar}>
+            <Window>
+              <MessageList
+                Message={(props: MessageProps) => (
+                  <AgentMessage
+                    {...props}
+                    currentUserId={(client as any)?.user?.id}
+                    botUserId={botUserId}
+                  />
+                )}
+              />
+              <TypingIndicator />
+              <div
+                className="chat-footer-status-row"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '0 16px',
+                  minHeight: 28,
+                }}
+              >
+                {isAgentBusy && <StopAIGenerationButton onClick={handleStopAgent} />}
+                <AIStateIndicator />
+              </div>
+              <MessageInput
+                maxRows={6}
+                minRows={1}
+                hideSendButton={isAgentBusy}
+                additionalTextareaProps={{
+                  disabled: isAgentBusy,
+                }}
+                overrideSubmitHandler={
+                  isAgentBusy
+                    ? () => {
+                        // Agent is busy; ignore sends instead of causing a 409.
+                        // eslint-disable-next-line no-console
+                        console.warn('[agent/ui] blocked send while agent busy');
+                        return;
+                      }
+                    : undefined
+                }
+              />
+            </Window>
+          </Channel>
+        </ErrorBoundary>
+      </Chat>
+    </ComponentProvider>
   );
 }
