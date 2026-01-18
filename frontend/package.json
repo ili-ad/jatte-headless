@@ -38,7 +38,7 @@
     "next-transpile-modules": "10.0.1",
     "postcss": "8.5.6",
     "react": "18.3.1",
-    "react-dom": "18.3.1"    
+    "react-dom": "18.3.1",
     "tailwindcss": "4.1.10",
     "turbo": "^1.13.0",
     "typescript": "^5",
