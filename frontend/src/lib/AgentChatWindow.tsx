@@ -2,7 +2,7 @@
 
 // Agent-only chat UI. Plain chat uses ChatWindow from ./ChatWindow.
 
-import type { MessageProps } from '@iliad/stream-chat-shim';
+import type { AvatarProps, MessageProps } from '@iliad/stream-chat-shim';
 import {
   Chat,
   Channel,
@@ -15,7 +15,8 @@ import {
   useAIState,
 } from '@iliad/stream-chat-shim';
 import { StopAIGenerationButton } from '@iliad/stream-chat-shim';
-import {useEffect, useState} from 'react';
+import type { ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AgentMessage } from '../app/agent/AgentMessage';
 
@@ -25,6 +26,9 @@ import ErrorBoundary from './ErrorBoundary';
 import ChatBootstrapNotice from './ChatBootstrapNotice';
 import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions';
 
+type AgentChatWindowProps = {
+  Avatar?: ComponentType<AvatarProps>;
+};
 
 function useStreamChatThemeClass() {
   const [isDark, setIsDark] = useState(false);
@@ -47,12 +51,11 @@ function useStreamChatThemeClass() {
     : 'messaging light str-chat__theme-light';
 }
 
-export default function AgentChatWindow() {
+export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
 
-  
   const streamTheme = useStreamChatThemeClass();
-useEffect(() => {
+  useEffect(() => {
     if (!channel) return undefined;
 
     const botUserId = getBotUserIdForChannel(channel as any);
@@ -118,7 +121,6 @@ useEffect(() => {
     });
   }, [aiState, isAgentBusy, channel]);
 
-
   const ready = client && channel && bootstrapStatus.kind === 'ready';
 
   if (!ready) {
@@ -163,7 +165,7 @@ useEffect(() => {
   return (
     <Chat client={client as any} theme={streamTheme} key={streamTheme}>
       <ErrorBoundary>
-        <Channel channel={channel as any}>
+        <Channel channel={channel as any} Avatar={Avatar}>
           <Window>
             <MessageList
               Message={(props: MessageProps) => (
