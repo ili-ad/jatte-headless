@@ -8,13 +8,19 @@ import {
   TypingIndicator,
   MessageInput,
 } from '@iliad/stream-chat-shim';
-
+import type { AvatarProps, MessageProps } from '@iliad/stream-chat-shim';
+import type { ComponentType } from 'react';
 import { useEffect, useState } from 'react';
 
 import { useChat } from './ChatProvider';
 import ErrorBoundary from './ErrorBoundary';
 import ChatBootstrapNotice from './ChatBootstrapNotice';
 
+
+type ChatWindowProps = {
+  showComposer?: boolean;
+  Avatar?: ComponentType<AvatarProps>;
+};
 
 function useStreamChatThemeClass() {
   const [isDark, setIsDark] = useState(false);
@@ -37,12 +43,11 @@ function useStreamChatThemeClass() {
     : 'messaging light str-chat__theme-light';
 }
 
-export default function ChatWindow() {
+export default function ChatWindow({ showComposer = true, Avatar }: ChatWindowProps) {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
 
-  
   const streamTheme = useStreamChatThemeClass();
-const ready = client && channel && bootstrapStatus.kind === 'ready';
+  const ready = client && channel && bootstrapStatus.kind === 'ready';
 
   if (!ready) {
     return <ChatBootstrapNotice status={bootstrapStatus} onRetry={retryBootstrap} />;
@@ -53,11 +58,11 @@ const ready = client && channel && bootstrapStatus.kind === 'ready';
   return (
     <Chat client={client as any} theme={streamTheme} key={streamTheme}>
       <ErrorBoundary>
-        <Channel channel={channel as any}>
+        <Channel channel={channel as any} Avatar={Avatar}>
           <Window>
             <MessageList />
             <TypingIndicator />
-            <MessageInput maxRows={6} minRows={1} />
+            {showComposer && <MessageInput maxRows={6} minRows={1} />}
           </Window>
         </Channel>
       </ErrorBoundary>
