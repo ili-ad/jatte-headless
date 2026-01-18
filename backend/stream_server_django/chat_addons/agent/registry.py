@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import logging
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -14,6 +15,7 @@ from .models import AgentRoomPolicy
 from .skills import Skill
 
 _DEFAULT_SKILL_PACKAGES = ("stream_server_django.chat_addons.agent.skills",)
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,12 @@ def _iter_skill_classes() -> Iterable[type[Skill]]:
         module = importlib.import_module(module_name)
         for obj in module.__dict__.values():
             if inspect.isclass(obj) and issubclass(obj, Skill) and obj is not Skill:
+                if inspect.isabstract(obj):
+                    logger.warning(
+                        "agent.skill.skipped_abstract",
+                        extra={"skill": obj.__name__, "skill_module": module_name},
+                    )
+                    continue
                 yield obj
 
 
@@ -110,20 +118,11 @@ def _default_enabled_skills() -> set[str]:
 
 
 def enabled_for_room(cid: str) -> list[Skill]:
-    """Return instantiated skills enabled for the given room."""
+    """Return instantiated skills available to the given room."""
 
+    _ = cid
     skills = _load_all_skills()
-    policy = AgentRoomPolicy.objects.filter(cid=cid).first()
-    if not policy or not policy.agent_enabled:
-        return []
-
-    enabled_names: Sequence[str]
-    if policy.enabled_skills:
-        enabled_names = policy.enabled_skills
-    else:
-        enabled_names = sorted(_default_enabled_skills())
-
-    return [skills[name] for name in enabled_names if name in skills]
+    return [skills[name] for name in sorted(skills.keys())]
 
 
 def execute(name: str, args: dict, ctx) -> dict:
