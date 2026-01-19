@@ -304,6 +304,85 @@ class AgentOrchestratorTests(APITestCase):
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
+    def test_pre_router_single_candidate_executes_skill(
+        self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock
+    ) -> None:
+        AgentRoomPolicy.objects.create(
+            cid="messaging:pre-route",
+            agent_enabled=True,
+            enabled_skills=["dummy_echo"],
+            tool_hop_cap=2,
+            turn_cap=2,
+        )
+
+        responses = [
+            {"content": "Echoed!", "tokens_used": 3, "cost_usd": Decimal("0")},
+        ]
+        service = self._service(responses)
+
+        reply = service.generate(
+            cid="messaging:pre-route",
+            user_id="user-pre",
+            text="please echo this",
+        )
+
+        self.assertEqual(reply.text, "Echoed!")
+        run = AgentRun.objects.get()
+        self.assertEqual(run.tools_used, ["dummy_echo"])
+
+        message = Message.objects.first()
+        self.assertIsNotNone(message)
+        agent_meta = message.custom_data.get("agent", {})
+        self.assertEqual(agent_meta.get("routing_mode"), "pre_router")
+        self.assertEqual(agent_meta.get("pre_routed_skill"), "dummy_echo")
+        self.assertEqual(agent_meta.get("pre_router_candidate_count"), 1)
+
+        provider_calls = service.llm_client.provider.calls
+        self.assertEqual(len(provider_calls), 1)
+        self.assertIsNone(provider_calls[0]["tools"])
+        mock_broadcast.assert_called()
+        mock_notify.assert_not_called()
+
+    @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
+    @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
+    def test_pre_router_multiple_candidates_falls_back(
+        self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock
+    ) -> None:
+        AgentRoomPolicy.objects.create(
+            cid="messaging:multi-route",
+            agent_enabled=True,
+            enabled_skills=["smalltalk_greet", "utility_time_now"],
+            tool_hop_cap=2,
+            turn_cap=2,
+        )
+
+        responses = [
+            {"content": "Hello there!", "tokens_used": 3, "cost_usd": Decimal("0")},
+        ]
+        service = self._service(responses)
+
+        reply = service.generate(
+            cid="messaging:multi-route",
+            user_id="user-multi",
+            text="hello time",
+        )
+
+        self.assertEqual(reply.text, "Hello there!")
+        message = Message.objects.first()
+        self.assertIsNotNone(message)
+        agent_meta = message.custom_data.get("agent", {})
+        self.assertEqual(agent_meta.get("routing_mode"), "llm_router")
+        self.assertEqual(agent_meta.get("pre_router_candidate_count"), 2)
+        self.assertNotIn("pre_routed_skill", agent_meta)
+
+        provider_calls = service.llm_client.provider.calls
+        self.assertEqual(len(provider_calls), 1)
+        self.assertIsNotNone(provider_calls[0]["tools"])
+        mock_broadcast.assert_called()
+        mock_notify.assert_not_called()
+
+    @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
+    @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
     def test_fallback_tool_messages_prefixed(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
         AgentRoomPolicy.objects.create(
             cid="messaging:fallback-ordering-room",
