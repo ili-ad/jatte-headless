@@ -141,13 +141,17 @@ def record_outbound_message(
     text: str,
     sender_identifier: str,
     relay_external_id: str,
+    custom_data: dict[str, object] | None = None,
 ) -> Message:
     room, channel = ensure_room(cid)
+    payload = {"delivery_status": SmsRelay.STATUS_PENDING}
+    if custom_data:
+        payload.update(custom_data)
     message = Message.objects.create(
         channel=channel,
         body=text,
         sent_by=sender_identifier,
-        custom_data={"delivery_status": SmsRelay.STATUS_PENDING},
+        custom_data=payload,
     )
     room.messages.add(message)
     SmsRelay.objects.create(
