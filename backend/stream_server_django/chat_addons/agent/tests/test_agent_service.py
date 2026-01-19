@@ -189,10 +189,12 @@ class _SequencedToolProvider:
         self.include_tool_call = include_tool_call
         self.final_text = final_text
         self.calls: list[list[dict]] = []
+        self.tool_sets: list[list[dict]] = []
 
     def run(self, *, messages, tools, model, max_tokens, timeout=None):
         _ = (tools, model, max_tokens, timeout)
         self.calls.append(copy.deepcopy(list(messages)))
+        self.tool_sets.append(copy.deepcopy(list(tools or [])))
         if self.include_tool_call and len(self.calls) == 1:
             return {
                 "content": "",
@@ -433,7 +435,7 @@ def test_tool_exception_marks_handoff_metadata(monkeypatch, db) -> None:
     assert agent_meta.get("last_tool_call_id")
 
 
-def test_tool_cap_sets_capped_reason(db) -> None:
+def test_tool_cap_disables_tools_but_returns_answer(db) -> None:
     cid = "messaging:cap-reason"
     AgentRoomPolicy.objects.update_or_create(
         cid=cid,
@@ -451,21 +453,25 @@ def test_tool_cap_sets_capped_reason(db) -> None:
     reply = service.generate(cid=cid, user_id="user-cap", text="2+2")
 
     assert reply.messages
-    assert reply.reason == AgentRun.STATUS_CAPPED
+    assert reply.reason == AgentRun.STATUS_OK
+    assert reply.text
     final_message: Message = reply.messages[0]
     agent_meta = final_message.custom_data.get("agent", {})
 
-    assert agent_meta.get("handoff_reason") == HandoffReason.CAPPED
-    assert agent_meta.get("handoff_detail") == "tool hop cap reached"
+    assert agent_meta.get("handoff") is not True
+    assert agent_meta.get("cap_reached") is True
     assert agent_meta.get("last_tool_name") == "utility_calc"
     assert agent_meta.get("last_tool_call_id")
     assert "2+2" in (agent_meta.get("last_tool_args_preview") or "")
+    assert len(provider.tool_sets) >= 2
+    assert provider.tool_sets[1] == []
 
     run = AgentRun.objects.order_by("-created_at").first()
     assert run
-    assert run.handoff is True
-    assert run.handoff_reason == HandoffReason.CAPPED
-    assert run.handoff_detail == "tool hop cap reached"
+    assert run.status == AgentRun.STATUS_OK
+    assert run.handoff is False
+    assert run.handoff_reason == ""
+    assert run.handoff_detail == ""
     assert run.last_tool_name == "utility_calc"
     assert run.last_tool_call_id
     assert "2+2" in run.last_tool_args_preview
