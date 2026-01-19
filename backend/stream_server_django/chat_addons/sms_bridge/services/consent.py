@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
+from django.conf import settings
 from django.utils import timezone
 
 from ..models import SmsConsent
@@ -13,18 +14,20 @@ START_WORDS = {"start", "unstop"}
 CONTROL_RE = re.compile(r"[^\w\s]+$")
 
 
-def _normalize_text(text: str) -> str:
+def normalize_text(text: str) -> str:
     stripped = " ".join(text.strip().split())
     cleaned = CONTROL_RE.sub("", stripped)
     return cleaned.lower()
 
 
 def parse_control_word(text: str) -> Literal["stop", "start"] | None:
-    normalized = _normalize_text(text)
-    compact = normalized.replace(" ", "")
-    if normalized in STOP_WORDS or compact in STOP_WORDS:
+    normalized = normalize_text(text)
+    if not normalized:
+        return None
+    first_token = normalized.split(" ", 1)[0]
+    if first_token in STOP_WORDS:
         return "stop"
-    if normalized in START_WORDS or compact in START_WORDS:
+    if first_token in START_WORDS:
         return "start"
     return None
 
@@ -38,28 +41,34 @@ def is_opted_out(phone_e164: str) -> bool:
     return record.opted_out_at > record.opted_in_at
 
 
-def mark_opt_out(phone_e164: str) -> None:
+def mark_opt_out(phone_e164: str) -> SmsConsent:
     now = timezone.now()
-    SmsConsent.objects.update_or_create(
+    consent, _created = SmsConsent.objects.update_or_create(
         phone_e164=phone_e164,
         defaults={"opted_out_at": now},
     )
+    return consent
 
 
-def mark_opt_in(phone_e164: str) -> None:
+def mark_opt_in(phone_e164: str) -> SmsConsent:
     now = timezone.now()
-    SmsConsent.objects.update_or_create(
+    consent, _created = SmsConsent.objects.update_or_create(
         phone_e164=phone_e164,
         defaults={"opted_in_at": now},
     )
+    return consent
 
 
 def stop_confirmation_text() -> str:
-    return "You’re opted out. Reply START to resume."
+    return getattr(
+        settings,
+        "SMS_STOP_CONFIRM_TEXT",
+        "You’re opted out. Reply START to resume.",
+    )
 
 
 def start_confirmation_text() -> str:
-    return "You’re opted back in."
+    return getattr(settings, "SMS_START_CONFIRM_TEXT", "You’re opted back in.")
 
 
 __all__ = [
@@ -68,6 +77,7 @@ __all__ = [
     "is_opted_out",
     "mark_opt_in",
     "mark_opt_out",
+    "normalize_text",
     "parse_control_word",
     "start_confirmation_text",
     "stop_confirmation_text",
