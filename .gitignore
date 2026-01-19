@@ -134,3 +134,7 @@ coverage-final.json
 package-lock.json
 npm-shrinkwrap.json
 backend/package-lock.json
+
+
+# Windows MOTW / Zone Identifier artifacts (often leaked from ZIPs)
+*:Zone.Identifier
