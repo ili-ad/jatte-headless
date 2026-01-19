@@ -24,6 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%v$gh67imza=0$i%pky!jxpk*@%t+x-w$lw5lmwbvj)+#p=r#g'
 
 SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
+SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "adapter_http")
+SMS_PROVIDER_BASE_URL = os.environ.get("SMS_PROVIDER_BASE_URL", "")
+SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")
+OPENPHONE_API_KEY = os.environ.get("OPENPHONE_API_KEY", "")
+OPENPHONE_FROM_PHONE_ID = os.environ.get("OPENPHONE_FROM_PHONE_ID", "")
+OPENPHONE_BASE_URL = os.environ.get("OPENPHONE_BASE_URL", "https://api.openphone.com")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
