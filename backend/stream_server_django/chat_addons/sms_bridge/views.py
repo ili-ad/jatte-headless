@@ -134,24 +134,23 @@ class SmsWebhookView(APIView):
                     "sms.consent.send_failed",
                     extra={"event": "stop", "cid": link.cid, "sender_e164": from_phone},
                 )
-                return Response({"ok": True, "handled": "stop_failed_send"})
-
-            confirmation = record_outbound_message(
-                cid=link.cid,
-                text=confirmation_text,
-                sender_identifier="sms_system",
-                relay_external_id=provider_response.external_id,
-                custom_data={"source": "sms_system", "consent_event": "stop"},
-            )
-            serialized_confirmation = MessageSerializer(confirmation).data
-            _broadcast_to_cid(
-                link.cid,
-                {
-                    "type": "message.new",
-                    "cid": link.cid,
-                    "message": serialized_confirmation,
-                },
-            )
+            else:
+                confirmation = record_outbound_message(
+                    cid=link.cid,
+                    text=confirmation_text,
+                    sender_identifier="sms_system",
+                    relay_external_id=provider_response.external_id,
+                    custom_data={"source": "sms_system", "sms_consent_event": "stop"},
+                )
+                serialized_confirmation = MessageSerializer(confirmation).data
+                _broadcast_to_cid(
+                    link.cid,
+                    {
+                        "type": "message.new",
+                        "cid": link.cid,
+                        "message": serialized_confirmation,
+                    },
+                )
             return Response({"ok": True, "handled": "stop"})
 
         if control_word == "start":
@@ -165,24 +164,23 @@ class SmsWebhookView(APIView):
                     "sms.consent.send_failed",
                     extra={"event": "start", "cid": link.cid, "sender_e164": from_phone},
                 )
-                return Response({"ok": True, "handled": "start_failed_send"})
-
-            confirmation = record_outbound_message(
-                cid=link.cid,
-                text=confirmation_text,
-                sender_identifier="sms_system",
-                relay_external_id=provider_response.external_id,
-                custom_data={"source": "sms_system", "consent_event": "start"},
-            )
-            serialized_confirmation = MessageSerializer(confirmation).data
-            _broadcast_to_cid(
-                link.cid,
-                {
-                    "type": "message.new",
-                    "cid": link.cid,
-                    "message": serialized_confirmation,
-                },
-            )
+            else:
+                confirmation = record_outbound_message(
+                    cid=link.cid,
+                    text=confirmation_text,
+                    sender_identifier="sms_system",
+                    relay_external_id=provider_response.external_id,
+                    custom_data={"source": "sms_system", "sms_consent_event": "start"},
+                )
+                serialized_confirmation = MessageSerializer(confirmation).data
+                _broadcast_to_cid(
+                    link.cid,
+                    {
+                        "type": "message.new",
+                        "cid": link.cid,
+                        "message": serialized_confirmation,
+                    },
+                )
             return Response({"ok": True, "handled": "start"})
 
         maybe_enqueue_sms_autoreply(cid=link.cid, sender_e164=from_phone, text=text)
