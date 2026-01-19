@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hmac
+import logging
 import uuid
 from hashlib import sha256
 
@@ -27,6 +28,14 @@ from ..common_audit.models import AuditTrail
 from ..common_audit.throttling import SmsSendRateThrottle
 from .models import SmsRelay
 from .serializers import SmsReceiptSerializer, SmsSendSerializer, SmsWebhookSerializer
+from .services.autoreply import maybe_enqueue_sms_autoreply
+from .services.consent import (
+    mark_opt_in,
+    mark_opt_out,
+    parse_control_word,
+    start_confirmation_text,
+    stop_confirmation_text,
+)
 from .services.linking import (
     ensure_link,
     get_or_create_phone_user,
@@ -34,6 +43,8 @@ from .services.linking import (
     record_outbound_message,
 )
 from .services.provider import SmsProviderClient, SmsProviderError
+
+logger = logging.getLogger(__name__)
 
 
 class WebhookNotConfigured(APIException):
@@ -110,6 +121,69 @@ class SmsWebhookView(APIView):
             link.cid,
             {"type": "message.new", "cid": link.cid, "message": serialized},
         )
+
+        control_word = parse_control_word(text)
+        if control_word == "stop":
+            mark_opt_out(from_phone)
+            confirmation_text = stop_confirmation_text()
+            client = SmsProviderClient()
+            try:
+                provider_response = client.send(from_phone, confirmation_text)
+            except SmsProviderError:
+                logger.exception(
+                    "sms.consent.send_failed",
+                    extra={"event": "stop", "cid": link.cid, "sender_e164": from_phone},
+                )
+            else:
+                confirmation = record_outbound_message(
+                    cid=link.cid,
+                    text=confirmation_text,
+                    sender_identifier="sms_system",
+                    relay_external_id=provider_response.external_id,
+                    custom_data={"source": "sms_system", "sms_consent_event": "stop"},
+                )
+                serialized_confirmation = MessageSerializer(confirmation).data
+                _broadcast_to_cid(
+                    link.cid,
+                    {
+                        "type": "message.new",
+                        "cid": link.cid,
+                        "message": serialized_confirmation,
+                    },
+                )
+            return Response({"ok": True, "handled": "stop"})
+
+        if control_word == "start":
+            mark_opt_in(from_phone)
+            confirmation_text = start_confirmation_text()
+            client = SmsProviderClient()
+            try:
+                provider_response = client.send(from_phone, confirmation_text)
+            except SmsProviderError:
+                logger.exception(
+                    "sms.consent.send_failed",
+                    extra={"event": "start", "cid": link.cid, "sender_e164": from_phone},
+                )
+            else:
+                confirmation = record_outbound_message(
+                    cid=link.cid,
+                    text=confirmation_text,
+                    sender_identifier="sms_system",
+                    relay_external_id=provider_response.external_id,
+                    custom_data={"source": "sms_system", "sms_consent_event": "start"},
+                )
+                serialized_confirmation = MessageSerializer(confirmation).data
+                _broadcast_to_cid(
+                    link.cid,
+                    {
+                        "type": "message.new",
+                        "cid": link.cid,
+                        "message": serialized_confirmation,
+                    },
+                )
+            return Response({"ok": True, "handled": "start"})
+
+        maybe_enqueue_sms_autoreply(cid=link.cid, sender_e164=from_phone, text=text)
 
         return Response({"ok": True}, status=status.HTTP_200_OK)
 

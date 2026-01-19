@@ -114,6 +114,13 @@ CHAT_ATTACHMENTS_SIGN_TTL_SECONDS = int(
 )
 CHAT_ATTACHMENTS_PUBLIC_BASE_URL = os.environ.get("CHAT_ATTACHMENTS_PUBLIC_BASE_URL")
 
+SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "adapter_http")
+SMS_PROVIDER_BASE_URL = os.environ.get("SMS_PROVIDER_BASE_URL", "")
+SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")
+OPENPHONE_API_KEY = os.environ.get("OPENPHONE_API_KEY", "")
+OPENPHONE_FROM_PHONE_ID = os.environ.get("OPENPHONE_FROM_PHONE_ID", "")
+OPENPHONE_BASE_URL = os.environ.get("OPENPHONE_BASE_URL", "https://api.openphone.com")
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",

@@ -344,12 +344,14 @@ class AgentOrchestratorTests(APITestCase):
 
     @mock.patch("backend.chat_addons.agent.services.agent_service.NotificationService.create_notification_item")
     @mock.patch("backend.chat_addons.agent.services.agent_service._broadcast_to_cid")
-    def test_cap_path_triggers_handoff(self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock) -> None:
+    def test_cap_path_disables_tools_but_allows_final_synthesis(
+        self, mock_broadcast: mock.MagicMock, mock_notify: mock.MagicMock
+    ) -> None:
         AgentRoomPolicy.objects.create(
             cid="messaging:cap-room",
             agent_enabled=True,
             enabled_skills=["utility_calc"],
-            tool_hop_cap=0,
+            tool_hop_cap=1,
             turn_cap=2,
             handoff_message="Let me connect you with a teammate.",
         )
@@ -365,20 +367,26 @@ class AgentOrchestratorTests(APITestCase):
                 ),
                 "tokens_used": 2,
                 "cost_usd": Decimal("0"),
-            }
+            },
+            {"content": "The answer is 2.", "tokens_used": 3, "cost_usd": Decimal("0")},
         ]
-        service = self._service(responses)
+        provider = _SequencedProvider(responses)
+        service = AgentService(llm_client=LLMClient(provider=provider))
 
         reply = service.generate(cid="messaging:cap-room", user_id="user-3", text="1+1")
 
-        self.assertIn("teammate", reply.text)
-        self.assertEqual(Message.objects.first().body, "Let me connect you with a teammate.")
+        self.assertIn("2", reply.text)
+        self.assertNotIn("teammate", reply.text)
+        self.assertEqual(Message.objects.first().body, "The answer is 2.")
         mock_broadcast.assert_called()
-        mock_notify.assert_called()
+        mock_notify.assert_not_called()
+
+        self.assertGreaterEqual(len(provider.calls), 2)
+        self.assertEqual(provider.calls[1]["tools"], [])
 
         run = AgentRun.objects.get()
-        self.assertEqual(run.status, AgentRun.STATUS_CAPPED)
-        self.assertEqual(run.tools_used, [])
+        self.assertEqual(run.status, AgentRun.STATUS_OK)
+        self.assertEqual(run.tools_used, ["utility_calc"])
 
     def test_orphan_tool_messages_are_sanitized(self) -> None:
         responses = [
