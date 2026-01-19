@@ -615,6 +615,10 @@ class AgentService:
         tool_hops = 0
         turn = 0
         fallback_attempted = False
+        routing_mode = "llm_router"
+        pre_router_candidate_count = 0
+        pre_routed_skill: Skill | None = None
+        pre_router_tool_name: str | None = None
 
         # Optional RAG enrichment: only when requested via meta["use_rag"]
         meta_payload = dict(meta or {})
@@ -737,7 +741,22 @@ class AgentService:
         messages = self._compose_messages(message_text, meta=meta)
         ctx = self._conversation_ctx(cid=cid, user_id=user_id, meta=meta)
 
-
+        if skills and tool_hop_cap > 0:
+            pre_routed_skill, pre_router_candidate_count = self._select_pre_routed_skill(
+                skills,
+                message_text,
+                ctx,
+            )
+            if pre_routed_skill:
+                pre_router_tool_name = self._select_pre_routed_tool_name(
+                    pre_routed_skill,
+                    tool_schemas,
+                    skill_lookup,
+                )
+                if pre_router_tool_name:
+                    routing_mode = "pre_router"
+                else:
+                    pre_routed_skill = None
 
 
         ai_message: Message | None = None
@@ -776,22 +795,41 @@ class AgentService:
                     "agent disabled for room",
                 )
             else:
-                while turn < turn_cap:
-                    turn += 1
+                if pre_routed_skill and pre_router_tool_name:
+                    args = infer_args_from_text(pre_routed_skill, message_text)
+                    if not args and message_text:
+                        args = {"text": message_text}
+                    executed = self._execute_tool_calls(
+                        [ToolCall(name=pre_router_tool_name, arguments=args)],
+                        skill_lookup,
+                        ctx,
+                        messages,
+                        limit=1,
+                        on_before_execute=_remember_tool_attempt,
+                        on_exception=_note_tool_exception,
+                    )
+                    if executed:
+                        tools_used.extend(executed)
+                        tool_hops += len(executed)
+                    if tool_hops >= tool_hop_cap:
+                        cap_reached = True
+                        tool_schemas = []
+
                     llm_start = time.perf_counter()
                     logger.info(
                         "agent.orchestrate.llm.start",
                         extra={
                             "cid": cid,
-                            "turn": turn,
+                            "turn": 1,
                             "timeout_sec": llm_timeout,
+                            "routing_mode": routing_mode,
                         },
                     )
                     llm_outcome = "ok"
                     try:
                         llm_result = self._call_llm_streaming(
                             messages,
-                            tool_schemas,
+                            [],
                             meta,
                             stream_target=ai_message,
                             handoff_message=handoff_message,
@@ -806,14 +844,16 @@ class AgentService:
                             "agent.orchestrate.llm.complete",
                             extra={
                                 "cid": cid,
-                                "turn": turn,
+                                "turn": 1,
                                 "timeout_sec": llm_timeout,
                                 "latency_ms": int(
                                     (time.perf_counter() - llm_start) * 1000
                                 ),
                                 "outcome": llm_outcome,
+                                "routing_mode": routing_mode,
                             },
                         )
+
                     tokens_out += llm_result.tokens_used
                     total_cost += llm_result.cost_usd
 
@@ -825,78 +865,139 @@ class AgentService:
                         if llm_result.reason == "timeout":
                             _note_handoff(HandoffReason.TIMEOUT, "llm timeout")
                         elif llm_result.reason == "budget_exceeded":
-                            _note_handoff(HandoffReason.BUDGET_EXCEEDED, "budget exceeded")
+                            _note_handoff(
+                                HandoffReason.BUDGET_EXCEEDED,
+                                "budget exceeded",
+                            )
                         else:
                             _note_handoff(
                                 HandoffReason.LLM_ERROR,
                                 detail=llm_result.reason,
                             )
-                        break
-
-                    tool_calls = list(getattr(llm_result, "tool_calls", []) or [])
-                    potential_text = llm_result.content
-
-                    if not tool_calls:
-                        fallback_calls, potential_text = parse_tool_instructions(
-                            llm_result.content
-                        )
-                        if fallback_calls:
-                            tool_calls = fallback_calls
-
-                    tools_enabled = tool_hops < tool_hop_cap if tool_hop_cap else False
-                    if tool_calls:
-                        if not tools_enabled:
-                            cap_reached = True
-                            tool_schemas = []
-                            if potential_text:
-                                reply_text = potential_text
-                                break
-                            continue
-                        remaining = tool_hop_cap - tool_hops if tool_hop_cap else None
-                        executed = self._execute_tool_calls(
-                            tool_calls,
-                            skill_lookup,
-                            ctx,
-                            messages,
-                            limit=remaining,
-                            on_before_execute=_remember_tool_attempt,
-                            on_exception=_note_tool_exception,
-                        )
-                        if executed:
-                            tools_used.extend(executed)
-                            tool_hops += len(executed)
-                        if tool_hops >= tool_hop_cap:
-                            cap_reached = True
-                            tool_schemas = []
-                        continue
-
-                    if potential_text:
-                        reply_text = potential_text
-                        break
-
-                    if not fallback_attempted and skills and tools_enabled:
-                        candidate = self._fallback_candidate(skills, message_text, ctx)
-                        if candidate and tool_hops < tool_hop_cap:
-                            executed = self._execute_fallback(candidate, message_text, ctx, messages)
-                            if executed:
-                                tools_used.append(candidate.name)
-                                tool_hops += 1
-                                fallback_attempted = True
-                                continue
-                        elif candidate and tool_hop_cap == 0:
-                            cap_reached = True
-                            tool_schemas = []
-
-                    reply_text = potential_text or ""
-                    break
-
+                    else:
+                        reply_text = llm_result.content
                 else:
-                    run_status = AgentRun.STATUS_CAPPED
-                    handoff_triggered = True
-                    _note_handoff(
-                        HandoffReason.CAPPED,
-                        "turn cap reached",
-                    )
+                    while turn < turn_cap:
+                        turn += 1
+                        llm_start = time.perf_counter()
+                        logger.info(
+                            "agent.orchestrate.llm.start",
+                            extra={
+                                "cid": cid,
+                                "turn": turn,
+                                "timeout_sec": llm_timeout,
+                            },
+                        )
+                        llm_outcome = "ok"
+                        try:
+                            llm_result = self._call_llm_streaming(
+                                messages,
+                                tool_schemas,
+                                meta,
+                                stream_target=ai_message,
+                                handoff_message=handoff_message,
+                                room=room,
+                                run_id=effective_request_id,
+                            )
+                        except Exception as exc:  # pragma: no cover - defensive log
+                            llm_outcome = exc.__class__.__name__
+                            raise
+                        finally:
+                            logger.info(
+                                "agent.orchestrate.llm.complete",
+                                extra={
+                                    "cid": cid,
+                                    "turn": turn,
+                                    "timeout_sec": llm_timeout,
+                                    "latency_ms": int(
+                                        (time.perf_counter() - llm_start) * 1000
+                                    ),
+                                    "outcome": llm_outcome,
+                                },
+                            )
+                        tokens_out += llm_result.tokens_used
+                        total_cost += llm_result.cost_usd
+
+                        if getattr(llm_result, "reason", "ok") != "ok":
+                            reason = llm_result.reason
+                            run_status = AgentRun.STATUS_ERROR
+                            handoff_triggered = True
+                            reply_text = llm_result.content
+                            if llm_result.reason == "timeout":
+                                _note_handoff(HandoffReason.TIMEOUT, "llm timeout")
+                            elif llm_result.reason == "budget_exceeded":
+                                _note_handoff(HandoffReason.BUDGET_EXCEEDED, "budget exceeded")
+                            else:
+                                _note_handoff(
+                                    HandoffReason.LLM_ERROR,
+                                    detail=llm_result.reason,
+                                )
+                            break
+
+                        tool_calls = list(getattr(llm_result, "tool_calls", []) or [])
+                        potential_text = llm_result.content
+
+                        if not tool_calls:
+                            fallback_calls, potential_text = parse_tool_instructions(
+                                llm_result.content
+                            )
+                            if fallback_calls:
+                                tool_calls = fallback_calls
+
+                        tools_enabled = tool_hops < tool_hop_cap if tool_hop_cap else False
+                        if tool_calls:
+                            if not tools_enabled:
+                                cap_reached = True
+                                tool_schemas = []
+                                if potential_text:
+                                    reply_text = potential_text
+                                    break
+                                continue
+                            remaining = tool_hop_cap - tool_hops if tool_hop_cap else None
+                            executed = self._execute_tool_calls(
+                                tool_calls,
+                                skill_lookup,
+                                ctx,
+                                messages,
+                                limit=remaining,
+                                on_before_execute=_remember_tool_attempt,
+                                on_exception=_note_tool_exception,
+                            )
+                            if executed:
+                                tools_used.extend(executed)
+                                tool_hops += len(executed)
+                            if tool_hops >= tool_hop_cap:
+                                cap_reached = True
+                                tool_schemas = []
+                            continue
+
+                        if potential_text:
+                            reply_text = potential_text
+                            break
+
+                        if not fallback_attempted and skills and tools_enabled:
+                            candidate = self._fallback_candidate(skills, message_text, ctx)
+                            if candidate and tool_hops < tool_hop_cap:
+                                executed = self._execute_fallback(candidate, message_text, ctx, messages)
+                                if executed:
+                                    tools_used.append(candidate.name)
+                                    tool_hops += 1
+                                    fallback_attempted = True
+                                    continue
+                            elif candidate and tool_hop_cap == 0:
+                                cap_reached = True
+                                tool_schemas = []
+
+                        reply_text = potential_text or ""
+                        break
+
+                    else:
+                        run_status = AgentRun.STATUS_CAPPED
+                        handoff_triggered = True
+                        _note_handoff(
+                            HandoffReason.CAPPED,
+                            "turn cap reached",
+                        )
 
                 if not reply_text.strip():
                     reply_text = handoff_message
@@ -997,10 +1098,14 @@ class AgentService:
                 if sidecar_actions:
                     custom_data["sidecar_actions"] = sidecar_actions
 
+                agent_payload = dict(custom_data.get("agent") or {})
+                agent_payload["routing_mode"] = routing_mode
+                agent_payload["pre_router_candidate_count"] = pre_router_candidate_count
+                if pre_routed_skill:
+                    agent_payload["pre_routed_skill"] = pre_routed_skill.name
                 if cap_reached:
-                    agent_payload = dict(custom_data.get("agent") or {})
                     agent_payload["cap_reached"] = True
-                    custom_data["agent"] = agent_payload
+                custom_data["agent"] = agent_payload
                 if handoff_triggered:
                     custom_data = self._apply_handoff_metadata(
                         cid=cid,
@@ -1040,10 +1145,14 @@ class AgentService:
                     custom_data_for_message["sidecar_items"] = sidecar_items
                 if sidecar_actions:
                     custom_data_for_message["sidecar_actions"] = sidecar_actions
+                agent_payload = dict(custom_data_for_message.get("agent") or {})
+                agent_payload["routing_mode"] = routing_mode
+                agent_payload["pre_router_candidate_count"] = pre_router_candidate_count
+                if pre_routed_skill:
+                    agent_payload["pre_routed_skill"] = pre_routed_skill.name
                 if cap_reached:
-                    agent_payload = dict(custom_data_for_message.get("agent") or {})
                     agent_payload["cap_reached"] = True
-                    custom_data_for_message["agent"] = agent_payload
+                custom_data_for_message["agent"] = agent_payload
                 if handoff_triggered:
                     custom_data_for_message = self._apply_handoff_metadata(
                         cid=cid,
@@ -1468,6 +1577,52 @@ class AgentService:
         candidates = [skill for skill in skills if skill.can_handle(text, ctx)]
         if len(candidates) == 1:
             return candidates[0]
+        return None
+
+    def _select_pre_routed_skill(
+        self,
+        skills: Sequence[Skill],
+        text: str,
+        ctx: ConversationCtx,
+    ) -> tuple[Skill | None, int]:
+        candidates: list[Skill] = []
+        for skill in skills:
+            try:
+                if skill.can_handle(text, ctx):
+                    candidates.append(skill)
+            except Exception:
+                logger.exception(
+                    "agent.pre_router.can_handle_failed",
+                    extra={"skill": getattr(skill, "name", None)},
+                )
+        if len(candidates) == 1:
+            return candidates[0], len(candidates)
+        return None, len(candidates)
+
+    def _select_pre_routed_tool_name(
+        self,
+        skill: Skill,
+        tool_schemas: Sequence[dict[str, Any]],
+        skill_lookup: dict[str, Skill],
+    ) -> str | None:
+        if not tool_schemas:
+            return None
+
+        tool_names: list[str] = []
+        for schema in tool_schemas:
+            if not isinstance(schema, dict):
+                continue
+            function_spec = schema.get("function", {})
+            name = function_spec.get("name") if isinstance(function_spec, dict) else None
+            if isinstance(name, str) and skill_lookup.get(name) is skill:
+                tool_names.append(name)
+
+        if len(tool_names) == 1:
+            return tool_names[0]
+
+        default_tool_name = getattr(skill, "default_tool_name", None)
+        if isinstance(default_tool_name, str) and default_tool_name in tool_names:
+            return default_tool_name
         return None
 
     def _execute_fallback(
