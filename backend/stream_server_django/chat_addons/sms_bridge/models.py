@@ -58,3 +58,13 @@ class SmsRelay(models.Model):
     def mark_status(self, status: str) -> None:
         self.status = status
         self.save(update_fields=["status"])
+
+
+class SmsConsent(models.Model):
+    """Track opt-in/opt-out consent for SMS senders."""
+
+    phone_e164 = models.CharField(max_length=32, unique=True, db_index=True)
+    opted_out_at = models.DateTimeField(blank=True, null=True)
+    opted_in_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
