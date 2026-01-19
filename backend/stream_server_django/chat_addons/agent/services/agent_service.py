@@ -575,7 +575,10 @@ class AgentService:
 
         skills = enabled_for_room(cid)
 
+        cap_reached = tool_hop_cap == 0
         tool_schemas = build_tool_schemas(skills) if skills else []
+        if cap_reached:
+            tool_schemas = []
 
         if not skills:
             _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
@@ -840,15 +843,15 @@ class AgentService:
                         if fallback_calls:
                             tool_calls = fallback_calls
 
+                    tools_enabled = tool_hops < tool_hop_cap if tool_hop_cap else False
                     if tool_calls:
-                        if tool_hop_cap == 0 or tool_hops >= tool_hop_cap:
-                            run_status = AgentRun.STATUS_CAPPED
-                            handoff_triggered = True
-                            _note_handoff(
-                                HandoffReason.CAPPED,
-                                "tool hop cap reached",
-                            )
-                            break
+                        if not tools_enabled:
+                            cap_reached = True
+                            tool_schemas = []
+                            if potential_text:
+                                reply_text = potential_text
+                                break
+                            continue
                         remaining = tool_hop_cap - tool_hops if tool_hop_cap else None
                         executed = self._execute_tool_calls(
                             tool_calls,
@@ -862,21 +865,16 @@ class AgentService:
                         if executed:
                             tools_used.extend(executed)
                             tool_hops += len(executed)
-                        if tool_hops >= tool_hop_cap and turn < turn_cap:
-                            run_status = AgentRun.STATUS_CAPPED
-                            handoff_triggered = True
-                            _note_handoff(
-                                HandoffReason.CAPPED,
-                                "tool hop cap reached",
-                            )
-                            break
+                        if tool_hops >= tool_hop_cap:
+                            cap_reached = True
+                            tool_schemas = []
                         continue
 
                     if potential_text:
                         reply_text = potential_text
                         break
 
-                    if not fallback_attempted and skills:
+                    if not fallback_attempted and skills and tools_enabled:
                         candidate = self._fallback_candidate(skills, message_text, ctx)
                         if candidate and tool_hops < tool_hop_cap:
                             executed = self._execute_fallback(candidate, message_text, ctx, messages)
@@ -886,13 +884,8 @@ class AgentService:
                                 fallback_attempted = True
                                 continue
                         elif candidate and tool_hop_cap == 0:
-                            run_status = AgentRun.STATUS_CAPPED
-                            handoff_triggered = True
-                            _note_handoff(
-                                HandoffReason.CAPPED,
-                                "tool hop cap reached",
-                            )
-                            break
+                            cap_reached = True
+                            tool_schemas = []
 
                     reply_text = potential_text or ""
                     break
@@ -1004,6 +997,10 @@ class AgentService:
                 if sidecar_actions:
                     custom_data["sidecar_actions"] = sidecar_actions
 
+                if cap_reached:
+                    agent_payload = dict(custom_data.get("agent") or {})
+                    agent_payload["cap_reached"] = True
+                    custom_data["agent"] = agent_payload
                 if handoff_triggered:
                     custom_data = self._apply_handoff_metadata(
                         cid=cid,
@@ -1043,6 +1040,10 @@ class AgentService:
                     custom_data_for_message["sidecar_items"] = sidecar_items
                 if sidecar_actions:
                     custom_data_for_message["sidecar_actions"] = sidecar_actions
+                if cap_reached:
+                    agent_payload = dict(custom_data_for_message.get("agent") or {})
+                    agent_payload["cap_reached"] = True
+                    custom_data_for_message["agent"] = agent_payload
                 if handoff_triggered:
                     custom_data_for_message = self._apply_handoff_metadata(
                         cid=cid,
