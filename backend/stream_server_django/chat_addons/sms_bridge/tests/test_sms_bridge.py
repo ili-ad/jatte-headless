@@ -115,7 +115,10 @@ class SmsBridgeWebhookTests(APITestCase):
         mocked_send.assert_called_once_with("+15551230000", stop_confirmation_text())
         mocked_delay.assert_not_called()
         self.assertTrue(
-            Message.objects.filter(custom_data__source="sms_system").exists()
+            Message.objects.filter(
+                custom_data__source="sms_system",
+                custom_data__sms_consent_event="stop",
+            ).exists()
         )
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551230000"])
@@ -177,6 +180,12 @@ class SmsBridgeWebhookTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(is_opted_out("+15551230000"))
         mocked_send.assert_called_with("+15551230000", start_confirmation_text())
+        self.assertTrue(
+            Message.objects.filter(
+                custom_data__source="sms_system",
+                custom_data__sms_consent_event="start",
+            ).exists()
+        )
 
         mocked_delay.reset_mock()
         hello_payload = dict(self.payload)
