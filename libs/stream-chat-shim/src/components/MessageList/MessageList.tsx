@@ -188,6 +188,10 @@ const MessageListWithContext = (props: MessageListWithContextProps) => {
   const loadMore = React.useCallback(() => {
     if (loadMoreCallback) {
       loadMoreCallback(messageLimit);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug('[MessageList] loadMore triggered');
+      }
     }
   }, [loadMoreCallback, messageLimit]);
 
@@ -237,6 +241,7 @@ const MessageListWithContext = (props: MessageListWithContextProps) => {
             data-testid='message-list'
             onScroll={onScroll}
             ref={setListElement}
+            style={{ flex: '1 1 0', minHeight: 0, overflowY: 'auto' }}
             tabIndex={0}
           >
             {showEmptyStateIndicator ? (
