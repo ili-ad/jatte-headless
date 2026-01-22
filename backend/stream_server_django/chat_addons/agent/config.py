@@ -1,10 +1,13 @@
 """Configuration helpers for the chat agent runtime."""
 from __future__ import annotations
 
+import logging
 import os
 from decimal import Decimal
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _get_env_decimal(name: str, default: str) -> Decimal:
@@ -65,6 +68,31 @@ def _clamp(value: int, lower: int, upper: int) -> int:
     return max(lower, min(upper, value))
 
 
+def _normalize_rag_state(raw: str | None) -> str:
+    if raw is None:
+        return "ILPUB"
+
+    normalized = raw.strip().upper()
+    if not normalized:
+        return "ILPUB"
+
+    if normalized in {"ILIAD", "ILIAD_PUBLIC"}:
+        logger.warning(
+            "agent.rag.state.legacy",
+            extra={"raw": raw, "coerced": "ILPUB"},
+        )
+        return "ILPUB"
+
+    if normalized in {"ILPUB", "ILPRIV"}:
+        return normalized
+
+    logger.warning(
+        "agent.rag.state.unknown",
+        extra={"raw": raw, "coerced": "ILPUB"},
+    )
+    return "ILPUB"
+
+
 AGENT_MODEL: str = _get_env_str("AGENT_MODEL", "gpt-5-mini")
 AGENT_TIMEOUT_SEC: int = _get_env_int("AGENT_TIMEOUT_SEC", 25)
 AGENT_STREAMING_TIMEOUT_SEC: int = _get_env_int("AGENT_STREAMING_TIMEOUT_SEC", 240)
@@ -73,7 +101,19 @@ AGENT_DAILY_BUDGET_USD: Decimal = _get_env_decimal("AGENT_DAILY_BUDGET_USD", "0.
 AGENT_USER_ID: str = _get_env_str("AGENT_USER_ID", "ai-bot")
 MEMORY_MAX_LINES: int = _clamp(_get_env_int("MEMORY_MAX_LINES", 80), 60, 100)
 AGENT_USE_RAG_DEFAULT: bool = _get_env_bool("AGENT_USE_RAG", False)
-AGENT_RAG_STATE_DEFAULT: str | None = _get_env_str("AGENT_RAG_STATE", "").strip() or None
+AGENT_RAG_ALLOW_PRIVATE_DEFAULT: bool = _get_env_bool("AGENT_RAG_ALLOW_PRIVATE", False)
+_raw_rag_state = _get_env_str("AGENT_RAG_STATE", "")
+if AGENT_USE_RAG_DEFAULT:
+    _normalized_rag_state = _normalize_rag_state(_raw_rag_state)
+    if _normalized_rag_state == "ILPRIV" and not AGENT_RAG_ALLOW_PRIVATE_DEFAULT:
+        logger.warning(
+            "agent.rag.state.private_not_allowed",
+            extra={"raw": _raw_rag_state, "coerced": "ILPUB"},
+        )
+        _normalized_rag_state = "ILPUB"
+    AGENT_RAG_STATE_DEFAULT: str | None = _normalized_rag_state
+else:
+    AGENT_RAG_STATE_DEFAULT: str | None = None
 AGENT_RAG_TOPIC_DEFAULT: str | None = _get_env_str("AGENT_RAG_TOPIC", "").strip() or None
 AGENT_RAG_PROMPT_BUILDER: str | None = (
     _get_env_str("AGENT_RAG_PROMPT_BUILDER", "").strip() or None
