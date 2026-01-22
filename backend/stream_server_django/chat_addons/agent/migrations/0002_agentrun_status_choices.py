@@ -5,7 +5,6 @@ class Migration(migrations.Migration):
         ("agent", "0001_initial"),
     ]
 
-    # NOTE: This migration is intentionally a no-op.
-    # The AgentRun.status field’s choices are enforced at the Python level only;
-    # there is no DB constraint on the choices, so we don’t need a schema change.
+    # Intentionally no-op: AgentRun lives in chat_addons (not agent),
+    # and status choices are enforced at the Python layer.
     operations = []

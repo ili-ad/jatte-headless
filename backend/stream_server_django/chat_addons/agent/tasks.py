@@ -32,7 +32,7 @@ except ImportError:  # pragma: no cover - fallback when Celery is absent
 from django.conf import settings
 from django.db import transaction
 
-from stream_server_django.chat.api_views import _broadcast_to_cid
+from stream_server_django.chat.broadcast import _broadcast_to_cid
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.utils import canonical_cid

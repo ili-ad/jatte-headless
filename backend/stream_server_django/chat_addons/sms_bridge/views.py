@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
-from stream_server_django.chat.api_views import _broadcast_to_cid
+from stream_server_django.chat.broadcast import _broadcast_to_cid
 from stream_server_django.chat.models import Message
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.consumers import broadcast_message_update
@@ -115,6 +115,13 @@ class SmsWebhookView(APIView):
             sender_identifier=sender_identifier,
             relay_external_id=external_id,
         )
+        room = message.rooms.order_by("pk").first()
+        if room:
+            maybe_enqueue_sms_autoreply(
+                room=room,
+                triggering_message=message,
+                sender_e164=from_phone,
+            )
 
         serialized = MessageSerializer(message).data
         _broadcast_to_cid(
@@ -182,8 +189,6 @@ class SmsWebhookView(APIView):
                     },
                 )
             return Response({"ok": True, "handled": "start"})
-
-        maybe_enqueue_sms_autoreply(cid=link.cid, sender_e164=from_phone, text=text)
 
         return Response({"ok": True}, status=status.HTTP_200_OK)
 

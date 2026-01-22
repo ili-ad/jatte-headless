@@ -51,12 +51,13 @@ class SkillRegistryTests(TestCase):
         payload = registry.execute("dummy_echo", {"message": "ping"}, ctx)
         self.assertTrue(payload["echoed"].startswith("ping"))
 
-    def test_enabled_for_room_respects_policy(self) -> None:
+    def test_enabled_for_room_returns_union(self) -> None:
         cid = "messaging:test-room"
         registry.set_policy(cid, True, ["dummy_echo"])
 
         skills = registry.enabled_for_room(cid)
-        self.assertEqual([skill.name for skill in skills], ["dummy_echo"])
+        expected = sorted(meta.name for meta in registry.list_all())
+        self.assertEqual(sorted(skill.name for skill in skills), expected)
 
     @override_settings(
         AGENT_SKILL_PACKAGES=
