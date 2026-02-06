@@ -21,6 +21,7 @@ import { MAX_BOOTSTRAP_ATTEMPTS } from '../chat-kit/lib/bootstrapFetchPolicy';
 import { nextDelayMs, shouldRetry } from '../chat-kit/lib/bootstrapFetchPolicy';
 import { setAccessToken } from './authTokenStore';
 import { apiFetch } from './api';
+import { ensureAuthCookiesSynced } from './authCookieSync';
 
 export const chatClient: ChatClient = getStreamClient();
 
@@ -115,7 +116,7 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
 
 
     (async () => {
-      try {
+      const resolveRoom = async () => {
         const res = await apiFetch('/rooms/resolve/', {
           method: 'POST',
           body: JSON.stringify({ label }),
@@ -132,12 +133,36 @@ export function ChatProvider({ children, roomSlug = 'general' }: ChatProviderPro
           throw new Error('resolve response missing room_uuid');
         }
 
+        return uuid;
+      };
+
+      try {
+        await ensureAuthCookiesSynced(session);
+        const uuid = await resolveRoom();
+
         if (cancelled) return;
 
         setCookie(cookieKey, uuid);
         setRoomUuid(uuid);
       } catch (err) {
-        console.error('[ChatProvider] failed to resolve room', err);
+        const status = err instanceof AuthError ? err.status : null;
+        if ((status === 401 || status === 403) && session) {
+          try {
+            await ensureAuthCookiesSynced(session, { force: true });
+            const uuid = await resolveRoom();
+
+            if (cancelled) return;
+
+            setCookie(cookieKey, uuid);
+            setRoomUuid(uuid);
+            return;
+          } catch (retryErr) {
+            console.error('[ChatProvider] failed to resolve room after resync', retryErr);
+          }
+        } else {
+          console.error('[ChatProvider] failed to resolve room', err);
+        }
+
         if (!cancelled) {
           setBootstrapStatus({
             kind: 'error',
