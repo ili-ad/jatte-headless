@@ -9,12 +9,16 @@ export async function proxyRooms(
   req: NextRequest,
   { params }: RoomsParams,
 ) {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'rooms_proxy_auth_missing' }, { status: 401 });
+  }
   const url = `${BACKEND}/api/rooms/${params.path.join('/')}/`;
   const resp = await fetch(url, {
     method: req.method,
     headers: {
       'Content-Type': req.headers.get('content-type') ?? 'application/json',
-      Authorization: req.headers.get('authorization') ?? '',
+      Authorization: authHeader,
     },
     body: req.method === 'GET' ? undefined : await req.text(),
     credentials: 'include',
