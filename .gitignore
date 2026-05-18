@@ -135,6 +135,18 @@ package-lock.json
 npm-shrinkwrap.json
 backend/package-lock.json
 
+# Node
+node_modules/
+**/node_modules/
 
-# Windows MOTW / Zone Identifier artifacts (often leaked from ZIPs)
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Windows download metadata
 *:Zone.Identifier
+
+# Local scratch / diff files
+rsync_from_downstream.txt
+*.diff
+*.patch
