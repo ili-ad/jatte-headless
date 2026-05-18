@@ -1,7 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
-import '@testing-library/jest-dom/vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentMessage } from '../AgentMessage';
 
@@ -9,11 +8,20 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+afterEach(() => cleanup());
+
 vi.mock('@iliad/stream-chat-shim', () => ({
-  MessageSimple: (props: Record<string, unknown>) => (
-    // eslint-disable-next-line react/jsx-props-no-spreading
-    <div data-testid="message-simple" {...props} />
-  ),
+  MessageSimple: (props: Record<string, unknown>) => {
+    const message = props.message as any;
+    return (
+      <div
+        data-testid="message-simple"
+        data-user-id={message?.user?.id ?? ''}
+        data-user-id-field={message?.user_id ?? ''}
+        data-user-name={message?.user?.name ?? ''}
+      />
+    );
+  },
 }));
 
 describe('AgentMessage', () => {
@@ -33,7 +41,25 @@ describe('AgentMessage', () => {
 
     render(<AgentMessage message={message as any} botUserId="agent-1" />);
 
-    expect(screen.getByRole('button', { name: 'View dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Go to planner' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View dashboard' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Go to planner' })).toBeTruthy();
   });
+
+  it('passes Iris to MessageSimple for agent messages while preserving user ids', () => {
+    const message = {
+      id: 'message-2',
+      text: 'I can help with that.',
+      user_id: 'ai-bot-room-1',
+      user: { id: 'ai-bot-room-1', name: 'Guest AI-B' },
+      custom_data: { ai_generated: true },
+    };
+
+    render(<AgentMessage message={message as any} botUserId="ai-bot-room-1" />);
+
+    const simple = screen.getByTestId('message-simple');
+    expect(simple.getAttribute('data-user-name')).toBe('Iris');
+    expect(simple.getAttribute('data-user-id')).toBe('ai-bot-room-1');
+    expect(simple.getAttribute('data-user-id-field')).toBe('ai-bot-room-1');
+  });
+
 });
