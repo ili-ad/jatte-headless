@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSimple, type MessageProps } from '@iliad/stream-chat-shim';
+import { AGENT_DISPLAY_NAME, hasAgentMessageMarker } from '../../lib/stream-adapter/channelAgentExtensions';
 import {
   getSidecarItemById,
   type SidecarItemDef,
@@ -56,8 +57,8 @@ export type AgentMessageProps = MessageProps & {
 };
 
 export function AgentMessage(props: AgentMessageProps) {
-  const { currentUserId: _currentUserId, onFormClick, currentStateSlug, ...messageProps } = props;
-  const { message } = messageProps;
+  const { currentUserId: _currentUserId, onFormClick, currentStateSlug, botUserId, ...baseMessageProps } = props;
+  const { message } = baseMessageProps;
   const router = useRouter();
 
   if (!message) {
@@ -79,8 +80,23 @@ export function AgentMessage(props: AgentMessageProps) {
 
   const authorId = getAuthorId(message);
   const isAgent =
-    (props.botUserId && authorId === props.botUserId) ||
-    Boolean((message as any).custom_data?.ai_generated);
+    (botUserId && authorId === botUserId) ||
+    hasAgentMessageMarker(message as any);
+
+  const messageProps = isAgent
+    ? {
+        ...baseMessageProps,
+        message: {
+          ...(message as any),
+          user_id: (message as any).user_id ?? authorId,
+          user: {
+            ...((message as any).user ?? {}),
+            ...(authorId ? { id: authorId } : {}),
+            name: AGENT_DISPLAY_NAME,
+          },
+        },
+      }
+    : baseMessageProps;
 
   const customData = (message as any)?.custom_data ?? {};
   const rag = customData?.rag as

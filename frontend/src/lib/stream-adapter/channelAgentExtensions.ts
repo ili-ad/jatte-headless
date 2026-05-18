@@ -72,18 +72,39 @@ export function getBotUserIdForChannel(channel: Channel): string | null {
 
 
 
+export const AGENT_DISPLAY_NAME = 'Iris';
+
+export function hasAgentMessageMarker(message: Message | Record<string, any> | null | undefined) {
+    const customData = (message as any)?.custom_data ?? {};
+
+    return Boolean(
+        (message as any)?.ai_generated ||
+        customData.ai_generated ||
+        customData.ai_state ||
+        customData.agent,
+    );
+}
+
 export function resolveDisplayNameForMessage(channel: Channel, message: Message) {
     const user = (message as any).user ?? {};
     const authorId = user.id ?? (message as any).user_id ?? (message as any).sent_by;
     const botUserId = getBotUserIdForChannel(channel);
     const currentUserId = (channel as any).getCurrentUserId();
 
+    if (user.name === 'System' || authorId === 'system') {
+        return 'System';
+    }
+
     if (authorId && botUserId && authorId === botUserId) {
-        return 'AI assistant';
+        return AGENT_DISPLAY_NAME;
     }
 
     if (currentUserId && authorId === currentUserId) {
         return 'You';
+    }
+
+    if (hasAgentMessageMarker(message)) {
+        return AGENT_DISPLAY_NAME;
     }
 
     if (user.name) {
