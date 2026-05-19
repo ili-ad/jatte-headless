@@ -30,6 +30,7 @@ import { getBotUserIdForChannel } from './stream-adapter/channelAgentExtensions'
 
 type AgentChatWindowProps = {
   Avatar?: ComponentContextValue['Avatar'];
+  showComposer?: boolean;
 };
 
 function useStreamChatThemeClass() {
@@ -53,7 +54,7 @@ function useStreamChatThemeClass() {
     : 'messaging light str-chat__theme-light';
 }
 
-export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
+export default function AgentChatWindow({ Avatar, showComposer = true }: AgentChatWindowProps) {
   const { client, channel, bootstrapStatus, retryBootstrap } = useChat();
   const baseComponents = useComponentContext();
   const mergedComponents = useMemo(
@@ -189,24 +190,26 @@ export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
                 {isAgentBusy && <StopAIGenerationButton onClick={handleStopAgent} />}
                 <AIStateIndicator />
               </div>
-              <MessageInput
-                maxRows={6}
-                minRows={1}
-                hideSendButton={isAgentBusy}
-                additionalTextareaProps={{
-                  disabled: isAgentBusy,
-                }}
-                overrideSubmitHandler={
-                  isAgentBusy
-                    ? () => {
-                        // Agent is busy; ignore sends instead of causing a 409.
-                        // eslint-disable-next-line no-console
-                        console.warn('[agent/ui] blocked send while agent busy');
-                        return;
-                      }
-                    : undefined
-                }
-              />
+              {showComposer && (
+                <MessageInput
+                  maxRows={6}
+                  minRows={1}
+                  hideSendButton={isAgentBusy}
+                  additionalTextareaProps={{
+                    disabled: isAgentBusy,
+                  }}
+                  overrideSubmitHandler={
+                    isAgentBusy
+                      ? () => {
+                          // Agent is busy; ignore sends instead of causing a 409.
+                          // eslint-disable-next-line no-console
+                          console.warn('[agent/ui] blocked send while agent busy');
+                          return;
+                        }
+                      : undefined
+                  }
+                />
+              )}
             </Window>
           </Channel>
         </ErrorBoundary>
