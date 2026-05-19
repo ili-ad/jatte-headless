@@ -185,16 +185,7 @@ export default function AgentChatWindow({ Avatar }: AgentChatWindowProps) {
                 )}
               />
               <TypingIndicator />
-              <div
-                className="chat-footer-status-row"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '0 16px',
-                  minHeight: 28,
-                }}
-              >
+              <div className="chat-footer-status-row">
                 {isAgentBusy && <StopAIGenerationButton onClick={handleStopAgent} />}
                 <AIStateIndicator />
               </div>

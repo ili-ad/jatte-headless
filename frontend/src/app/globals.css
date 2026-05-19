@@ -40,3 +40,105 @@ a {
     color-scheme: dark;
   }
 }
+
+/*
+ * Portable chat chrome contrast defaults.
+ *
+ * Keep these colors neutral so the shared chat kit remains usable across sites
+ * without assuming a host brand palette. The Stream shim CSS is imported before
+ * this file, so these rules intentionally normalize only transient chrome
+ * (AI/typing/status/system surfaces), not message content bubbles.
+ */
+.str-chat {
+  --jatte-chat-chrome-bg: #f3f4f6;
+  --jatte-chat-chrome-border: #d1d5db;
+  --jatte-chat-chrome-text: #1f2937;
+  --jatte-chat-chrome-muted-text: #374151;
+  --jatte-chat-chrome-hover-bg: #e5e7eb;
+}
+
+.str-chat__theme-light {
+  --jatte-chat-chrome-bg: #f3f4f6;
+  --jatte-chat-chrome-border: #d1d5db;
+  --jatte-chat-chrome-text: #1f2937;
+  --jatte-chat-chrome-muted-text: #374151;
+  --jatte-chat-chrome-hover-bg: #e5e7eb;
+}
+
+.str-chat__theme-dark {
+  --jatte-chat-chrome-bg: #1f2937;
+  --jatte-chat-chrome-border: #374151;
+  --jatte-chat-chrome-text: #f9fafb;
+  --jatte-chat-chrome-muted-text: #d1d5db;
+  --jatte-chat-chrome-hover-bg: #374151;
+}
+
+.str-chat .chat-footer-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+  padding: 0 1rem;
+  color: var(--jatte-chat-chrome-muted-text);
+}
+
+.str-chat .str-chat__ai-state-indicator-container {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  border: 1px solid var(--jatte-chat-chrome-border);
+  border-radius: 999px;
+  background: var(--jatte-chat-chrome-bg);
+  color: var(--jatte-chat-chrome-text);
+}
+
+.str-chat .str-chat__ai-state-indicator-text {
+  margin: 0;
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.str-chat .str-chat__typing-indicator {
+  --str-chat__typing-indicator-dot-background-color: currentColor;
+
+  background: var(--jatte-chat-chrome-bg);
+  color: var(--jatte-chat-chrome-muted-text);
+  border-block-start: 1px solid var(--jatte-chat-chrome-border);
+}
+
+.str-chat .str-chat__typing-indicator__dot {
+  background-color: currentColor;
+}
+
+.str-chat .str-chat__message--system,
+.str-chat .str-chat__date-separator {
+  color: var(--jatte-chat-chrome-muted-text);
+}
+
+.str-chat .chat-footer-status-row .str-chat__stop-ai-generation-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--jatte-chat-chrome-border);
+  border-radius: 999px;
+  background: var(--jatte-chat-chrome-bg);
+  color: var(--jatte-chat-chrome-text);
+  cursor: pointer;
+}
+
+.str-chat .chat-footer-status-row .str-chat__stop-ai-generation-button:hover {
+  background: var(--jatte-chat-chrome-hover-bg);
+}
+
+.str-chat .chat-footer-status-row .str-chat__stop-ai-generation-button::before {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.125rem;
+  background: currentColor;
+  content: "";
+}
