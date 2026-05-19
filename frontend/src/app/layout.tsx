@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import "./globals.css";
-
 import '@iliad/stream-chat-shim/dist/css/v2/index.css'; // ← v1 if you prefer
+import "./globals.css";
 
 import { SessionProvider } from "@/lib/SessionProvider";
 import AuthBootstrap from "./AuthBootstrap";
