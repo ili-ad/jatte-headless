@@ -1,11 +1,10 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.conf import settings
-from jwt import PyJWKClient
 import jwt
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
@@ -15,65 +14,21 @@ from .serializers import RegisterSubscriptionsSerializer
 from .webpush import broadcast_subscriptions_registered
 
 @api_view(["GET"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def ws_auth(request):
-    """Return a signed websocket URL for authenticated requests."""
-    auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Bearer "):
-        return Response(status=403)
-    token = auth.split()[1]
-    try:
-        jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-            leeway=30,
-        )
-    except jwt.PyJWTError:
-        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
-        try:
-            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-            jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256"],
-                options={"verify_aud": False},
-            )
-        except jwt.PyJWTError:
-            return Response(status=403)
-
+    """Return a short-lived legacy websocket URL for a JWT-authenticated user."""
     exp = timezone.now() + timezone.timedelta(minutes=5)
     ws_token = jwt.encode({"exp": int(exp.timestamp())}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
-    ws_url = f"ws://{request.get_host()}/ws/?token={ws_token}"
+    scheme = "wss" if request.is_secure() else "ws"
+    ws_url = f"{scheme}://{request.get_host()}/ws/?token={ws_token}"
     return Response({"stream_server_django.auth": ws_url, "expires": exp.isoformat()})
 
 @api_view(["GET"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def connection_id(request):
     identity = get_chat_identity(request)
-    auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Bearer "):
-        return Response(status=403)
-    token = auth.split()[1]
-    try:
-        jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-            leeway=30,
-        )
-    except jwt.PyJWTError:
-        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
-        try:
-            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-            jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256"],
-                options={"verify_aud": False},
-            )
-        except jwt.PyJWTError:
-            return Response(status=403)
 
     cid = request.session.get("connection_id")
     if not cid:
@@ -133,33 +88,10 @@ def register_subscriptions(request):
 
 
 @api_view(["POST"])
+@authentication_classes([DevTokenOrJWTAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def editing_audit_state(request):
-    """Echo posted editing audit state after JWT auth."""
-    auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Bearer "):
-        return Response(status=403)
-    token = auth.split()[1]
-    try:
-        jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-            leeway=30,
-        )
-    except jwt.PyJWTError:
-        jwks_url = settings.SUPABASE_JWKS_URL or "https://example.com/keys"
-        try:
-            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-            jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256"],
-                options={"verify_aud": False},
-            )
-        except jwt.PyJWTError:
-            return Response(status=403)
-
+    """Echo state only for callers authenticated by the shared JWT path."""
     draft_update = request.data.get("draft_update")
     state_update = request.data.get("state_update")
     return Response({"draft_update": draft_update, "state_update": state_update})

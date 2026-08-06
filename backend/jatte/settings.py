@@ -23,8 +23,6 @@ import dj_database_url
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # this is already there
-print(BASE_DIR)
-#load_dotenv(BASE_DIR.parent / ".env")  # adjust path if your .env lives elsewhere
 load_dotenv(BASE_DIR / ".env")
 
 
@@ -36,29 +34,18 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%v$gh67imza=0$i%pky!jxpk*@%t+x-w$lw5lmwbvj)+#p=r#g'
-
-# Secret key used by Supabase to sign JWTs
-SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
-if SUPABASE_JWT_SECRET == 'changeme':
-    print("[settings] WARNING: SUPABASE_JWT_SECRET not set")
-elif os.environ.get("PRINT_JWT_SECRET"):
-    print(
-        "[settings] SUPABASE_JWT_SECRET:",
-        SUPABASE_JWT_SECRET[:8] + ("..." if len(SUPABASE_JWT_SECRET) > 8 else ""),
-        f"(len {len(SUPABASE_JWT_SECRET)})",
-    )
+# Development settings only. Production imports ``settingsprod``, which
+# requires non-placeholder environment secrets before Django can start.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "local-development-django-secret")
+SUPABASE_JWT_SECRET = os.environ.get(
+    "SUPABASE_JWT_SECRET", "local-development-supabase-jwt-secret"
+)
 
 # Base Supabase project URL used to fetch JWKS for verifying incoming JWTs
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
 SUPABASE_JWKS_URL = (
     f"{SUPABASE_URL.rstrip('/')}/auth/v1/keys" if SUPABASE_URL else None
 )
-if os.environ.get("PRINT_JWT_SECRET"):
-    print("[settings] SUPABASE_URL:", SUPABASE_URL)
-    print("[settings] SUPABASE_JWKS_URL:", SUPABASE_JWKS_URL)
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -352,6 +339,10 @@ CORS_ALLOWED_ORIGINS = _split_env(
     "http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS_ALLOW_CREDENTIALS = False
+DJANGO_WS_ALLOWED_ORIGINS = _split_env(
+    "DJANGO_WS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+)
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type

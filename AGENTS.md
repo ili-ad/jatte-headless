@@ -128,3 +128,18 @@ writes or updates a markdown file in `audit/` rather than guess-editing code.
 If a change would require touching `stream-ui`, stop and write down your
 findings in `audit/` instead; we’ll design a shim-side workaround.
 
+
+---
+
+## 6. Security review and hardening lane
+
+This repository is also undergoing a security hardening pass for the Django/DRF/Channels backend that emulates the subset of Stream Chat used by the JATTE frontend.
+
+Security-hardening priorities:
+
+- Preserve frontend compatibility with the existing Stream Chat React client usage.
+- Prefer small, test-backed patches over broad rewrites.
+- Treat authentication, channel membership, WebSocket subscriptions, attachments, CORS/CSRF, and event delivery as high-risk areas.
+- Do not rename public API routes or response fields unless tests and migration notes are provided.
+- Do not introduce external managed chat services.
+- When reviewing security work, classify findings as must-fix, should-fix, tests-needed, or defer.
