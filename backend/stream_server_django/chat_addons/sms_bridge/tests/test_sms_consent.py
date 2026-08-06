@@ -49,9 +49,11 @@ class SmsConsentWebhookTests(APITestCase):
         )
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551231234"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_stop_opts_out_sends_confirmation_and_skips_autoreply(
         self,
         mocked_send,
@@ -82,9 +84,11 @@ class SmsConsentWebhookTests(APITestCase):
         self.assertTrue(SmsConsent.objects.filter(phone_e164="+15551231234").exists())
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551231234"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_start_opts_in_sends_confirmation_and_skips_autoreply(
         self,
         mocked_send,
@@ -114,9 +118,11 @@ class SmsConsentWebhookTests(APITestCase):
         )
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551231234"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_opted_out_sender_never_enqueues_autoreply(
         self,
         mocked_send,

@@ -20,6 +20,8 @@ class ProductionSettingsHelperTests(TestCase):
         "DJANGO_ALLOWED_HOSTS": "chat.example,api.example",
         "DJANGO_CORS_ALLOWED_ORIGINS": "https://app.example",
         "DJANGO_WS_ALLOWED_ORIGINS": "https://app.example",
+        "CHAT_INTERNAL_SERVICE_TOKEN": "real-internal-service-secret",
+        "SMS_WEBHOOK_SECRET": "real-sms-webhook-secret",
     }
 
     def _load_production_settings(self, environ):
@@ -75,6 +77,17 @@ class ProductionSettingsHelperTests(TestCase):
         self.assertEqual(configured.CORS_ALLOWED_ORIGINS, ["https://app.example"])
         self.assertEqual(configured.DJANGO_WS_ALLOWED_ORIGINS, ["https://app.example"])
         self.assertFalse(configured.CORS_ALLOW_CREDENTIALS)
+
+    def test_production_settings_require_service_and_webhook_secrets(self):
+        for required_name in (
+            "CHAT_INTERNAL_SERVICE_TOKEN",
+            "SMS_WEBHOOK_SECRET",
+        ):
+            with self.subTest(required_name=required_name):
+                environ = dict(self.production_environ)
+                environ.pop(required_name)
+                with self.assertRaises(ProductionConfigurationError):
+                    self._load_production_settings(environ)
 
 
 @override_settings(ROOT_URLCONF="jatte.tests.urls_security", DEBUG=False)

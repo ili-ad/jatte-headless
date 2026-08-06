@@ -36,6 +36,11 @@ SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")
 OPENPHONE_API_KEY = os.environ.get("OPENPHONE_API_KEY", "")
 OPENPHONE_FROM_PHONE_ID = os.environ.get("OPENPHONE_FROM_PHONE_ID", "")
 OPENPHONE_BASE_URL = os.environ.get("OPENPHONE_BASE_URL", "https://api.openphone.com")
+CHAT_INTERNAL_SERVICE_TOKEN = required_secret("CHAT_INTERNAL_SERVICE_TOKEN")
+CHAT_INTERNAL_SERVICE_USERNAME = os.environ.get(
+    "CHAT_INTERNAL_SERVICE_USERNAME", "__chat_internal_service__"
+)
+SMS_WEBHOOK_SECRET = required_secret("SMS_WEBHOOK_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
