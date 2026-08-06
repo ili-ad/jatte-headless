@@ -20,3 +20,17 @@ The origin and host variables are comma-separated allowlists; wildcard values
 are rejected. Production TLS is expected to terminate at a proxy that sets
 `X-Forwarded-Proto: https`; this is used only because production settings
 explicitly configure Django to trust that proxy header.
+
+## WebSocket boundary
+
+WebSocket connections require a valid Supabase JWT before the server accepts
+the socket. The active frontend uses `/ws/<cid>/`; `/ws/chat/` remains a
+documented generic compatibility route because backend Stream-parity tests use
+it to select a CID with `channel.watch`. Generic routing does not bypass room
+authorization: watch, message creation, and typing require membership, and send
+or typing additionally require a successful watch on that socket.
+
+Authentication failures close with code 4401. Operation-level authorization
+failures return an error frame so a generic socket may still watch a different
+room it is authorized to access. Global lobby presence is disabled; the
+existing `user.join` acknowledgement is sent only to the connecting socket.

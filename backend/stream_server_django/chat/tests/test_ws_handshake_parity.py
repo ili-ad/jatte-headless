@@ -44,16 +44,20 @@ async def test_ws_handshake_and_event_parity():
     await sync_to_async(room.messages.add)(seed_message)
 
     token = jwt.encode(
-        {"sub": str(user.id), "email": user.email},
+        {"sub": user.username, "email": user.email},
         settings.SUPABASE_JWT_SECRET,
         algorithm="HS256",
     )
-    communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/chat/?token={token}",
+        headers=[(b"origin", b"http://localhost:3000")],
+    )
     connected, _ = await communicator.connect()
     assert connected
 
     join = await communicator.receive_json_from()
-    assert join == {"type": "user.join", "user": str(user.id)}
+    assert join == {"type": "user.join", "user": user.username}
 
     cid = f"messaging:{channel.uuid}"
     await communicator.send_json_to({"type": "channel.watch", "cid": cid})

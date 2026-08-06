@@ -14,7 +14,7 @@ from jatte.asgi import application
 @pytest.mark.django_db(transaction=True)
 async def test_channel_watch_initializes_state():
     channel = await sync_to_async(Channel.objects.create)(uuid="general", client="stream")
-    room = await sync_to_async(Room.objects.create)(uuid="general", client="stream")
+    room = await sync_to_async(Room.objects.create)(uuid="general", client="u1")
     message = await sync_to_async(Message.objects.create)(
         channel=channel,
         body="hello",
@@ -23,7 +23,11 @@ async def test_channel_watch_initializes_state():
     await sync_to_async(room.messages.add)(message)
 
     token = jwt.encode({"sub": "u1", "email": "u1@example.com"}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
-    communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/chat/?token={token}",
+        headers=[(b"origin", b"http://localhost:3000")],
+    )
     connected, _ = await communicator.connect()
     assert connected
 
