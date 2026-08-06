@@ -11,12 +11,15 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
-from django.http import Http404
+from django.db import transaction
 from django.db.models import Q
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -28,6 +31,7 @@ from stream_server_django.chatcore.services import should_gate_first_message
 from stream_server_django.rooms.utils import (
     can_admin_room,
     can_mutate_message,
+    get_room_or_404,
     is_public_agent_room,
     require_message_room_access,
     require_room_access,
@@ -97,6 +101,7 @@ from .storage.gcs import (
     download_blob,
     generate_signed_url,
     load_service_account,
+    safe_filename,
 )
 from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
@@ -1774,7 +1779,18 @@ def _attachment_max_size() -> int:
         return default
 
 
+def _attachments_public_downloads_enabled() -> bool:
+    """Return whether attachment metadata may expose storage URLs directly."""
+
+    configured = getattr(settings, "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS", False)
+    if isinstance(configured, str):
+        return configured.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(configured)
+
+
 def _public_blob_url(blob_name: str) -> str:
+    """Build a public-by-link URL when that deployment policy is enabled."""
+
     base = getattr(settings, "CHAT_ATTACHMENTS_PUBLIC_BASE_URL", None)
     if base:
         return f"{base.rstrip('/')}/{blob_name}"
@@ -1782,6 +1798,167 @@ def _public_blob_url(blob_name: str) -> str:
     if bucket:
         return f"https://storage.googleapis.com/{bucket}/{quote(blob_name, safe='/~')}"
     return blob_name
+
+
+def _private_attachment_url(request, attachment_id: str) -> str:
+    path = reverse("attachment-download", kwargs={"attachment_id": attachment_id})
+    return request.build_absolute_uri(path)
+
+
+def _attachment_download_url(request, attachment_id: str, blob_name: str) -> str:
+    if _attachments_public_downloads_enabled():
+        return _public_blob_url(blob_name)
+    return _private_attachment_url(request, attachment_id)
+
+
+def _identity_message_author(identity: ChatIdentity, message: Message) -> bool:
+    identifiers = {
+        str(value)
+        for value in (identity.id, identity.username, identity.supabase_uid)
+        if value not in (None, "")
+    }
+    return str(message.sent_by) in identifiers
+
+
+def _can_attach_to_message(identity: ChatIdentity, message: Message, room: Room) -> bool:
+    return bool(
+        _identity_message_author(identity, message)
+        or identity.is_staff
+        or identity.is_superuser
+        or room.agent_id == identity.id
+    )
+
+
+_ATTACHMENT_SIGNING_SALT = "jatte.chat.attachment-metadata.v1"
+
+
+def _attachment_integrity_payload(attachment: dict) -> dict:
+    """Return the immutable attachment fields covered by the server HMAC."""
+
+    return {
+        "id": str(attachment.get("id") or ""),
+        "blob": str(attachment.get("blob") or ""),
+        "content_type": str(attachment.get("content_type") or ""),
+        "size": int(attachment.get("size") or 0),
+        "sha256": str(attachment.get("sha256") or "").lower(),
+        "uploaded_by": str(attachment.get("uploaded_by") or ""),
+        "message_id": (
+            str(attachment["message_id"])
+            if attachment.get("message_id") not in (None, "")
+            else None
+        ),
+        "cid": str(attachment.get("cid") or ""),
+        "room_uuid": str(attachment.get("room_uuid") or ""),
+    }
+
+
+def _sign_attachment_metadata(attachment: dict) -> str:
+    return signing.dumps(
+        _attachment_integrity_payload(attachment),
+        salt=_ATTACHMENT_SIGNING_SALT,
+        compress=True,
+    )
+
+
+def _attachment_metadata_is_valid(
+    attachment: dict, *, message: Message, room: Room
+) -> bool:
+    integrity = attachment.get("integrity")
+    if not integrity:
+        return False
+    try:
+        signed_payload = signing.loads(
+            integrity,
+            salt=_ATTACHMENT_SIGNING_SALT,
+        )
+    except signing.BadSignature:
+        return False
+
+    expected = _attachment_integrity_payload(attachment)
+    if signed_payload != expected:
+        return False
+    if expected["cid"] != canonical_cid(None, room_uuid=room.uuid):
+        return False
+    if expected["room_uuid"] != str(room.uuid):
+        return False
+    if expected["message_id"] is not None:
+        return expected["message_id"] == str(message.id)
+    return True
+
+
+def _resolve_attachment_binding(
+    *,
+    user,
+    cid: str | None,
+    message_id: str | None,
+    require_message_mutation: bool = False,
+) -> tuple[Room, Message | None, str]:
+    """Resolve and authorize the server-side room/message upload binding.
+
+    A room is always required.  A message may be omitted for the normal
+    upload-before-send flow, but a later commit may only bind that upload to a
+    message in the already-authorized room.
+    """
+
+    identity = ChatIdentity(user)
+    room = None
+    message = None
+
+    if cid:
+        room = get_room_or_404(cid)
+
+    if message_id:
+        message = _message_from_identifier(message_id)
+        if room is not None:
+            if not room.messages.filter(pk=message.pk).exists():
+                raise serializers.ValidationError({"message_id": "message not in room"})
+        else:
+            room = next(
+                (
+                    candidate
+                    for candidate in message.rooms.all()
+                    if user_has_room_access(user, candidate)
+                ),
+                None,
+            )
+
+    if room is None:
+        raise serializers.ValidationError({"cid": "cid or message_id required"})
+
+    if not user_has_room_access(user, room):
+        raise PermissionDenied()
+
+    if message is not None and require_message_mutation:
+        if not _can_attach_to_message(identity, message, room):
+            raise PermissionDenied()
+
+    return room, message, canonical_cid(None, room_uuid=room.uuid)
+
+
+def _find_authorized_attachment(
+    user, attachment_id: str
+) -> tuple[Message, Room, dict]:
+    """Find attachment metadata only through a room visible to ``user``.
+
+    The attachment metadata currently lives inside ``Message.attachments``.
+    Scoping the lookup to an authorized parent before returning anything keeps
+    missing and inaccessible attachment identifiers indistinguishable (404).
+    """
+
+    messages = Message.objects.exclude(attachments=[]).prefetch_related("rooms")
+    for message in messages.iterator(chunk_size=100):
+        attachment = message.get_attachment(attachment_id)
+        if attachment is None:
+            continue
+        for room in message.rooms.all():
+            if not user_has_room_access(user, room):
+                continue
+            if not _attachment_metadata_is_valid(
+                attachment, message=message, room=room
+            ):
+                continue
+            return message, room, attachment
+    raise Http404
 
 
 class SignAttachmentView(APIView):
@@ -1809,9 +1986,16 @@ class SignAttachmentView(APIView):
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
 
-        name = str(validated["name"]).strip()
+        name = safe_filename(str(validated["name"]).strip())
         if not name:
             return Response({"detail": "name required"}, status=400)
+
+        room, message, canonical = _resolve_attachment_binding(
+            user=request.user,
+            cid=validated.get("cid") or None,
+            message_id=validated.get("message_id") or None,
+            require_message_mutation=True,
+        )
 
         allowed_types = _attachment_allowed_types()
         content_type = str(validated["content_type"]).strip()
@@ -1852,13 +2036,15 @@ class SignAttachmentView(APIView):
 
         session_data = {
             "attachment_id": attachment_id,
+            "created_at": timezone.now().isoformat(),
             "name": name,
             "content_type": content_type,
             "size": size,
             "blob_name": blob_name,
             "user_id": identity.id,
-            "cid": validated.get("cid") or None,
-            "message_id": validated.get("message_id") or None,
+            "cid": canonical,
+            "room_uuid": room.uuid,
+            "message_id": str(message.id) if message is not None else None,
         }
         _store_upload_session(upload_id, session_data)
 
@@ -1909,8 +2095,7 @@ class CommitAttachmentView(APIView):
         if not session:
             return Response({"detail": "upload expired"}, status=400)
 
-        if session.get("user_id") != identity.id:
-            _delete_upload_session(upload_id)
+        if str(session.get("user_id")) != str(identity.id):
             return Response(status=403)
 
         blob_name = validated["blob_name"]
@@ -1924,7 +2109,52 @@ class CommitAttachmentView(APIView):
             _delete_upload_session(upload_id)
             return Response({"detail": "size mismatch"}, status=400)
 
-        checksum = str(validated["sha256"]).lower()
+        checksum = str(validated["sha256"]).strip().lower()
+
+        requested_cid = validated.get("cid") or None
+        if requested_cid:
+            requested_cid = canonical_cid(requested_cid)
+            if requested_cid != session.get("cid"):
+                _delete_upload_session(upload_id)
+                return Response({"detail": "cid mismatch"}, status=400)
+
+        requested_message_id = validated.get("message_id") or None
+        if requested_message_id:
+            requested_message_id = str(requested_message_id)
+        session_message_id = session.get("message_id") or None
+        if session_message_id:
+            session_message_id = str(session_message_id)
+        if session_message_id and requested_message_id:
+            if session_message_id != requested_message_id:
+                _delete_upload_session(upload_id)
+                return Response({"detail": "message mismatch"}, status=400)
+
+        message_id = session_message_id or requested_message_id
+        try:
+            room, message, canonical = _resolve_attachment_binding(
+                user=request.user,
+                cid=session.get("cid"),
+                message_id=message_id,
+                require_message_mutation=bool(message_id),
+            )
+        except (Http404, PermissionDenied, serializers.ValidationError):
+            _delete_upload_session(upload_id)
+            raise
+
+        if str(room.uuid) != str(session.get("room_uuid")):
+            _delete_upload_session(upload_id)
+            return Response({"detail": "room mismatch"}, status=400)
+
+        committed_attachment = session.get("committed_attachment")
+        if committed_attachment:
+            if checksum != str(committed_attachment.get("sha256", "")).lower():
+                return Response({"detail": "checksum mismatch"}, status=400)
+            if message is not None:
+                committed_attachment = (
+                    message.get_attachment(session["attachment_id"])
+                    or committed_attachment
+                )
+            return Response({"attachment": committed_attachment}, status=200)
 
         account = _get_service_account()
         if not account:
@@ -1953,95 +2183,147 @@ class CommitAttachmentView(APIView):
             _delete_upload_session(upload_id)
             return Response({"detail": "checksum mismatch"}, status=400)
 
-        message_id = session.get("message_id") or validated.get("message_id") or None
-        if session.get("message_id") and validated.get("message_id"):
-            if session["message_id"] != validated["message_id"]:
-                _delete_upload_session(upload_id)
-                return Response({"detail": "message mismatch"}, status=400)
-
-        cid_value = session.get("cid") or validated.get("cid") or None
-        if session.get("cid") and validated.get("cid"):
-            if session["cid"] != validated["cid"]:
-                _delete_upload_session(upload_id)
-                return Response({"detail": "cid mismatch"}, status=400)
-
         attachment_payload = {
             "id": session["attachment_id"],
             "name": session["name"],
-            "url": _public_blob_url(blob_name),
+            "filename": session["name"],
+            "url": _attachment_download_url(
+                request, session["attachment_id"], blob_name
+            ),
+            "blob": blob_name,
             "content_type": session["content_type"],
             "mime_type": session["content_type"],
             "size": expected_size,
             "sha256": checksum,
+            "uploaded_by": str(identity.id),
+            "message_id": str(message.id) if message is not None else None,
+            "cid": canonical,
+            "room_uuid": str(room.uuid),
         }
         attachment_payload = Message.ensure_attachment_scan_defaults(attachment_payload)
+        attachment_payload["integrity"] = _sign_attachment_metadata(
+            attachment_payload
+        )
 
-        if message_id:
-            try:
-                message = _message_from_identifier(message_id)
-            except Http404:
-                _delete_upload_session(upload_id)
-                raise
+        if message is not None:
+            attachment_added = False
+            with transaction.atomic():
+                message = Message.objects.select_for_update().get(pk=message.pk)
+                attachments = list(message.attachments or [])
+                attachment_exists = any(
+                    item.get("id") == attachment_payload["id"]
+                    for item in attachments
+                )
+                if not attachment_exists:
+                    attachments.append(attachment_payload)
+                    message.attachments = attachments
+                    message.save(update_fields=["attachments", "updated_at"])
+                    attachment_added = True
 
-            room = None
-            if cid_value:
+            if attachment_added:
                 try:
-                    canonical = canonical_cid(cid_value)
-                    _, room_uuid = canonical.split(":", 1)
-                except ValueError:
-                    _delete_upload_session(upload_id)
-                    return Response({"detail": "invalid cid"}, status=400)
-                room = get_object_or_404(Room, uuid=room_uuid)
-                if not room.messages.filter(pk=message.pk).exists():
-                    _delete_upload_session(upload_id)
-                    return Response({"detail": "message not in room"}, status=400)
-            else:
-                room = message.rooms.first()
+                    scan_attachment.delay(message.id, attachment_payload["id"])
+                except Exception:
+                    logger.exception("Failed to enqueue attachment scan")
 
-            if room and not _user_can_access_room(identity.user, room):
-                _delete_upload_session(upload_id)
-                return Response(status=403)
-
-            if message.sent_by != identity.username and not (
-                identity.is_staff
-                or identity.is_superuser
-                or (room and room.agent_id == identity.id)
-            ):
-                _delete_upload_session(upload_id)
-                return Response(status=403)
-
-            attachments = list(message.attachments or [])
-            attachments.append(attachment_payload)
-            message.attachments = attachments
-            message.save(update_fields=["attachments", "updated_at"])
-
-            try:
-                scan_attachment.delay(message.id, attachment_payload["id"])
-            except Exception:
-                logger.exception("Failed to enqueue attachment scan")
-
-            if room:
-                cid_for_event = canonical_cid(cid_value, room_uuid=room.uuid)
-            elif message.rooms.exists():
-                first_room = message.rooms.first()
-                cid_for_event = canonical_cid(cid_value, room_uuid=first_room.uuid)
-            else:
-                cid_for_event = None
-
-            if cid_for_event:
                 payload = MessageSerializer(message).data
                 _broadcast_to_cid(
-                    cid_for_event,
-                    {"type": "message.updated", "cid": cid_for_event, "message": payload},
+                    canonical,
+                    {"type": "message.updated", "cid": canonical, "message": payload},
                 )
 
-        _delete_upload_session(upload_id)
+        session["message_id"] = str(message.id) if message is not None else None
+        session["committed_at"] = timezone.now().isoformat()
+        session["committed_attachment"] = attachment_payload
+        _store_upload_session(upload_id, session)
 
         return Response({"attachment": attachment_payload}, status=201)
 
 
+class AttachmentDownloadView(APIView):
+    """Authorize an attachment through its parent room, then redirect to GCS."""
+
+    authentication_classes = [DevTokenOrJWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, attachment_id: str):
+        _message, _room, attachment = _find_authorized_attachment(
+            request.user, attachment_id
+        )
+
+        scan_status = attachment.get("scan_status") or Message.ATTACHMENT_SCAN_PENDING
+        if scan_status == Message.ATTACHMENT_SCAN_PENDING:
+            return Response(
+                {"detail": "attachment scan pending"},
+                status=status.HTTP_423_LOCKED,
+            )
+        if scan_status == Message.ATTACHMENT_SCAN_FLAGGED:
+            return Response(
+                {"detail": "attachment blocked"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if scan_status == Message.ATTACHMENT_SCAN_ERROR:
+            return Response(
+                {"detail": "attachment scan unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if scan_status != Message.ATTACHMENT_SCAN_CLEAN:
+            return Response(
+                {"detail": "attachment scan pending"},
+                status=status.HTTP_423_LOCKED,
+            )
+
+        blob_name = attachment.get("blob")
+        account = _get_service_account()
+        bucket = getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
+        if not blob_name or not account or not bucket:
+            return Response(
+                {"detail": "attachment unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            expires = int(
+                getattr(settings, "CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS", 120)
+            )
+        except (TypeError, ValueError):
+            expires = 120
+        expires = min(900, max(30, expires))
+
+        filename = safe_filename(
+            str(attachment.get("filename") or attachment.get("name") or "file")
+        )
+        try:
+            signed_url = generate_signed_url(
+                service_account=account,
+                method="GET",
+                bucket=bucket,
+                blob_name=str(blob_name),
+                expires=timedelta(seconds=expires),
+                extra_query={
+                    "response-content-disposition": f'attachment; filename="{filename}"'
+                },
+            )
+        except Exception:
+            logger.exception("Failed to sign attachment download URL")
+            return Response(
+                {"detail": "attachment unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        response = HttpResponseRedirect(signed_url)
+        response["Cache-Control"] = "private, no-store"
+        response["Pragma"] = "no-cache"
+        return response
+
+
 class AttachmentUploadView(APIView):
-    """Create a simple attachment record."""
+    """Create legacy metadata without exposing a public download URL.
+
+    This compatibility endpoint does not persist a blob.  Direct uploads use
+    the sign/commit flow; consequently this URL remains unavailable until the
+    metadata is attached to a message with a verified ``blob`` value.
+    """
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -2051,15 +2333,19 @@ class AttachmentUploadView(APIView):
         if not name or not str(name).strip():
             return Response({"error": "name required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        clean_name = str(name).strip()
+        identity = get_chat_identity(request)
+        clean_name = safe_filename(str(name).strip())
         attachment_id = f"att_{uuid.uuid4().hex}"
-        safe_name = quote(clean_name)
-        attachment_url = request.build_absolute_uri(
-            f"/attachments/{attachment_id}/{safe_name}"
-        )
+        attachment_url = _private_attachment_url(request, attachment_id)
 
         attachment_payload = Message.ensure_attachment_scan_defaults(
-            {"id": attachment_id, "name": clean_name, "url": attachment_url}
+            {
+                "id": attachment_id,
+                "name": clean_name,
+                "filename": clean_name,
+                "url": attachment_url,
+                "uploaded_by": str(identity.id),
+            }
         )
 
         return Response(

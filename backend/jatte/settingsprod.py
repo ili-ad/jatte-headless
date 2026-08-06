@@ -45,6 +45,37 @@ CORS_ALLOWED_ORIGINS = required_csv("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = False
 DJANGO_WS_ALLOWED_ORIGINS = required_csv("DJANGO_WS_ALLOWED_ORIGINS")
 
+# Attachments are private by default.  Setting the public-download flag to a
+# deliberate truthy value makes each returned storage URL a bearer credential;
+# see backend/SECURITY.md before enabling it.
+CHAT_ATTACHMENTS_BUCKET = os.environ.get("CHAT_ATTACHMENTS_BUCKET")
+CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO = os.environ.get(
+    "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_JSON"
+)
+CHAT_ATTACHMENTS_ALLOWED_TYPES = [
+    item.strip()
+    for item in os.environ.get("CHAT_ATTACHMENTS_ALLOWED_TYPES", "").split(",")
+    if item.strip()
+]
+CHAT_ATTACHMENTS_MAX_SIZE = int(
+    os.environ.get("CHAT_ATTACHMENTS_MAX_SIZE", "26214400")
+)
+CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS", "600")
+)
+CHAT_ATTACHMENTS_SIGN_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_SIGN_TTL_SECONDS", "600")
+)
+CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS", "120")
+)
+CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS = os.environ.get(
+    "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+CHAT_ATTACHMENTS_PUBLIC_BASE_URL = os.environ.get(
+    "CHAT_ATTACHMENTS_PUBLIC_BASE_URL"
+)
+
 # The reverse proxy terminates TLS and forwards the original scheme. This makes
 # request.is_secure() reliable for the legacy websocket URL compatibility API.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
