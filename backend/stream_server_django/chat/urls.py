@@ -48,6 +48,7 @@ from .api_views import (
     MuteUserView,
     UnmuteUserView,
     AttachmentUploadView,
+    AttachmentDownloadView,
     CommitAttachmentView,
     SearchMessagesView,
     ReminderListCreateView,
@@ -268,6 +269,11 @@ urlpatterns = [
     path("api/attachments/", AttachmentUploadView.as_view(), name="attachments"),
     # Alias for frontend operationId uploadAttachment (POST /attachments/)
     path("attachments/", AttachmentUploadView.as_view(), name="uploadAttachment"),
+    path(
+        "api/attachments/<str:attachment_id>/download/",
+        AttachmentDownloadView.as_view(),
+        name="attachment-download",
+    ),
     path(
         "api/messages/<str:message_id>/flag/",
         MessageFlagView.as_view(),

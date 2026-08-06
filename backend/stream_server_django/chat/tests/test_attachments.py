@@ -14,7 +14,9 @@ from django.contrib.auth import get_user_model
 from stream_server_django.chat.models import Channel, Message, Room
 User = get_user_model()
 
-@override_settings(ROOT_URLCONF="chat.urls")
+@override_settings(
+    ROOT_URLCONF="stream_server_django.chat.tests.attachment_test_urls"
+)
 class AttachmentAPITests(APITestCase):
     @classmethod
     def setUpClass(cls):
@@ -46,6 +48,8 @@ class AttachmentAPITests(APITestCase):
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024 * 1024,
             "CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS": 600,
             "CHAT_ATTACHMENTS_SIGN_TTL_SECONDS": 600,
+            "CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS": 120,
+            "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS": False,
             "CHAT_ATTACHMENTS_PUBLIC_BASE_URL": "https://storage.googleapis.com/test-bucket",
         }
         base.update(overrides)
@@ -59,7 +63,11 @@ class AttachmentAPITests(APITestCase):
         self.assertIn("id", res.data["attachment"])
         self.assertEqual(res.data["attachment"]["name"], "file1")
         self.assertIn("url", res.data["attachment"])
-        self.assertTrue(res.data["attachment"]["url"].startswith("http://testserver/attachments/"))
+        self.assertTrue(
+            res.data["attachment"]["url"].startswith(
+                "http://testserver/api/attachments/"
+            )
+        )
 
     def test_upload_attachment_alias(self):
         token = self.make_token()
@@ -92,6 +100,10 @@ class AttachmentAPITests(APITestCase):
 
     def test_sign_and_commit_direct_upload(self):
         token = self.make_token()
+        room = Room.objects.create(uuid="test-room", client=self.user.username, agent=self.user)
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
+        message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
+        room.messages.add(message)
         with override_settings(**self._direct_upload_settings()):
             sign_res = self.client.post(
                 "/api/attachments/sign/",
@@ -100,6 +112,7 @@ class AttachmentAPITests(APITestCase):
                     "content_type": "image/png",
                     "size": 512,
                     "cid": "messaging:test-room",
+                    "message_id": str(message.id),
                 },
                 format="json",
                 HTTP_AUTHORIZATION=f"Bearer {token}",
@@ -108,14 +121,12 @@ class AttachmentAPITests(APITestCase):
             upload_id = sign_res.data["upload_id"]
             blob_name = sign_res.data["blob_name"]
 
-            room = Room.objects.create(uuid="test-room", client=self.user.username, agent=self.user)
-            channel = Channel.objects.create(uuid=room.uuid, client=room.client)
-            message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
-            room.messages.add(message)
-
             checksum = "a" * 64
-            with patch("chat.api_views.download_blob", return_value=(checksum, 512)), patch(
-                "chat.api_views._broadcast_to_cid"
+            with patch(
+                "stream_server_django.chat.api_views.download_blob",
+                return_value=(checksum, 512),
+            ), patch(
+                "stream_server_django.chat.api_views._broadcast_to_cid"
             ) as mock_broadcast:
                 commit_res = self.client.post(
                     "/api/attachments/commit/",
@@ -135,7 +146,10 @@ class AttachmentAPITests(APITestCase):
             attachment = commit_res.data["attachment"]
             self.assertEqual(attachment["name"], "photo.png")
             self.assertEqual(attachment["sha256"], checksum)
-            self.assertTrue(attachment["url"].endswith(blob_name))
+            self.assertEqual(
+                attachment["url"],
+                f"http://testserver/api/attachments/{attachment['id']}/download/",
+            )
             message.refresh_from_db()
             self.assertEqual(len(message.attachments), 1)
             self.assertEqual(message.attachments[0]["id"], attachment["id"])
@@ -145,6 +159,10 @@ class AttachmentAPITests(APITestCase):
 
     def test_commit_rejects_checksum_mismatch(self):
         token = self.make_token()
+        room = Room.objects.create(uuid="test-room2", client=self.user.username, agent=self.user)
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
+        message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
+        room.messages.add(message)
         with override_settings(**self._direct_upload_settings()):
             sign_res = self.client.post(
                 "/api/attachments/sign/",
@@ -152,6 +170,8 @@ class AttachmentAPITests(APITestCase):
                     "name": "photo.png",
                     "content_type": "image/png",
                     "size": 256,
+                    "cid": "messaging:test-room2",
+                    "message_id": str(message.id),
                 },
                 format="json",
                 HTTP_AUTHORIZATION=f"Bearer {token}",
@@ -160,12 +180,10 @@ class AttachmentAPITests(APITestCase):
             upload_id = sign_res.data["upload_id"]
             blob_name = sign_res.data["blob_name"]
 
-            room = Room.objects.create(uuid="test-room2", client=self.user.username, agent=self.user)
-            channel = Channel.objects.create(uuid=room.uuid, client=room.client)
-            message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
-            room.messages.add(message)
-
-            with patch("chat.api_views.download_blob", return_value=("b" * 64, 256)):
+            with patch(
+                "stream_server_django.chat.api_views.download_blob",
+                return_value=("b" * 64, 256),
+            ):
                 commit_res = self.client.post(
                     "/api/attachments/commit/",
                     {

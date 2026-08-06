@@ -28,9 +28,18 @@ class MessageAttachmentSerializer(serializers.Serializer):
 
     id = serializers.CharField()
     name = serializers.CharField()
+    filename = serializers.CharField(required=False)
     url = serializers.URLField()
+    blob = serializers.CharField(required=False)
     size = serializers.IntegerField(required=False)
+    content_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mime_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    sha256 = serializers.CharField(required=False)
+    uploaded_by = serializers.CharField(required=False)
+    message_id = serializers.CharField(required=False, allow_null=True)
+    cid = serializers.CharField(required=False)
+    room_uuid = serializers.CharField(required=False)
+    integrity = serializers.CharField(required=False)
     scan_status = serializers.CharField(read_only=True)
     scan_label = serializers.CharField(read_only=True, allow_blank=True, allow_null=True)
 
