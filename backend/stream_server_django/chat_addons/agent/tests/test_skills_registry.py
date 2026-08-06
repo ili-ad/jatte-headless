@@ -1,23 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parents[4]
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.jatte.settings")
-
-import django
-
-django.setup()
-
-from django.core.management import call_command
-
-call_command("migrate", run_syncdb=True, verbosity=0)
-
 import jwt
 from django.conf import settings
 from django.urls import reverse
@@ -28,6 +10,7 @@ from rest_framework.test import APITestCase
 
 from django.contrib.auth import get_user_model
 
+from stream_server_django.chat.models import Room
 from stream_server_django.chat_addons.agent import registry
 from stream_server_django.chat_addons.agent.models import AgentRoomPolicy
 User = get_user_model()
@@ -84,6 +67,11 @@ class SkillPolicyViewTests(APITestCase):
         if not self.operator.has_usable_password():
             self.operator.set_password("secret")
             self.operator.save(update_fields=["password"])
+        if not self.operator.is_staff:
+            self.operator.is_staff = True
+            self.operator.save(update_fields=["is_staff"])
+        Room.objects.get_or_create(uuid="room-a", defaults={"client": "stream"})
+        Room.objects.get_or_create(uuid="room-b", defaults={"client": "stream"})
 
     def make_token(self) -> str:
         return jwt.encode(

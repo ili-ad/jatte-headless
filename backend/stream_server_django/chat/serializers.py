@@ -131,6 +131,8 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     def validate_attachments(self, value: list[dict]) -> list[dict]:
+        if not value:
+            return []
         room = self.context.get("attachment_room")
         request = self.context.get("request")
         user = self.context.get("attachment_user") or getattr(request, "user", None)

@@ -9,14 +9,17 @@ from django.db import models
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.common.identity import get_chat_identity
-from stream_server_django.chat_addons.permissions import IsChatStaff
+from stream_server_django.chat_addons.permissions import IsStaffOrService
+from stream_server_django.chat_addons.service_auth import (
+    InternalServiceAuthentication,
+    is_internal_service_request,
+)
 
 from stream_server_django.chat_addons.admin_console.models import MessageIntake
 
@@ -29,8 +32,11 @@ ESCALATION_COOLDOWN_SEC = getattr(settings, "ESCALATION_COOLDOWN_SEC", 300)
 
 
 class NotificationsBaseView(APIView):
-    authentication_classes: List[type[BaseAuthentication]] = [DevTokenOrJWTAuthentication]
-    permission_classes = [IsAuthenticated, IsChatStaff]
+    authentication_classes: List[type[BaseAuthentication]] = [
+        InternalServiceAuthentication,
+        DevTokenOrJWTAuthentication,
+    ]
+    permission_classes = [IsStaffOrService]
 
 
 class IntakeSummaryView(NotificationsBaseView):
@@ -83,14 +89,18 @@ def _active_admin_exists(now: datetime) -> bool:
     return AdminPresence.objects.filter(last_seen_at__gte=cutoff).exists()
 
 
-def _notification_recipients(request_user) -> Iterable[settings.AUTH_USER_MODEL]:
+def _notification_recipients(request_user=None) -> Iterable[settings.AUTH_USER_MODEL]:
     UserModel = get_user_model()
     staff = list(
         UserModel.objects.filter(
             models.Q(is_staff=True) | models.Q(is_superuser=True)
         ).distinct()
     )
-    if request_user.is_authenticated and request_user not in staff:
+    if (
+        request_user is not None
+        and request_user.is_authenticated
+        and request_user not in staff
+    ):
         staff.append(request_user)
     return staff
 
@@ -123,7 +133,9 @@ class EscalateRoomView(NotificationsBaseView):
         service = self.service_class()
 
         note_text = f"[Escalation] {cid} – {reason}"
-        recipients = _notification_recipients(user)
+        recipients = _notification_recipients(
+            None if is_internal_service_request(request) else user
+        )
         notifications = service.create_notification_item(text=note_text, users=recipients)
         notification = notifications[0] if notifications else None
 
