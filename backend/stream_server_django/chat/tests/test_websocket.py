@@ -5,7 +5,7 @@ from channels.testing import WebsocketCommunicator
 from django.conf import settings
 from django.test import override_settings
 from jatte.asgi import application
-from stream_server_django.chat.models import Channel, Message
+from stream_server_django.chat.models import Channel, Message, Room
 
 
 @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
@@ -13,8 +13,13 @@ from stream_server_django.chat.models import Channel, Message
 @pytest.mark.django_db(transaction=True)
 async def test_message_round_trip():
     channel = await sync_to_async(Channel.objects.create)(uuid="r1", client="c1")
+    await sync_to_async(Room.objects.create)(uuid="r1", client="u1")
     token = jwt.encode({"sub": "u1", "email": "u1@example.com"}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
-    communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/chat/?token={token}",
+        headers=[(b"origin", b"http://localhost:3000")],
+    )
     connected, _ = await communicator.connect()
     assert connected
 
@@ -40,10 +45,23 @@ async def test_message_round_trip():
 @pytest.mark.django_db(transaction=True)
 async def test_two_clients_fanout():
     channel = await sync_to_async(Channel.objects.create)(uuid="r2", client="c1")
+    room = await sync_to_async(Room.objects.create)(uuid="r2", client="u1")
+    member_message = await sync_to_async(Message.objects.create)(
+        channel=channel, body="member seed", sent_by="u2"
+    )
+    await sync_to_async(room.messages.add)(member_message)
     token1 = jwt.encode({"sub": "u1", "email": "u1@example.com"}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
     token2 = jwt.encode({"sub": "u2", "email": "u2@example.com"}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
-    c1 = WebsocketCommunicator(application, f"/ws/chat/?token={token1}")
-    c2 = WebsocketCommunicator(application, f"/ws/chat/?token={token2}")
+    c1 = WebsocketCommunicator(
+        application,
+        f"/ws/chat/?token={token1}",
+        headers=[(b"origin", b"http://localhost:3000")],
+    )
+    c2 = WebsocketCommunicator(
+        application,
+        f"/ws/chat/?token={token2}",
+        headers=[(b"origin", b"http://localhost:3000")],
+    )
     assert (await c1.connect())[0]
     assert (await c2.connect())[0]
 
@@ -63,5 +81,3 @@ async def test_two_clients_fanout():
 
     await c1.disconnect()
     await c2.disconnect()
-
-
