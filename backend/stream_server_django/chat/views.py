@@ -16,6 +16,7 @@ from stream_server_django.accounts_supabase.authentication import (
     DevTokenOrJWTAuthentication,
 )
 from stream_server_django.common.auth_utils import get_chat_authentication_classes
+from stream_server_django.rooms.utils import require_room_access
 
 from .mixins import RoomFromCIDMixin
 from .serializers import RoomMemberOut
@@ -48,8 +49,9 @@ class RoomMembersCIDView(RoomFromCIDMixin, APIView):
     max_limit = 100
 
     def get(self, request, cid: str):
-        limit, offset = self._parse_pagination(request.query_params)
         room = self.get_room(cid)
+        require_room_access(request.user, room)
+        limit, offset = self._parse_pagination(request.query_params)
         members = self._collect_members(room)
         page = members[offset : offset + limit if limit else None]
         serializer = self.serializer_class(page, many=True)
@@ -179,4 +181,3 @@ except ImportError:  # pragma: no cover - module not available during certain te
     _api_views = None
 else:  # pragma: no cover - mutation to maintain old import paths
     _api_views.RoomMembersCIDView = RoomMembersCIDView
-
