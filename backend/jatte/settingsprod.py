@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import os
 
+from .security_settings import required_csv, required_secret
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,10 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%v$gh67imza=0$i%pky!jxpk*@%t+x-w$lw5lmwbvj)+#p=r#g'
-
-SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', 'changeme')
+# Production never uses development defaults: configuration errors should stop
+# startup before Django serves a request.
+SECRET_KEY = required_secret("DJANGO_SECRET_KEY")
+SUPABASE_JWT_SECRET = required_secret("SUPABASE_JWT_SECRET")
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_JWKS_URL = (
+    f"{SUPABASE_URL.rstrip('/')}/auth/v1/keys" if SUPABASE_URL else None
+)
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "adapter_http")
 SMS_PROVIDER_BASE_URL = os.environ.get("SMS_PROVIDER_BASE_URL", "")
 SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")
@@ -34,7 +40,18 @@ OPENPHONE_BASE_URL = os.environ.get("OPENPHONE_BASE_URL", "https://api.openphone
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['jatte.com', '64.226.118.249']
+ALLOWED_HOSTS = required_csv("DJANGO_ALLOWED_HOSTS")
+CORS_ALLOWED_ORIGINS = required_csv("DJANGO_CORS_ALLOWED_ORIGINS")
+CORS_ALLOW_CREDENTIALS = False
+DJANGO_WS_ALLOWED_ORIGINS = required_csv("DJANGO_WS_ALLOWED_ORIGINS")
+
+# The reverse proxy terminates TLS and forwards the original scheme. This makes
+# request.is_secure() reliable for the legacy websocket URL compatibility API.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
@@ -60,6 +77,7 @@ CHANNEL_LAYERS = {
 
 INSTALLED_APPS = [
     'daphne',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -74,6 +92,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

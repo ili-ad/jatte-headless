@@ -2,6 +2,7 @@
 import os
 import django
 
+from django.conf import settings
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import OriginValidator
@@ -19,13 +20,7 @@ from stream_server_django.chat.routing import websocket_urlpatterns
 django_asgi_app = get_asgi_application()
 
 allowed_ws_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    *[
-        origin.strip()
-        for origin in os.environ.get("DJANGO_WS_ALLOWED_ORIGINS", "").split(",")
-        if origin.strip()
-    ],
+    *settings.DJANGO_WS_ALLOWED_ORIGINS,
 ]
 
 application = ProtocolTypeRouter(
@@ -37,4 +32,3 @@ application = ProtocolTypeRouter(
         ),
     }
 )
-

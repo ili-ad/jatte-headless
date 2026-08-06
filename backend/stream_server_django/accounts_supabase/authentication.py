@@ -16,8 +16,15 @@ from rest_framework.authentication import SessionAuthentication
 User = get_user_model()
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """Deprecated compatibility name; session auth always enforces CSRF.
+
+    API requests use Supabase Bearer JWTs.  Keeping this class CSRF-safe avoids
+    accidentally turning a CSRF-exempt compatibility endpoint into a cookie
+    authenticated state-changing endpoint.
+    """
+
     def enforce_csrf(self, request):
-        return  # Explicitly bypass CSRF validation
+        return super().enforce_csrf(request)
 
 class SupabaseJWTAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
@@ -88,7 +95,12 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         return (user, token)
 
 class DevTokenOrJWTAuthentication(SupabaseJWTAuthentication):
-    """Legacy alias without dev-token support."""
+    """Legacy name for Supabase Bearer JWT authentication only.
+
+    It intentionally ignores development identity headers (including
+    ``X-User-ID``) in every settings mode.  Do not add impersonation or
+    development-token support here.
+    """
 
     def authenticate(self, request):
         return super().authenticate(request)
