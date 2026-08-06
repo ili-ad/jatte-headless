@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Count, Max, OuterRef, Subquery
-from django.http import Http404
+from django.db.models import Count, Max, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -12,7 +11,7 @@ from rest_framework.views import APIView
 
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 
-from .api_views import _message_from_identifier, _user_can_access_room
+from .api_views import _message_and_room_for_user, _user_can_access_room
 from .models import Message, Room
 from .serializers import MessageSerializer, ThreadPreviewSerializer
 
@@ -45,13 +44,17 @@ class ThreadListView(APIView):
         cursor_param = request.query_params.get("cursor")
 
         queryset = (
-            room.messages.filter(replies__isnull=False)
+            room.messages.filter(replies__rooms=room)
             .distinct()
             .annotate(
-                reply_count=Count("replies", distinct=True),
-                last_reply_at=Max("replies__created_at"),
+                reply_count=Count(
+                    "replies", filter=Q(replies__rooms=room), distinct=True
+                ),
+                last_reply_at=Max(
+                    "replies__created_at", filter=Q(replies__rooms=room)
+                ),
                 last_reply_id=Subquery(
-                    Message.objects.filter(reply_to=OuterRef("pk"))
+                    Message.objects.filter(reply_to=OuterRef("pk"), rooms=room)
                     .order_by("-created_at", "-id")
                     .values("id")[:1]
                 ),
@@ -73,7 +76,9 @@ class ThreadListView(APIView):
         reply_ids = [getattr(item, "last_reply_id", None) for item in page]
         reply_map = {
             reply.id: reply
-            for reply in Message.objects.filter(id__in=[r for r in reply_ids if r])
+            for reply in Message.objects.filter(
+                id__in=[r for r in reply_ids if r], rooms=room
+            )
         }
 
         serializer = ThreadPreviewSerializer(
@@ -103,17 +108,12 @@ class MessageRepliesView(APIView):
     max_limit = 100
 
     def get(self, request, message_id: str, *args: Any, **kwargs: Any):
-        parent = _message_from_identifier(message_id)
-        room = Room.objects.filter(uuid=parent.channel.uuid).first()
-        if room is None or not room.messages.filter(pk=parent.pk).exists():
-            raise Http404
-        if not _user_can_access_room(request.user, room):
-            raise PermissionDenied()
+        parent, room = _message_and_room_for_user(request.user, message_id)
 
         limit = self._parse_limit(request.query_params.get("limit", self.default_limit))
         before_param = request.query_params.get("before")
 
-        queryset = parent.replies.order_by("-id")
+        queryset = parent.replies.filter(rooms=room).order_by("-id")
         if before_param:
             try:
                 before_id = int(before_param)
