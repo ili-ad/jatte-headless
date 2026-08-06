@@ -1,10 +1,11 @@
 import jwt
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
 from django.test import TransactionTestCase, override_settings
 
 from jatte.asgi import application
+from stream_server_django.chat.models import Room
 
 
 @override_settings(
@@ -16,7 +17,9 @@ class WebsocketRateLimitTests(TransactionTestCase):
     databases = {"default"}
 
     def test_websocket_rate_limit(self):
-        with self.assertLogs("chat.consumers", level="WARNING") as captured:
+        with self.assertLogs(
+            "stream_server_django.chat.consumers", level="WARNING"
+        ) as captured:
             async_to_sync(self._exercise_websocket)()
 
         messages = "\n".join(captured.output)
@@ -25,12 +28,17 @@ class WebsocketRateLimitTests(TransactionTestCase):
         assert "ws-user" in messages
 
     async def _exercise_websocket(self) -> None:
+        await sync_to_async(Room.objects.create)(uuid="rate-limit", client="ws-user")
         token = jwt.encode(
             {"sub": "ws-user", "email": "ws@example.com"},
             settings.SUPABASE_JWT_SECRET,
             algorithm="HS256",
         )
-        communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
+        communicator = WebsocketCommunicator(
+            application,
+            f"/ws/chat/?token={token}",
+            headers=[(b"origin", b"http://localhost:3000")],
+        )
 
         connected, _ = await communicator.connect()
         assert connected

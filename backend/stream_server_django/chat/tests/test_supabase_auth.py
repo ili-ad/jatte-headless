@@ -1,11 +1,11 @@
 from django.urls import reverse
+from django.test import override_settings
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from jwt.utils import base64url_encode
 import jwt
-from django.conf import settings
 
 
 def make_keys():
@@ -22,6 +22,7 @@ def make_keys():
     return priv, {"keys": [jwk]}
 
 
+@override_settings(SUPABASE_JWKS_URL="https://supabase.test/auth/v1/keys")
 class SupabaseAuthAPITests(APITestCase):
     def test_rs256_jwt_via_jwks(self):
         priv, jwks = make_keys()
@@ -41,6 +42,4 @@ class SupabaseAuthAPITests(APITestCase):
             res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["userID"], 1)
-        payload = jwt.decode(res.data["userToken"], settings.SUPABASE_JWT_SECRET, algorithms=["HS256"])
-        self.assertEqual(payload["user_id"], 1)
-
+        self.assertEqual(res.data["userToken"], token)

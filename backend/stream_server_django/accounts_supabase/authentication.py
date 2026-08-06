@@ -4,9 +4,7 @@ import jwt
 from jwt import PyJWKClient
 from jwt.exceptions import (
     PyJWTError,
-    InvalidTokenError,
     ExpiredSignatureError,
-    InvalidSignatureError,
 )
 from django.conf import settings
 from rest_framework import authentication, exceptions
@@ -14,6 +12,66 @@ from django.contrib.auth import get_user_model
 from rest_framework.authentication import SessionAuthentication
 
 User = get_user_model()
+
+
+def decode_supabase_token(token: str) -> dict:
+    """Validate a Supabase JWT using the same rules for HTTP and WebSockets."""
+
+    try:
+        algorithm = jwt.get_unverified_header(token).get("alg")
+        if algorithm == "HS256":
+            return jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+                leeway=30,
+            )
+        if algorithm == "RS256":
+            jwks_url = settings.SUPABASE_JWKS_URL
+            if not jwks_url:
+                raise exceptions.AuthenticationFailed("Invalid token")
+            signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False},
+                leeway=30,
+            )
+        raise exceptions.AuthenticationFailed("Invalid token algorithm")
+    except ExpiredSignatureError:
+        raise exceptions.AuthenticationFailed("Token expired")
+    except PyJWTError as exc:
+        raise exceptions.AuthenticationFailed(f"Invalid token: {exc}") from exc
+
+
+def resolve_supabase_user(decoded: dict):
+    """Resolve validated JWT claims to the shared Django user identity."""
+
+    uid = decoded.get("sub")
+    if not uid:
+        raise exceptions.AuthenticationFailed("No 'sub' claim found")
+
+    email = decoded.get("email") or ""
+    user, created = User.objects.get_or_create(
+        username=uid,
+        defaults={"email": email, "supabase_uid": uid},
+    )
+    if not created and not user.supabase_uid:
+        user.supabase_uid = uid
+        user.save(update_fields=["supabase_uid"])
+    if email and not user.email:
+        user.email = email
+        user.save(update_fields=["email"])
+    return user
+
+
+def authenticate_supabase_token(token: str):
+    """Validate ``token`` and return the same user REST authentication uses."""
+
+    return resolve_supabase_user(decode_supabase_token(token))
+
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):
     """Deprecated compatibility name; session auth always enforces CSRF.
@@ -39,57 +97,7 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         except ValueError:
             return None
 
-        try:
-            decoded = jwt.decode(
-                token,
-                settings.SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
-                options={"verify_aud": False},
-                leeway=30,   # allow 30-second clock skew
-            )
-        except ExpiredSignatureError:
-            raise exceptions.AuthenticationFailed("Token expired")
-        except InvalidSignatureError:
-            jwks_url = settings.SUPABASE_JWKS_URL
-            if not jwks_url:
-                raise exceptions.AuthenticationFailed("Invalid token")
-            try:
-                signing_key = PyJWKClient(jwks_url).get_signing_key_from_jwt(token)
-                decoded = jwt.decode(
-                    token,
-                    signing_key.key,
-                    algorithms=["RS256"],
-                    options={"verify_aud": False},
-                )
-            except PyJWTError as e:
-                raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
-        except PyJWTError as e:
-            raise exceptions.AuthenticationFailed(f"Invalid token: {e}")
-
-        uid = decoded.get("sub")
-        if not uid:
-            raise exceptions.AuthenticationFailed("No 'sub' claim found")
-
-        email = decoded.get("email") or ""  # anonymous users often have empty email
-        # email = decoded.get("email")
-        # if not email:
-        #     raise exceptions.AuthenticationFailed("No 'email' claim found")
-
-        # Use get_or_create, and ensure supabase_uid is set
-        user, created = User.objects.get_or_create(
-            username=uid,
-            defaults={"email": email, "supabase_uid": uid},
-        )
-        # ensure supabase_uid set
-        if not created and not user.supabase_uid:
-            user.supabase_uid = uid
-            user.save(update_fields=["supabase_uid"])
-
-        # OPTIONAL: if the user later becomes “real” (email login) and email arrives,
-        # populate it once.
-        if email and not user.email:
-            user.email = email
-            user.save(update_fields=["email"])
+        user = authenticate_supabase_token(token)
 
         # Return the original JWT so views can forward it if needed
         return (user, token)
