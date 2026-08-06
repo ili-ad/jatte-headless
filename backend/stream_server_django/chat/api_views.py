@@ -2,7 +2,7 @@ import json
 import logging
 import uuid
 from datetime import timedelta
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import redis
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
@@ -11,7 +11,6 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
@@ -19,7 +18,6 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from django.utils import timezone
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -56,6 +54,12 @@ except Exception:  # pragma: no cover - optional dependency in certain test envs
 logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
+from .attachment_security import (
+    attachment_download_url as _attachment_download_url,
+    attachment_integrity_is_valid,
+    private_attachment_url as _private_attachment_url,
+    sign_attachment_metadata as _sign_attachment_metadata,
+)
 from .models import (
     Channel,
     Draft,
@@ -370,6 +374,16 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
             return []
         return super().get_throttles()
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update(
+            {
+                "attachment_room": self.get_room(),
+                "attachment_user": self.request.user,
+            }
+        )
+        return context
+
     def get_room(self):
         cid = self.kwargs.get("cid")
         if cid is not None:
@@ -444,12 +458,13 @@ class RoomMessageListCreateView(RoomFromCIDMixin, generics.ListCreateAPIView):
         )
 
         channel, _ = Channel.objects.get_or_create(uuid=room.uuid, client=room.client)
-        serializer.save(
-            channel=channel,
-            sent_by=identity.username,
-            hidden=decision in {"hold", "reject"},
-        )
-        room.messages.add(serializer.instance)
+        with transaction.atomic():
+            serializer.save(
+                channel=channel,
+                sent_by=identity.username,
+                hidden=decision in {"hold", "reject"},
+            )
+            room.messages.add(serializer.instance)
         Draft.objects.filter(user=user, room=room).delete()
         try:
             r = redis.Redis(
@@ -548,7 +563,11 @@ class RoomMessageDetailView(RoomFromCIDMixin, APIView):
             message,
             data=request.data,
             partial=True,
-            context={"request": request},
+            context={
+                "request": request,
+                "attachment_room": room,
+                "attachment_user": identity.user,
+            },
         )
         update_serializer.is_valid(raise_exception=True)
         update_serializer.save()
@@ -835,7 +854,11 @@ class MessageDetailView(APIView):
             msg,
             data=request.data,
             partial=True,
-            context={"request": request},
+            context={
+                "request": request,
+                "attachment_room": room,
+                "attachment_user": request.user,
+            },
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -1779,38 +1802,6 @@ def _attachment_max_size() -> int:
         return default
 
 
-def _attachments_public_downloads_enabled() -> bool:
-    """Return whether attachment metadata may expose storage URLs directly."""
-
-    configured = getattr(settings, "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS", False)
-    if isinstance(configured, str):
-        return configured.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(configured)
-
-
-def _public_blob_url(blob_name: str) -> str:
-    """Build a public-by-link URL when that deployment policy is enabled."""
-
-    base = getattr(settings, "CHAT_ATTACHMENTS_PUBLIC_BASE_URL", None)
-    if base:
-        return f"{base.rstrip('/')}/{blob_name}"
-    bucket = getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
-    if bucket:
-        return f"https://storage.googleapis.com/{bucket}/{quote(blob_name, safe='/~')}"
-    return blob_name
-
-
-def _private_attachment_url(request, attachment_id: str) -> str:
-    path = reverse("attachment-download", kwargs={"attachment_id": attachment_id})
-    return request.build_absolute_uri(path)
-
-
-def _attachment_download_url(request, attachment_id: str, blob_name: str) -> str:
-    if _attachments_public_downloads_enabled():
-        return _public_blob_url(blob_name)
-    return _private_attachment_url(request, attachment_id)
-
-
 def _identity_message_author(identity: ChatIdentity, message: Message) -> bool:
     identifiers = {
         str(value)
@@ -1827,63 +1818,6 @@ def _can_attach_to_message(identity: ChatIdentity, message: Message, room: Room)
         or identity.is_superuser
         or room.agent_id == identity.id
     )
-
-
-_ATTACHMENT_SIGNING_SALT = "jatte.chat.attachment-metadata.v1"
-
-
-def _attachment_integrity_payload(attachment: dict) -> dict:
-    """Return the immutable attachment fields covered by the server HMAC."""
-
-    return {
-        "id": str(attachment.get("id") or ""),
-        "blob": str(attachment.get("blob") or ""),
-        "content_type": str(attachment.get("content_type") or ""),
-        "size": int(attachment.get("size") or 0),
-        "sha256": str(attachment.get("sha256") or "").lower(),
-        "uploaded_by": str(attachment.get("uploaded_by") or ""),
-        "message_id": (
-            str(attachment["message_id"])
-            if attachment.get("message_id") not in (None, "")
-            else None
-        ),
-        "cid": str(attachment.get("cid") or ""),
-        "room_uuid": str(attachment.get("room_uuid") or ""),
-    }
-
-
-def _sign_attachment_metadata(attachment: dict) -> str:
-    return signing.dumps(
-        _attachment_integrity_payload(attachment),
-        salt=_ATTACHMENT_SIGNING_SALT,
-        compress=True,
-    )
-
-
-def _attachment_metadata_is_valid(
-    attachment: dict, *, message: Message, room: Room
-) -> bool:
-    integrity = attachment.get("integrity")
-    if not integrity:
-        return False
-    try:
-        signed_payload = signing.loads(
-            integrity,
-            salt=_ATTACHMENT_SIGNING_SALT,
-        )
-    except signing.BadSignature:
-        return False
-
-    expected = _attachment_integrity_payload(attachment)
-    if signed_payload != expected:
-        return False
-    if expected["cid"] != canonical_cid(None, room_uuid=room.uuid):
-        return False
-    if expected["room_uuid"] != str(room.uuid):
-        return False
-    if expected["message_id"] is not None:
-        return expected["message_id"] == str(message.id)
-    return True
 
 
 def _resolve_attachment_binding(
@@ -1953,8 +1887,11 @@ def _find_authorized_attachment(
         for room in message.rooms.all():
             if not user_has_room_access(user, room):
                 continue
-            if not _attachment_metadata_is_valid(
-                attachment, message=message, room=room
+            if not attachment_integrity_is_valid(
+                attachment,
+                message=message,
+                room=room,
+                allow_unbound=False,
             ):
                 continue
             return message, room, attachment
@@ -2345,6 +2282,7 @@ class AttachmentUploadView(APIView):
                 "filename": clean_name,
                 "url": attachment_url,
                 "uploaded_by": str(identity.id),
+                "legacy_placeholder": True,
             }
         )
 

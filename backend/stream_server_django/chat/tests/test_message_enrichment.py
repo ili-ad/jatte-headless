@@ -7,7 +7,9 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 
-@override_settings(ROOT_URLCONF="chat.urls")
+@override_settings(
+    ROOT_URLCONF="stream_server_django.chat.tests.attachment_test_urls"
+)
 class MessageEnrichmentTests(APITestCase):
     def setUp(self):
         User = get_user_model()
@@ -33,8 +35,8 @@ class MessageEnrichmentTests(APITestCase):
             },
         )
 
-    @patch("chat.api_views._broadcast_to_cid")
-    def test_enrich_with_attachment_broadcasts_update(self, mock_broadcast):
+    @patch("stream_server_django.chat.api_views._broadcast_to_cid")
+    def test_enrich_rejects_unsigned_attachment_metadata(self, mock_broadcast):
         self.client.force_authenticate(self.user)
         payload = {
             "attachments": [
@@ -48,16 +50,12 @@ class MessageEnrichmentTests(APITestCase):
 
         response = self.client.patch(self._url(), payload, format="json")
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.message.refresh_from_db()
-        self.assertEqual(self.message.attachments, payload["attachments"])
-        mock_broadcast.assert_called_once()
-        cid, event = mock_broadcast.call_args[0]
-        self.assertEqual(cid, f"messaging:{self.room.uuid}")
-        self.assertEqual(event["type"], "message.updated")
-        self.assertEqual(event["message"]["attachments"], payload["attachments"])
+        self.assertEqual(self.message.attachments, [])
+        mock_broadcast.assert_not_called()
 
-    @patch("chat.api_views._broadcast_to_cid")
+    @patch("stream_server_django.chat.api_views._broadcast_to_cid")
     def test_enrich_with_preview_broadcasts_update(self, mock_broadcast):
         self.client.force_authenticate(self.user)
         payload = {
@@ -96,6 +94,15 @@ class MessageEnrichmentTests(APITestCase):
 
     def test_returns_404_for_message_outside_room(self):
         other_room = Room.objects.create(uuid="room-2", client="client-2")
+        other_channel = Channel.objects.create(
+            uuid=other_room.uuid, client=other_room.client
+        )
+        membership_message = Message.objects.create(
+            channel=other_channel,
+            body="room access",
+            sent_by=self.user.username,
+        )
+        other_room.messages.add(membership_message)
         self.client.force_authenticate(self.user)
         response = self.client.patch(
             self._url(room=other_room),

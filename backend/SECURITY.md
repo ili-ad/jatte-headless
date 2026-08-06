@@ -77,6 +77,13 @@ client JSON cannot make the download endpoint sign an arbitrary object. A
 consumed session retains its committed result until its normal expiry so
 retries are idempotent and cannot append a duplicate attachment.
 
+Normal message create and update routes do not trust nested attachment JSON.
+Before persistence they verify the HMAC, uploader policy, room/CID, optional
+message binding, size, MIME type, checksum, blob, and deployment-specific URL.
+An upload committed before its message exists is accepted only in its bound
+room, then transactionally rebound to the newly created message and re-signed.
+Message updates accept only metadata already bound to that same message.
+
 Private attachment metadata keeps the Stream-compatible `url` field, but the
 field points to `GET /api/attachments/<attachment_id>/download/`. That endpoint
 requires a Supabase Bearer JWT, finds the attachment only through a parent room
@@ -86,9 +93,11 @@ with scan status `clean` are served: `pending` is locked, `flagged` is
 forbidden, and scan `error` is unavailable.
 
 The legacy `POST /api/attachments/` and `/attachments/` compatibility routes
-create metadata only; they do not persist a blob and therefore cannot produce
-a working download until verified blob metadata is associated with an
-authorized message.
+create explicitly marked `legacy_placeholder` metadata only. Message routes
+normalize its uploader and room fields and accept it only with the exact
+application attachment URL and no blob, checksum, content type, or integrity
+signature. It is deliberately non-downloadable and cannot later be upgraded
+to trusted blob metadata through message create or update.
 
 Public-by-link downloads are an explicit deployment exception. They are
 enabled only with `CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS=true`; merely configuring

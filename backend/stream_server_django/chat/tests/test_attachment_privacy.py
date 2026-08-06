@@ -6,15 +6,15 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from stream_server_django.chat.api_views import (
     _delete_upload_session,
     _load_upload_session,
-    _sign_attachment_metadata,
 )
+from stream_server_django.chat.attachment_security import sign_attachment_metadata
 from stream_server_django.chat.models import Channel, Message, Room
 
 
@@ -22,7 +22,17 @@ User = get_user_model()
 
 
 @override_settings(
-    ROOT_URLCONF="stream_server_django.chat.tests.attachment_test_urls"
+    ROOT_URLCONF="stream_server_django.chat.tests.attachment_test_urls",
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "attachment-privacy-default",
+        },
+        "throttles": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "attachment-privacy-throttles",
+        },
+    },
 )
 class AttachmentPrivacyTests(APITestCase):
     @classmethod
@@ -42,7 +52,8 @@ class AttachmentPrivacyTests(APITestCase):
         )
 
     def setUp(self):
-        cache.clear()
+        caches["default"].clear()
+        caches["throttles"].clear()
         self.owner = User.objects.create_user(
             username="owner-sub",
             email="owner@example.com",
@@ -67,7 +78,8 @@ class AttachmentPrivacyTests(APITestCase):
         self.room.messages.add(self.message)
 
     def tearDown(self):
-        cache.clear()
+        caches["default"].clear()
+        caches["throttles"].clear()
         super().tearDown()
 
     def token(self, user):
@@ -130,6 +142,48 @@ class AttachmentPrivacyTests(APITestCase):
             format="json",
             **self.auth(user or self.owner),
         )
+
+    def commit_unbound(self, sign_response, *, room=None, user=None):
+        target_room = room or self.room
+        data = {
+            "upload_id": sign_response.data["upload_id"],
+            "blob_name": sign_response.data["blob_name"],
+            "sha256": "a" * 64,
+            "size": 512,
+            "cid": f"messaging:{target_room.uuid}",
+        }
+        with patch(
+            "stream_server_django.chat.api_views.download_blob",
+            return_value=("a" * 64, 512),
+        ):
+            return self.client.post(
+                "/api/attachments/commit/",
+                data,
+                format="json",
+                **self.auth(user or self.owner),
+            )
+
+    def create_message(self, attachment, *, room=None):
+        target_room = room or self.room
+        with patch(
+            "stream_server_django.chat.api_views.should_gate_first_message",
+            return_value="allow",
+        ), patch("stream_server_django.chat.api_views._broadcast_to_cid"):
+            return self.client.post(
+                f"/api/rooms/messaging:{target_room.uuid}/messages/",
+                {"text": "attachment message", "attachments": [attachment]},
+                format="json",
+                **self.auth(self.owner),
+            )
+
+    def update_message(self, message, attachment):
+        with patch("stream_server_django.chat.api_views._broadcast_to_cid"):
+            return self.client.put(
+                f"/api/messages/{message.id}/",
+                {"text": "updated", "attachments": [attachment]},
+                format="json",
+                **self.auth(self.owner),
+            )
 
     def test_sign_binds_sanitized_metadata_to_uploader_room_and_message(self):
         with override_settings(**self.upload_settings()):
@@ -298,7 +352,7 @@ class AttachmentPrivacyTests(APITestCase):
             "scan_status": scan_status,
             "scan_label": None,
         }
-        attachment["integrity"] = _sign_attachment_metadata(attachment)
+        attachment["integrity"] = sign_attachment_metadata(attachment)
         self.message.attachments = [attachment]
         self.message.save(update_fields=["attachments"])
         return attachment
@@ -411,3 +465,179 @@ class AttachmentPrivacyTests(APITestCase):
                 "https://public.example.test/attachments/"
             )
         )
+
+    def test_message_create_rejects_arbitrary_attachment_url(self):
+        arbitrary = {
+            "id": "att_external",
+            "name": "external.txt",
+            "url": "https://attacker.example/secret.txt",
+            "legacy_placeholder": True,
+        }
+        with override_settings(**self.upload_settings()):
+            response = self.create_message(arbitrary)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.room.messages.filter(body="attachment message").exists())
+
+    def test_message_create_rejects_arbitrary_blob_and_checksum(self):
+        arbitrary = {
+            "id": "att_blob",
+            "name": "forged.txt",
+            "url": "http://testserver/api/attachments/att_blob/download/",
+            "blob": "attachments/victim/private.txt",
+            "content_type": "text/plain",
+            "size": 10,
+            "sha256": "f" * 64,
+            "uploaded_by": str(self.owner.id),
+            "cid": "messaging:room-a",
+            "room_uuid": "room-a",
+        }
+        with override_settings(**self.upload_settings()):
+            response = self.create_message(arbitrary)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.room.messages.filter(body="attachment message").exists())
+
+    def test_message_create_rejects_forged_integrity(self):
+        forged = {
+            "id": "att_forged",
+            "name": "forged.txt",
+            "url": "http://testserver/api/attachments/att_forged/download/",
+            "blob": "attachments/att_forged/forged.txt",
+            "content_type": "text/plain",
+            "size": 10,
+            "sha256": "f" * 64,
+            "uploaded_by": str(self.owner.id),
+            "message_id": None,
+            "cid": "messaging:room-a",
+            "room_uuid": "room-a",
+            "integrity": "forged-signature",
+        }
+        with override_settings(**self.upload_settings()):
+            response = self.create_message(forged)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.room.messages.filter(body="attachment message").exists())
+
+    def test_message_create_accepts_and_rebinds_committed_pre_message_attachment(self):
+        with override_settings(**self.upload_settings()):
+            signed = self.sign()
+            committed = self.commit_unbound(signed)
+            self.assertEqual(committed.status_code, 201)
+            unbound = committed.data["attachment"]
+            self.assertIsNone(unbound["message_id"])
+            response = self.create_message(unbound)
+            replay = self.create_message(unbound)
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(replay.status_code, 400)
+        created = self.room.messages.get(body="attachment message")
+        attachment = created.attachments[0]
+        self.assertEqual(attachment["message_id"], str(created.id))
+        self.assertNotEqual(attachment["integrity"], unbound["integrity"])
+
+    def test_message_create_rejects_committed_attachment_from_another_room(self):
+        room_b = Room.objects.create(uuid="room-b", client=self.owner.username)
+        with override_settings(**self.upload_settings()):
+            signed = self.sign(cid="messaging:room-b")
+            committed = self.commit_unbound(signed, room=room_b)
+            self.assertEqual(committed.status_code, 201)
+            response = self.create_message(committed.data["attachment"])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(self.room.messages.filter(body="attachment message").exists())
+
+    def test_message_update_rejects_arbitrary_url(self):
+        arbitrary = {
+            "id": "att_update_external",
+            "name": "external.txt",
+            "url": "https://attacker.example/secret.txt",
+            "legacy_placeholder": True,
+            "message_id": str(self.message.id),
+        }
+        with override_settings(**self.upload_settings()):
+            response = self.update_message(self.message, arbitrary)
+
+        self.assertEqual(response.status_code, 400)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.attachments, [])
+
+    def test_message_update_rejects_cross_message_attachment(self):
+        other = Message.objects.create(
+            channel=self.channel, body="other message", sent_by=self.owner.username
+        )
+        self.room.messages.add(other)
+        with override_settings(**self.upload_settings()):
+            signed = self.sign(message_id=str(other.id))
+            with patch(
+                "stream_server_django.chat.api_views.download_blob",
+                return_value=("a" * 64, 512),
+            ), patch(
+                "stream_server_django.chat.api_views.scan_attachment.delay"
+            ), patch(
+                "stream_server_django.chat.api_views._broadcast_to_cid"
+            ):
+                committed = self.commit(signed, message_id=str(other.id))
+            self.assertEqual(committed.status_code, 201)
+            response = self.update_message(
+                self.message, committed.data["attachment"]
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.attachments, [])
+
+    def test_message_update_accepts_valid_same_message_attachment(self):
+        with override_settings(**self.upload_settings()):
+            signed = self.sign(message_id=str(self.message.id))
+            with patch(
+                "stream_server_django.chat.api_views.download_blob",
+                return_value=("a" * 64, 512),
+            ), patch(
+                "stream_server_django.chat.api_views.scan_attachment.delay"
+            ), patch(
+                "stream_server_django.chat.api_views._broadcast_to_cid"
+            ):
+                committed = self.commit(signed)
+            self.assertEqual(committed.status_code, 201)
+            response = self.update_message(
+                self.message, committed.data["attachment"]
+            )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.body, "updated")
+        self.assertEqual(len(self.message.attachments), 1)
+
+    def test_message_create_public_metadata_requires_explicit_flag(self):
+        public_settings = self.upload_settings(CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS=True)
+        with override_settings(**public_settings):
+            denied_sign = self.sign()
+            denied_attachment = self.commit_unbound(denied_sign).data["attachment"]
+            allowed_sign = self.sign()
+            allowed_attachment = self.commit_unbound(allowed_sign).data["attachment"]
+            allowed = self.create_message(allowed_attachment)
+
+        with override_settings(**self.upload_settings()):
+            denied = self.create_message(denied_attachment)
+
+        self.assertEqual(allowed.status_code, 201)
+        self.assertEqual(denied.status_code, 400)
+
+    def test_message_create_accepts_explicit_non_downloadable_legacy_placeholder(self):
+        with override_settings(**self.upload_settings()):
+            placeholder = self.client.post(
+                "/api/attachments/",
+                {"name": "legacy.txt"},
+                format="json",
+                **self.auth(self.owner),
+            )
+            self.assertEqual(placeholder.status_code, 201)
+            response = self.create_message(placeholder.data["attachment"])
+
+        self.assertEqual(response.status_code, 201, response.data)
+        created = self.room.messages.get(body="attachment message")
+        attachment = created.attachments[0]
+        self.assertTrue(attachment["legacy_placeholder"])
+        self.assertNotIn("blob", attachment)
+        self.assertNotIn("integrity", attachment)

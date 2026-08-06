@@ -1,10 +1,15 @@
 from datetime import datetime
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import serializers
 
 from stream_server_django.common.identity import get_chat_identity
 
+from .attachment_security import (
+    bind_attachments_to_message,
+    validate_attachments_for_message,
+)
 from .models import (
     Draft,
     Flag,
@@ -29,7 +34,10 @@ class MessageAttachmentSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
     filename = serializers.CharField(required=False)
-    url = serializers.URLField()
+    # URL trust is policy-dependent and validated against the target room by
+    # attachment_security; a generic URL validator cannot accept local/test
+    # application download hosts or distinguish private from public metadata.
+    url = serializers.CharField()
     blob = serializers.CharField(required=False)
     size = serializers.IntegerField(required=False)
     content_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -40,6 +48,7 @@ class MessageAttachmentSerializer(serializers.Serializer):
     cid = serializers.CharField(required=False)
     room_uuid = serializers.CharField(required=False)
     integrity = serializers.CharField(required=False)
+    legacy_placeholder = serializers.BooleanField(required=False)
     scan_status = serializers.CharField(read_only=True)
     scan_label = serializers.CharField(read_only=True, allow_blank=True, allow_null=True)
 
@@ -121,16 +130,37 @@ class MessageSerializer(serializers.ModelSerializer):
             "pinned_by",
         ]
 
+    def validate_attachments(self, value: list[dict]) -> list[dict]:
+        room = self.context.get("attachment_room")
+        request = self.context.get("request")
+        user = self.context.get("attachment_user") or getattr(request, "user", None)
+        if room is None or request is None or user is None:
+            raise serializers.ValidationError(
+                "Attachment validation requires a target room and authenticated user."
+            )
+        return validate_attachments_for_message(
+            value,
+            room=room,
+            user=user,
+            request=request,
+            message=self.instance,
+            allow_unbound=self.instance is None,
+        )
+
+    @transaction.atomic
     def create(self, validated_data: dict) -> Message:
         validated_data.setdefault("custom_data", {})
-        attachments = validated_data.setdefault("attachments", [])
-        if attachments:
-            validated_data["attachments"] = [
-                Message.ensure_attachment_scan_defaults(item) for item in attachments
-            ]
+        attachments = validated_data.pop("attachments", [])
         if "preview" not in validated_data:
             validated_data["preview"] = None
-        return super().create(validated_data)
+        message = super().create(validated_data)
+        if attachments:
+            room = self.context["attachment_room"]
+            message.attachments = bind_attachments_to_message(
+                attachments, room=room, message=message
+            )
+            message.save(update_fields=["attachments", "updated_at"])
+        return message
 
     def get_pinned(self, obj: Message) -> bool:
         return obj.pins.exists()
@@ -193,15 +223,26 @@ class MessageUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "body", "sent_by", "created_at"]
 
+    def validate_attachments(self, value: list[dict]) -> list[dict]:
+        room = self.context.get("attachment_room")
+        request = self.context.get("request")
+        user = self.context.get("attachment_user") or getattr(request, "user", None)
+        if room is None or request is None or user is None or self.instance is None:
+            raise serializers.ValidationError(
+                "Attachment validation requires a target message and room."
+            )
+        return validate_attachments_for_message(
+            value,
+            room=room,
+            user=user,
+            request=request,
+            message=self.instance,
+            allow_unbound=False,
+        )
+
     def update(self, instance: Message, validated_data: dict) -> Message:
         pinned = validated_data.pop("pinned", serializers.empty)
         pinned_by = validated_data.pop("pinned_by", None)
-
-        attachments = validated_data.get("attachments")
-        if attachments is not None:
-            validated_data["attachments"] = [
-                Message.ensure_attachment_scan_defaults(item) for item in attachments
-            ]
 
         instance = super().update(instance, validated_data)
 
