@@ -6,6 +6,7 @@ from stream_server_django.chat_addons.agent.views import AgentCancelView, AgentL
 
 from stream_server_django.chat.views import TokenView  # real view
 from stream_server_django.chat.views_quoted import QuotedMessageView
+from stream_server_django.rooms.views import resolve_room
 from stream_server_django.chat.api_views import (
     RoomConfigView,
     RoomMarkReadView,
@@ -17,6 +18,18 @@ from stream_server_django.chat.api_views import (
 # from stream_server_django.chat.views import dev_token        # <- if you still need the dev stub
 
 urlpatterns = [
+    # Resolve must precede chat's /api/rooms/<uuid>/ detail route. Add-ons must
+    # precede chat's legacy invoke fallback so the frontend reaches the queued
+    # agent implementation. The chat routes then provide the canonical /api
+    # contract and root aliases without duplicating auth/core URL namespaces.
+    path("api/rooms/resolve/", resolve_room, name="room-resolve"),
+    re_path(r"^api/rooms/resolve/?$", resolve_room),
+    # Preserve PR1's shared-auth legacy handshake (including no-slash parity)
+    # ahead of chat.urls' minimal test handshake view.
+    path("api/ws-auth/", api.ws_auth, name="ws-auth"),
+    re_path(r"^api/ws-auth/?$", api.ws_auth),
+    path("", include("stream_server_django.chat_addons.urls")),
+    path("", include("stream_server_django.chat.urls")),
     path("", include("stream_server_django.auth.urls")),
     path("", include("stream_server_django.accounts_supabase.urls")),
     path("", include("stream_server_django.users.urls")),
@@ -28,7 +41,6 @@ urlpatterns = [
     path("", include("stream_server_django.reminders.urls")),
     path("", include("stream_server_django.events.urls")),
     path("", include("stream_server_django.state.urls")),
-    path("", include("stream_server_django.chat_addons.urls")),
     path("quoted-message/", QuotedMessageView.as_view(), name="quoted-message"),
     path("admin/", admin.site.urls),
 
