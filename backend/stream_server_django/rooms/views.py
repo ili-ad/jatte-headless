@@ -31,7 +31,13 @@ from .serializers import (
     MessageContractSerializer,
     RoomListSerializer,
 )
-from .utils import get_room_or_404, is_public_agent_room, user_has_room_access
+from .utils import (
+    get_room_or_404,
+    is_public_agent_room,
+    require_room_access,
+    rooms_accessible_to_user,
+    user_has_room_access,
+)
 
 from stream_server_django.chat_addons.agent.utils import _persist_default_agent_state
 
@@ -48,7 +54,7 @@ _room_resolver = RoomFromCIDMixin()
 def list_rooms(request: Request) -> Response:
     """Return every room with the minimal shape expected by the shim."""
 
-    rooms = Room.objects.all()
+    rooms = rooms_accessible_to_user(request.user)
     serializer = RoomListSerializer(rooms, many=True)
     return Response(serializer.data)
 
@@ -59,7 +65,9 @@ def list_rooms(request: Request) -> Response:
 def list_active_rooms(request: Request) -> Response:
     """Return only rooms marked as active."""
 
-    rooms = Room.objects.filter(status=Room.ACTIVE)
+    rooms = rooms_accessible_to_user(
+        request.user, Room.objects.filter(status=Room.ACTIVE)
+    )
     serializer = RoomListSerializer(rooms, many=True)
     return Response(serializer.data)
 
@@ -70,8 +78,9 @@ def list_active_rooms(request: Request) -> Response:
 def list_room_members_cid(request: Request, cid: str) -> Response:
     """Return a paginated member payload for the given channel identifier."""
 
-    limit, offset = _parse_pagination(request.query_params)
     room = _room_resolver.get_room(cid)
+    require_room_access(request.user, room)
+    limit, offset = _parse_pagination(request.query_params)
     members = _collect_members(room)
     page = members[offset : offset + limit if limit else None]
     return Response({"members": page})

@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from stream_server_django.common.identity import get_chat_identity
 
 from stream_server_django.chat.models import RoomMute, UserMute
+from stream_server_django.rooms.utils import rooms_accessible_to_user
 
 from .serializers import (
     MuteActionOut,
@@ -58,8 +59,11 @@ class MutedChannelsView(APIView):
     def get(self, request):
         identity = get_chat_identity(request)
         user = identity.as_user()
+        accessible_room_ids = rooms_accessible_to_user(user).values_list(
+            "id", flat=True
+        )
         mutes = (
-            RoomMute.objects.filter(user=user)
+            RoomMute.objects.filter(user=user, room_id__in=accessible_room_ids)
             .select_related("room")
             .order_by("room__uuid")
         )

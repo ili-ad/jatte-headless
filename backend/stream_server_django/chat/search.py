@@ -139,14 +139,14 @@ def _build_uuid_filter(
     params: list = []
 
     if selected_uuid:
-        clauses.append("c.uuid = %s")
+        clauses.append("r.uuid = %s")
         params.append(selected_uuid)
     elif allowed_uuids is not None:
         if not allowed_uuids:
             clauses.append("0 = 1")
         else:
             placeholders = ", ".join(["%s"] * len(allowed_uuids))
-            clauses.append(f"c.uuid IN ({placeholders})")
+            clauses.append(f"r.uuid IN ({placeholders})")
             params.extend(allowed_uuids)
 
     return " AND ".join(clauses), params
@@ -161,14 +161,15 @@ def _search_messages_sqlite(
     selected_uuid: str | None,
     allowed_channel_uuids: Sequence[str] | None,
 ) -> tuple[list[dict], str | None]:
-    base_qs = Message.objects.select_related("channel")
+    base_qs = Message.objects.select_related("channel").filter(rooms__isnull=False)
 
     if selected_uuid:
-        base_qs = base_qs.filter(channel__uuid=selected_uuid)
+        base_qs = base_qs.filter(rooms__uuid=selected_uuid)
     elif allowed_channel_uuids is not None:
         if not allowed_channel_uuids:
             return [], None
-        base_qs = base_qs.filter(channel__uuid__in=allowed_channel_uuids)
+        base_qs = base_qs.filter(rooms__uuid__in=allowed_channel_uuids)
+    base_qs = base_qs.distinct()
 
     text_qs = base_qs
     for token in tokens:
@@ -221,13 +222,21 @@ def _search_messages_sqlite(
 
     for message in sliced:
         created_at = _ensure_aware(message.created_at)
+        room_queryset = message.rooms.all()
+        if selected_uuid:
+            room_queryset = room_queryset.filter(uuid=selected_uuid)
+        elif allowed_channel_uuids is not None:
+            room_queryset = room_queryset.filter(uuid__in=allowed_channel_uuids)
+        room_uuid = room_queryset.values_list("uuid", flat=True).first()
+        if room_uuid is None:  # pragma: no cover - queryset is pre-filtered above
+            continue
         payload.append(
             {
                 "id": message.id,
                 "text": message.body,
                 "user_id": message.sent_by,
                 "created_at": _format_timestamp(created_at),
-                "cid": canonical_cid(None, room_uuid=str(message.channel.uuid)),
+                "cid": canonical_cid(None, room_uuid=str(room_uuid)),
             }
         )
 
@@ -246,6 +255,13 @@ def search_messages(
     cid: str | None = None,
     allowed_channel_uuids: Sequence[str] | None = None,
 ) -> tuple[list[dict], str | None]:
+    """Search messages attached to selected/authorized rooms.
+
+    ``allowed_channel_uuids`` retains its public helper name for compatibility,
+    but its values are room UUIDs and authorization is enforced through the
+    ``Room.messages`` relation rather than the message's channel field.
+    """
+
     if limit <= 0:
         raise ValueError("limit must be positive")
 
@@ -288,13 +304,14 @@ def search_messages(
                 m.body,
                 m.sent_by,
                 m.created_at,
-                c.uuid AS channel_uuid,
+                r.uuid AS room_uuid,
                 ts_rank_cd(
                     to_tsvector('simple', coalesce(m.body, '')),
                     to_tsquery('simple', %s)
                 ) AS rank
             FROM chat_message AS m
-            INNER JOIN chat_channel AS c ON m.channel_id = c.id
+            INNER JOIN chat_room_messages AS rm ON rm.message_id = m.id
+            INNER JOIN chat_room AS r ON r.id = rm.room_id
             WHERE to_tsvector('simple', coalesce(m.body, '')) @@ to_tsquery('simple', %s)
             {uuid_filter}
             """.format(uuid_filter=uuid_filter_sql)
@@ -309,10 +326,11 @@ def search_messages(
                 m.body,
                 m.sent_by,
                 m.created_at,
-                c.uuid AS channel_uuid,
+                r.uuid AS room_uuid,
                 2.0 AS rank
             FROM chat_message AS m
-            INNER JOIN chat_channel AS c ON m.channel_id = c.id
+            INNER JOIN chat_room_messages AS rm ON rm.message_id = m.id
+            INNER JOIN chat_room AS r ON r.id = rm.room_id
             WHERE m.id = %s
             {uuid_filter}
             """.format(uuid_filter=uuid_filter_sql)
@@ -360,7 +378,7 @@ def search_messages(
                 body,
                 sent_by,
                 created_at,
-                channel_uuid,
+                room_uuid,
                 rank
             FROM combined
             ORDER BY message_id, rank DESC, created_at DESC
@@ -370,7 +388,7 @@ def search_messages(
             body,
             sent_by,
             created_at,
-            channel_uuid,
+            room_uuid,
             rank
         FROM deduped
         WHERE 1=1
@@ -411,7 +429,7 @@ def search_messages(
     next_cursor = None
 
     for row in sliced:
-        message_id, body, sent_by, created_at, channel_uuid, rank = row
+        message_id, body, sent_by, created_at, room_uuid, rank = row
         created_at_dt = _ensure_aware(created_at)
         results.append(
             {
@@ -419,7 +437,7 @@ def search_messages(
                 "text": body,
                 "user_id": sent_by,
                 "created_at": _format_timestamp(created_at_dt),
-                "cid": canonical_cid(None, room_uuid=str(channel_uuid)),
+                "cid": canonical_cid(None, room_uuid=str(room_uuid)),
             }
         )
 
