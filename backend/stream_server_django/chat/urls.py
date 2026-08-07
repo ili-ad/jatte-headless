@@ -159,6 +159,11 @@ urlpatterns = [
         RoomCooldownView.as_view(),
         name="room-cooldown",
     ),
+    re_path(
+        r"^api/rooms/(?P<cid>[^/]+:[^/]+)/members/$",
+        RoomMembersCIDView.as_view(),
+        name="room-members-cid",
+    ),
     path(
         "api/rooms/<str:room_uuid>/members/",
         RoomMembersView.as_view(),
@@ -167,7 +172,7 @@ urlpatterns = [
     path(
         "api/rooms/<path:cid>/members/",
         RoomMembersCIDView.as_view(),
-        name="room-members-cid",
+        name="room-members-cid-fallback",
     ),
     path(
         "api/rooms/<str:room_uuid>/pinned/",
@@ -235,6 +240,11 @@ urlpatterns = [
         MessageRepliesView.as_view(),
         name="message-replies",
     ),
+    path(
+        "api/messages/<str:message_id>/replies/",
+        MessageRepliesView.as_view(),
+        name="message-replies-api",
+    ),
     path("api/notifications/", NotificationListView.as_view(), name="notifications"),
     path("api/reminders/", ReminderListCreateView.as_view(), name="stream_server_django.reminders"),
     path(
@@ -248,6 +258,7 @@ urlpatterns = [
         name="room-reminders",
     ),
     path("threads/", ThreadListView.as_view(), name="threads"),
+    path("api/threads/", ThreadListView.as_view(), name="threads-api"),
     path("api/muted-channels/", MutedChannelListView.as_view(), name="muted-channels"),
     path(
         "api/messages/<str:message_id>/reactions/",
