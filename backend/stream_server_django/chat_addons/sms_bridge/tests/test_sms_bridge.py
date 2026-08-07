@@ -56,7 +56,7 @@ class SmsBridgeWebhookTests(APITestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Message.objects.count(), 0)
 
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
     def test_valid_webhook_creates_message(self, mocked_broadcast) -> None:
         signature = make_signature("super-secret", self.payload)
         response = self.post_payload(self.payload, signature)
@@ -78,19 +78,21 @@ class SmsBridgeWebhookTests(APITestCase):
         self.assertEqual(link.phone_e164, "+15551230000")
         mocked_broadcast.assert_called_once()
 
-    def test_duplicate_external_id_noop(self) -> None:
+    def test_duplicate_external_id_is_rejected_as_replay(self) -> None:
         signature = make_signature("super-secret", self.payload)
         first = self.post_payload(self.payload, signature)
         self.assertEqual(first.status_code, 200)
         second = self.post_payload(self.payload, signature)
-        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.status_code, 409)
         self.assertEqual(Message.objects.count(), 1)
         self.assertEqual(SmsRelay.objects.count(), 1)
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551230000"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_stop_creates_consent_and_confirmation(
         self,
         mocked_send,
@@ -122,9 +124,11 @@ class SmsBridgeWebhookTests(APITestCase):
         )
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551230000"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_opted_out_blocks_autoreply(
         self,
         mocked_send,
@@ -150,9 +154,11 @@ class SmsBridgeWebhookTests(APITestCase):
         mocked_delay.assert_not_called()
 
     @override_settings(SMS_AUTOREPLY_ENABLED=True, SMS_AUTOREPLY_ALLOWLIST=["+15551230000"])
-    @patch("backend.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay")
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.services.autoreply.sms_autoreply_task.delay"
+    )
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_start_clears_opt_out_and_allows_autoreply(
         self,
         mocked_send,
@@ -210,8 +216,8 @@ class SmsBridgeSendTests(APITestCase):
         self.agent.save(update_fields=["is_staff"])
         self.url = reverse("sms-send")
 
-    @patch("backend.chat_addons.sms_bridge.views._broadcast_to_cid")
-    @patch("backend.chat_addons.sms_bridge.views.SmsProviderClient.send")
+    @patch("stream_server_django.chat_addons.sms_bridge.views._broadcast_to_cid")
+    @patch("stream_server_django.chat_addons.sms_bridge.views.SmsProviderClient.send")
     def test_send_creates_pending_message(self, mocked_send, mocked_broadcast) -> None:
         mocked_send.return_value = SmsProviderResponse(external_id="ext-2")
         self.client.force_authenticate(user=self.agent)
@@ -274,10 +280,12 @@ class SmsBridgeReceiptTests(APITestCase):
         )
         self.url = reverse("sms-delivery-receipt")
 
-    @patch("backend.chat_addons.sms_bridge.views.broadcast_message_update")
+    @patch(
+        "stream_server_django.chat_addons.sms_bridge.views.broadcast_message_update"
+    )
     def test_receipt_updates_message(self, mocked_broadcast) -> None:
         payload = {"external_id": "ext-receipt", "status": "delivered", "error_code": None}
-        response = self.client.post(self.url, payload, format="json")
+        response = self.post_signed(payload)
 
         self.assertEqual(response.status_code, 200)
         self.relay.refresh_from_db()
@@ -285,3 +293,12 @@ class SmsBridgeReceiptTests(APITestCase):
         self.message.refresh_from_db()
         self.assertEqual(self.message.custom_data.get("delivery_status"), "delivered")
         mocked_broadcast.assert_called_once_with(self.message)
+
+    def post_signed(self, payload: dict[str, object]):
+        body = json.dumps(payload)
+        return self.client.post(
+            self.url,
+            body,
+            content_type="application/json",
+            HTTP_X_SIGNATURE=make_signature("super-secret", payload),
+        )
