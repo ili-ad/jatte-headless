@@ -18,7 +18,9 @@ from jatte.asgi import application
 User = get_user_model()
 
 
-@override_settings(ROOT_URLCONF="chat.urls")
+@override_settings(
+    ROOT_URLCONF="stream_server_django.chat.tests.attachment_test_urls"
+)
 class AttachmentScanAPITests(APITestCase):
     @classmethod
     def setUpClass(cls):
@@ -52,6 +54,8 @@ class AttachmentScanAPITests(APITestCase):
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024 * 1024,
             "CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS": 600,
             "CHAT_ATTACHMENTS_SIGN_TTL_SECONDS": 600,
+            "CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS": 120,
+            "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS": False,
             "CHAT_ATTACHMENTS_PUBLIC_BASE_URL": "https://storage.googleapis.com/test-bucket",
         }
         base.update(overrides)
@@ -59,6 +63,10 @@ class AttachmentScanAPITests(APITestCase):
 
     def test_commit_sets_pending_scan_status_and_enqueues_task(self):
         token = self.make_token()
+        room = Room.objects.create(uuid="test-room", client=self.user.username, agent=self.user)
+        channel = Channel.objects.create(uuid=room.uuid, client=room.client)
+        message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
+        room.messages.add(message)
         with override_settings(**self._direct_upload_settings()):
             sign_res = self.client.post(
                 "/api/attachments/sign/",
@@ -67,6 +75,7 @@ class AttachmentScanAPITests(APITestCase):
                     "content_type": "image/png",
                     "size": 512,
                     "cid": "messaging:test-room",
+                    "message_id": str(message.id),
                 },
                 format="json",
                 HTTP_AUTHORIZATION=f"Bearer {token}",
@@ -75,15 +84,15 @@ class AttachmentScanAPITests(APITestCase):
             upload_id = sign_res.data["upload_id"]
             blob_name = sign_res.data["blob_name"]
 
-            room = Room.objects.create(uuid="test-room", client=self.user.username, agent=self.user)
-            channel = Channel.objects.create(uuid=room.uuid, client=room.client)
-            message = Message.objects.create(channel=channel, body="hi", sent_by=self.user.username)
-            room.messages.add(message)
-
             checksum = "a" * 64
-            with patch("chat.api_views.download_blob", return_value=(checksum, 512)), patch(
-                "chat.api_views._broadcast_to_cid"
-            ), patch("chat.api_views.scan_attachment.delay") as mock_delay:
+            with patch(
+                "stream_server_django.chat.api_views.download_blob",
+                return_value=(checksum, 512),
+            ), patch(
+                "stream_server_django.chat.api_views._broadcast_to_cid"
+            ), patch(
+                "stream_server_django.chat.api_views.scan_attachment.delay"
+            ) as mock_delay:
                 commit_res = self.client.post(
                     "/api/attachments/commit/",
                     {
@@ -129,10 +138,10 @@ class AttachmentScanTaskTests(TestCase):
         )
         self.attachment_id = self.message.attachments[0]["id"]
 
-    @patch("chat.tasks.broadcast_message_update")
+    @patch("stream_server_django.chat.tasks.broadcast_message_update")
     def test_scan_marks_attachment_clean(self, mock_broadcast):
         with patch(
-            "chat.tasks.perform_attachment_scan",
+            "stream_server_django.chat.tasks.perform_attachment_scan",
             return_value=(Message.ATTACHMENT_SCAN_CLEAN, "CleanEngine"),
         ):
             scan_attachment(self.message.id, self.attachment_id)
@@ -145,10 +154,10 @@ class AttachmentScanTaskTests(TestCase):
         self.assertNotIn("scan_error", attachment)
         mock_broadcast.assert_called_once()
 
-    @patch("chat.tasks.broadcast_message_update")
+    @patch("stream_server_django.chat.tasks.broadcast_message_update")
     def test_scan_marks_attachment_flagged(self, mock_broadcast):
         with patch(
-            "chat.tasks.perform_attachment_scan",
+            "stream_server_django.chat.tasks.perform_attachment_scan",
             return_value=(Message.ATTACHMENT_SCAN_FLAGGED, "Suspicious"),
         ):
             scan_attachment(self.message.id, self.attachment_id)
@@ -159,10 +168,10 @@ class AttachmentScanTaskTests(TestCase):
         self.assertEqual(attachment["scan_label"], "Suspicious")
         mock_broadcast.assert_called_once()
 
-    @patch("chat.tasks.broadcast_message_update")
+    @patch("stream_server_django.chat.tasks.broadcast_message_update")
     def test_scan_records_errors(self, mock_broadcast):
         with patch(
-            "chat.tasks.perform_attachment_scan",
+            "stream_server_django.chat.tasks.perform_attachment_scan",
             side_effect=RuntimeError("scanner offline"),
         ):
             scan_attachment(self.message.id, self.attachment_id)
@@ -198,7 +207,11 @@ class AttachmentScanBroadcastTests(TransactionTestCase):
             settings.SUPABASE_JWT_SECRET,
             algorithm="HS256",
         )
-        communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
+        communicator = WebsocketCommunicator(
+            application,
+            f"/ws/chat/?token={token}",
+            headers=[(b"origin", b"http://localhost:3000")],
+        )
         connected, _ = await communicator.connect()
         assert connected
 
@@ -209,7 +222,7 @@ class AttachmentScanBroadcastTests(TransactionTestCase):
         assert payload["type"] == "initialized"
 
         with patch(
-            "chat.tasks.perform_attachment_scan",
+            "stream_server_django.chat.tasks.perform_attachment_scan",
             return_value=(Message.ATTACHMENT_SCAN_CLEAN, "CleanEngine"),
         ):
             await sync_to_async(scan_attachment)(message.id, attachment["id"])

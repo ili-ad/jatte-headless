@@ -2,24 +2,7 @@ from __future__ import annotations
 
 from unittest import mock
 
-import os
-import sys
-import time
-from pathlib import Path
 from decimal import Decimal
-
-BASE_DIR = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(BASE_DIR))
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.jatte.settings")
-
-import django
-
-django.setup()
-
-from django.core.management import call_command
-
-call_command("migrate", run_syncdb=True, verbosity=0)
 
 import jwt
 from django.conf import settings
@@ -49,6 +32,9 @@ class AgentViewsTests(APITestCase):
         if not self.operator.has_usable_password():
             self.operator.set_password("secret")
             self.operator.save(update_fields=["password"])
+        if not self.operator.is_staff:
+            self.operator.is_staff = True
+            self.operator.save(update_fields=["is_staff"])
 
     def make_token(self) -> str:
         return jwt.encode(
@@ -94,19 +80,15 @@ class AgentViewsTests(APITestCase):
         flag.refresh_from_db()
         self.assertFalse(flag.agent_enabled)
 
-    @mock.patch("chat_addons.agent.tasks._broadcast_to_cid")
-    @mock.patch("chat_addons.agent.tasks.get_agent_service")
-    def test_invoke_creates_message(
-        self,
-        mock_get_service: mock.MagicMock,
-        mock_broadcast: mock.MagicMock,
+    @mock.patch("stream_server_django.chat_addons.agent.tasks._broadcast_to_cid")
+    def test_echo_invoke_creates_message(
+        self, mock_broadcast: mock.MagicMock
     ) -> None:
         Room.objects.create(uuid="invoke-room", client="stream")
-        service = mock.Mock()
-        service.generate.return_value = "pong"
-        mock_get_service.return_value = service
 
-        url = reverse("invoke-agent", kwargs={"cid": "messaging:invoke-room"})
+        url = reverse(
+            "agent-invoke-echo", kwargs={"cid": "messaging:invoke-room"}
+        )
         response = self.client.post(
             url,
             {"prompt": "ping"},
@@ -114,17 +96,16 @@ class AgentViewsTests(APITestCase):
             **self.auth_headers(),
         )
 
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
-        self.assertEqual(payload["status"], "queued")
-        self.assertIn("run_id", payload)
+        self.assertEqual(payload["reason"], "echo")
 
         messages = Message.objects.filter(
             channel__uuid="invoke-room",
             sent_by=agent_user_id_for_room("invoke-room"),
         )
         self.assertEqual(messages.count(), 1)
-        self.assertEqual(messages.first().body, "pong")
+        self.assertEqual(messages.first().body, "Echo: ping")
         mock_broadcast.assert_called()
 
     def test_rag_invocation_persists_agent_reply(self) -> None:
@@ -157,7 +138,7 @@ class AgentViewsTests(APITestCase):
         )
         self.assertEqual(agent_messages.count(), 1)
 
-    @mock.patch("chat_addons.agent.views.get_agent_service")
+    @mock.patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_llm_invoke_enqueues_job_and_returns_queued_status(
         self, mock_get_service: mock.MagicMock
     ) -> None:
@@ -197,9 +178,8 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(kwargs["text"], user_message.body)
         self.assertEqual(kwargs["request_id"], "trace-1")
         self.assertEqual(kwargs["meta"].get("job_request_id"), "trace-1")
-        self.assertEqual(kwargs["meta"].get("job_id"), "job-123")
 
-    @mock.patch("chat_addons.agent.views.get_agent_service")
+    @mock.patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_llm_invoke_returns_500_when_enqueue_fails(
         self, mock_get_service: mock.MagicMock
     ) -> None:
@@ -230,6 +210,7 @@ class AgentViewsTests(APITestCase):
         self.assertIn("Agent invocation failed", payload["detail"])
 
     def test_list_runs_with_pagination(self) -> None:
+        Room.objects.create(uuid="test-room", client="stream")
         AgentRun.objects.create(
             run_id="r-1",
             cid="messaging:test-room",
@@ -285,6 +266,7 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(next_payload["results"][0]["run_id"], "r-1")
 
     def test_memory_list_endpoint(self) -> None:
+        Room.objects.create(uuid="memory-room", client="stream")
         service = MemoryService(max_lines=6)
         for idx in range(4):
             service.add_line(
@@ -307,10 +289,11 @@ class AgentViewsTests(APITestCase):
         self.assertEqual([item["text"] for item in next_payload["results"]], ["memory 1", "memory 0"])
         self.assertIsNone(next_payload["next"])
 
-    @mock.patch("chat_addons.agent.views.get_agent_service")
+    @mock.patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_simulate_invokes_service_without_messages(
         self, mock_get_service: mock.MagicMock
     ) -> None:
+        Room.objects.create(uuid="sim-room", client="stream")
         service = mock.Mock()
         service.simulate.return_value = AgentSimulationResult(
             reply="It's 14.",

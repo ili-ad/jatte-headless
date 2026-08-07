@@ -1,37 +1,20 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from decimal import Decimal
-from pathlib import Path
 from unittest import mock
-
-BASE_DIR = Path(__file__).resolve().parents[3]
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.jatte.settings")
-
-import django
-
-django.setup()
 
 import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management import call_command
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from stream_server_django.chat.models import Message
+from stream_server_django.chat.models import Message, Room
 from stream_server_django.chat_addons.agent.models import AgentRoomPolicy, AgentRun
 from stream_server_django.chat_addons.agent.services.agent_service import AgentService
 from stream_server_django.chat_addons.agent.services.llm_client import LLMClient
-
-call_command("migrate", run_syncdb=True, verbosity=0)
-
 
 class _SequencedProvider:
     def __init__(self, responses):
@@ -66,6 +49,10 @@ class AgentPolicyApiTests(APITestCase):
                 "is_staff": True,
             },
         )
+        if not self.operator.is_staff:
+            self.operator.is_staff = True
+            self.operator.save(update_fields=["is_staff"])
+        Room.objects.get_or_create(uuid="policy-room", defaults={"client": "stream"})
 
     def make_headers(self) -> dict[str, str]:
         token = jwt.encode(
