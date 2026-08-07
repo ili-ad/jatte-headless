@@ -54,8 +54,12 @@ class NotificationEscalationTests(APITestCase):
         data = fetched.json()
         self.assertEqual(data["email"], "ops@example.com")
 
-    @patch("backend.chat_addons.notifications.views.NotificationService.send_email")
-    @patch("backend.chat_addons.notifications.views.NotificationService.send_sms")
+    @patch(
+        "stream_server_django.chat_addons.notifications.views.NotificationService.send_email"
+    )
+    @patch(
+        "stream_server_django.chat_addons.notifications.views.NotificationService.send_sms"
+    )
     def test_escalate_with_active_admin_creates_in_app_only(
         self, mocked_sms, mocked_email
     ) -> None:
@@ -82,8 +86,12 @@ class NotificationEscalationTests(APITestCase):
         self.assertIsNone(record.delivered_at)
         self.assertGreater(Notification.objects.count(), 0)
 
-    @patch("backend.chat_addons.notifications.views.NotificationService.send_email")
-    @patch("backend.chat_addons.notifications.views.NotificationService.send_sms")
+    @patch(
+        "stream_server_django.chat_addons.notifications.views.NotificationService.send_email"
+    )
+    @patch(
+        "stream_server_django.chat_addons.notifications.views.NotificationService.send_sms"
+    )
     def test_escalate_without_active_admin_triggers_sms(
         self, mocked_sms, mocked_email
     ) -> None:
@@ -107,7 +115,9 @@ class NotificationEscalationTests(APITestCase):
         self.assertIsNotNone(record.delivered_at)
         self.assertGreater(Notification.objects.count(), 0)
 
-    @patch("backend.chat_addons.notifications.views.NotificationService.send_sms")
+    @patch(
+        "stream_server_django.chat_addons.notifications.views.NotificationService.send_sms"
+    )
     def test_escalation_respects_cooldown(self, mocked_sms) -> None:
         mocked_sms.return_value = None
         self.client.put(self.oncall_url, {"phone_e164": "+15553330000"}, format="json")

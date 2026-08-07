@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +18,11 @@ from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.chat.models import Message, Room
 from stream_server_django.chat.utils import canonical_cid
+from stream_server_django.rooms.utils import (
+    can_admin_room,
+    get_room_or_404,
+    require_room_access,
+)
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
@@ -73,7 +79,7 @@ class AgentStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_member(request, cid)
         flag = RoomAgentFlag.objects.filter(room=room).first()
         enabled = agent_enabled_for_room(canonical, room)
         payload = {
@@ -94,7 +100,7 @@ class AgentEnableView(APIView):
 
     @audit_action(action=AuditTrail.Action.AGENT_ENABLE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_control(request, cid)
         request._audit_context = {"cid": canonical}
         with transaction.atomic():
             flag, _ = RoomAgentFlag.objects.select_for_update().get_or_create(
@@ -131,7 +137,7 @@ class AgentDisableView(APIView):
 
     @audit_action(action=AuditTrail.Action.AGENT_DISABLE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_control(request, cid)
         request._audit_context = {"cid": canonical}
         with transaction.atomic():
             flag, _ = RoomAgentFlag.objects.select_for_update().get_or_create(
@@ -168,7 +174,7 @@ class AgentInvokeView(APIView):
 
     @audit_action(action=AuditTrail.Action.AGENT_INVOKE, cid_kwarg="cid")
     def post(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_member(request, cid)
         RoomAgentFlag.objects.get_or_create(room=room)
         request._audit_context = {"cid": canonical}
         data = request.data or {}
@@ -279,7 +285,7 @@ class AgentLLMInvokeView(APIView):
             identity = get_chat_identity(request)
 
             # Normalize CID + room and mark that this room has ever used an agent
-            canonical, room = _resolve_room(cid)
+            canonical, room = _resolve_room_for_member(request, cid)
             RoomAgentFlag.objects.get_or_create(room=room)
             request._audit_context = {"cid": canonical}
 
@@ -375,6 +381,8 @@ class AgentLLMInvokeView(APIView):
             response = Response(payload, status=status.HTTP_202_ACCEPTED)
             return _log_http_end(response, job_id=job_id)
 
+        except APIException:
+            raise
         except Exception:
             # This is the safety net we were missing: log the full stack trace.
             logger.exception(
@@ -397,7 +405,7 @@ class AgentCancelView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_control(request, cid)
 
         if not room.agent_busy:
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -451,7 +459,7 @@ class AgentRagView(APIView):
         serializer.is_valid(raise_exception=True)
 
         room_identifier = serializer.validated_data["room_uuid"]
-        canonical, room = _resolve_room(room_identifier)
+        canonical, room = _resolve_room_for_member(request, room_identifier)
         identity = get_chat_identity(request)
         if not agent_enabled_for_room(canonical, room):
             return Response(
@@ -517,11 +525,21 @@ class AgentRagView(APIView):
 
 def _resolve_room(cid: str) -> tuple[str, Room]:
     canonical = canonical_cid(cid)
-    if ":" in canonical:
-        _, room_uuid = canonical.split(":", 1)
-    else:
-        room_uuid = canonical
-    room, _ = Room.objects.get_or_create(uuid=room_uuid, defaults={"client": "stream"})
+    room = get_room_or_404(canonical)
+    return canonical, room
+
+
+def _resolve_room_for_member(request: Request, cid: str) -> tuple[str, Room]:
+    canonical, room = _resolve_room(cid)
+    require_room_access(request.user, room)
+    return canonical, room
+
+
+def _resolve_room_for_control(request: Request, cid: str) -> tuple[str, Room]:
+    canonical, room = _resolve_room(cid)
+    require_room_access(request.user, room)
+    if not can_admin_room(request.user, room):
+        raise PermissionDenied("Room agent or staff privileges required.")
     return canonical, room
 
 
@@ -561,7 +579,7 @@ class AgentSkillPolicyView(APIView):
         if not cid_param:
             raise serializers.ValidationError({"cid": "This query parameter is required."})
 
-        canonical, _ = _resolve_room(cid_param)
+        canonical, _ = _resolve_room_for_control(request, cid_param)
         policy = AgentRoomPolicy.objects.filter(cid=canonical).first()
         configured = policy.enabled_skills if policy else None
         payload = _build_skill_payload(canonical, configured)
@@ -572,7 +590,7 @@ class AgentSkillPolicyView(APIView):
         serializer.is_valid(raise_exception=True)
 
         cid = serializer.validated_data["cid"]
-        canonical, room = _resolve_room(cid)
+        canonical, room = _resolve_room_for_control(request, cid)
         requested = serializer.validated_data["skills"]
 
         metas = registry.list_all()
@@ -623,7 +641,7 @@ class AgentPolicyView(APIView):
         if not cid_param:
             raise serializers.ValidationError({"cid": "This query parameter is required."})
 
-        canonical, room = _resolve_room(cid_param)
+        canonical, room = _resolve_room_for_control(request, cid_param)
         flag = RoomAgentFlag.objects.filter(room=room).first()
         defaults = {"agent_enabled": bool(flag.agent_enabled) if flag else False}
         policy, created = AgentRoomPolicy.objects.get_or_create(
@@ -645,7 +663,7 @@ class AgentPolicyView(APIView):
         if not cid_value:
             raise serializers.ValidationError({"cid": "This field is required."})
 
-        canonical, room = _resolve_room(cid_value)
+        canonical, room = _resolve_room_for_control(request, cid_value)
         policy, _ = AgentRoomPolicy.objects.get_or_create(cid=canonical)
 
         serializer = AgentRoomPolicySerializer(policy, data=data, partial=True)
@@ -701,7 +719,9 @@ class AgentRunListView(APIView):
         serializer = AgentRunListQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        canonical = canonical_cid(serializer.validated_data["cid"])
+        canonical, _ = _resolve_room_for_control(
+            request, serializer.validated_data["cid"]
+        )
         limit = serializer.validated_data.get("limit") or 25
         cursor = serializer.validated_data.get("cursor")
 
@@ -740,7 +760,9 @@ class AgentMemoryListView(APIView):
         serializer = AgentMemoryListQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        canonical = canonical_cid(serializer.validated_data["cid"])
+        canonical, _ = _resolve_room_for_control(
+            request, serializer.validated_data["cid"]
+        )
         limit = serializer.validated_data.get("limit") or 20
         cursor = serializer.validated_data.get("cursor")
 
@@ -761,7 +783,9 @@ class AgentSimulateView(APIView):
         serializer = AgentSimulateRequestSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
-        canonical = canonical_cid(serializer.validated_data["cid"])
+        canonical, _ = _resolve_room_for_control(
+            request, serializer.validated_data["cid"]
+        )
         prompt = serializer.validated_data["prompt"]
         meta = serializer.validated_data.get("meta", {})
 

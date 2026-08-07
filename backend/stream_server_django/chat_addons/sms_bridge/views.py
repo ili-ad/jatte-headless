@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import base64
-import hmac
 import logging
 import uuid
-from hashlib import sha256
 
-from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import APIException, NotFound, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import APIException, NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,12 +17,20 @@ from stream_server_django.chat.broadcast import _broadcast_to_cid
 from stream_server_django.chat.models import Message
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.consumers import broadcast_message_update
-from stream_server_django.chat_addons.permissions import IsChatStaff
+from stream_server_django.chat_addons.permissions import IsStaffOrService
+from stream_server_django.chat_addons.service_auth import (
+    InternalServiceAuthentication,
+    is_internal_service_request,
+)
 
 from ..common_audit.decorators import audit_action
 from ..common_audit.models import AuditTrail
 from ..common_audit.throttling import SmsSendRateThrottle
 from .models import SmsRelay
+from .auth import (
+    SmsWebhookReplay,
+    verify_sms_provider_signature,
+)
 from .serializers import SmsReceiptSerializer, SmsSendSerializer, SmsWebhookSerializer
 from .services.autoreply import maybe_enqueue_sms_autoreply
 from .services.consent import (
@@ -47,27 +51,9 @@ from .services.provider import SmsProviderClient, SmsProviderError
 logger = logging.getLogger(__name__)
 
 
-class WebhookNotConfigured(APIException):
-    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    default_detail = "Webhook secret not configured"
-
-
 class SmsProviderUnavailable(APIException):
     status_code = status.HTTP_502_BAD_GATEWAY
     default_detail = "SMS provider error"
-
-
-def _signature_secret() -> str:
-    secret = getattr(settings, "SMS_WEBHOOK_SECRET", "")
-    if not secret:
-        raise WebhookNotConfigured()
-    return secret
-
-
-def _compute_signature(secret: str, payload: bytes) -> str:
-    encoded = base64.b64encode(payload)
-    digest = hmac.new(secret.encode("utf-8"), encoded, sha256)
-    return digest.hexdigest()
 
 
 class SmsWebhookView(APIView):
@@ -75,13 +61,7 @@ class SmsWebhookView(APIView):
     permission_classes: list = []
 
     def post(self, request: Request) -> Response:
-        secret = _signature_secret()
-        header_signature = request.headers.get("X-Signature", "")
-        computed = _compute_signature(secret, request.body or b"")
-        if not header_signature or not hmac.compare_digest(
-            header_signature.lower(), computed.lower()
-        ):
-            raise PermissionDenied("Invalid webhook signature")
+        verify_sms_provider_signature(request)
 
         inbound_data = request.data or {}
         serializer = SmsWebhookSerializer(
@@ -97,26 +77,37 @@ class SmsWebhookView(APIView):
         payload = serializer.validated_data
 
         external_id = payload["external_id"]
-        if SmsRelay.objects.filter(
-            direction=SmsRelay.DIRECTION_INBOUND, external_id=external_id
-        ).exists():
-            return Response({"ok": True})
-
         from_phone = payload["from_phone"]
         text = payload["text"]
 
-        user = get_or_create_phone_user(from_phone)
-        sender_identifier = getattr(user, "supabase_uid", None) or user.username
+        try:
+            with transaction.atomic():
+                if SmsRelay.objects.filter(
+                    direction=SmsRelay.DIRECTION_INBOUND,
+                    external_id=external_id,
+                ).exists():
+                    raise SmsWebhookReplay()
 
-        link = ensure_link(phone_e164=from_phone, client_identifier=sender_identifier)
-        message = record_inbound_message(
-            cid=link.cid,
-            text=text,
-            sender_identifier=sender_identifier,
-            relay_external_id=external_id,
-        )
+                user = get_or_create_phone_user(from_phone)
+                sender_identifier = (
+                    getattr(user, "supabase_uid", None) or user.username
+                )
+                link = ensure_link(
+                    phone_e164=from_phone,
+                    client_identifier=sender_identifier,
+                )
+                message = record_inbound_message(
+                    cid=link.cid,
+                    text=text,
+                    sender_identifier=sender_identifier,
+                    relay_external_id=external_id,
+                )
+        except IntegrityError as exc:
+            raise SmsWebhookReplay() from exc
+
+        control_word = parse_control_word(text)
         room = message.rooms.order_by("pk").first()
-        if room:
+        if room and control_word not in {"stop", "start"}:
             maybe_enqueue_sms_autoreply(
                 room=room,
                 triggering_message=message,
@@ -129,7 +120,6 @@ class SmsWebhookView(APIView):
             {"type": "message.new", "cid": link.cid, "message": serialized},
         )
 
-        control_word = parse_control_word(text)
         if control_word == "stop":
             mark_opt_out(from_phone)
             confirmation_text = stop_confirmation_text()
@@ -194,8 +184,11 @@ class SmsWebhookView(APIView):
 
 
 class SmsSendView(APIView):
-    authentication_classes: list[type[BaseAuthentication]] = [DevTokenOrJWTAuthentication]
-    permission_classes = [IsAuthenticated, IsChatStaff]
+    authentication_classes: list[type[BaseAuthentication]] = [
+        InternalServiceAuthentication,
+        DevTokenOrJWTAuthentication,
+    ]
+    permission_classes = [IsStaffOrService]
     throttle_classes = [SmsSendRateThrottle]
 
     @audit_action(action=AuditTrail.Action.SMS_SEND)
@@ -249,10 +242,15 @@ class SmsSendView(APIView):
 
 
 class SmsReceiptView(APIView):
-    authentication_classes: list[type[BaseAuthentication]] = []
+    authentication_classes: list[type[BaseAuthentication]] = [
+        InternalServiceAuthentication
+    ]
     permission_classes: list = []
 
     def post(self, request: Request) -> Response:
+        if not is_internal_service_request(request):
+            verify_sms_provider_signature(request)
+
         serializer = SmsReceiptSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
@@ -265,8 +263,8 @@ class SmsReceiptView(APIView):
         except SmsRelay.DoesNotExist as exc:
             raise NotFound("Relay not found") from exc
 
-        if relay.status == payload["status"]:
-            return Response({"ok": True}, status=status.HTTP_200_OK)
+        if relay.status != SmsRelay.STATUS_PENDING:
+            raise SmsWebhookReplay()
 
         relay.status = payload["status"]
         relay.save(update_fields=["status"])

@@ -60,3 +60,48 @@ The only public-room exception in this boundary is the explicitly allowlisted
 agent-room `config-state` read controlled by `PUBLIC_AGENT_ROOM_SLUGS`. It does
 not grant access to messages, members, drafts, counts, or other configuration
 routes.
+
+## Attachment privacy and upload integrity
+
+Chat attachment downloads are private by default. `POST
+/api/attachments/sign/` (and `/attachments/sign/`) creates a short-lived
+upload session in Redis, with Django cache as a development fallback. The
+session binds the generated attachment ID and sanitized filename, canonical
+GCS blob path, uploader, authorized room, optional message, MIME type, and
+declared size. `POST /api/attachments/commit/` (and its non-API alias) rechecks
+that binding and current room/message access, then verifies the downloaded
+object's size and SHA-256 checksum before writing metadata into the parent
+message's JSON attachment list. Immutable metadata (including blob, uploader,
+room, optional message, size, and checksum) carries a server HMAC so forged
+client JSON cannot make the download endpoint sign an arbitrary object. A
+consumed session retains its committed result until its normal expiry so
+retries are idempotent and cannot append a duplicate attachment.
+
+Normal message create and update routes do not trust nested attachment JSON.
+Before persistence they verify the HMAC, uploader policy, room/CID, optional
+message binding, size, MIME type, checksum, blob, and deployment-specific URL.
+An upload committed before its message exists is accepted only in its bound
+room, then transactionally rebound to the newly created message and re-signed.
+Message updates accept only metadata already bound to that same message.
+
+Private attachment metadata keeps the Stream-compatible `url` field, but the
+field points to `GET /api/attachments/<attachment_id>/download/`. That endpoint
+requires a Supabase Bearer JWT, finds the attachment only through a parent room
+the caller can currently access, and redirects to a short-lived signed GCS GET
+URL. Missing and inaccessible attachment IDs both return 404. Only attachments
+with scan status `clean` are served: `pending` is locked, `flagged` is
+forbidden, and scan `error` is unavailable.
+
+The legacy `POST /api/attachments/` and `/attachments/` compatibility routes
+create explicitly marked `legacy_placeholder` metadata only. Message routes
+normalize its uploader and room fields and accept it only with the exact
+application attachment URL and no blob, checksum, content type, or integrity
+signature. It is deliberately non-downloadable and cannot later be upgraded
+to trusted blob metadata through message create or update.
+
+Public-by-link downloads are an explicit deployment exception. They are
+enabled only with `CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS=true`; merely configuring
+`CHAT_ATTACHMENTS_PUBLIC_BASE_URL` does not expose public URLs. When enabled,
+the returned `url` is a bearer credential and anyone who obtains it can bypass
+application room reauthorization. Production deployments should leave this
+flag false unless that exposure is an intentional product policy.

@@ -99,6 +99,12 @@ CHAT_ATTACHMENTS_UPLOAD_TTL_SECONDS = int(
 CHAT_ATTACHMENTS_SIGN_TTL_SECONDS = int(
     os.environ.get("CHAT_ATTACHMENTS_SIGN_TTL_SECONDS", "600")
 )
+CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS = int(
+    os.environ.get("CHAT_ATTACHMENTS_DOWNLOAD_TTL_SECONDS", "120")
+)
+CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS = os.environ.get(
+    "CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
 CHAT_ATTACHMENTS_PUBLIC_BASE_URL = os.environ.get("CHAT_ATTACHMENTS_PUBLIC_BASE_URL")
 
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "adapter_http")
@@ -107,6 +113,11 @@ SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")
 OPENPHONE_API_KEY = os.environ.get("OPENPHONE_API_KEY", "")
 OPENPHONE_FROM_PHONE_ID = os.environ.get("OPENPHONE_FROM_PHONE_ID", "")
 OPENPHONE_BASE_URL = os.environ.get("OPENPHONE_BASE_URL", "https://api.openphone.com")
+CHAT_INTERNAL_SERVICE_TOKEN = os.environ.get("CHAT_INTERNAL_SERVICE_TOKEN", "")
+CHAT_INTERNAL_SERVICE_USERNAME = os.environ.get(
+    "CHAT_INTERNAL_SERVICE_USERNAME", "__chat_internal_service__"
+)
+SMS_WEBHOOK_SECRET = os.environ.get("SMS_WEBHOOK_SECRET", "")
 
 CHANNEL_LAYERS = {
     "default": {
