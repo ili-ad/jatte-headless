@@ -186,7 +186,7 @@ export class Channel {
                             'Content-Type': 'application/json',
                             Authorization: `Bearer ${channelRef.client['jwt']}`,
                         },
-                        body: JSON.stringify({ question, options }),
+                        body: JSON.stringify({ cid: channelRef.cid, question, options }),
                     });
                     if (res.ok) {
                         const data = await res.json();

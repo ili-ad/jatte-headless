@@ -26,6 +26,20 @@ from rest_framework.views import APIView
 
 from stream_server_django.common.identity import ChatIdentity, get_chat_identity
 from stream_server_django.chatcore.services import should_gate_first_message
+from stream_server_django.polls.models import (
+    Poll as RoomPoll,
+    PollOption as RoomPollOption,
+    PollVote as RoomPollVote,
+)
+from stream_server_django.polls.serializers import (
+    PollCreateSerializer as RoomPollCreateSerializer,
+    PollOptionCreateSerializer as RoomPollOptionCreateSerializer,
+)
+from stream_server_django.polls.views import (
+    _authorized_poll,
+    _authorized_room,
+    _can_delete_poll,
+)
 from stream_server_django.rooms.utils import (
     can_admin_room,
     can_mutate_message,
@@ -67,9 +81,6 @@ from .models import (
     Message,
     Notification,
     Pin,
-    Poll,
-    PollOption,
-    PollVote,
     Reaction,
     ReadState,
     Reminder,
@@ -87,9 +98,6 @@ from .serializers import (
     MuteStatusSerializer,
     NotificationSerializer,
     PinSerializer,
-    PollOptionSerializer,
-    PollSerializer,
-    PollVoteSerializer,
     ReactionSerializer,
     RegisterSubscriptionsSerializer,
     ReminderCreateSerializer,
@@ -1149,7 +1157,7 @@ class MessageActionView(APIView):
 
 
 class PollOptionCreateView(APIView):
-    """Create a new poll option."""
+    """Compatibility adapter for canonical room-bound poll options."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -1157,64 +1165,85 @@ class PollOptionCreateView(APIView):
     def post(self, request, poll_id):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        serializer = PollOptionSerializer(data=request.data)
+        poll = _authorized_poll(user, poll_id)
+        serializer = RoomPollOptionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        option = PollOption.objects.create(
-            poll_id=poll_id,
+        option = RoomPollOption.objects.create(
+            poll=poll,
             text=serializer.validated_data["text"],
-            user=user,
+            created_by=user,
         )
-        return Response({"poll_option": PollOptionSerializer(option).data}, status=201)
+        return Response({"poll_option": _legacy_poll_option_data(option)}, status=201)
 
 
 class PollListCreateView(APIView):
-    """List or create polls."""
+    """Compatibility adapter over the canonical room-bound poll model."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        polls = Poll.objects.all()
-        if polls.count() == 0:
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        cid = request.query_params.get("cid")
+        if cid:
+            room = _authorized_room(user, cid)
+            polls = RoomPoll.objects.filter(room=room)
+        else:
+            rooms = rooms_accessible_to_user(user)
+            polls = RoomPoll.objects.filter(room__in=rooms, room__isnull=False)
+        polls = polls.select_related("created_by", "room").order_by(
+            "-created_at", "-id"
+        )
+        if not polls.exists():
             return Response(status=405)
-        serializer = PollSerializer(polls, many=True)
-        return Response(serializer.data)
+        return Response([_legacy_poll_data(poll) for poll in polls])
 
     def post(self, request):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        serializer = PollSerializer(data=request.data)
+        serializer = RoomPollCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        poll = Poll.objects.create(
-            question=serializer.validated_data["question"],
-            user=user,
-        )
-        for text in request.data.get("options", []):
-            PollOption.objects.create(poll_id=str(poll.id), text=text, user=user)
-        return Response({"poll": PollSerializer(poll).data}, status=201)
+        room = _authorized_room(user, serializer.validated_data["cid"])
+        with transaction.atomic():
+            poll = RoomPoll.objects.create(
+                room=room,
+                cid=room.cid,
+                question=serializer.validated_data["question"],
+                created_by=user,
+            )
+            for text in serializer.validated_data["options"]:
+                RoomPollOption.objects.create(poll=poll, text=text, created_by=user)
+        return Response({"poll": _legacy_poll_data(poll)}, status=201)
 
 
 class PollDetailView(APIView):
-    """Delete a poll."""
+    """Delete a canonical poll through the legacy response contract."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, poll_id):
-        poll = get_object_or_404(Poll, id=poll_id)
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        poll = _authorized_poll(user, poll_id)
+        if not _can_delete_poll(user, poll):
+            raise PermissionDenied()
         poll.delete()
         return Response(status=204)
 
 
 class PollOptionVotesListView(APIView):
-    """Return paginated votes for a poll option."""
+    """Return room-authorized canonical votes in the legacy shape."""
 
     authentication_classes = [DevTokenOrJWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, poll_id, option_id):
-        poll = get_object_or_404(Poll, id=poll_id)
-        option = get_object_or_404(PollOption, id=option_id, poll=poll)
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        poll = _authorized_poll(user, poll_id)
+        option = get_object_or_404(RoomPollOption, id=option_id, poll=poll)
 
         try:
             limit_param = request.query_params.get("limit")
@@ -1225,16 +1254,16 @@ class PollOptionVotesListView(APIView):
         limit = max(1, min(limit, 100))
         cursor = request.query_params.get("cursor")
 
-        votes_qs = PollVote.objects.filter(poll=poll, option=option).order_by(
+        votes_qs = RoomPollVote.objects.filter(poll=poll, option=option).order_by(
             "-created_at", "-id"
         )
 
         if cursor:
             try:
-                cursor_vote = PollVote.objects.get(
+                cursor_vote = RoomPollVote.objects.get(
                     id=cursor, poll=poll, option=option
                 )
-            except PollVote.DoesNotExist:
+            except (RoomPollVote.DoesNotExist, DjangoValidationError, ValueError):
                 return Response({"detail": "Invalid cursor"}, status=400)
 
             votes_qs = votes_qs.filter(
@@ -1245,7 +1274,7 @@ class PollOptionVotesListView(APIView):
                 )
             )
 
-        total = PollVote.objects.filter(poll=poll, option=option).count()
+        total = RoomPollVote.objects.filter(poll=poll, option=option).count()
         paginated = list(votes_qs[: limit + 1])
         has_next = len(paginated) > limit
         votes = paginated[:limit]
@@ -1254,9 +1283,8 @@ class PollOptionVotesListView(APIView):
         if has_next and votes:
             next_cursor = str(votes[-1].id)
 
-        serializer = PollVoteSerializer(votes, many=True)
         response_data = {
-            "results": serializer.data,
+            "results": [_legacy_poll_vote_data(vote) for vote in votes],
             "count": total,
         }
         if next_cursor:
@@ -1265,6 +1293,43 @@ class PollOptionVotesListView(APIView):
             response_data["prev"] = cursor
 
         return Response(response_data)
+
+
+def _legacy_poll_data(poll: RoomPoll) -> dict:
+    return {
+        "id": str(poll.id),
+        "question": poll.question,
+        "user_id": poll.created_by.get_username(),
+        "created_at": poll.created_at,
+    }
+
+
+def _legacy_poll_option_data(option: RoomPollOption) -> dict:
+    return {
+        "id": str(option.id),
+        "poll_id": str(option.poll_id),
+        "text": option.text,
+        "user_id": option.created_by.get_username(),
+        "created_at": option.created_at,
+    }
+
+
+def _legacy_poll_vote_data(vote: RoomPollVote) -> dict:
+    user = vote.user
+    profile = getattr(user, "profile", None)
+    return {
+        "id": str(vote.id),
+        "poll_id": str(vote.poll_id),
+        "option_id": str(vote.option_id),
+        "user_id": user.get_username(),
+        "user": {
+            "id": str(getattr(user, "supabase_uid", None) or user.id),
+            "name": getattr(profile, "display_name", None) or user.get_username(),
+            "image": getattr(profile, "image_url", None),
+        },
+        "created_at": vote.created_at,
+        "updated_at": vote.updated_at,
+    }
 
 
 class RoomConfigView(RoomFromCIDMixin, APIView):

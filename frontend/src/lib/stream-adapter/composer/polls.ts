@@ -2,7 +2,7 @@
 import { MiniStore } from '../MiniStore';
 import { API } from '../constants';
 
-export const buildPollComposer = (client: { jwt: string | null }) => ({
+export const buildPollComposer = (client: { jwt: string | null }, cid: string) => ({
   state: new MiniStore({ poll: undefined as any }),
   async create(question: string, options: string[] = []) {
     const res = await fetch(API.POLLS, {
@@ -11,7 +11,7 @@ export const buildPollComposer = (client: { jwt: string | null }) => ({
         'Content-Type': 'application/json',
         ...(client.jwt ? { Authorization: `Bearer ${client['jwt']}` } : {}),
       },
-      body: JSON.stringify({ question, options }),
+      body: JSON.stringify({ cid, question, options }),
     });
     if (res.ok) {
       const data = await res.json();

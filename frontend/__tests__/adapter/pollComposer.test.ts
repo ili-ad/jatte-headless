@@ -27,7 +27,7 @@ test('create posts poll and stores result', async () => {
       'Content-Type': 'application/json',
       Authorization: 'Bearer jwt-test',
     },
-    body: JSON.stringify({ question: 'q1', options: ['a'] }),
+    body: JSON.stringify({ cid: 'messaging:r1', question: 'q1', options: ['a'] }),
   });
   expect(comp.state.getSnapshot().poll).toEqual({ id: 'p1', question: 'q1', options: ['a'] });
 });

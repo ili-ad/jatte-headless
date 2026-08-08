@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     PollAnswerCreateView,
+    PollDetailView,
     PollListCreateView,
     PollOptionCreateView,
     PollVoteView,
@@ -11,6 +12,7 @@ app_name = "stream_server_django.polls"
 
 urlpatterns = [
     path("polls/", PollListCreateView.as_view(), name="poll-list"),
+    path("polls/<uuid:poll_id>/", PollDetailView.as_view(), name="poll-detail"),
     path(
         "polls/<uuid:poll_id>/options/",
         PollOptionCreateView.as_view(),

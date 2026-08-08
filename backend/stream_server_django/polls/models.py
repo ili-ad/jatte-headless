@@ -20,6 +20,13 @@ class Poll(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     cid = models.CharField(max_length=255)
+    room = models.ForeignKey(
+        "chat.Room",
+        related_name="polls",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     question = models.CharField(max_length=255)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -33,9 +40,17 @@ class Poll(models.Model):
         indexes = [models.Index(fields=["cid", "-created_at", "-id"])]
 
     def save(self, *args, **kwargs):  # pragma: no cover - normalized via create path
-        if self.cid:
+        if self.room_id:
+            self.cid = self.room.cid
+        elif self.cid:
             self.cid = normalize_cid(self.cid)
         super().save(*args, **kwargs)
+
+    @property
+    def canonical_cid(self) -> str:
+        if not self.room_id:
+            raise ValueError("poll is not bound to a room")
+        return self.room.cid
 
 
 class PollOption(models.Model):

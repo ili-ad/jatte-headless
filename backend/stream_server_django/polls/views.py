@@ -9,13 +9,21 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from rest_framework import permissions, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.common.identity import get_chat_identity
+from stream_server_django.rooms.utils import (
+    can_admin_room,
+    get_room_or_404,
+    require_room_access,
+    user_has_room_access,
+)
 
 from .models import Poll, PollAnswer, PollOption, PollVote, normalize_cid
 from .serializers import (
@@ -47,17 +55,21 @@ def _parse_limit(raw: Optional[str]) -> int:
 
 @dataclass(frozen=True)
 class Cursor:
+    scope: str
     created_at: datetime
     identifier: uuid.UUID
 
     def encode(self) -> str:
-        return f"{self.created_at.isoformat()}|{self.identifier}"
+        return f"{self.scope}|{self.created_at.isoformat()}|{self.identifier}"
 
     @staticmethod
-    def decode(raw: str) -> "Cursor":
-        if "|" not in raw:
+    def decode(raw: str, *, expected_scope: str) -> "Cursor":
+        parts = raw.split("|", 2)
+        if len(parts) != 3:
             raise ValueError("Invalid cursor")
-        created_at, identifier = raw.split("|", 1)
+        scope, created_at, identifier = parts
+        if scope != expected_scope:
+            raise ValueError("Invalid cursor scope")
         dt = parse_datetime(created_at)
         if dt is None:
             raise ValueError("Invalid cursor timestamp")
@@ -65,7 +77,7 @@ class Cursor:
             option_uuid = uuid.UUID(identifier)
         except ValueError as exc:
             raise ValueError("Invalid cursor identifier") from exc
-        return Cursor(created_at=dt, identifier=option_uuid)
+        return Cursor(scope=scope, created_at=dt, identifier=option_uuid)
 
     def as_filters(self) -> Q:
         return Q(created_at__lt=self.created_at) | (
@@ -78,7 +90,7 @@ def _broadcast_poll_event(poll: Poll, payload: dict) -> None:
         channel_layer = get_channel_layer()
         if not channel_layer:
             return
-        cid = poll.cid
+        cid = poll.canonical_cid
         async_to_sync(channel_layer.group_send)(
             f"channel_{cid.replace(':', '_')}",
             {"type": "chat.message", "payload": payload},
@@ -87,20 +99,45 @@ def _broadcast_poll_event(poll: Poll, payload: dict) -> None:
         pass
 
 
+def _authorized_room(user, cid: str):
+    """Resolve an existing room and require access without creating state."""
+
+    return require_room_access(user, get_room_or_404(normalize_cid(cid)))
+
+
+def _authorized_poll(user, poll_id) -> Poll:
+    """Resolve a room-bound poll and hide it from unauthorized callers."""
+
+    poll = get_object_or_404(
+        Poll.objects.select_related("room", "created_by"),
+        pk=poll_id,
+        room__isnull=False,
+    )
+    if not user_has_room_access(user, poll.room):
+        raise Http404
+    return poll
+
+
+def _can_delete_poll(user, poll: Poll) -> bool:
+    return bool(
+        can_admin_room(user, poll.room)
+        or (poll.created_by_id == user.id and user_has_room_access(user, poll.room))
+    )
+
+
 class PollListCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
         cid_param = request.query_params.get("cid")
         if not cid_param:
             return Response(
                 {"detail": "cid query parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        try:
-            cid = normalize_cid(cid_param)
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        room = _authorized_room(user, cid_param)
 
         try:
             limit = _parse_limit(request.query_params.get("limit"))
@@ -108,10 +145,11 @@ class PollListCreateView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         cursor_param = request.query_params.get("cursor")
-        filters = Q(cid=cid)
+        cursor_scope = f"room:{room.pk}"
+        filters = Q(room=room)
         if cursor_param:
             try:
-                cursor = Cursor.decode(cursor_param)
+                cursor = Cursor.decode(cursor_param, expected_scope=cursor_scope)
             except ValueError as exc:
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
             filters &= cursor.as_filters()
@@ -129,6 +167,7 @@ class PollListCreateView(APIView):
         if has_next and page:
             last = page[-1]
             next_cursor = Cursor(
+                scope=cursor_scope,
                 created_at=last.created_at,
                 identifier=last.id,
             ).encode()
@@ -142,10 +181,12 @@ class PollListCreateView(APIView):
         serializer = PollCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        room = _authorized_room(user, data["cid"])
 
         with transaction.atomic():
             poll = Poll.objects.create(
-                cid=data["cid"],
+                room=room,
+                cid=room.cid,
                 question=data["question"],
                 created_by=user,
             )
@@ -163,13 +204,26 @@ class PollListCreateView(APIView):
         return Response({"poll": payload}, status=status.HTTP_201_CREATED)
 
 
+class PollDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, poll_id: str):
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        poll = _authorized_poll(user, poll_id)
+        if not _can_delete_poll(user, poll):
+            raise PermissionDenied()
+        poll.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class PollOptionCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, poll_id: str):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        poll = get_object_or_404(Poll, pk=poll_id)
+        poll = _authorized_poll(user, poll_id)
         serializer = PollOptionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         option = PollOption.objects.create(
@@ -186,7 +240,7 @@ class PollAnswerCreateView(APIView):
     def post(self, request, poll_id: str):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        poll = get_object_or_404(Poll, pk=poll_id)
+        poll = _authorized_poll(user, poll_id)
         serializer = PollAnswerCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         answer = PollAnswer.objects.create(
@@ -201,7 +255,9 @@ class PollVoteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, poll_id: str, option_id: str):
-        poll = get_object_or_404(Poll, pk=poll_id)
+        identity = get_chat_identity(request)
+        user = identity.as_user()
+        poll = _authorized_poll(user, poll_id)
         option = get_object_or_404(PollOption, pk=option_id, poll=poll)
 
         try:
@@ -210,12 +266,13 @@ class PollVoteView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         cursor_param = request.query_params.get("cursor")
+        cursor_scope = f"poll:{poll.id}:option:{option.id}"
         votes_qs = PollVote.objects.filter(poll=poll, option=option).order_by(
             "-created_at", "-id"
         )
         if cursor_param:
             try:
-                cursor = Cursor.decode(cursor_param)
+                cursor = Cursor.decode(cursor_param, expected_scope=cursor_scope)
             except ValueError as exc:
                 return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
             votes_qs = votes_qs.filter(cursor.as_filters())
@@ -228,6 +285,7 @@ class PollVoteView(APIView):
         if has_next and page:
             last = page[-1]
             next_cursor = Cursor(
+                scope=cursor_scope,
                 created_at=last.created_at,
                 identifier=last.id,
             ).encode()
@@ -242,7 +300,7 @@ class PollVoteView(APIView):
     def post(self, request, poll_id: str, option_id: str):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        poll = get_object_or_404(Poll, pk=poll_id)
+        poll = _authorized_poll(user, poll_id)
         option = get_object_or_404(PollOption, pk=option_id, poll=poll)
 
         with transaction.atomic():
@@ -278,7 +336,7 @@ class PollVoteView(APIView):
     def delete(self, request, poll_id: str, option_id: str):
         identity = get_chat_identity(request)
         user = identity.as_user()
-        poll = get_object_or_404(Poll, pk=poll_id)
+        poll = _authorized_poll(user, poll_id)
         option = get_object_or_404(PollOption, pk=option_id, poll=poll)
 
         try:
@@ -346,7 +404,7 @@ def _broadcast_vote_event(
         "type": event_type,
         "event": event_type,
         "event_type": event_type,
-        "cid": poll.cid,
+        "cid": poll.canonical_cid,
         "poll_id": str(poll.id),
         "user_id": str(vote.user_id),
         "ts": current_timestamp(),
