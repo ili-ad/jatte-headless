@@ -278,19 +278,6 @@ ASGI_APPLICATION = 'jatte.asgi.application'
 #     )
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-#         'NAME': 'postgres',
-#         'USER': 'postgres.fzjjnflfsruvjcdpbyfh',
-#         'PASSWORD': '***REMOVED***',
-#         'HOST': 'aws-0-us-east-1.pooler.supabase.com',
-#         'PORT': '5432',
-#         'OPTIONS': {
-#             'sslmode': 'require',  # Supabase typically requires SSL.
-#         },        
-#     }
-# }
 _db_ssl_required = str(os.environ.get("DATABASE_SSL_REQUIRE", "true")).lower() == "true"
 
 DATABASES = {
