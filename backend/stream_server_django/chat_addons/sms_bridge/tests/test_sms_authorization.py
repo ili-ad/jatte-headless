@@ -1,8 +1,6 @@
 import json
 from unittest.mock import patch
 
-import jwt
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -13,6 +11,7 @@ from stream_server_django.chat_addons.sms_bridge.models import SmsRelay
 from stream_server_django.chat_addons.sms_bridge.services.provider import (
     SmsProviderResponse,
 )
+from jatte.tests.jwt_factory import make_test_token
 
 
 User = get_user_model()
@@ -43,11 +42,7 @@ class SmsAuthorizationTests(APITestCase):
         }
 
     def jwt_auth(self, user) -> dict[str, str]:
-        token = jwt.encode(
-            {"sub": user.supabase_uid},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        token = make_test_token(user.supabase_uid, email=user.email)
         return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
     def signed_post(self, url, payload):

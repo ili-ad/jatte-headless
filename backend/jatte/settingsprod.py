@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import os
 
-from .security_settings import required_csv, required_secret
+from .security_settings import ProductionConfigurationError, required_csv, required_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +30,14 @@ SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_JWKS_URL = (
     f"{SUPABASE_URL.rstrip('/')}/auth/v1/keys" if SUPABASE_URL else None
 )
+SUPABASE_JWT_ISSUER = os.environ.get("SUPABASE_JWT_ISSUER") or (
+    f"{SUPABASE_URL.rstrip('/')}/auth/v1" if SUPABASE_URL else None
+)
+if not SUPABASE_JWT_ISSUER:
+    raise ProductionConfigurationError(
+        "SUPABASE_JWT_ISSUER or NEXT_PUBLIC_SUPABASE_URL must be configured in production"
+    )
+SUPABASE_JWT_AUDIENCE = os.environ.get("SUPABASE_JWT_AUDIENCE", "authenticated")
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "adapter_http")
 SMS_PROVIDER_BASE_URL = os.environ.get("SMS_PROVIDER_BASE_URL", "")
 SMS_PROVIDER_TOKEN = os.environ.get("SMS_PROVIDER_TOKEN", "")

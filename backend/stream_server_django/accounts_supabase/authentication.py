@@ -18,13 +18,20 @@ def decode_supabase_token(token: str) -> dict:
     """Validate a Supabase JWT using the same rules for HTTP and WebSockets."""
 
     try:
+        issuer = getattr(settings, "SUPABASE_JWT_ISSUER", None)
+        audience = getattr(settings, "SUPABASE_JWT_AUDIENCE", None)
+        if not issuer or not audience:
+            raise exceptions.AuthenticationFailed("Invalid token authority configuration")
+        decode_options = {"require": ["sub", "exp", "iat", "iss", "aud"]}
         algorithm = jwt.get_unverified_header(token).get("alg")
         if algorithm == "HS256":
             return jwt.decode(
                 token,
                 settings.SUPABASE_JWT_SECRET,
                 algorithms=["HS256"],
-                options={"verify_aud": False},
+                audience=audience,
+                issuer=issuer,
+                options=decode_options,
                 leeway=30,
             )
         if algorithm == "RS256":
@@ -36,14 +43,16 @@ def decode_supabase_token(token: str) -> dict:
                 token,
                 signing_key.key,
                 algorithms=["RS256"],
-                options={"verify_aud": False},
+                audience=audience,
+                issuer=issuer,
+                options=decode_options,
                 leeway=30,
             )
         raise exceptions.AuthenticationFailed("Invalid token algorithm")
     except ExpiredSignatureError:
         raise exceptions.AuthenticationFailed("Token expired")
     except PyJWTError as exc:
-        raise exceptions.AuthenticationFailed(f"Invalid token: {exc}") from exc
+        raise exceptions.AuthenticationFailed("Invalid token") from exc
 
 
 def resolve_supabase_user(decoded: dict):

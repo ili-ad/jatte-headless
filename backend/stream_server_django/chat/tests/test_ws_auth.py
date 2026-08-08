@@ -1,11 +1,10 @@
 from django.urls import reverse
 from rest_framework.test import APITestCase
-from django.conf import settings
-import jwt
+from jatte.tests.jwt_factory import make_test_token
 
 class WsAuthAPITests(APITestCase):
     def make_token(self, sub="u1", email="u1@example.com"):
-        return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        return make_test_token(sub, email=email)
 
     def test_ws_auth_ok(self):
         token = self.make_token()

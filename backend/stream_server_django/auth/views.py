@@ -59,7 +59,7 @@ class SessionView(LegacySessionView):
 
 
 class RefreshTokenView(LegacyRefreshTokenView):
-    """Return a freshly minted JWT for the caller."""
+    """Relay the verified Supabase token without extending its lifetime."""
 
     authentication_classes = get_chat_authentication_classes()
     permission_classes = [permissions.IsAuthenticated]

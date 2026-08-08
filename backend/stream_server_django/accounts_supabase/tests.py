@@ -1,10 +1,9 @@
-import jwt
-from django.conf import settings
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from stream_server_django.accounts_supabase.models import UserProfile
+from jatte.tests.jwt_factory import make_test_token
 
 
 class SyncUserViewTests(TestCase):
@@ -13,8 +12,7 @@ class SyncUserViewTests(TestCase):
         self.auth_header = self._build_auth_header()
 
     def _build_auth_header(self, sub: str = "user-1", email: str | None = None) -> str:
-        payload = {"sub": sub, "email": email or f"{sub}@example.com"}
-        token = jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        token = make_test_token(sub, email=email)
         return f"Bearer {token}"
 
     def test_sync_user_creates_profile_and_returns_current_user(self):

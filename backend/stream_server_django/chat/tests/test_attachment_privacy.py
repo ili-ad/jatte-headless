@@ -1,10 +1,8 @@
 import json
 from unittest.mock import patch
 
-import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import caches
 from django.test import override_settings
@@ -16,6 +14,7 @@ from stream_server_django.chat.api_views import (
 )
 from stream_server_django.chat.attachment_security import sign_attachment_metadata
 from stream_server_django.chat.models import Channel, Message, Room
+from jatte.tests.jwt_factory import make_test_token
 
 
 User = get_user_model()
@@ -83,11 +82,7 @@ class AttachmentPrivacyTests(APITestCase):
         super().tearDown()
 
     def token(self, user):
-        return jwt.encode(
-            {"sub": user.supabase_uid, "email": user.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        return make_test_token(user.supabase_uid, email=user.email)
 
     def auth(self, user):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token(user)}"}

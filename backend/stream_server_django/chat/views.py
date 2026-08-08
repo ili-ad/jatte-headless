@@ -25,7 +25,7 @@ User = get_user_model()
 
 
 class TokenView(APIView):
-    """Return a signed chat token for the authenticated Supabase user."""
+    """Relay the authenticated Supabase token for Stream compatibility."""
 
     authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
@@ -33,10 +33,13 @@ class TokenView(APIView):
     def get(self, request):
         """Return the current user's ID and their Supabase access token."""
 
-        return Response({
+        response = Response({
             "userID": request.user.id,
             "userToken": request.auth,
         })
+        response["Cache-Control"] = "no-store"
+        response["Pragma"] = "no-cache"
+        return response
 
 
 class RoomMembersCIDView(RoomFromCIDMixin, APIView):

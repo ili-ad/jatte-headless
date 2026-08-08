@@ -58,14 +58,4 @@ export class TokenManager {
     return this.type === 'static';
   }
 
-  async refreshToken(apiUrl: string): Promise<string> {
-    if (!this.token) throw new Error('token not set');
-    const res = await fetch(apiUrl, {
-      headers: { Authorization: `Bearer ${this.token}` },
-    });
-    if (!res.ok) throw new Error('refreshToken failed');
-    const data = await res.json();
-    this.token = data.token;
-    return this.token!;
-  }
 }

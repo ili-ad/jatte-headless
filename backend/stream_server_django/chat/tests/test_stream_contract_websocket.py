@@ -1,12 +1,10 @@
 """Authorized WebSocket contract coverage for the frontend Stream adapter."""
 
-import jwt
 import pytest
 from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from channels.routing import URLRouter
 from channels.testing import WebsocketCommunicator
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 
@@ -14,6 +12,7 @@ from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat.routing import websocket_urlpatterns
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.utils import group_name_for_cid
+from jatte.tests.jwt_factory import make_test_token
 
 
 User = get_user_model()
@@ -21,11 +20,7 @@ application = URLRouter(websocket_urlpatterns)
 
 
 def make_token(sub):
-    return jwt.encode(
-        {"sub": sub, "email": f"{sub}@example.com"},
-        settings.SUPABASE_JWT_SECRET,
-        algorithm="HS256",
-    )
+    return make_test_token(sub)
 
 
 async def connect(room_key, sub):

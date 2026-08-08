@@ -4,10 +4,12 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
-import jwt
+from datetime import datetime, timezone
 
-from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
+from stream_server_django.accounts_supabase.authentication import (
+    DevTokenOrJWTAuthentication,
+    decode_supabase_token,
+)
 from stream_server_django.common.identity import get_chat_identity
 
 from .serializers import RegisterSubscriptionsSerializer
@@ -17,12 +19,17 @@ from .webpush import broadcast_subscriptions_registered
 @authentication_classes([DevTokenOrJWTAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def ws_auth(request):
-    """Return a short-lived legacy websocket URL for a JWT-authenticated user."""
-    exp = timezone.now() + timezone.timedelta(minutes=5)
-    ws_token = jwt.encode({"exp": int(exp.timestamp())}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    """Return a legacy WebSocket URL carrying the verified Supabase token."""
+    decoded = decode_supabase_token(request.auth)
+    exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
     scheme = "wss" if request.is_secure() else "ws"
-    ws_url = f"{scheme}://{request.get_host()}/ws/?token={ws_token}"
-    return Response({"stream_server_django.auth": ws_url, "expires": exp.isoformat()})
+    ws_url = f"{scheme}://{request.get_host()}/ws/?token={request.auth}"
+    response = Response(
+        {"stream_server_django.auth": ws_url, "expires": exp.isoformat()}
+    )
+    response["Cache-Control"] = "no-store"
+    response["Pragma"] = "no-cache"
+    return response
 
 @api_view(["GET"])
 @authentication_classes([DevTokenOrJWTAuthentication])

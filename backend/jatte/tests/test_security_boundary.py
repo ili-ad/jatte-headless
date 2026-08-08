@@ -3,20 +3,21 @@ import os
 import sys
 from unittest.mock import patch
 
-import jwt
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from jatte.security_settings import ProductionConfigurationError, required_csv, required_secret
+from jatte.tests.jwt_factory import make_test_token
 
 
 class ProductionSettingsHelperTests(TestCase):
     production_environ = {
         "DJANGO_SECRET_KEY": "real-django-secret",
         "SUPABASE_JWT_SECRET": "real-supabase-secret",
+        "SUPABASE_JWT_ISSUER": "https://project.supabase.co/auth/v1",
+        "SUPABASE_JWT_AUDIENCE": "authenticated",
         "DJANGO_ALLOWED_HOSTS": "chat.example,api.example",
         "DJANGO_CORS_ALLOWED_ORIGINS": "https://app.example",
         "DJANGO_WS_ALLOWED_ORIGINS": "https://app.example",
@@ -77,6 +78,17 @@ class ProductionSettingsHelperTests(TestCase):
         self.assertEqual(configured.CORS_ALLOWED_ORIGINS, ["https://app.example"])
         self.assertEqual(configured.DJANGO_WS_ALLOWED_ORIGINS, ["https://app.example"])
         self.assertFalse(configured.CORS_ALLOW_CREDENTIALS)
+        self.assertEqual(
+            configured.SUPABASE_JWT_ISSUER,
+            "https://project.supabase.co/auth/v1",
+        )
+        self.assertEqual(configured.SUPABASE_JWT_AUDIENCE, "authenticated")
+
+    def test_production_settings_require_trusted_supabase_issuer(self):
+        environ = dict(self.production_environ)
+        environ.pop("SUPABASE_JWT_ISSUER")
+        with self.assertRaises(ProductionConfigurationError):
+            self._load_production_settings(environ)
 
     def test_production_settings_require_service_and_webhook_secrets(self):
         for required_name in (
@@ -96,11 +108,7 @@ class AuthBoundaryRegressionTests(TestCase):
         self.client = APIClient()
 
     def _token(self, sub="auth-boundary-user"):
-        return jwt.encode(
-            {"sub": sub, "email": f"{sub}@example.com"},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        return make_test_token(sub)
 
     def test_x_user_id_does_not_authenticate_a_legacy_view(self):
         response = self.client.get("/api/ws-auth/", HTTP_X_USER_ID="impersonated-user")

@@ -3,9 +3,8 @@ from django.test import override_settings
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
 from jwt.utils import base64url_encode
-import jwt
+from jatte.tests.jwt_factory import make_test_token
 
 
 def make_keys():
@@ -26,7 +25,9 @@ def make_keys():
 class SupabaseAuthAPITests(APITestCase):
     def test_rs256_jwt_via_jwks(self):
         priv, jwks = make_keys()
-        token = jwt.encode({"sub": "u1", "email": "u1@example.com"}, priv, algorithm="RS256", headers={"kid": "test"})
+        token = make_test_token(
+            "u1", algorithm="RS256", key=priv, headers={"kid": "test"}
+        )
         url = reverse("ws-auth")
         with patch("jwt.PyJWKClient.fetch_data", return_value=jwks):
             res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -36,7 +37,9 @@ class SupabaseAuthAPITests(APITestCase):
 
     def test_token_endpoint(self):
         priv, jwks = make_keys()
-        token = jwt.encode({"sub": "u1", "email": "u1@example.com"}, priv, algorithm="RS256", headers={"kid": "test"})
+        token = make_test_token(
+            "u1", algorithm="RS256", key=priv, headers={"kid": "test"}
+        )
         url = reverse("token-obtain")
         with patch("jwt.PyJWKClient.fetch_data", return_value=jwks):
             res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")

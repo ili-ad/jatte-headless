@@ -23,7 +23,6 @@ export const API = {
   MUTE_USER: '/mute/',
   UNMUTE_USER: '/user-mutes/unmute/',
   RECOVER_STATE: '/recover-state/',
-  REFRESH_TOKEN: '/refresh-token/',
   SUBARRAY: '/subarray/',
   EDITING_AUDIT_STATE: '/editing-audit-state/',
   WS_AUTH: '/ws-auth/',
@@ -40,4 +39,3 @@ export const EVENTS = {
   MESSAGE_NEW: 'message.new',
   SETTINGS_UPDATED: 'settings.updated',
 } as const;
-

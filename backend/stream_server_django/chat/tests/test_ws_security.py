@@ -1,25 +1,23 @@
 import time
 
-import jwt
 import pytest
 from asgiref.sync import sync_to_async
 from channels.layers import get_channel_layer
 from channels.routing import URLRouter
 from channels.testing import WebsocketCommunicator
-from django.conf import settings
 from django.test import override_settings
 
 from stream_server_django.chat.models import Message, Room
 from stream_server_django.chat.routing import websocket_urlpatterns
 from stream_server_django.chat.utils import group_name_for_cid
+from jatte.tests.jwt_factory import make_test_token as make_authorized_test_token
 
 
 application = URLRouter(websocket_urlpatterns)
 
 
 def make_token(sub="member", **claims):
-    payload = {"sub": sub, "email": f"{sub}@example.com", **claims}
-    return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    return make_authorized_test_token(sub, claims=claims)
 
 
 async def connect(room_key="chat", token=None):
@@ -44,13 +42,12 @@ async def create_room(uuid, client):
     [
         None,
         "not-a-jwt",
-        jwt.encode(
-            {"sub": "expired", "exp": int(time.time()) - 120},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
+        make_authorized_test_token(
+            "expired",
+            claims={"iat": int(time.time()) - 3600, "exp": int(time.time()) - 120},
         ),
-        jwt.encode({"sub": "wrong-signature"}, "different-secret", algorithm="HS256"),
-        jwt.encode({"email": "missing-sub@example.com"}, settings.SUPABASE_JWT_SECRET, algorithm="HS256"),
+        make_authorized_test_token("wrong-signature", key="different-secret"),
+        make_authorized_test_token("missing-sub", remove=("sub",)),
     ],
     ids=["missing", "malformed", "expired", "invalid-signature", "missing-sub"],
 )
