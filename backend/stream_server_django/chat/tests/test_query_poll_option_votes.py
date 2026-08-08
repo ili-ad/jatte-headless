@@ -6,11 +6,12 @@ import jwt
 
 from django.contrib.auth import get_user_model
 
-from stream_server_django.chat.models import Poll, PollOption, PollVote
+from stream_server_django.chat.models import Room
+from stream_server_django.polls.models import Poll, PollOption, PollVote
 User = get_user_model()
 
 
-@override_settings(ROOT_URLCONF="chat.urls")
+@override_settings(ROOT_URLCONF="jatte.urls")
 class QueryPollOptionVotesAPITests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
@@ -26,11 +27,17 @@ class QueryPollOptionVotesAPITests(APITestCase):
             supabase_uid="voter",
         )
 
-        self.poll = Poll.objects.create(question="Best color?", user=self.owner)
+        self.room = Room.objects.create(uuid="owner-room", client="owner")
+        self.poll = Poll.objects.create(
+            room=self.room,
+            cid=self.room.cid,
+            question="Best color?",
+            created_by=self.owner,
+        )
         self.option = PollOption.objects.create(
             poll=self.poll,
             text="Blue",
-            user=self.owner,
+            created_by=self.owner,
         )
 
     def make_token(self, sub="owner", email="owner@example.com"):
@@ -49,8 +56,18 @@ class QueryPollOptionVotesAPITests(APITestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_returns_paginated_votes(self):
-        for _ in range(3):
-            PollVote.objects.create(poll=self.poll, option=self.option, user=self.voter)
+        voters = [self.voter]
+        voters.extend(
+            User.objects.create_user(
+                username=f"voter-{index}",
+                email=f"voter-{index}@example.com",
+                password="x",
+                supabase_uid=f"voter-{index}",
+            )
+            for index in range(2)
+        )
+        for voter in voters:
+            PollVote.objects.create(poll=self.poll, option=self.option, user=voter)
 
         token = self.make_token()
         url = reverse(

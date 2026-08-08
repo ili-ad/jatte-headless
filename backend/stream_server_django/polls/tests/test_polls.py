@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from rest_framework.test import APITestCase
 from stream_server_django.polls.models import Poll, PollOption
+from stream_server_django.chat.models import Room
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 
@@ -26,6 +27,7 @@ class PollsAPITests(APITestCase):
             password="pwd",
             supabase_uid="alice",
         )
+        self.room = Room.objects.create(uuid="general", client="alice")
 
     def _auth_headers(self, sub: str | None = None) -> dict[str, str]:
         token = jwt.encode(
@@ -59,6 +61,7 @@ class PollsAPITests(APITestCase):
 
     def test_list_polls_returns_results(self):
         poll = Poll.objects.create(
+            room=self.room,
             cid="messaging:general",
             question="Favorite color?",
             created_by=self.user,

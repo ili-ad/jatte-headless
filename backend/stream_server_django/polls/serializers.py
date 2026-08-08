@@ -22,6 +22,7 @@ class PollOptionSerializer(serializers.ModelSerializer):
 
 class PollSerializer(serializers.ModelSerializer):
     poll_id = serializers.SerializerMethodField()
+    cid = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
 
     class Meta:
@@ -31,6 +32,9 @@ class PollSerializer(serializers.ModelSerializer):
 
     def get_poll_id(self, obj: Poll) -> str:
         return str(obj.id)
+
+    def get_cid(self, obj: Poll) -> str:
+        return obj.canonical_cid
 
     def get_options(self, obj: Poll) -> Iterable[dict]:
         options = getattr(obj, "prefetched_options", None)

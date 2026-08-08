@@ -5,7 +5,8 @@ import jwt
 
 from django.contrib.auth import get_user_model
 
-from stream_server_django.chat.models import Poll
+from stream_server_django.chat.models import Room
+from stream_server_django.polls.models import Poll
 User = get_user_model()
 
 class PollListAPITests(APITestCase):
@@ -14,8 +15,9 @@ class PollListAPITests(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
-        Poll.objects.create(question="q1", user=self.user)
-        Poll.objects.create(question="q2", user=self.user)
+        self.room = Room.objects.create(uuid="room-u1", client="u1")
+        Poll.objects.create(room=self.room, cid=self.room.cid, question="q1", created_by=self.user)
+        Poll.objects.create(room=self.room, cid=self.room.cid, question="q2", created_by=self.user)
 
     def test_list_polls(self):
         token = self.make_token()

@@ -9,17 +9,24 @@ django.setup()
 import jwt
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
+from channels.routing import URLRouter
 from django.conf import settings
 from django.core.management import call_command
 from django.test import TransactionTestCase, override_settings
+from django.urls import path
 from rest_framework.test import APIClient, APITestCase
 from urllib.parse import quote
 
 from django.contrib.auth import get_user_model
 
 from stream_server_django.polls.models import Poll, PollOption, PollVote
-from jatte.asgi import application
+from stream_server_django.chat.models import Room
+from stream_server_django.chat.consumers import ChatConsumer
 User = get_user_model()
+
+application = URLRouter(
+    [path("ws/<str:room_key>/", ChatConsumer.as_asgi())]
+)
 
 call_command("migrate", run_syncdb=True, verbosity=0)
 
@@ -37,7 +44,9 @@ class PollVoteWebsocketTests(TransactionTestCase):
             password="pwd",
             supabase_uid="bob",
         )
+        room = await sync_to_async(Room.objects.create)(uuid="general", client="bob")
         poll = await sync_to_async(Poll.objects.create)(
+            room=room,
             cid="messaging:general",
             question="Best snack?",
             created_by=user,
@@ -71,7 +80,7 @@ class PollVoteWebsocketTests(TransactionTestCase):
 
         communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
         connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        self.assertTrue(connected, f"websocket close detail: {_}")
         await communicator.receive_json_from()
         await communicator.send_json_to({"type": "channel.watch", "cid": poll.cid})
         await communicator.receive_json_from()
@@ -113,7 +122,7 @@ class PollVoteWebsocketTests(TransactionTestCase):
 
         communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
         connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        self.assertTrue(connected, f"websocket close detail: {_}")
         await communicator.receive_json_from()
         await communicator.send_json_to({"type": "channel.watch", "cid": poll.cid})
         await communicator.receive_json_from()
@@ -152,7 +161,7 @@ class PollVoteWebsocketTests(TransactionTestCase):
 
         communicator = WebsocketCommunicator(application, f"/ws/chat/?token={token}")
         connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        self.assertTrue(connected, f"websocket close detail: {_}")
         await communicator.receive_json_from()
         await communicator.send_json_to({"type": "channel.watch", "cid": poll.cid})
         await communicator.receive_json_from()
@@ -189,6 +198,7 @@ class PollVoteQueryTests(APITestCase):
             supabase_uid="dave",
         )
         self.poll = Poll.objects.create(
+            room=Room.objects.create(uuid="general", client="carol"),
             cid="messaging:general",
             question="Best day?",
             created_by=self.user,

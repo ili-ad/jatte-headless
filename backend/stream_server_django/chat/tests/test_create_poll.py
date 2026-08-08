@@ -5,7 +5,8 @@ import jwt
 
 from django.contrib.auth import get_user_model
 
-from stream_server_django.chat.models import Poll, PollOption
+from stream_server_django.chat.models import Room
+from stream_server_django.polls.models import Poll, PollOption
 User = get_user_model()
 
 class PollAPITests(APITestCase):
@@ -14,11 +15,12 @@ class PollAPITests(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
+        self.room = Room.objects.create(uuid="room-u1", client="u1")
 
     def test_create_poll(self):
         token = self.make_token()
         url = reverse("poll-create")
-        res = self.client.post(url, {"question": "q?", "options": ["a", "b"]}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
+        res = self.client.post(url, {"cid": self.room.cid, "question": "q?", "options": ["a", "b"]}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
         self.assertEqual(res.status_code, 201)
         pid = res.data["poll"]["id"]
         self.assertTrue(Poll.objects.filter(id=pid, question="q?").exists())
@@ -36,7 +38,7 @@ class PollAPITests(APITestCase):
         self.assertEqual(res.status_code, 405)
 
     def test_delete_poll(self):
-        poll = Poll.objects.create(question="bye", user=self.user)
+        poll = Poll.objects.create(room=self.room, cid=self.room.cid, question="bye", created_by=self.user)
         token = self.make_token()
         url = reverse("poll-detail", kwargs={"poll_id": poll.id})
         res = self.client.delete(url, HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -44,13 +46,13 @@ class PollAPITests(APITestCase):
         self.assertFalse(Poll.objects.filter(id=poll.id).exists())
 
     def test_delete_poll_requires_auth(self):
-        poll = Poll.objects.create(question="a", user=self.user)
+        poll = Poll.objects.create(room=self.room, cid=self.room.cid, question="a", created_by=self.user)
         url = reverse("poll-detail", kwargs={"poll_id": poll.id})
         res = self.client.delete(url)
         self.assertEqual(res.status_code, 403)
 
     def test_delete_poll_wrong_method(self):
-        poll = Poll.objects.create(question="a", user=self.user)
+        poll = Poll.objects.create(room=self.room, cid=self.room.cid, question="a", created_by=self.user)
         token = self.make_token()
         url = reverse("poll-detail", kwargs={"poll_id": poll.id})
         res = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
