@@ -65,15 +65,30 @@ counts cannot be queried from this development environment. Migration
 `polls.0002_poll_room` handles the unknown inventory deterministically:
 
 1. normalize each existing canonical poll CID;
-2. bind it only when an already-existing `chat.Room.uuid` matches;
-3. canonicalize the stored CID from that room;
-4. preserve unmatched polls with `room = NULL`.
+2. find an already-existing `chat.Room.uuid` match;
+3. bind only when frozen-model evidence proves the creator was staff/superuser,
+   the room agent, matched `room.client` by username/Supabase UID/user ID, or
+   had previously sent a message attached to that room;
+4. canonicalize the stored CID from that room only after that proof;
+5. preserve unmatched or unauthorized polls with `room = NULL`.
 
 The migration never creates rooms and never deletes poll data. Preserved
 orphans are excluded from every externally reachable poll operation pending
 operator adjudication. Legacy `chat.Poll` rows are likewise preserved in their
 tables but retired from external request handling; no destructive data
 migration is performed.
+
+After deployment, operators can obtain a content-free adjudication inventory
+without mutating rows:
+
+```python
+from stream_server_django.polls.models import Poll
+print({
+    "total": Poll.objects.count(),
+    "bound": Poll.objects.filter(room__isnull=False).count(),
+    "unbound": Poll.objects.filter(room__isnull=True).count(),
+})
+```
 
 ## Event contract
 

@@ -2,6 +2,34 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def _creator_identifiers(creator):
+    return {
+        str(identifier)
+        for identifier in (
+            creator.username,
+            getattr(creator, "supabase_uid", None),
+            creator.pk,
+        )
+        if identifier not in (None, "")
+    }
+
+
+def _creator_had_room_access(creator, room):
+    """Reproduce the legacy-compatible PR3 policy using frozen models only."""
+
+    if creator.is_staff or creator.is_superuser:
+        return True
+    if room.agent_id == creator.pk:
+        return True
+
+    identifiers = _creator_identifiers(creator)
+    if room.client and room.client in identifiers:
+        return True
+    return bool(
+        identifiers and room.messages.filter(sent_by__in=identifiers).exists()
+    )
+
+
 def bind_existing_polls(apps, schema_editor):
     Poll = apps.get_model("polls", "Poll")
     Room = apps.get_model("chat", "Room")
@@ -13,6 +41,9 @@ def bind_existing_polls(apps, schema_editor):
             _room_type, identifier = identifier.split(":", 1)
         room = rooms.get(identifier)
         if room is None:
+            continue
+        creator = poll.created_by
+        if not _creator_had_room_access(creator, room):
             continue
         poll.room_id = room.pk
         poll.cid = f"messaging:{room.uuid}"

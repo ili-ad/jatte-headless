@@ -302,22 +302,90 @@ class PollRoomAuthorizationTests(APITestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_data_migration_binds_only_existing_rooms_and_preserves_orphans(self):
+    def _run_room_binding_migration(self):
+        migration = importlib.import_module(
+            "stream_server_django.polls.migrations.0002_poll_room"
+        )
+        migration.bind_existing_polls(apps, None)
+
+    def test_data_migration_binds_authorized_creator_and_preserves_missing_room(self):
         matching = Poll.objects.create(
             cid=self.room_a.cid, question="matching", created_by=self.member_a
         )
         orphan = Poll.objects.create(
             cid="messaging:missing-room", question="orphan", created_by=self.member_a
         )
-        migration = importlib.import_module(
-            "stream_server_django.polls.migrations.0002_poll_room"
-        )
-        migration.bind_existing_polls(apps, None)
+        before = (Room.objects.count(), Poll.objects.count())
+        self._run_room_binding_migration()
         matching.refresh_from_db()
         orphan.refresh_from_db()
         self.assertEqual(matching.room, self.room_a)
         self.assertEqual(matching.cid, self.room_a.cid)
         self.assertIsNone(orphan.room)
+        self.assertEqual((Room.objects.count(), Poll.objects.count()), before)
+
+    def test_data_migration_rejects_historical_cross_room_cid_injection(self):
+        injected = Poll.objects.create(
+            cid=self.room_a.cid,
+            question="injected",
+            created_by=self.outsider,
+        )
+        before = (Room.objects.count(), Poll.objects.count())
+        self._run_room_binding_migration()
+        injected.refresh_from_db()
+
+        self.assertIsNone(injected.room)
+        self.assertEqual((Room.objects.count(), Poll.objects.count()), before)
+
+        canonical = self.client.get(
+            f"/polls/?cid={self.room_a.cid}", **self._headers(self.member_a)
+        )
+        legacy = self.client.get(
+            f"/api/polls/?cid={self.room_a.cid}", **self._headers(self.member_a)
+        )
+        direct = self.client.post(
+            f"/polls/{injected.id}/options/",
+            {"text": "hidden"},
+            format="json",
+            **self._headers(self.outsider),
+        )
+        self.assertNotIn(
+            str(injected.id), {poll["poll_id"] for poll in canonical.data["results"]}
+        )
+        self.assertNotIn(str(injected.id), {poll["id"] for poll in legacy.data})
+        self.assertEqual(direct.status_code, 404)
+
+    def test_data_migration_accepts_prior_message_membership(self):
+        historical = Poll.objects.create(
+            cid=self.room_a.cid,
+            question="prior message",
+            created_by=self.participant,
+        )
+        self._run_room_binding_migration()
+        historical.refresh_from_db()
+        self.assertEqual(historical.room, self.room_a)
+        self.assertEqual(historical.cid, self.room_a.cid)
+
+    def test_data_migration_accepts_agent_staff_and_superuser_evidence(self):
+        superuser = self._user("superuser", is_superuser=True)
+        cases = (
+            (self.agent, "agent"),
+            (self.staff, "staff"),
+            (superuser, "superuser"),
+        )
+        polls = [
+            Poll.objects.create(
+                cid=self.room_a.cid,
+                question=label,
+                created_by=creator,
+            )
+            for creator, label in cases
+        ]
+        self._run_room_binding_migration()
+        for poll in polls:
+            poll.refresh_from_db()
+            self.assertEqual(poll.room, self.room_a)
+            self.assertEqual(poll.cid, self.room_a.cid)
 
     def test_legacy_api_aliases_use_canonical_room_bound_models(self):
         created = self.client.post(
