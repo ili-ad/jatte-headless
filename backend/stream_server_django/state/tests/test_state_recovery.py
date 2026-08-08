@@ -10,7 +10,7 @@ import django
 import jwt
 from django.conf import settings
 from django.core.management import call_command
-from django.urls import reverse
+from django.test import override_settings
 
 # Configure Django manually because pytest-django is unavailable.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -29,6 +29,7 @@ from stream_server_django.chat.models import Notification, Room  # noqa: E402
 User = get_user_model()
 
 
+@override_settings(ROOT_URLCONF="jatte.urls")
 class StateRecoveryEndpointsTests(APITestCase):
     """Validate recover-state helpers used during initialization."""
 
@@ -69,7 +70,7 @@ class StateRecoveryEndpointsTests(APITestCase):
         Notification.objects.create(user=self.other_user, text="ignore")
 
         token = self.make_token()
-        url = reverse("state:recover-state")
+        url = "/recover-state/"
 
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
@@ -98,14 +99,14 @@ class StateRecoveryEndpointsTests(APITestCase):
 
         token = self.make_token()
 
-        disconnected_url = reverse("state:disconnected")
+        disconnected_url = "/disconnected/"
         response = self.client.get(
             disconnected_url, HTTP_AUTHORIZATION=f"Bearer {token}"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"disconnected": False})
 
-        initialized_url = reverse("state:initialized")
+        initialized_url = "/initialized/"
         response = self.client.get(
             initialized_url, HTTP_AUTHORIZATION=f"Bearer {token}"
         )
@@ -116,7 +117,7 @@ class StateRecoveryEndpointsTests(APITestCase):
         """The audit diagnostic endpoint should echo integers back."""
 
         token = self.make_token()
-        url = reverse("state:editing-audit-state")
+        url = "/editing-audit-state/"
         payload = {"draft_update": 3, "state_update": 1}
 
         response = self.client.post(
@@ -133,12 +134,12 @@ class StateRecoveryEndpointsTests(APITestCase):
         """All state recovery endpoints should enforce authentication."""
 
         endpoints = [
-            ("get", reverse("state:recover-state"), None),
-            ("get", reverse("state:disconnected"), None),
-            ("get", reverse("state:initialized"), None),
+            ("get", "/recover-state/", None),
+            ("get", "/disconnected/", None),
+            ("get", "/initialized/", None),
             (
                 "post",
-                reverse("state:editing-audit-state"),
+                "/editing-audit-state/",
                 {"draft_update": 1, "state_update": 0},
             ),
         ]

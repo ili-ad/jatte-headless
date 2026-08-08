@@ -14,7 +14,7 @@ class RecoverStateAPITests(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
-        Room.objects.create(uuid="r1", client="c1", status=Room.ACTIVE)
+        Room.objects.create(uuid="r1", client=self.user.supabase_uid, status=Room.ACTIVE)
         Notification.objects.create(user=self.user, text="hi")
 
     def test_recover_state_returns_data(self):
