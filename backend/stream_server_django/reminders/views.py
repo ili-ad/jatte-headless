@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from stream_server_django.common.identity import get_chat_identity
+from stream_server_django.rooms.utils import get_room_or_404, require_room_access
 
 from .models import Reminder
 from .serializers import ReminderIn, ReminderOut
@@ -50,14 +51,28 @@ class ReminderListCreateView(APIView):
     def post(self, request):
         identity = get_chat_identity(request)
         user = identity.as_user()
+        cid_supplied = "cid" in request.data
+        raw_cid = request.data.get("cid")
+        if cid_supplied and (not isinstance(raw_cid, str) or not raw_cid.strip()):
+            return Response(
+                {"cid": ["A non-blank string is required when cid is supplied."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = ReminderIn(data=request.data, context={"user": user})
         serializer.is_valid(raise_exception=True)
+        room = None
+        if cid_supplied:
+            room = require_room_access(
+                user, get_room_or_404(serializer.validated_data["cid"])
+            )
+            serializer.validated_data["cid"] = room.cid
+
         reminder = serializer.save()
         payload = ReminderOut(reminder).data
 
-        cid = serializer.validated_data.get("cid")
-        if cid:
-            _broadcast_new_reminder(cid, payload)
+        if room is not None:
+            _broadcast_new_reminder(room.cid, payload)
 
         return Response({"reminder": payload}, status=status.HTTP_201_CREATED)
 

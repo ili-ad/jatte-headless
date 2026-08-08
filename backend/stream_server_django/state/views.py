@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
 from stream_server_django.common.identity import get_chat_identity
 from stream_server_django.chat.models import Notification, Room
+from stream_server_django.rooms.utils import rooms_accessible_to_user
 
 from .serializers import (
     EditingAuditStateSerializer,
@@ -39,7 +40,11 @@ def _coerce_room_data(value: Any) -> dict[str, Any]:
 def recover_state(request: Request) -> Response:
     """Return rooms and notifications required for a cold start."""
 
-    rooms = Room.objects.all().order_by("id")
+    identity = get_chat_identity(request)
+    user = identity.as_user()
+    rooms = rooms_accessible_to_user(
+        user, Room.objects.filter(status=Room.ACTIVE)
+    ).order_by("id")
     room_payload = []
     for room in rooms:
         data = _coerce_room_data(room.data)
@@ -54,8 +59,6 @@ def recover_state(request: Request) -> Response:
 
     rooms_serialized = RoomSnapshotSerializer(room_payload, many=True).data
 
-    identity = get_chat_identity(request)
-    user = identity.as_user()
     notifications = Notification.objects.filter(user=user).order_by(
         "-created_at"
     )
