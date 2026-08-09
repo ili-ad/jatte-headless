@@ -10,6 +10,7 @@ backend. In particular, `X-User-ID` is ignored in all settings modes.
 
 Production uses `jatte.settingsprod`. Startup requires all of the following:
 
+- `DATABASE_URL`
 - `DJANGO_SECRET_KEY`
 - `SUPABASE_JWT_SECRET`
 - `SUPABASE_JWT_ISSUER` (or the trusted Supabase project URL used to derive it)
@@ -17,11 +18,37 @@ Production uses `jatte.settingsprod`. Startup requires all of the following:
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CORS_ALLOWED_ORIGINS`
 - `DJANGO_WS_ALLOWED_ORIGINS`
+- `CHAT_INTERNAL_SERVICE_TOKEN`
+- `SMS_WEBHOOK_SECRET`
 
 The origin and host variables are comma-separated allowlists; wildcard values
 are rejected. Production TLS is expected to terminate at a proxy that sets
 `X-Forwarded-Proto: https`; this is used only because production settings
 explicitly configure Django to trust that proxy header.
+
+`jatte.settingsprod` imports the shared application topology from
+`jatte.settings` with development `.env` loading disabled, then applies only
+fail-closed production overrides. `DATABASE_URL` is parsed through
+`dj_database_url`; there is no hard-coded database fallback. Redis is required
+for the Channels layer and throttle cache and is configured with `REDIS_HOST`
+and `REDIS_PORT`.
+
+Production redirects HTTP to HTTPS, uses secure cookies, and sends HSTS for a
+positive duration controlled by `SECURE_HSTS_SECONDS` (one hour by default).
+HSTS does not include subdomains and is not preloaded at this stage. The
+reverse proxy must be the only component able to supply the trusted forwarded
+scheme and host headers.
+
+With the required environment already present, operators can verify the real
+production boundary locally with:
+
+```console
+DJANGO_SETTINGS_MODULE=jatte.settingsprod python manage.py check --deploy
+```
+
+The active `.github/workflows/production-settings.yml` gate repeats the normal
+and deploy checks and boots Django, the real URLconf, ASGI, and WSGI using
+synthetic non-production configuration on pull requests and pushes to `main`.
 
 Supabase Auth is the sole issuer and refresher of browser user-session access
 tokens. JATTE requires signature validation plus `sub`, `exp`, `iat`, `iss`,

@@ -8,7 +8,12 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from jatte.security_settings import ProductionConfigurationError, required_csv, required_secret
+from jatte.security_settings import (
+    ProductionConfigurationError,
+    required_csv,
+    required_secret,
+    required_value,
+)
 from jatte.tests.jwt_factory import make_test_token
 
 
@@ -23,12 +28,19 @@ class ProductionSettingsHelperTests(TestCase):
         "DJANGO_WS_ALLOWED_ORIGINS": "https://app.example",
         "CHAT_INTERNAL_SERVICE_TOKEN": "real-internal-service-secret",
         "SMS_WEBHOOK_SECRET": "real-sms-webhook-secret",
+        "DATABASE_URL": "postgresql://ci_user:ci_password@127.0.0.1:5432/jatte_ci",
     }
 
     def _load_production_settings(self, environ):
         sys.modules.pop("jatte.settingsprod", None)
-        with patch.dict(os.environ, environ, clear=True):
-            return importlib.import_module("jatte.settingsprod")
+        development_settings = sys.modules.pop("jatte.settings", None)
+        try:
+            with patch.dict(os.environ, environ, clear=True):
+                return importlib.import_module("jatte.settingsprod")
+        finally:
+            sys.modules.pop("jatte.settings", None)
+            if development_settings is not None:
+                sys.modules["jatte.settings"] = development_settings
 
     def test_required_secret_rejects_missing_and_placeholder_values(self):
         for value in ("", "changeme", "change-me", "django-insecure-value"):
@@ -53,6 +65,11 @@ class ProductionSettingsHelperTests(TestCase):
             ),
             ["https://app.example", "https://admin.example"],
         )
+
+    def test_required_value_rejects_missing_or_blank_values(self):
+        for environ in ({}, {"DATABASE_URL": "   "}):
+            with self.assertRaises(ProductionConfigurationError):
+                required_value("DATABASE_URL", environ)
 
     def test_production_host_and_cors_allowlists_parse_explicit_values(self):
         environ = {
@@ -88,6 +105,15 @@ class ProductionSettingsHelperTests(TestCase):
         environ = dict(self.production_environ)
         environ.pop("SUPABASE_JWT_ISSUER")
         with self.assertRaises(ProductionConfigurationError):
+            self._load_production_settings(environ)
+
+    def test_production_settings_require_postgresql_database_url(self):
+        environ = dict(self.production_environ)
+        environ["DATABASE_URL"] = "sqlite:////tmp/not-a-production-database.sqlite3"
+        with self.assertRaisesRegex(
+            ProductionConfigurationError,
+            "DATABASE_URL must configure PostgreSQL",
+        ):
             self._load_production_settings(environ)
 
     def test_production_settings_require_service_and_webhook_secrets(self):

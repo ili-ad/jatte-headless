@@ -41,3 +41,13 @@ def required_csv(name: str, environ: dict[str, str] | None = None) -> list[str]:
     if any(item == "*" or "*" in item for item in items):
         raise ProductionConfigurationError(f"{name} cannot contain wildcard origins")
     return items
+
+
+def required_value(name: str, environ: dict[str, str] | None = None) -> str:
+    """Return an explicitly configured, non-empty production value."""
+
+    source = os.environ if environ is None else environ
+    value = source.get(name, "").strip()
+    if not value:
+        raise ProductionConfigurationError(f"{name} must be configured in production")
+    return value
