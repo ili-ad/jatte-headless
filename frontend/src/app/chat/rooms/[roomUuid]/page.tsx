@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
 import ChatGuard from '../../../../components/ChatGuard'
 import ChatInner from '../../ChatInner'
 
@@ -17,7 +18,8 @@ function setCookie(name: string, value: string, maxAgeDays = ROOM_UUID_COOKIE_MA
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; expires=${expires.toUTCString()}; samesite=lax`
 }
 
-export default function RoomPage({ params }: { params: { roomUuid: string } }) {
+export default function RoomPage() {
+  const params = useParams<{ roomUuid: string }>()
   const roomUuid = decodeURIComponent(params.roomUuid)
   const label = useMemo(() => roomUuid, [roomUuid])
   const [ready, setReady] = useState(false)

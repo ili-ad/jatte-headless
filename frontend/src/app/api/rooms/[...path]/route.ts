@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND = process.env.BACKEND_URL ?? 'http://localhost:8000';
 
-type RoomsParams = { params: { path: string[] } };
+type RoomsParams = { params: Promise<{ path: string[] }> };
 
-export async function proxyRooms(
+async function proxyRooms(
   req: NextRequest,
   { params }: RoomsParams,
 ) {
@@ -13,7 +13,8 @@ export async function proxyRooms(
   if (!authHeader) {
     return NextResponse.json({ error: 'rooms_proxy_auth_missing' }, { status: 401 });
   }
-  const url = `${BACKEND}/api/rooms/${params.path.join('/')}/`;
+  const { path } = await params;
+  const url = `${BACKEND}/api/rooms/${path.join('/')}/`;
   const resp = await fetch(url, {
     method: req.method,
     headers: {

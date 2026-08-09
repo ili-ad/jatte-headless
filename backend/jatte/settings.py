@@ -167,6 +167,13 @@ REACTION_SUSTAINED_RATE = os.environ.get("REACTION_SUSTAINED", "400/hour")
 WS_BUCKET_CAPACITY = int(os.environ.get("WS_BUCKET_CAPACITY", "30"))
 WS_BUCKET_REFILL_PER_SEC = float(os.environ.get("WS_BUCKET_REFILL_PER_SEC", "5"))
 WS_RATE_LIMIT_CLOSE_CODE = int(os.environ.get("WS_RATE_LIMIT_CLOSE_CODE", "4408"))
+WS_MAX_EVENT_BYTES = int(os.environ.get("WS_MAX_EVENT_BYTES", str(256 * 1024)))
+
+# Django API requests are bounded independently of direct-to-GCS attachment
+# uploads, whose bytes never traverse Django.
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(
+    os.environ.get("DATA_UPLOAD_MAX_MEMORY_SIZE", str(2 * 1024 * 1024))
+)
 
 CACHES = {
     "default": {
@@ -258,6 +265,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'jatte.request_limits.RequestBodyLimitMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

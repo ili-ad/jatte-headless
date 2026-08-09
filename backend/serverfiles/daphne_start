@@ -8,4 +8,10 @@ source ../env/bin/activate
 export DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE
 export PYTHONPATH=$DJANGODIR:$PYTHONPATH
 
-daphne -b 0.0.0.0 -p 8002 jatte.asgi:application
+exec daphne -b 0.0.0.0 -p 8002 \
+  --http-timeout 60 \
+  --websocket-max-frame-size 1048576 \
+  --websocket-max-message-size 1048576 \
+  --websocket_connect_timeout 20 \
+  --application-close-timeout 10 \
+  jatte.asgi:application

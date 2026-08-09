@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-import jwt
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
+
+from jatte.tests.jwt_factory import make_test_token
 
 
 User = get_user_model()
@@ -29,11 +29,7 @@ class NotificationServiceAuthorizationTests(APITestCase):
         self.oncall_url = reverse("notifications-oncall")
 
     def auth(self, user) -> dict[str, str]:
-        token = jwt.encode(
-            {"sub": user.supabase_uid},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        token = make_test_token(user.supabase_uid, email=user.email)
         return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
     def test_staff_and_service_are_accepted(self):

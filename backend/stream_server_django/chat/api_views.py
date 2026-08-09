@@ -1,4 +1,5 @@
 import json
+import hashlib
 import logging
 import uuid
 from datetime import timedelta
@@ -2418,11 +2419,18 @@ class LinkPreviewView(APIView):
             request_id = request.headers.get("X-Request-ID") or request.META.get(
                 "HTTP_X_REQUEST_ID"
             )
+        raw_text = str(raw_url or "")
+        parsed = urlparse(raw_text)
+        fingerprint = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()[:12]
         logger.warning(
-            "Link preview validation error: %s (request_id=%s, url=%s)",
+            "Link preview validation error: %s "
+            "(request_id=%s, scheme=%s, hostname=%s, url_length=%s, url_fingerprint=%s)",
             message,
             request_id,
-            raw_url,
+            parsed.scheme,
+            parsed.hostname,
+            len(raw_text),
+            fingerprint,
         )
 
         status_code = status.HTTP_400_BAD_REQUEST

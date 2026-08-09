@@ -472,6 +472,7 @@ class StreamRestContractTests(APITestCase):
         message.attachments[0]["scan_status"] = Message.ATTACHMENT_SCAN_CLEAN
         message.attachments[0]["storage_bucket"] = "contract-clean"
         message.attachments[0]["storage_class"] = "clean"
+        message.attachments[0]["object_generation"] = "1"
         message.attachments[0]["integrity"] = sign_attachment_metadata(
             message.attachments[0]
         )

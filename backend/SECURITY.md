@@ -35,6 +35,16 @@ and `REDIS_PORT`.
 
 Production redirects HTTP to HTTPS, uses secure cookies, and sends HSTS for a
 positive duration controlled by `SECURE_HSTS_SECONDS` (one hour by default).
+PR14 preserves this host-only staged value because the repository and live DNS
+evidence do not establish an authoritative permanently HTTPS-only JATTE
+hostname or HTTPS safety for every subdomain. `includeSubDomains` and preload
+remain deliberately disabled; see
+`audit/pr14-defense-in-depth-contract.md` for the recorded decision.
+
+Production HTTP requests are limited to 2 MiB and 60 seconds. Daphne limits
+incoming WebSocket frames/messages to 1 MiB, while the chat application rejects
+events above 256 KiB before JSON dispatch. The tracked launch commands in
+`serverfiles/` are the deployment contract for these limits.
 HSTS does not include subdomains and is not preloaded at this stage. The
 reverse proxy must be the only component able to supply the trusted forwarded
 scheme and host headers.
