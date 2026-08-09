@@ -40,11 +40,13 @@ print({
 
 ## Idempotency and state machine
 
-The key is `agent:<room-pk>:message:<message-pk>`. A nonblank
-`client_generated_id` extends the key only when it equals the identifier stored
-on the already-authorized source message. Otherwise the stable room/message
-fallback is used. A duplicate request returns the same run before the room-busy
-check; a distinct message is eligible after the prior run terminates.
+The canonical work-order identity is `(room, source_message)`, represented by
+`agent:<room-pk>:message:<message-pk>` and enforced by a conditional database
+uniqueness constraint. A validated `client_generated_id` is retained only as
+request metadata and does not alter work-order identity. Retries with or without
+the client ID therefore resolve to the same persisted run. A duplicate request
+returns that run before the room-busy check; a distinct message is eligible
+after the prior run terminates.
 
 Inside one transaction the Room row is locked, the idempotent run is found or
 created as `queued`, and `agent_busy`/`active_agent_run_id` are set to that run.
