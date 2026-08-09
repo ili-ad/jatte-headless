@@ -75,11 +75,14 @@ GitHub Actions was registered but disabled at the repository boundary before
 this corrective pass (`enabled=false`), explaining why the active
 `production-settings.yml` had no historical runs. It was enabled on 2026-08-09
 with `allowed_actions=selected`; only GitHub-owned actions and actions from
-verified creators are permitted. Workflow token permissions remain read-only.
+verified creators are permitted, with the exact additional allowlist pattern
+`pnpm/action-setup@v4` needed by the JavaScript audit job. Workflow token
+permissions remain read-only.
 The production and dependency workflow run IDs and conclusions are recorded
 below after the corrective commit's pull-request synchronization event:
 
-- production settings: pending corrective commit run
+- production settings: run `31306751142`, success (both
+  `production-boundary` and `attachment-scanner-iac`)
 - dependency security / Python: pending corrective commit run
 - dependency security / JavaScript: pending corrective commit run
 
