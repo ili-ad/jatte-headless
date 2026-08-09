@@ -57,6 +57,42 @@ Security-compatible updates include Daphne 4.2.3, Django 5.2.16 and patched
 Python cryptography/JWT/image/network dependencies, plus Next.js 15.5.21 and
 patched Axios, form-data, JWS, NanoID, PostCSS, Sharp and ws resolutions.
 
+The direct major updates were security-driven rather than general
+modernization: Daphne 4.2.3 is the maintained release required for the bounded
+WebSocket server contract; Django 5.2.16 resolves advisories present across the
+old 4.2 pin while retaining the repository's supported Django APIs; and Next.js
+15.5.21 resolves High/Critical production advisories affecting the prior
+15.3.3 release. DRF 3.15.2 and the Python cryptography/JWT/image/network pins
+were compatibility/security-supported baselines selected by the resolver.
+Autobahn, Twisted, asgiref and the remaining Python leaf updates are resolver
+collateral required by those maintained direct versions. JavaScript overrides
+are narrowly pinned to fixed versions reported by the production advisory
+audit.
+
+## CI activation and frontend compatibility
+
+GitHub Actions was registered but disabled at the repository boundary before
+this corrective pass (`enabled=false`), explaining why the active
+`production-settings.yml` had no historical runs. It was enabled on 2026-08-09
+with `allowed_actions=selected`; only GitHub-owned actions and actions from
+verified creators are permitted. Workflow token permissions remain read-only.
+The production and dependency workflow run IDs and conclusions are recorded
+below after the corrective commit's pull-request synchronization event:
+
+- production settings: pending corrective commit run
+- dependency security / Python: pending corrective commit run
+- dependency security / JavaScript: pending corrective commit run
+
+Frontend compatibility was checked with Node 24.18.0 and pnpm 10.12.2 in clean
+PR and base worktrees. PR14 passes `pnpm install --frozen-lockfile`; the base
+cannot because its lockfile records React 18.2.0 while its frontend manifest
+requests 18.3.1. A disposable non-frozen base install proves the existing
+Vitest adapter failures (stale non-`/api/` URL and plain-object header
+expectations) and broad TypeScript shim errors are present at the base SHA.
+PR14's Next.js update initially exposed stricter route-module/dynamic-parameter
+contracts; the affected route and page now satisfy Next.js 15.5 without
+changing their external behavior.
+
 ## HSTS deployment decision (2026-08-09)
 
 The tracked Nginx file names `jatte.com`, but the repository contains no
