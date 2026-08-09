@@ -6,6 +6,7 @@ import threading
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -240,8 +241,14 @@ class BackgroundRunTrustTests(TestCase):
             AgentRun.STATUS_CAPPED,
         )
         with mock.patch.object(self.service, "_orchestrate") as orchestrate:
-            for status in terminal:
-                run = self.make_run(status=status)
+            for index, status in enumerate(terminal):
+                source = Message.objects.create(
+                    channel=self.channel,
+                    body=f"terminal-{index}",
+                    sent_by=self.member.username,
+                )
+                self.room.messages.add(source)
+                run = self.make_run(status=status, source_message=source)
                 self.assertFalse(self.service.execute_agent_run(run.run_id))
         orchestrate.assert_not_called()
 
@@ -399,6 +406,84 @@ class BackgroundRunTrustTests(TestCase):
             first.idempotency_key,
             f"agent:{self.room.pk}:message:{self.message.pk}",
         )
+
+    def test_client_id_then_fallback_retry_uses_same_work_order(self):
+        with mock.patch.object(self.service, "enqueue_generate"):
+            first, created = self.service.queue_authorized_run(
+                room=self.room,
+                requested_by=self.member,
+                source_message=self.message,
+                input_text=self.message.body,
+                request_meta={"source": "http"},
+                client_generated_id="client-pr12-1",
+            )
+            first.status = AgentRun.STATUS_OK
+            first.finished_at = timezone.now()
+            first.save(update_fields=["status", "finished_at", "updated_at"])
+            self.room.agent_busy = False
+            self.room.active_agent_run_id = None
+            self.room.save(update_fields=["agent_busy", "active_agent_run_id"])
+            retry, retry_created = self.service.queue_authorized_run(
+                room=self.room,
+                requested_by=self.member,
+                source_message=self.message,
+                input_text=self.message.body,
+                request_meta={"source": "http"},
+            )
+
+        self.assertTrue(created)
+        self.assertFalse(retry_created)
+        self.assertEqual(retry.pk, first.pk)
+        self.assertEqual(AgentRun.objects.count(), 1)
+        self.assertEqual(
+            first.idempotency_key,
+            f"agent:{self.room.pk}:message:{self.message.pk}",
+        )
+        self.assertEqual(first.request_meta["client_generated_id"], "client-pr12-1")
+
+    def test_fallback_then_client_id_retry_uses_same_work_order(self):
+        with mock.patch.object(self.service, "enqueue_generate"):
+            first, _ = self.service.queue_authorized_run(
+                room=self.room,
+                requested_by=self.member,
+                source_message=self.message,
+                input_text=self.message.body,
+                request_meta={},
+            )
+            first.status = AgentRun.STATUS_OK
+            first.finished_at = timezone.now()
+            first.save(update_fields=["status", "finished_at", "updated_at"])
+            self.room.agent_busy = False
+            self.room.active_agent_run_id = None
+            self.room.save(update_fields=["agent_busy", "active_agent_run_id"])
+            retry, retry_created = self.service.queue_authorized_run(
+                room=self.room,
+                requested_by=self.member,
+                source_message=self.message,
+                input_text=self.message.body,
+                request_meta={},
+                client_generated_id="client-pr12-1",
+            )
+
+        self.assertFalse(retry_created)
+        self.assertEqual(retry.pk, first.pk)
+        self.assertEqual(AgentRun.objects.count(), 1)
+
+    def test_authoritative_room_source_pair_is_database_unique(self):
+        self.make_run(status=AgentRun.STATUS_OK)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            AgentRun.objects.create(
+                run_id="00000000-0000-4000-8000-999999999999",
+                cid=self.room.cid,
+                user_id=str(self.member.pk),
+                room=self.room,
+                requested_by=self.member,
+                source_message=self.message,
+                input_text=self.message.body,
+                request_meta={},
+                idempotency_key="alternate-identity",
+                status=AgentRun.STATUS_OK,
+            )
 
     def test_distinct_message_can_run_after_prior_terminal_run(self):
         first = self.make_run()

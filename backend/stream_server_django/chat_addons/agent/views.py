@@ -419,8 +419,7 @@ class AgentCancelView(APIView):
         active_run_id = str(resolved_room.active_agent_run_id)
         with transaction.atomic():
             run = (
-                AgentRun.objects.select_for_update()
-                .select_related("result_message")
+                AgentRun.objects.select_for_update(of=("self",))
                 .filter(
                     run_id=active_run_id,
                     room=resolved_room,

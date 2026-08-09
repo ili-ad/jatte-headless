@@ -166,6 +166,13 @@ class AgentRun(models.Model):
     class Meta:
         app_label = "chat_addons"
         ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("room", "source_message"),
+                condition=models.Q(room__isnull=False, source_message__isnull=False),
+                name="unique_authoritative_agent_run_source",
+            )
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - debug helper
         return f"{self.run_id}:{self.status}"

@@ -106,4 +106,12 @@ class Migration(migrations.Migration):
                 max_length=16,
             ),
         ),
+        migrations.AddConstraint(
+            model_name="agentrun",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(room__isnull=False, source_message__isnull=False),
+                fields=("room", "source_message"),
+                name="unique_authoritative_agent_run_source",
+            ),
+        ),
     ]

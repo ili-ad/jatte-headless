@@ -1,5 +1,4 @@
 """Agent service orchestration for automated chat replies."""
-# ruff: noqa: F821
 from __future__ import annotations
 
 import json
@@ -433,13 +432,14 @@ class AgentService:
             else ""
         )
         idempotency_key = f"agent:{room.pk}:message:{source_message.pk}"
+        authoritative_meta = dict(request_meta)
         if client_key:
-            idempotency_key = f"{idempotency_key}:client:{client_key}"
+            authoritative_meta["client_generated_id"] = client_key
 
         with transaction.atomic():
             locked_room = Room.objects.select_for_update().get(pk=room.pk)
             existing = AgentRun.objects.filter(
-                idempotency_key=idempotency_key
+                room=locked_room, source_message=source_message
             ).first()
             if existing is not None:
                 logger.info(
@@ -469,7 +469,7 @@ class AgentService:
                 requested_by=requested_by,
                 source_message=source_message,
                 input_text=input_text,
-                request_meta=dict(request_meta),
+                request_meta=authoritative_meta,
                 idempotency_key=idempotency_key,
                 status=AgentRun.STATUS_QUEUED,
                 queued_at=now,
@@ -521,14 +521,7 @@ class AgentService:
         try:
             with transaction.atomic():
                 run = (
-                    AgentRun.objects.select_for_update()
-                    .select_related(
-                        "room",
-                        "requested_by",
-                        "source_message",
-                        "source_message__channel",
-                        "result_message",
-                    )
+                    AgentRun.objects.select_for_update(of=("self",))
                     .filter(run_id=run_id)
                     .first()
                 )
@@ -651,11 +644,7 @@ class AgentService:
         self, run_id: str, result: AgentOrchestrationResult
     ) -> None:
         with transaction.atomic():
-            run = (
-                AgentRun.objects.select_for_update()
-                .select_related("room")
-                .get(run_id=run_id)
-            )
+            run = AgentRun.objects.select_for_update(of=("self",)).get(run_id=run_id)
             if run.status not in {
                 AgentRun.STATUS_RUNNING,
                 AgentRun.STATUS_CANCELLED,
@@ -800,9 +789,6 @@ class AgentService:
         if cap_reached:
             tool_schemas = []
 
-        if not skills:
-            _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
-
         # Allow lookup by skill name and any tool alias attached by the schema builder.
         skill_lookup = {skill.name: skill for skill in skills}
         for skill in skills:
@@ -830,6 +816,9 @@ class AgentService:
                 HandoffReason.TOOL_EXCEPTION,
                 detail=f"{exc.__class__.__name__}: {exc}",
             )
+
+        if not skills:
+            _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
 
 
         tool_hops = 0
@@ -1203,7 +1192,14 @@ class AgentService:
                         if not fallback_attempted and skills and tools_enabled:
                             candidate = self._fallback_candidate(skills, message_text, ctx)
                             if candidate and tool_hops < tool_hop_cap:
-                                executed = self._execute_fallback(candidate, message_text, ctx, messages)
+                                executed = self._execute_fallback(
+                                    candidate,
+                                    message_text,
+                                    ctx,
+                                    messages,
+                                    on_before_execute=_remember_tool_attempt,
+                                    on_exception=_note_tool_exception,
+                                )
                                 if executed:
                                     tools_used.append(candidate.name)
                                     tool_hops += 1
@@ -1867,6 +1863,9 @@ class AgentService:
         text: str,
         ctx: ConversationCtx,
         messages: list[dict[str, Any]],
+        *,
+        on_before_execute: Callable[[ToolCall, Skill | None], None] | None = None,
+        on_exception: Callable[[ToolCall, Skill | None, Exception], None] | None = None,
     ) -> bool:
         args = infer_args_from_text(skill, text)
         if not args and text:
@@ -1878,8 +1877,8 @@ class AgentService:
                 ctx,
                 messages,
                 limit=1,
-                on_before_execute=_remember_tool_attempt,
-                on_exception=_note_tool_exception,
+                on_before_execute=on_before_execute,
+                on_exception=on_exception,
             )
             return bool(executed)
         except Exception:  # pragma: no cover - defensive
@@ -2008,8 +2007,7 @@ class AgentService:
 
         with transaction.atomic():
             locked_run = (
-                AgentRun.objects.select_for_update()
-                .select_related("room", "source_message", "source_message__channel")
+                AgentRun.objects.select_for_update(of=("self",))
                 .get(pk=agent_run.pk)
             )
             if locked_run.result_message_id is not None:
