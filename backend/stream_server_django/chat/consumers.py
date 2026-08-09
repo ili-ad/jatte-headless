@@ -29,6 +29,25 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     # operation and may act only on rooms successfully watched by this client.
     generic_room_keys = {"chat"}
 
+    async def receive(self, text_data=None, bytes_data=None, **kwargs):
+        """Reject oversized events before JSON decoding or dispatch."""
+
+        max_bytes = int(getattr(settings, "WS_MAX_EVENT_BYTES", 256 * 1024))
+        payload_size = (
+            len(bytes_data)
+            if bytes_data is not None
+            else len((text_data or "").encode("utf-8"))
+        )
+        if payload_size > max_bytes:
+            logger.warning(
+                "websocket_message_too_large=true user_id=%s payload_bytes=%s",
+                self.user,
+                payload_size,
+            )
+            await self.close(code=1009)
+            return
+        await super().receive(text_data=text_data, bytes_data=bytes_data, **kwargs)
+
     async def connect(self):
         self.joined_cids: set[str] = set()
         self.authenticated_user = None

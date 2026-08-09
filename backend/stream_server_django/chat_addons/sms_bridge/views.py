@@ -255,35 +255,38 @@ class SmsReceiptView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        try:
-            relay = SmsRelay.objects.get(
-                direction=SmsRelay.DIRECTION_OUTBOUND,
-                external_id=payload["external_id"],
-            )
-        except SmsRelay.DoesNotExist as exc:
-            raise NotFound("Relay not found") from exc
-
-        if relay.status != SmsRelay.STATUS_PENDING:
-            raise SmsWebhookReplay()
-
-        relay.status = payload["status"]
-        relay.save(update_fields=["status"])
-
         message: Message | None = None
-        if relay.message_id:
-            message = Message.objects.filter(id=relay.message_id).first()
-            if message:
-                custom_data = dict(message.custom_data or {})
-                custom_data["delivery_status"] = payload["status"]
-                error_code = payload.get("error_code")
-                if error_code:
-                    custom_data["delivery_error_code"] = error_code
-                else:
-                    custom_data.pop("delivery_error_code", None)
-                message.custom_data = custom_data
-                message.updated_at = timezone.now()
-                message.save(update_fields=["custom_data", "updated_at"])
-                broadcast_message_update(message)
+        with transaction.atomic():
+            try:
+                relay = SmsRelay.objects.select_for_update().get(
+                    direction=SmsRelay.DIRECTION_OUTBOUND,
+                    external_id=payload["external_id"],
+                )
+            except SmsRelay.DoesNotExist as exc:
+                raise NotFound("Relay not found") from exc
+
+            if relay.status != SmsRelay.STATUS_PENDING:
+                raise SmsWebhookReplay()
+
+            relay.status = payload["status"]
+            relay.save(update_fields=["status"])
+
+            if relay.message_id:
+                message = Message.objects.filter(id=relay.message_id).first()
+                if message:
+                    custom_data = dict(message.custom_data or {})
+                    custom_data["delivery_status"] = payload["status"]
+                    error_code = payload.get("error_code")
+                    if error_code:
+                        custom_data["delivery_error_code"] = error_code
+                    else:
+                        custom_data.pop("delivery_error_code", None)
+                    message.custom_data = custom_data
+                    message.updated_at = timezone.now()
+                    message.save(update_fields=["custom_data", "updated_at"])
+
+        if message:
+            broadcast_message_update(message)
 
         if not message:
             custom_data = {"delivery_status": payload["status"]}

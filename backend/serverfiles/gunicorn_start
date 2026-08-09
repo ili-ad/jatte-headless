@@ -8,7 +8,7 @@ GROUP=webapps
 NUM_WORKERS=3
 DJANGO_SETTINGS_MODULE=jatte.settingsprod
 DJANGO_ASGI_MODULE=jatte.asgi
-TIMEOUT=120
+TIMEOUT=60
 
 cd $DJANGODIR
 source ../env/bin/activate
