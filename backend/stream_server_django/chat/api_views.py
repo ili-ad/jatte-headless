@@ -2299,11 +2299,13 @@ class AttachmentDownloadView(APIView):
             )
 
         blob_name = attachment.get("blob")
+        object_generation = str(attachment.get("object_generation") or "").strip()
         account = _get_service_account()
         bucket = attachment.get("storage_bucket")
         clean_bucket = getattr(settings, "CHAT_ATTACHMENTS_CLEAN_BUCKET", None)
         if (
             not blob_name
+            or not object_generation
             or not account
             or not bucket
             or bucket != clean_bucket
@@ -2333,6 +2335,7 @@ class AttachmentDownloadView(APIView):
                 blob_name=str(blob_name),
                 expires=timedelta(seconds=expires),
                 extra_query={
+                    "generation": object_generation,
                     "response-content-disposition": f'attachment; filename="{filename}"'
                 },
             )

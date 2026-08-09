@@ -20,7 +20,7 @@ definition-mirror, bootstrap, and metrics foundation. Build and push it with
 an isolated builder, then pass the resulting Artifact Registry reference
 pinned by `@sha256:` as `scanner_image`; floating tags are rejected. The
 production image commissioned for this revision is
-`us-east1-docker.pkg.dev/notice-to-owner-01/jatte-security/attachment-scanner@sha256:71f3e6c8378c2d718b47f3954414f46c2c986c607d33abe877e53b5620ad1a4e`.
+`us-east1-docker.pkg.dev/notice-to-owner-01/jatte-security/attachment-scanner@sha256:564670f6951efb9af9b85d0d80cfec0d59d496b556daead0ff858f1b1453bbdf`.
 
 ```sh
 gcloud builds submit image \

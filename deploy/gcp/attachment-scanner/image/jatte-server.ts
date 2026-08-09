@@ -203,9 +203,16 @@ export class Server {
     const verdict = clean ? 'clean' : 'flagged';
     const destinationBucket = clean ? bucketDefs.clean : bucketDefs.quarantined;
     const destination = this.storage.bucket(destinationBucket).file(sourceBlob);
-    await file.copy(destination, {
+    const [, copyResponse] = await file.copy(destination, {
       preconditionOpts: {ifGenerationMatch: 0},
     });
+    const copiedResource = (
+      copyResponse as {resource?: {generation?: string | number}}
+    ).resource;
+    const destinationGeneration = requiredString(
+      copiedResource?.generation,
+      'destination object generation',
+    );
     await file.delete({ifGenerationMatch: Number(actualGeneration)});
 
     logger.info(
@@ -213,7 +220,8 @@ export class Server {
         attachmentId,
         sourceBucket,
         sourceBlob,
-        actualGeneration,
+        sourceGeneration: actualGeneration,
+        destinationGeneration,
         verifiedSha256,
         expectedSize,
         verdict,
@@ -226,7 +234,8 @@ export class Server {
       attachment_id: attachmentId,
       source_bucket: sourceBucket,
       source_blob: sourceBlob,
-      object_generation: actualGeneration,
+      source_generation: actualGeneration,
+      destination_generation: destinationGeneration,
       verified_sha256: verifiedSha256,
       verified_size: expectedSize,
       verdict,

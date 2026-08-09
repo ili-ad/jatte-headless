@@ -42,7 +42,8 @@ class ScanResult:
     engine_version: str
     definition_version: str
     scanned_at: str
-    object_generation: str | None = None
+    source_generation: str
+    destination_generation: str
     signature: str | None = None
 
 
@@ -128,10 +129,9 @@ class GCPClamAVScanner:
             engine_version=_required_string(payload, "engine_version"),
             definition_version=_required_string(payload, "definition_version"),
             scanned_at=scanned_at,
-            object_generation=(
-                str(payload["object_generation"])
-                if payload.get("object_generation") not in (None, "")
-                else None
+            source_generation=_required_string(payload, "source_generation"),
+            destination_generation=_required_string(
+                payload, "destination_generation"
             ),
             signature=(
                 str(payload["signature"]) if payload.get("signature") else None
@@ -166,8 +166,9 @@ def validate_scan_result(request: ScanRequest, result: ScanResult) -> None:
         or result.destination_blob != request.blob_name
         or (
             request.object_generation is not None
-            and result.object_generation != request.object_generation
+            and result.source_generation != request.object_generation
         )
+        or not result.destination_generation
     )
     if mismatched:
         raise AttachmentScanError("scanner verdict does not match attachment")

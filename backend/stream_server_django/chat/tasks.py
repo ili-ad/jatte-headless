@@ -97,7 +97,8 @@ def _merge_scan_metadata(
                     else "quarantine"
                 ),
                 "blob": result.destination_blob,
-                "object_generation": result.object_generation,
+                "object_generation": result.destination_generation,
+                "scan_source_generation": result.source_generation,
                 "scan_engine": result.engine,
                 "scan_engine_version": result.engine_version,
                 "scan_definition_version": result.definition_version,

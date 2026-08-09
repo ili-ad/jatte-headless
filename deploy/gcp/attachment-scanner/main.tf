@@ -120,24 +120,6 @@ resource "google_storage_bucket_iam_member" "scanner_cvd" {
   member = "serviceAccount:${google_service_account.scanner.email}"
 }
 
-resource "google_storage_bucket_iam_member" "jatte_pending_creator" {
-  bucket = google_storage_bucket.pending.name
-  role   = "roles/storage.objectCreator"
-  member = "serviceAccount:${var.jatte_service_account}"
-}
-
-resource "google_storage_bucket_iam_member" "jatte_pending_viewer" {
-  bucket = google_storage_bucket.pending.name
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${var.jatte_service_account}"
-}
-
-resource "google_storage_bucket_iam_member" "jatte_clean_viewer" {
-  bucket = google_storage_bucket.clean.name
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${var.jatte_service_account}"
-}
-
 resource "google_storage_bucket_iam_member" "signer_pending_creator" {
   bucket = google_storage_bucket.pending.name
   role   = "roles/storage.objectCreator"

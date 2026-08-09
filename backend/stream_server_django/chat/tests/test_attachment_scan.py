@@ -33,6 +33,8 @@ def _scan_result(verdict, *, signature=None):
         engine_version="1.4-test",
         definition_version="test-cvd",
         scanned_at="2026-08-09T00:00:00Z",
+        source_generation="7",
+        destination_generation="11",
         signature=signature,
     )
 

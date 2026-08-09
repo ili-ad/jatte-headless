@@ -24,9 +24,12 @@ The frontend compatibility attachment manager currently calls
    and expected identity. The `gcp_clamav` provider invokes a private Cloud Run
    service with an ADC identity token.
 5. JATTE accepts clean/flagged only when attachment ID, source bucket/blob,
-   SHA-256, size, optional generation and expected destination all agree.
+   SHA-256, size, source generation and expected destination all agree, and
+   the scanner supplies the immutable destination generation created by copy.
 6. Clean objects reside in the private clean bucket. Flagged objects reside in
-   the private quarantine bucket. Errors stay inaccessible in pending storage.
+   the private quarantine bucket. Active attachment metadata stores that
+   destination generation, and clean signed GETs include it in the signed
+   query. Errors stay inaccessible in pending storage.
 7. Clean/flagged duplicate deliveries are terminal no-ops. Error may be retried,
    but only a later successful real scan can produce clean.
 
@@ -90,7 +93,7 @@ repository-scoped Artifact Registry writer access. The builder VM, service
 account, and temporary repository binding were deleted after publication. The
 deployed immutable image is:
 
-`us-east1-docker.pkg.dev/notice-to-owner-01/jatte-security/attachment-scanner@sha256:71f3e6c8378c2d718b47f3954414f46c2c986c607d33abe877e53b5620ad1a4e`
+`us-east1-docker.pkg.dev/notice-to-owner-01/jatte-security/attachment-scanner@sha256:564670f6951efb9af9b85d0d80cfec0d59d496b556daead0ff858f1b1453bbdf`
 
 The private `jatte-malware-scanner` Cloud Run service rejects unauthenticated
 requests (HTTP 403), while the intended runtime identity receives HTTP 200.
@@ -106,6 +109,22 @@ not a mock. A controlled exact-object integrity failure returned HTTP 422 and
 left the object only in pending storage; neither clean nor quarantine received
 a copy. Unit/task coverage separately proves unavailable/timeout responses
 persist `scan_status=error` and never become downloadable.
+
+The destination-generation corrective commissioning returned distinct source
+and destination generations. The benign clean copy was generation
+`1786262720449903`; the EICAR quarantine copy was generation
+`1786262729142161`. A real IAM-signed clean GET including
+`generation=1786262720449903` returned the scanned 50 bytes with the expected
+SHA-256. After a newer generation was deliberately written at the same clean
+bucket/blob test name, the URL pinned to the scanned generation returned 404
+rather than serving the replacement.
+
+JATTE performs object operations only through URLs signed as the dedicated
+`jatte-attachment-signer` identity. The runtime's direct pending creator/viewer
+and clean viewer bucket bindings were removed; its scoped `signBlob` and Cloud
+Run invoker bindings remain. The runtime service account's pre-existing
+project-level Editor role is outside PR13 and remains documented for later IAM
+hardening.
 
 Full JATTE HTTP commissioning remains incomplete: no JATTE-headless deployment
 exists on `nto-server-01`, and no usable permanent Supabase end-user session was

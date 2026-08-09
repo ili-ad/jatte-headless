@@ -57,7 +57,10 @@ class ADCSignedURLTests(SimpleTestCase):
             blob_name="attachments/a/file.txt",
             expires=timedelta(minutes=2),
             now=self.fixed_now,
-            extra_query={"response-content-disposition": 'attachment; filename="file.txt"'},
+            extra_query={
+                "generation": "11",
+                "response-content-disposition": 'attachment; filename="file.txt"',
+            },
         )
 
         self._assert_v4_contract(
@@ -70,6 +73,7 @@ class ADCSignedURLTests(SimpleTestCase):
             download_url, method="GET", bucket="clean", blob="attachments/a/file.txt"
         )
         self.assertEqual(signer.sign.call_count, 3)
+        self.assertEqual(parse_qs(urlparse(download_url).query)["generation"], ["11"])
 
     @patch("stream_server_django.chat.storage.gcs.iam.Signer")
     @patch("stream_server_django.chat.storage.gcs.google.auth.default")
