@@ -6,7 +6,10 @@ from urllib.parse import urlparse
 
 import redis
 from stream_server_django.accounts_supabase.authentication import DevTokenOrJWTAuthentication
-from stream_server_django.accounts_supabase.utils import is_at_least_guest_identity
+from stream_server_django.accounts_supabase.utils import (
+    is_at_least_guest_identity,
+    require_permanent_supabase_user,
+)
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -60,12 +63,13 @@ from common.throttling import (
 )
 
 try:
-    from stream_server_django.chat_addons.agent.utils import agent_enabled_for_room, agent_user_id_for_room
+    from stream_server_django.chat_addons.agent.utils import (
+        agent_enabled_for_room,
+        agent_user_id_for_room,
+    )
 except Exception:  # pragma: no cover - optional dependency in certain test envs
     agent_enabled_for_room = None  # type: ignore[assignment]
     agent_user_id_for_room = None  # type: ignore[assignment]
-
-logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
 from .attachment_security import (
@@ -112,12 +116,15 @@ from .storage.gcs import (
     blob_name_for,
     download_blob,
     generate_signed_url,
+    load_iam_signing_identity,
     load_service_account,
     safe_filename,
 )
 from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
 from .search import SearchTimeoutError, search_messages
+
+logger = logging.getLogger(__name__)
 
 
 def _user_can_access_room(user, room) -> bool:
@@ -1826,15 +1833,22 @@ _service_account_cache_key = None
 def _get_service_account():
     global _service_account_cache, _service_account_cache_key
     raw = getattr(settings, "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO", None)
-    if not raw:
+    signing_email = str(
+        getattr(settings, "CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT", "")
+    ).strip()
+    if not raw and not signing_email:
         return None
-    cache_key = raw
+    cache_key = raw or f"iam:{signing_email}"
     if isinstance(raw, dict):
         cache_key = json.dumps(raw, sort_keys=True)
     if _service_account_cache and _service_account_cache_key == cache_key:
         return _service_account_cache
     try:
-        account = load_service_account(raw)
+        account = (
+            load_service_account(raw)
+            if raw
+            else load_iam_signing_identity(signing_email)
+        )
     except Exception:
         logger.exception("Invalid service account configuration")
         return None
@@ -1845,7 +1859,10 @@ def _get_service_account():
 
 def _direct_uploads_enabled() -> bool:
     return bool(
-        getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
+        getattr(settings, "CHAT_ATTACHMENTS_PENDING_BUCKET", None)
+        and getattr(settings, "CHAT_ATTACHMENTS_CLEAN_BUCKET", None)
+        and getattr(settings, "CHAT_ATTACHMENTS_QUARANTINE_BUCKET", None)
+        and getattr(settings, "CHAT_ATTACHMENTS_SCANNER_BACKEND", None)
         and _get_service_account()
     )
 
@@ -1977,6 +1994,7 @@ class SignAttachmentView(APIView):
         message_id = serializers.CharField(required=False, allow_blank=True)
 
     def post(self, request):
+        require_permanent_supabase_user(request)
         identity = get_chat_identity(request)
         if not _direct_uploads_enabled():
             return Response(
@@ -2001,7 +2019,7 @@ class SignAttachmentView(APIView):
 
         allowed_types = _attachment_allowed_types()
         content_type = str(validated["content_type"]).strip()
-        if allowed_types and content_type not in allowed_types:
+        if not allowed_types or content_type not in allowed_types:
             return Response({"detail": "unsupported content_type"}, status=400)
 
         size = int(validated["size"])
@@ -2027,7 +2045,7 @@ class SignAttachmentView(APIView):
             signed_url = generate_signed_url(
                 service_account=account,
                 method="PUT",
-                bucket=settings.CHAT_ATTACHMENTS_BUCKET,
+                bucket=settings.CHAT_ATTACHMENTS_PENDING_BUCKET,
                 blob_name=blob_name,
                 content_type=content_type,
                 expires=timedelta(seconds=ttl_seconds),
@@ -2047,6 +2065,7 @@ class SignAttachmentView(APIView):
             "cid": canonical,
             "room_uuid": room.uuid,
             "message_id": str(message.id) if message is not None else None,
+            "storage_bucket": settings.CHAT_ATTACHMENTS_PENDING_BUCKET,
         }
         _store_upload_session(upload_id, session_data)
 
@@ -2081,6 +2100,7 @@ class CommitAttachmentView(APIView):
         message_id = serializers.CharField(required=False, allow_blank=True)
 
     def post(self, request):
+        require_permanent_supabase_user(request)
         identity = get_chat_identity(request)
         if not _direct_uploads_enabled():
             return Response(
@@ -2167,7 +2187,7 @@ class CommitAttachmentView(APIView):
             verify_url = generate_signed_url(
                 service_account=account,
                 method="GET",
-                bucket=settings.CHAT_ATTACHMENTS_BUCKET,
+                bucket=settings.CHAT_ATTACHMENTS_PENDING_BUCKET,
                 blob_name=blob_name,
                 expires=timedelta(seconds=120),
             )
@@ -2201,6 +2221,9 @@ class CommitAttachmentView(APIView):
             "message_id": str(message.id) if message is not None else None,
             "cid": canonical,
             "room_uuid": str(room.uuid),
+            "storage_bucket": settings.CHAT_ATTACHMENTS_PENDING_BUCKET,
+            "storage_class": "pending",
+            "object_generation": None,
         }
         attachment_payload = Message.ensure_attachment_scan_defaults(attachment_payload)
         attachment_payload["integrity"] = _sign_attachment_metadata(
@@ -2276,9 +2299,18 @@ class AttachmentDownloadView(APIView):
             )
 
         blob_name = attachment.get("blob")
+        object_generation = str(attachment.get("object_generation") or "").strip()
         account = _get_service_account()
-        bucket = getattr(settings, "CHAT_ATTACHMENTS_BUCKET", None)
-        if not blob_name or not account or not bucket:
+        bucket = attachment.get("storage_bucket")
+        clean_bucket = getattr(settings, "CHAT_ATTACHMENTS_CLEAN_BUCKET", None)
+        if (
+            not blob_name
+            or not object_generation
+            or not account
+            or not bucket
+            or bucket != clean_bucket
+            or attachment.get("storage_class") != "clean"
+        ):
             return Response(
                 {"detail": "attachment unavailable"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2303,6 +2335,7 @@ class AttachmentDownloadView(APIView):
                 blob_name=str(blob_name),
                 expires=timedelta(seconds=expires),
                 extra_query={
+                    "generation": object_generation,
                     "response-content-disposition": f'attachment; filename="{filename}"'
                 },
             )
@@ -2331,6 +2364,7 @@ class AttachmentUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        require_permanent_supabase_user(request)
         name = request.data.get("name")
         if not name or not str(name).strip():
             return Response({"error": "name required"}, status=status.HTTP_400_BAD_REQUEST)

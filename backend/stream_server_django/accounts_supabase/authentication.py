@@ -106,7 +106,11 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         except ValueError:
             return None
 
-        user = authenticate_supabase_token(token)
+        decoded = decode_supabase_token(token)
+        user = resolve_supabase_user(decoded)
+        # Views that need claim-level policy decisions consume only claims that
+        # have already passed the shared PR10 authority validation above.
+        request.supabase_claims = decoded
 
         # Return the original JWT so views can forward it if needed
         return (user, token)

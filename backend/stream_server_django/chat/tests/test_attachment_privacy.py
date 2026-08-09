@@ -90,6 +90,10 @@ class AttachmentPrivacyTests(APITestCase):
     def upload_settings(self, **overrides):
         values = {
             "CHAT_ATTACHMENTS_BUCKET": "test-bucket",
+            "CHAT_ATTACHMENTS_PENDING_BUCKET": "test-pending",
+            "CHAT_ATTACHMENTS_CLEAN_BUCKET": "test-clean",
+            "CHAT_ATTACHMENTS_QUARANTINE_BUCKET": "test-quarantine",
+            "CHAT_ATTACHMENTS_SCANNER_BACKEND": "test",
             "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO": self.service_account_json,
             "CHAT_ATTACHMENTS_ALLOWED_TYPES": ["image/png", "text/plain"],
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024,
@@ -346,6 +350,9 @@ class AttachmentPrivacyTests(APITestCase):
             "room_uuid": "room-a",
             "scan_status": scan_status,
             "scan_label": None,
+            "storage_bucket": "test-clean",
+            "storage_class": "clean",
+            "object_generation": "1",
         }
         attachment["integrity"] = sign_attachment_metadata(attachment)
         self.message.attachments = [attachment]
@@ -373,6 +380,42 @@ class AttachmentPrivacyTests(APITestCase):
         self.assertEqual(guessed.status_code, 404)
         self.assertEqual(anonymous.status_code, 403)
         signer.assert_called_once()
+        self.assertEqual(
+            signer.call_args.kwargs["extra_query"]["generation"], "1"
+        )
+
+    def test_clean_download_remains_pinned_after_newer_generation_exists(self):
+        attachment = self.store_attachment(Message.ATTACHMENT_SCAN_CLEAN)
+        url = f"/api/attachments/{attachment['id']}/download/"
+        with override_settings(**self.upload_settings()), patch(
+            "stream_server_django.chat.api_views.generate_signed_url",
+            return_value="https://storage.example.test/private-get?generation=1",
+        ) as signer:
+            response = self.client.get(url, **self.auth(self.owner))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            signer.call_args.kwargs["extra_query"]["generation"], "1"
+        )
+        self.assertNotIn("generation=2", response["Location"])
+
+    def test_clean_download_without_destination_generation_fails_closed(self):
+        attachment = self.store_attachment(Message.ATTACHMENT_SCAN_CLEAN)
+        attachment["object_generation"] = None
+        attachment["integrity"] = sign_attachment_metadata(attachment)
+        self.message.attachments = [attachment]
+        self.message.save(update_fields=["attachments"])
+
+        with override_settings(**self.upload_settings()), patch(
+            "stream_server_django.chat.api_views.generate_signed_url"
+        ) as signer:
+            response = self.client.get(
+                f"/api/attachments/{attachment['id']}/download/",
+                **self.auth(self.owner),
+            )
+
+        self.assertEqual(response.status_code, 503)
+        signer.assert_not_called()
 
     def test_download_rejects_forged_or_cross_room_attachment_metadata(self):
         attachment = self.store_attachment(Message.ATTACHMENT_SCAN_CLEAN)
