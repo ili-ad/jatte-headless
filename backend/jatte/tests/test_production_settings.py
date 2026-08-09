@@ -172,3 +172,18 @@ with patch("dotenv.load_dotenv") as load_dotenv:
 """
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_partial_attachment_scanner_configuration_fails_closed(self):
+        env = os.environ.copy()
+        env.update(PRODUCTION_ENV)
+        env["CHAT_ATTACHMENTS_PENDING_BUCKET"] = "pending-only"
+        result = subprocess.run(
+            [sys.executable, "-c", "import jatte.settingsprod"],
+            cwd=BACKEND_DIR,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CHAT_ATTACHMENTS_SCANNER_BACKEND", result.stderr)

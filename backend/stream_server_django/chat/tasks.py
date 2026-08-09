@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Tuple
+from typing import Any
 
 try:  # pragma: no cover - Celery optional in some environments
     from celery import shared_task
@@ -34,32 +34,78 @@ from django.db import transaction
 from django.utils import timezone
 
 from .consumers import broadcast_message_update
+from .attachment_scanners import (
+    AttachmentScanError,
+    ScanRequest,
+    ScanResult,
+    get_attachment_scanner,
+    validate_scan_result,
+)
+from .attachment_security import sign_attachment_metadata
 from .models import Message
 
 logger = logging.getLogger(__name__)
 
 
-def perform_attachment_scan(attachment: dict[str, Any]) -> Tuple[str, str | None]:
-    """Scan ``attachment`` and return (status, label).
+def perform_attachment_scan(attachment: dict[str, Any]) -> ScanResult:
+    """Return a real provider verdict for the exact committed pending blob."""
 
-    The default implementation assumes all attachments are clean. Tests may
-    patch this helper to emulate different verdicts.
-    """
-
-    return Message.ATTACHMENT_SCAN_CLEAN, None
+    request = ScanRequest(
+        attachment_id=str(attachment.get("id") or ""),
+        source_bucket=str(attachment.get("storage_bucket") or ""),
+        blob_name=str(attachment.get("blob") or ""),
+        expected_sha256=str(attachment.get("sha256") or "").lower(),
+        expected_size=int(attachment.get("size") or 0),
+        object_generation=(
+            str(attachment["object_generation"])
+            if attachment.get("object_generation") not in (None, "")
+            else None
+        ),
+    )
+    if (
+        not request.attachment_id
+        or not request.source_bucket
+        or not request.blob_name
+        or len(request.expected_sha256) != 64
+        or request.expected_size <= 0
+    ):
+        raise AttachmentScanError("attachment scan metadata is incomplete")
+    scanner = get_attachment_scanner()
+    result = scanner.scan(request)
+    validate_scan_result(request, result)
+    return result
 
 
 def _merge_scan_metadata(
     attachment: dict[str, Any],
     *,
     status: str,
-    label: str | None,
+    result: ScanResult | None,
     error: str | None,
 ) -> dict[str, Any]:
     payload = Message.ensure_attachment_scan_defaults(attachment)
     payload["scan_status"] = status
-    payload["scan_label"] = label
+    payload["scan_label"] = result.signature if result else None
     payload["scan_at"] = timezone.now().isoformat()
+    if result is not None:
+        payload.update(
+            {
+                "storage_bucket": result.destination_bucket,
+                "storage_class": (
+                    "clean"
+                    if result.verdict == Message.ATTACHMENT_SCAN_CLEAN
+                    else "quarantine"
+                ),
+                "blob": result.destination_blob,
+                "object_generation": result.object_generation,
+                "scan_engine": result.engine,
+                "scan_engine_version": result.engine_version,
+                "scan_definition_version": result.definition_version,
+                "scan_verified_sha256": result.verified_sha256,
+                "scan_verified_size": result.verified_size,
+                "scan_provider_at": result.scanned_at,
+            }
+        )
     if error:
         payload["scan_error"] = error
     else:
@@ -96,23 +142,46 @@ def scan_attachment(message_id: int, attachment_id: str) -> None:
             return
 
         target_payload = Message.ensure_attachment_scan_defaults(target_payload)
+        if target_payload["scan_status"] in {
+            Message.ATTACHMENT_SCAN_CLEAN,
+            Message.ATTACHMENT_SCAN_FLAGGED,
+        }:
+            return
 
         error: str | None = None
+        result: ScanResult | None = None
         try:
-            status, label = perform_attachment_scan(target_payload)
-            if status not in {
-                Message.ATTACHMENT_SCAN_CLEAN,
-                Message.ATTACHMENT_SCAN_FLAGGED,
-            }:
-                raise ValueError(f"invalid scan status: {status}")
-        except Exception as exc:  # pragma: no cover - defensive logging
+            result = perform_attachment_scan(target_payload)
+            status = result.verdict
+        except Exception as exc:
             logger.exception("scan_attachment: scan failed for %s", attachment_id)
             status = Message.ATTACHMENT_SCAN_ERROR
-            label = None
-            error = str(exc)
+            error = exc.__class__.__name__
 
         updated_payload = _merge_scan_metadata(
-            target_payload, status=status, label=label, error=error
+            target_payload, status=status, result=result, error=error
+        )
+        updated_payload["scan_retry_count"] = int(
+            target_payload.get("scan_retry_count") or 0
+        ) + 1
+        updated_payload["integrity"] = sign_attachment_metadata(updated_payload)
+        logger.info(
+            "attachment.scan.completed",
+            extra={
+                "attachment_id": attachment_id,
+                "message_id": message.id,
+                "room_cids": list(message.rooms.values_list("uuid", flat=True)),
+                "uploader_id": target_payload.get("uploaded_by"),
+                "sha256": target_payload.get("sha256"),
+                "verdict": status,
+                "engine_version": (
+                    result.engine_version if result is not None else None
+                ),
+                "definition_version": (
+                    result.definition_version if result is not None else None
+                ),
+                "retry_count": updated_payload["scan_retry_count"],
+            },
         )
         attachments[target_index] = updated_payload
         message.attachments = attachments

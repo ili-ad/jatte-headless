@@ -61,6 +61,7 @@ ALLOWED_HOSTS = required_csv("DJANGO_ALLOWED_HOSTS")
 CORS_ALLOWED_ORIGINS = required_csv("DJANGO_CORS_ALLOWED_ORIGINS")
 DJANGO_WS_ALLOWED_ORIGINS = required_csv("DJANGO_WS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = False
+CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS = False
 
 # TLS terminates at the trusted reverse proxy. Deployments must ensure only
 # that proxy can supply X-Forwarded-Proto/X-Forwarded-Host.
@@ -85,6 +86,38 @@ SECURE_HSTS_PRELOAD = False
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
+
+_attachment_storage_configured = any(
+    (
+        CHAT_ATTACHMENTS_PENDING_BUCKET,  # noqa: F405
+        CHAT_ATTACHMENTS_CLEAN_BUCKET,  # noqa: F405
+        CHAT_ATTACHMENTS_QUARANTINE_BUCKET,  # noqa: F405
+    )
+)
+if _attachment_storage_configured:
+    if CHAT_ATTACHMENTS_SCANNER_BACKEND != "gcp_clamav":  # noqa: F405
+        raise ProductionConfigurationError(
+            "CHAT_ATTACHMENTS_SCANNER_BACKEND must be gcp_clamav when uploads are enabled"
+        )
+    for name, value in (
+        ("CHAT_ATTACHMENTS_PENDING_BUCKET", CHAT_ATTACHMENTS_PENDING_BUCKET),  # noqa: F405
+        ("CHAT_ATTACHMENTS_CLEAN_BUCKET", CHAT_ATTACHMENTS_CLEAN_BUCKET),  # noqa: F405
+        (
+            "CHAT_ATTACHMENTS_QUARANTINE_BUCKET",
+            CHAT_ATTACHMENTS_QUARANTINE_BUCKET,  # noqa: F405
+        ),
+        ("CHAT_ATTACHMENTS_SCANNER_URL", CHAT_ATTACHMENTS_SCANNER_URL),  # noqa: F405
+        (
+            "CHAT_ATTACHMENTS_SCANNER_AUDIENCE",
+            CHAT_ATTACHMENTS_SCANNER_AUDIENCE,  # noqa: F405
+        ),
+    ):
+        if not value:
+            raise ProductionConfigurationError(f"{name} is required for attachments")
+    if not CHAT_ATTACHMENTS_ALLOWED_TYPES:  # noqa: F405
+        raise ProductionConfigurationError(
+            "CHAT_ATTACHMENTS_ALLOWED_TYPES must be non-empty when uploads are enabled"
+        )
 
 # COOP is intentionally disabled because JATTE's browser integration does not
 # currently depend on cross-origin opener isolation. Other deploy checks and

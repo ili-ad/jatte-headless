@@ -24,6 +24,7 @@ def make_test_token(
         "aud": settings.SUPABASE_JWT_AUDIENCE,
         "iat": now,
         "exp": now + 3600,
+        "is_anonymous": False,
     }
     payload.update(claims or {})
     for claim in remove:

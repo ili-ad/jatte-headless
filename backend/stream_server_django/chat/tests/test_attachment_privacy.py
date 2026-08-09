@@ -90,6 +90,10 @@ class AttachmentPrivacyTests(APITestCase):
     def upload_settings(self, **overrides):
         values = {
             "CHAT_ATTACHMENTS_BUCKET": "test-bucket",
+            "CHAT_ATTACHMENTS_PENDING_BUCKET": "test-pending",
+            "CHAT_ATTACHMENTS_CLEAN_BUCKET": "test-clean",
+            "CHAT_ATTACHMENTS_QUARANTINE_BUCKET": "test-quarantine",
+            "CHAT_ATTACHMENTS_SCANNER_BACKEND": "test",
             "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO": self.service_account_json,
             "CHAT_ATTACHMENTS_ALLOWED_TYPES": ["image/png", "text/plain"],
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024,
@@ -346,6 +350,9 @@ class AttachmentPrivacyTests(APITestCase):
             "room_uuid": "room-a",
             "scan_status": scan_status,
             "scan_label": None,
+            "storage_bucket": "test-clean",
+            "storage_class": "clean",
+            "object_generation": "1",
         }
         attachment["integrity"] = sign_attachment_metadata(attachment)
         self.message.attachments = [attachment]

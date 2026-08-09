@@ -99,6 +99,12 @@ routes.
 
 ## Attachment privacy and upload integrity
 
+All upload-capable attachment routes require a fully validated Supabase token
+whose verified `is_anonymous` claim is exactly `false`. Missing claims and
+Supabase anonymous sessions fail closed before upload-session or storage side
+effects. Existing room/message authorization and same-uploader commit binding
+remain mandatory.
+
 Chat attachment downloads are private by default. `POST
 /api/attachments/sign/` (and `/attachments/sign/`) creates a short-lived
 upload session in Redis, with Django cache as a development fallback. The
@@ -125,8 +131,19 @@ field points to `GET /api/attachments/<attachment_id>/download/`. That endpoint
 requires a Supabase Bearer JWT, finds the attachment only through a parent room
 the caller can currently access, and redirects to a short-lived signed GCS GET
 URL. Missing and inaccessible attachment IDs both return 404. Only attachments
-with scan status `clean` are served: `pending` is locked, `flagged` is
+with scan status `clean`, a valid current integrity signature, and an object in
+`CHAT_ATTACHMENTS_CLEAN_BUCKET` are served: `pending` is locked, `flagged` is
 forbidden, and scan `error` is unavailable.
+
+Production direct uploads require `CHAT_ATTACHMENTS_SCANNER_BACKEND=gcp_clamav`,
+private pending/clean/quarantine buckets, the private Cloud Run scanner URL and
+audience, and a non-empty MIME allowlist. Signed PUTs target only pending
+storage. The asynchronous scanner must return an IAM-authenticated verdict
+bound to the exact attachment ID, pending bucket/blob, SHA-256, size and object
+generation when available. Clean and flagged objects move to their respective
+private buckets; scanner errors remain inaccessible in pending storage. No
+disabled or unavailable scanner path means clean. Deployment resources and
+commissioning guidance live in `deploy/gcp/attachment-scanner/`.
 
 The legacy `POST /api/attachments/` and `/attachments/` compatibility routes
 create explicitly marked `legacy_placeholder` metadata only. Message routes
@@ -135,9 +152,6 @@ application attachment URL and no blob, checksum, content type, or integrity
 signature. It is deliberately non-downloadable and cannot later be upgraded
 to trusted blob metadata through message create or update.
 
-Public-by-link downloads are an explicit deployment exception. They are
-enabled only with `CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS=true`; merely configuring
-`CHAT_ATTACHMENTS_PUBLIC_BASE_URL` does not expose public URLs. When enabled,
-the returned `url` is a bearer credential and anyone who obtains it can bypass
-application room reauthorization. Production deployments should leave this
-flag false unless that exposure is an intentional product policy.
+Production forces public-by-link downloads off. Development compatibility may
+still exercise the legacy flag, but production download authorization always
+terminates at JATTE and signs only the configured private clean bucket.

@@ -1,12 +1,10 @@
 import json
 from unittest.mock import patch
 
-import jwt
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from django.conf import settings
 from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APITestCase
 
@@ -14,8 +12,29 @@ from django.contrib.auth import get_user_model
 
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat.tasks import scan_attachment
+from stream_server_django.chat.attachment_scanners import ScanResult
 from jatte.asgi import application
+from jatte.tests.jwt_factory import make_test_token
 User = get_user_model()
+
+
+def _scan_result(verdict, *, signature=None):
+    bucket = "test-clean" if verdict == Message.ATTACHMENT_SCAN_CLEAN else "test-quarantine"
+    return ScanResult(
+        verdict=verdict,
+        attachment_id="att_task",
+        source_bucket="test-pending",
+        source_blob="attachments/att_task/doc.pdf",
+        verified_sha256="a" * 64,
+        verified_size=100,
+        destination_bucket=bucket,
+        destination_blob="attachments/att_task/doc.pdf",
+        engine="ClamAV",
+        engine_version="1.4-test",
+        definition_version="test-cvd",
+        scanned_at="2026-08-09T00:00:00Z",
+        signature=signature,
+    )
 
 
 @override_settings(
@@ -39,7 +58,7 @@ class AttachmentScanAPITests(APITestCase):
         )
 
     def make_token(self, sub="u1", email="u1@example.com"):
-        return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        return make_test_token(sub, email=email)
 
     def setUp(self):
         self.user = User.objects.create_user(
@@ -49,6 +68,10 @@ class AttachmentScanAPITests(APITestCase):
     def _direct_upload_settings(self, **overrides):
         base = {
             "CHAT_ATTACHMENTS_BUCKET": "test-bucket",
+            "CHAT_ATTACHMENTS_PENDING_BUCKET": "test-pending",
+            "CHAT_ATTACHMENTS_CLEAN_BUCKET": "test-clean",
+            "CHAT_ATTACHMENTS_QUARANTINE_BUCKET": "test-quarantine",
+            "CHAT_ATTACHMENTS_SCANNER_BACKEND": "test",
             "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO": self.service_account_json,
             "CHAT_ATTACHMENTS_ALLOWED_TYPES": ["image/png", "image/jpeg"],
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024 * 1024,
@@ -142,14 +165,16 @@ class AttachmentScanTaskTests(TestCase):
     def test_scan_marks_attachment_clean(self, mock_broadcast):
         with patch(
             "stream_server_django.chat.tasks.perform_attachment_scan",
-            return_value=(Message.ATTACHMENT_SCAN_CLEAN, "CleanEngine"),
+            return_value=_scan_result(Message.ATTACHMENT_SCAN_CLEAN),
         ):
             scan_attachment(self.message.id, self.attachment_id)
 
         self.message.refresh_from_db()
         attachment = self.message.attachments[0]
         self.assertEqual(attachment["scan_status"], Message.ATTACHMENT_SCAN_CLEAN)
-        self.assertEqual(attachment["scan_label"], "CleanEngine")
+        self.assertIsNone(attachment["scan_label"])
+        self.assertEqual(attachment["storage_bucket"], "test-clean")
+        self.assertEqual(attachment["storage_class"], "clean")
         self.assertIn("scan_at", attachment)
         self.assertNotIn("scan_error", attachment)
         mock_broadcast.assert_called_once()
@@ -158,7 +183,9 @@ class AttachmentScanTaskTests(TestCase):
     def test_scan_marks_attachment_flagged(self, mock_broadcast):
         with patch(
             "stream_server_django.chat.tasks.perform_attachment_scan",
-            return_value=(Message.ATTACHMENT_SCAN_FLAGGED, "Suspicious"),
+            return_value=_scan_result(
+                Message.ATTACHMENT_SCAN_FLAGGED, signature="Suspicious"
+            ),
         ):
             scan_attachment(self.message.id, self.attachment_id)
 
@@ -166,6 +193,8 @@ class AttachmentScanTaskTests(TestCase):
         attachment = self.message.attachments[0]
         self.assertEqual(attachment["scan_status"], Message.ATTACHMENT_SCAN_FLAGGED)
         self.assertEqual(attachment["scan_label"], "Suspicious")
+        self.assertEqual(attachment["storage_bucket"], "test-quarantine")
+        self.assertEqual(attachment["storage_class"], "quarantine")
         mock_broadcast.assert_called_once()
 
     @patch("stream_server_django.chat.tasks.broadcast_message_update")
@@ -202,11 +231,7 @@ class AttachmentScanBroadcastTests(TransactionTestCase):
         message.attachments = [attachment]
         await sync_to_async(message.save)(update_fields=["attachments"])
 
-        token = jwt.encode(
-            {"sub": "tester", "email": "tester@example.com"},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        token = make_test_token("tester", email="tester@example.com")
         communicator = WebsocketCommunicator(
             application,
             f"/ws/chat/?token={token}",
@@ -223,7 +248,7 @@ class AttachmentScanBroadcastTests(TransactionTestCase):
 
         with patch(
             "stream_server_django.chat.tasks.perform_attachment_scan",
-            return_value=(Message.ATTACHMENT_SCAN_CLEAN, "CleanEngine"),
+            return_value=_scan_result(Message.ATTACHMENT_SCAN_CLEAN),
         ):
             await sync_to_async(scan_attachment)(message.id, attachment["id"])
 
@@ -231,6 +256,6 @@ class AttachmentScanBroadcastTests(TransactionTestCase):
         assert event["type"] == "message.updated"
         returned = event["message"]["attachments"][0]
         assert returned["scan_status"] == Message.ATTACHMENT_SCAN_CLEAN
-        assert returned["scan_label"] == "CleanEngine"
+        assert returned["scan_label"] is None
 
         await communicator.disconnect()

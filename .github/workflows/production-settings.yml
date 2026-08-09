@@ -9,6 +9,20 @@ permissions:
   contents: read
 
 jobs:
+  attachment-scanner-iac:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deploy/gcp/attachment-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+
   production-boundary:
     runs-on: ubuntu-latest
     defaults:

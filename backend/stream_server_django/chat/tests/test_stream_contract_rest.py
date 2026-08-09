@@ -8,6 +8,7 @@ from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from stream_server_django.chat.models import Channel, Message, Reaction, Room
+from stream_server_django.chat.attachment_security import sign_attachment_metadata
 from jatte.tests.jwt_factory import make_test_token
 
 
@@ -384,6 +385,10 @@ class StreamRestContractTests(APITestCase):
 
     @override_settings(
         CHAT_ATTACHMENTS_BUCKET="contract-bucket",
+        CHAT_ATTACHMENTS_PENDING_BUCKET="contract-pending",
+        CHAT_ATTACHMENTS_CLEAN_BUCKET="contract-clean",
+        CHAT_ATTACHMENTS_QUARANTINE_BUCKET="contract-quarantine",
+        CHAT_ATTACHMENTS_SCANNER_BACKEND="test",
         CHAT_ATTACHMENTS_ALLOWED_TYPES=["image/png"],
         CHAT_ATTACHMENTS_MAX_SIZE=1024,
         CHAT_ATTACHMENTS_PUBLIC_DOWNLOADS=False,
@@ -465,6 +470,11 @@ class StreamRestContractTests(APITestCase):
         message = self.messages[0]
         message.refresh_from_db()
         message.attachments[0]["scan_status"] = Message.ATTACHMENT_SCAN_CLEAN
+        message.attachments[0]["storage_bucket"] = "contract-clean"
+        message.attachments[0]["storage_class"] = "clean"
+        message.attachments[0]["integrity"] = sign_attachment_metadata(
+            message.attachments[0]
+        )
         message.save(update_fields=["attachments"])
         download = self.client.get(
             f"/api/attachments/{attachment['id']}/download/", **self.auth()

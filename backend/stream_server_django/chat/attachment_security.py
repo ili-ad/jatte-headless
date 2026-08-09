@@ -70,6 +70,13 @@ def attachment_integrity_payload(attachment: dict) -> dict:
         ),
         "cid": str(attachment.get("cid") or ""),
         "room_uuid": str(attachment.get("room_uuid") or ""),
+        "storage_bucket": str(attachment.get("storage_bucket") or ""),
+        "storage_class": str(attachment.get("storage_class") or ""),
+        "object_generation": (
+            str(attachment["object_generation"])
+            if attachment.get("object_generation") not in (None, "")
+            else None
+        ),
     }
 
 
@@ -266,14 +273,25 @@ def validate_attachment_for_message(
         "message_id": immutable["message_id"],
         "cid": immutable["cid"],
         "room_uuid": immutable["room_uuid"],
+        "storage_bucket": immutable["storage_bucket"],
+        "storage_class": immutable["storage_class"],
+        "object_generation": immutable["object_generation"],
         "integrity": raw["integrity"],
     }
 
     if message is not None:
         existing = message.get_attachment(immutable["id"])
-        if existing and existing.get("integrity") == raw["integrity"]:
+        if existing and attachment_integrity_is_valid(
+            existing, room=room, message=message, allow_unbound=False
+        ):
             for key, value in existing.items():
-                if key.startswith("scan_"):
+                if key.startswith("scan_") or key in {
+                    "blob",
+                    "storage_bucket",
+                    "storage_class",
+                    "object_generation",
+                    "integrity",
+                }:
                     normalized[key] = value
     return Message.ensure_attachment_scan_defaults(normalized)
 

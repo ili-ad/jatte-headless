@@ -1,10 +1,8 @@
 import json
 from unittest.mock import patch
 
-import jwt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -12,6 +10,7 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 
 from stream_server_django.chat.models import Channel, Message, Room
+from jatte.tests.jwt_factory import make_test_token
 User = get_user_model()
 
 @override_settings(
@@ -35,7 +34,7 @@ class AttachmentAPITests(APITestCase):
         )
 
     def make_token(self, sub="u1", email="u1@example.com"):
-        return jwt.encode({"sub": sub, "email": email}, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        return make_test_token(sub, email=email)
 
     def setUp(self):
         self.user = User.objects.create_user(username="u1", email="u1@example.com", password="x", supabase_uid="u1")
@@ -43,6 +42,10 @@ class AttachmentAPITests(APITestCase):
     def _direct_upload_settings(self, **overrides):
         base = {
             "CHAT_ATTACHMENTS_BUCKET": "test-bucket",
+            "CHAT_ATTACHMENTS_PENDING_BUCKET": "test-pending",
+            "CHAT_ATTACHMENTS_CLEAN_BUCKET": "test-clean",
+            "CHAT_ATTACHMENTS_QUARANTINE_BUCKET": "test-quarantine",
+            "CHAT_ATTACHMENTS_SCANNER_BACKEND": "test",
             "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO": self.service_account_json,
             "CHAT_ATTACHMENTS_ALLOWED_TYPES": ["image/png", "image/jpeg"],
             "CHAT_ATTACHMENTS_MAX_SIZE": 1024 * 1024,
