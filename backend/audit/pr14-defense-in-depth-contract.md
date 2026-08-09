@@ -81,10 +81,11 @@ permissions remain read-only.
 The production and dependency workflow run IDs and conclusions are recorded
 below after the corrective commit's pull-request synchronization event:
 
-- production settings: run `31306751142`, success (both
+- production settings: runs `31306751142` and `31306837390`, success (both
   `production-boundary` and `attachment-scanner-iac`)
-- dependency security / Python: pending corrective commit run
-- dependency security / JavaScript: pending corrective commit run
+- dependency security: run `31306837381`, success
+  - Python job `93228444447`: no known vulnerabilities
+  - JavaScript job `93228444439`: zero High/Critical production advisories
 
 Frontend compatibility was checked with Node 24.18.0 and pnpm 10.12.2 in clean
 PR and base worktrees. PR14 passes `pnpm install --frozen-lockfile`; the base
