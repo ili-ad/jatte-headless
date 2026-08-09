@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any, Sequence
 
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import APIException, PermissionDenied
@@ -49,8 +50,11 @@ from .serializers import (
     RoomSkillPolicySerializer,
 )
 from ..common_audit.models import MessageProvenance
-from .tasks import _persist_message
-from .services.agent_service import get_agent_service, mark_agent_state
+from .services.agent_service import (
+    AgentRoomBusyError,
+    get_agent_service,
+    mark_agent_state,
+)
 from .services.memory import MemoryService
 from .utils import agent_enabled_for_room, agent_user_id_for_room
 
@@ -211,7 +215,9 @@ class AgentInvokeView(APIView):
             echo_text = fallback_serializer.validated_data["prompt"]
         else:
             raise serializers.ValidationError(serializer.errors or {})
-        agent_message = _persist_message(cid=canonical, text=f"Echo: {echo_text}")
+        agent_message = get_agent_service()._persist_message(
+            cid=canonical, text=f"Echo: {echo_text}"
+        )
 
         logger.info(
             "AgentInvokeView created agent message id=%s cid=%s text=%r",
@@ -252,9 +258,8 @@ class AgentLLMInvokeView(APIView):
     """
     Invoke the room's agent using the AgentService orchestration pipeline.
 
-    This is similar to AgentInvokeView, but instead of echoing the last
-    human message, it calls AgentService.generate(), which goes through
-    the LLM client (and eventually RAG, tools, memory, etc).
+    This is similar to AgentInvokeView, but persists an authorized AgentRun
+    work order for the last human message before scheduling the LLM pipeline.
 
     AgentInvokeView remains as a simple echo endpoint for smoke tests.
     """
@@ -282,7 +287,7 @@ class AgentLLMInvokeView(APIView):
             return response
 
         try:
-            identity = get_chat_identity(request)
+            get_chat_identity(request)
 
             # Normalize CID + room and mark that this room has ever used an agent
             canonical, room = _resolve_room_for_member(request, cid)
@@ -313,7 +318,7 @@ class AgentLLMInvokeView(APIView):
 
             # Look up the last human message we are supposed to respond to
             message_id = serializer.validated_data["last_human_message_id"]
-            message = Message.objects.filter(
+            message = room.messages.filter(
                 channel__uuid=room.uuid, id=message_id
             ).first()
             if not message:
@@ -331,14 +336,6 @@ class AgentLLMInvokeView(APIView):
                     Response(
                     {"detail": "Agent replies cannot be chained."},
                     status=status.HTTP_400_BAD_REQUEST,
-                    )
-                )
-
-            if room.agent_busy:
-                return _log_http_end(
-                    Response(
-                        {"detail": "Agent is already processing a request."},
-                        status=status.HTTP_409_CONFLICT,
                     )
                 )
 
@@ -361,16 +358,26 @@ class AgentLLMInvokeView(APIView):
             }
 
             service = get_agent_service()
-            meta["job_request_id"] = trace_id
             meta = {k: v for k, v in meta.items() if v is not None}
-
-            job_id = service.enqueue_generate(
-                cid=canonical,
-                user_id=str(identity.id) if identity.id is not None else None,
-                text=message.body or "",
-                meta=meta,
-                request_id=trace_id,
-            )
+            try:
+                agent_run, _created = service.queue_authorized_run(
+                    room=room,
+                    requested_by=request.user,
+                    source_message=message,
+                    input_text=message.body or "",
+                    request_meta=meta,
+                    client_generated_id=serializer.validated_data.get(
+                        "client_generated_id"
+                    ),
+                )
+            except AgentRoomBusyError:
+                return _log_http_end(
+                    Response(
+                        {"detail": "Agent is already processing a request."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                )
+            job_id = agent_run.run_id
 
             payload = {
                 "status": "queued",
@@ -381,7 +388,7 @@ class AgentLLMInvokeView(APIView):
             response = Response(payload, status=status.HTTP_202_ACCEPTED)
             return _log_http_end(response, job_id=job_id)
 
-        except APIException:
+        except (APIException, Http404):
             raise
         except Exception:
             # This is the safety net we were missing: log the full stack trace.
@@ -405,38 +412,47 @@ class AgentCancelView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, cid: str) -> Response:
-        canonical, room = _resolve_room_for_control(request, cid)
+        canonical, resolved_room = _resolve_room_for_control(request, cid)
 
-        if not room.agent_busy:
+        if not resolved_room.agent_busy or not resolved_room.active_agent_run_id:
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-        run: AgentRun | None = None
-        if room.active_agent_run_id:
-            run = AgentRun.objects.filter(
-                run_id=str(room.active_agent_run_id), cid=canonical
-            ).first()
-
-        if run is None:
+        active_run_id = str(resolved_room.active_agent_run_id)
+        with transaction.atomic():
             run = (
-                AgentRun.objects.filter(
-                    cid=canonical, status=AgentRun.STATUS_RUNNING
+                AgentRun.objects.select_for_update(of=("self",))
+                .filter(
+                    run_id=active_run_id,
+                    room=resolved_room,
+                    cid=canonical,
                 )
-                .order_by("-created_at", "-id")
                 .first()
             )
-
-        ai_message = (
-            Message.objects.filter(
-                channel__uuid=room.uuid,
-                custom_data__ai_generated=True,
-                custom_data__ai_state__in=[
-                    "AI_STATE_THINKING",
-                    "AI_STATE_GENERATING",
-                ],
-            )
-            .order_by("-created_at", "-id")
-            .first()
-        )
+            room = Room.objects.select_for_update().get(pk=resolved_room.pk)
+            if (
+                not room.agent_busy
+                or str(room.active_agent_run_id) != active_run_id
+            ):
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            if run is None:
+                room.agent_busy = False
+                room.active_agent_run_id = None
+                room.save(update_fields=["agent_busy", "active_agent_run_id"])
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            if run.status in {
+                AgentRun.STATUS_OK,
+                AgentRun.STATUS_CAPPED,
+                AgentRun.STATUS_HANDOFF,
+                AgentRun.STATUS_ERROR,
+                AgentRun.STATUS_CANCELLED,
+            }:
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            run.status = AgentRun.STATUS_CANCELLED
+            run.finished_at = timezone.now()
+            run.save(update_fields=["status", "finished_at", "updated_at"])
+            room.agent_busy = False
+            room.active_agent_run_id = None
+            room.save(update_fields=["agent_busy", "active_agent_run_id"])
+            ai_message = run.result_message
 
         mark_agent_state(
             room=room,

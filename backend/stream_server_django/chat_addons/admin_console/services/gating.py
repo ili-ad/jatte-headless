@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Iterable, Literal
@@ -14,7 +15,7 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from stream_server_django.chat.consumers import broadcast_message_update
-from stream_server_django.chat.models import Message, RoomMemberMute
+from stream_server_django.chat.models import Message, Room, RoomMemberMute
 from stream_server_django.chat.serializers import MessageSerializer
 from stream_server_django.chat.utils import canonical_cid, group_name_for_cid
 
@@ -35,6 +36,7 @@ _DEFAULT_PAGE_SIZE = 25
 
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -245,7 +247,7 @@ def approve_intake(*, message_id: str, actor) -> IntakeActionResult:
     else:
         _broadcast_message_new(cid, message)
 
-    _schedule_agent_if_enabled(cid=cid, room_uuid=_room_uuid_from_cid(cid), message=message)
+    _schedule_agent_if_enabled(message=message, actor=actor)
 
     return IntakeActionResult(
         message_id=str(message_pk),
@@ -370,19 +372,35 @@ def _decode_cursor(cursor: str) -> tuple[datetime, int] | None:
     return created_at, int(message_id)
 
 
-def _schedule_agent_if_enabled(*, cid: str, room_uuid: str, message: Message) -> None:
+def _schedule_agent_if_enabled(*, message: Message, actor) -> None:
     from stream_server_django.chat_addons.agent.models import RoomAgentFlag
-    from stream_server_django.chat_addons.agent.tasks import run_agent_invocation
+    from stream_server_django.chat_addons.agent.services.agent_service import (
+        AgentRoomBusyError,
+        get_agent_service,
+    )
 
-    flag = RoomAgentFlag.objects.filter(room__uuid=room_uuid).first()
+    room = Room.objects.filter(
+        uuid=message.channel.uuid,
+        messages=message,
+    ).first()
+    if room is None:
+        return
+    flag = RoomAgentFlag.objects.filter(room=room).first()
     if not flag or not flag.agent_enabled:
         return
-    run_agent_invocation.delay(
-        run_id=f"intake-{message.id}",
-        cid=cid,
-        prompt=message.body,
-        meta={"source": "intake_approval"},
-    )
+    try:
+        get_agent_service().queue_authorized_run(
+            room=room,
+            requested_by=actor,
+            source_message=message,
+            input_text=message.body or "",
+            request_meta={"source": "intake_approval"},
+        )
+    except AgentRoomBusyError:
+        logger.info(
+            "agent.intake.busy_noop",
+            extra={"room_id": room.pk, "message_id": message.pk},
+        )
 
 
 def _mute_user(*, intake: MessageIntake, actor) -> bool:

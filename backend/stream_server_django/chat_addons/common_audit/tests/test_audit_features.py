@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+# This legacy standalone pytest module bootstraps Django before app imports.
+# ruff: noqa: E402,F841
+
 import json
 import os
 import sys
 import uuid
 from pathlib import Path
 from typing import Iterator, TYPE_CHECKING
+from unittest.mock import patch
 
 BACKEND_DIR = Path(__file__).resolve().parents[3]
 if str(BACKEND_DIR) not in sys.path:
@@ -29,7 +33,7 @@ from django.contrib.auth import get_user_model
 from stream_server_django.chat.models import Channel, Message, Room
 from stream_server_django.chat_addons.admin_console.models import MessageIntake
 from stream_server_django.chat_addons.agent.tasks import run_agent_invocation
-from stream_server_django.chat_addons.common_audit.models import AuditTrail, MessageProvenance
+from stream_server_django.chat_addons.common_audit.models import AuditTrail
 from stream_server_django.chat_addons.common_audit.throttling import reset_rate_limit_cache
 User = get_user_model()
 
@@ -76,16 +80,15 @@ def auth_headers(operator_token: str) -> dict[str, str]:
     return {"HTTP_AUTHORIZATION": f"Bearer {operator_token}"}
 
 
-def test_agent_message_provenance_recorded() -> None:
-    cid = "messaging:room-prov"
-    prompt = "Hello agent"
+def test_agent_task_delegates_only_persisted_run_id() -> None:
+    with patch(
+        "stream_server_django.chat_addons.agent.tasks.get_agent_service"
+    ) as service_factory:
+        service = service_factory.return_value
+        service.execute_agent_run.return_value = True
 
-    run_agent_invocation("run-123", cid, prompt, meta={"foo": "bar"})
-
-    message = Message.objects.filter(channel__uuid="room-prov").order_by("-id").first()
-    assert message is not None
-    provenance = MessageProvenance.objects.get(message=message)
-    assert provenance.source == MessageProvenance.Source.AGENT
+        assert run_agent_invocation("run-123") is True
+        service.execute_agent_run.assert_called_once_with("run-123")
 
 
 @override_settings(ADDON_RATE_LIMITS={"claim": "1/min"})

@@ -82,6 +82,10 @@ class CancelledError(Exception):
     """Raised when an in-flight agent run has been cancelled."""
 
 
+class AgentRoomBusyError(Exception):
+    """Raised when a different persisted run already owns a room."""
+
+
 class ToolCallProtocolError(Exception):
     """Raised when tool call sequencing breaks expected protocol."""
 
@@ -93,6 +97,7 @@ def mark_agent_state(
     ai_message: Message | None = None,
     agent_run: AgentRun | None = None,
     error_reason: str | None = None,
+    preserve_active_run: bool = False,
 ) -> None:
     """
     Canonical place to keep AI message metadata, room busy flags, and run status in sync.
@@ -101,7 +106,15 @@ def mark_agent_state(
     room_update_fields: list[str] = []
     agent_run_update_fields: list[str] = []
 
-    if ai_state in ("AI_STATE_THINKING", "AI_STATE_GENERATING"):
+    if preserve_active_run and agent_run is not None:
+        room.refresh_from_db(fields=["agent_busy", "active_agent_run_id"])
+        still_active = (
+            room.agent_busy
+            and str(room.active_agent_run_id) == agent_run.run_id
+        )
+        desired_busy = bool(still_active)
+        desired_run_id = agent_run.run_id if still_active else None
+    elif ai_state in ("AI_STATE_THINKING", "AI_STATE_GENERATING"):
         desired_busy = True
         desired_run_id = agent_run.run_id if agent_run is not None else room.active_agent_run_id
     else:
@@ -241,6 +254,11 @@ class AgentOrchestrationResult:
     cost_usd: Decimal
     reason: str
     handoff_triggered: bool
+    handoff_reason: str | None = None
+    handoff_detail: str | None = None
+    last_tool_name: str | None = None
+    last_tool_call_id: str | None = None
+    last_tool_args_preview: str | None = None
     message: Message | None = None
 
 
@@ -392,100 +410,282 @@ class AgentService:
 
         return reply
 
-    def enqueue_generate(
+    def queue_authorized_run(
         self,
         *,
-        cid: str,
-        user_id: str | None = None,
-        text: str | None = None,
-        meta: dict[str, Any] | None = None,
-        request_id: str | None = None,
-    ) -> str:
-        """Fire-and-forget scheduling of :py:meth:`generate` in a background thread."""
+        room: Room,
+        requested_by,
+        source_message: Message,
+        input_text: str,
+        request_meta: dict[str, Any],
+        client_generated_id: str | None = None,
+    ) -> tuple[AgentRun, bool]:
+        """Persist and schedule one authorized work order transactionally."""
 
-        job_id = str(uuid.uuid4())
-        meta_payload = dict(meta or {})
-        meta_payload.setdefault("cid", cid)
-        meta_payload["job_id"] = job_id
+        requested_client_key = (client_generated_id or "").strip()
+        persisted_client_key = str(
+            (source_message.custom_data or {}).get("client_generated_id") or ""
+        ).strip()
+        client_key = (
+            requested_client_key
+            if requested_client_key and requested_client_key == persisted_client_key
+            else ""
+        )
+        idempotency_key = f"agent:{room.pk}:message:{source_message.pk}"
+        authoritative_meta = dict(request_meta)
+        if client_key:
+            authoritative_meta["client_generated_id"] = client_key
+
+        with transaction.atomic():
+            locked_room = Room.objects.select_for_update().get(pk=room.pk)
+            existing = AgentRun.objects.filter(
+                room=locked_room, source_message=source_message
+            ).first()
+            if existing is not None:
+                logger.info(
+                    "agent.run.enqueue_duplicate",
+                    extra={"run_id": existing.run_id, "room_id": locked_room.pk},
+                )
+                return existing, False
+
+            if locked_room.agent_busy:
+                raise AgentRoomBusyError("Agent is already processing a request")
+
+            if (
+                source_message.channel.uuid != locked_room.uuid
+                or not locked_room.messages.filter(pk=source_message.pk).exists()
+            ):
+                raise ValueError("Source message does not belong to the authorized room")
+            if input_text != (source_message.body or ""):
+                raise ValueError("Input snapshot must match the authorized source message")
+
+            run_id = str(uuid.uuid4())
+            now = timezone.now()
+            run = AgentRun.objects.create(
+                run_id=run_id,
+                cid=locked_room.cid,
+                user_id=str(requested_by.pk),
+                room=locked_room,
+                requested_by=requested_by,
+                source_message=source_message,
+                input_text=input_text,
+                request_meta=authoritative_meta,
+                idempotency_key=idempotency_key,
+                status=AgentRun.STATUS_QUEUED,
+                queued_at=now,
+            )
+            locked_room.agent_busy = True
+            locked_room.active_agent_run_id = run_id
+            locked_room.save(update_fields=["agent_busy", "active_agent_run_id"])
+            transaction.on_commit(lambda: self._schedule_committed_run(run.run_id))
+
+        return run, True
+
+    def _schedule_committed_run(self, run_id: str) -> None:
+        try:
+            self.enqueue_generate(run_id)
+        except Exception:
+            with transaction.atomic():
+                run = (
+                    AgentRun.objects.select_for_update()
+                    .filter(run_id=run_id, status=AgentRun.STATUS_QUEUED)
+                    .first()
+                )
+                if run is not None:
+                    self._fail_locked_run(run, "scheduler_failure")
+            raise
+
+    def enqueue_generate(self, run_id: str) -> str:
+        """Schedule the canonical persisted-run executor in a daemon thread."""
 
         logger.info(
             "agent.generate.job.enqueued",
-            extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+            extra={"run_id": run_id},
         )
 
         thread = threading.Thread(
-            target=self._run_generate_job,
-            kwargs={
-                "job_id": job_id,
-                "cid": cid,
-                "user_id": user_id,
-                "text": text,
-                "meta": meta_payload,
-                "request_id": request_id,
-            },
+            target=self.execute_agent_run,
+            args=(run_id,),
             daemon=True,
         )
         thread.start()
 
-        return job_id
+        return run_id
 
-    def _run_generate_job(
-        self,
-        *,
-        job_id: str,
-        cid: str,
-        user_id: str | None,
-        text: str | None,
-        meta: dict[str, Any],
-        request_id: str | None,
-    ) -> None:
+    def execute_agent_run(self, run_id: str) -> bool:
+        """Atomically claim and execute a persisted work order at most once."""
+
         close_old_connections()
-        job_status = "ok"
-        job_reason = "ok"
         start = time.perf_counter()
 
-        logger.info(
-            "agent.generate.job.start",
-            extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
-        )
-
         try:
-            reply = self.generate(
-                cid=cid,
-                user_id=user_id,
-                text=text,
-                meta=meta,
-                request_id=request_id,
-            )
-            job_reason = reply.reason
-            self._finalize_generated_messages(reply, meta)
-        except CancelledError:
-            job_status = AgentRun.STATUS_CANCELLED
-            job_reason = "cancelled"
+            with transaction.atomic():
+                run = (
+                    AgentRun.objects.select_for_update(of=("self",))
+                    .filter(run_id=run_id)
+                    .first()
+                )
+                if run is None:
+                    logger.warning(
+                        "agent.run.missing_noop", extra={"run_id": run_id}
+                    )
+                    return False
+                if run.status == AgentRun.STATUS_RUNNING:
+                    stale_after = timedelta(
+                        seconds=int(
+                            getattr(settings, "AGENT_STALE_RUN_SECONDS", 900)
+                        )
+                    )
+                    if run.started_at and run.started_at < timezone.now() - stale_after:
+                        self._fail_locked_run(run, "stale_running_redelivery")
+                    else:
+                        logger.info(
+                            "agent.run.running_noop", extra={"run_id": run_id}
+                        )
+                    return False
+                if run.status != AgentRun.STATUS_QUEUED:
+                    logger.info(
+                        "agent.run.terminal_noop",
+                        extra={"run_id": run_id, "status": run.status},
+                    )
+                    return False
+                if not self._persisted_run_is_consistent(run):
+                    self._fail_locked_run(run, "invalid_persisted_relationships")
+                    return False
+                run.status = AgentRun.STATUS_RUNNING
+                run.started_at = timezone.now()
+                run.attempt_count += 1
+                run.save(
+                    update_fields=[
+                        "status",
+                        "started_at",
+                        "attempt_count",
+                        "updated_at",
+                    ]
+                )
+
             logger.info(
-                "agent.generate.job.cancelled",
-                extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+                "agent.run.claimed",
+                extra={
+                    "run_id": run.run_id,
+                    "room_id": run.room_id,
+                    "attempt": run.attempt_count,
+                },
             )
+            result = self._orchestrate(
+                cid=run.cid,
+                user_id=run.user_id,
+                message_text=run.input_text,
+                meta=dict(run.request_meta or {}),
+                request_id=run.run_id,
+                persist=True,
+                record_run=False,
+                authoritative_run=run,
+            )
+            self._complete_persisted_run(run.run_id, result)
+            return True
         except Exception:
-            job_status = "error"
-            job_reason = "exception"
             logger.exception(
-                "agent.generate.job.failure",
-                extra={"cid": cid, "job_id": job_id, "trace_id": request_id},
+                "agent.run.failure", extra={"run_id": run_id}
             )
+            self._mark_run_error(run_id, "executor_exception")
+            return False
         finally:
             logger.info(
-                "agent.generate.job.complete",
+                "agent.run.delivery_complete",
                 extra={
-                    "cid": cid,
-                    "job_id": job_id,
-                    "trace_id": request_id,
-                    "status": job_status,
-                    "reason": job_reason,
+                    "run_id": run_id,
                     "latency_ms": int((time.perf_counter() - start) * 1000),
                 },
             )
             close_old_connections()
+
+    def _persisted_run_is_consistent(self, run: AgentRun) -> bool:
+        return bool(
+            run.room_id
+            and run.requested_by_id
+            and run.source_message_id
+            and run.cid == run.room.cid
+            and run.source_message.channel.uuid == run.room.uuid
+            and run.room.messages.filter(pk=run.source_message_id).exists()
+            and str(run.room.active_agent_run_id) == run.run_id
+            and run.room.agent_busy
+            and AgentRoomPolicy.objects.filter(
+                cid=run.cid, agent_enabled=True
+            ).exists()
+        )
+
+    def _clear_locked_room_for_run(self, run: AgentRun) -> None:
+        if run.room_id is None:
+            return
+        room = Room.objects.select_for_update().get(pk=run.room_id)
+        if str(room.active_agent_run_id) == run.run_id:
+            room.agent_busy = False
+            room.active_agent_run_id = None
+            room.save(update_fields=["agent_busy", "active_agent_run_id"])
+
+    def _fail_locked_run(self, run: AgentRun, reason: str) -> None:
+        run.status = AgentRun.STATUS_ERROR
+        run.finished_at = timezone.now()
+        run.handoff_detail = reason
+        run.save(
+            update_fields=["status", "finished_at", "handoff_detail", "updated_at"]
+        )
+        self._clear_locked_room_for_run(run)
+
+    def _mark_run_error(self, run_id: str, reason: str) -> None:
+        with transaction.atomic():
+            run = AgentRun.objects.select_for_update().filter(run_id=run_id).first()
+            if run is None or run.status != AgentRun.STATUS_RUNNING:
+                return
+            self._fail_locked_run(run, reason)
+
+    def _complete_persisted_run(
+        self, run_id: str, result: AgentOrchestrationResult
+    ) -> None:
+        with transaction.atomic():
+            run = AgentRun.objects.select_for_update(of=("self",)).get(run_id=run_id)
+            if run.status not in {
+                AgentRun.STATUS_RUNNING,
+                AgentRun.STATUS_CANCELLED,
+            }:
+                return
+            if run.status != AgentRun.STATUS_CANCELLED:
+                run.status = result.status
+            run.tools_used = list(result.tools_used)
+            run.latency_ms = max(result.latency_ms, 0)
+            run.tokens_in = max(result.tokens_in, 0)
+            run.tokens_out = max(result.tokens_out, 0)
+            run.cost_usd = result.cost_usd
+            run.handoff = result.handoff_triggered
+            run.handoff_reason = result.handoff_reason or ""
+            run.handoff_detail = result.handoff_detail or ""
+            run.last_tool_name = result.last_tool_name or ""
+            run.last_tool_call_id = result.last_tool_call_id or ""
+            run.last_tool_args_preview = result.last_tool_args_preview or ""
+            run.finished_at = timezone.now()
+            if result.message is not None and run.result_message_id is None:
+                run.result_message = result.message
+            run.save(
+                update_fields=[
+                    "status",
+                    "tools_used",
+                    "latency_ms",
+                    "tokens_in",
+                    "tokens_out",
+                    "cost_usd",
+                    "handoff",
+                    "handoff_reason",
+                    "handoff_detail",
+                    "last_tool_name",
+                    "last_tool_call_id",
+                    "last_tool_args_preview",
+                    "finished_at",
+                    "result_message",
+                    "updated_at",
+                ]
+            )
+            self._clear_locked_room_for_run(run)
 
     def simulate(
         self,
@@ -548,8 +748,13 @@ class AgentService:
         request_id: str | None,
         persist: bool,
         record_run: bool,
+        authoritative_run: AgentRun | None = None,
     ) -> AgentOrchestrationResult:
-        effective_request_id = request_id or meta.get("request_id") or str(uuid.uuid4())
+        effective_request_id = (
+            authoritative_run.run_id
+            if authoritative_run is not None
+            else request_id or meta.get("request_id") or str(uuid.uuid4())
+        )
         start = time.perf_counter()
         run_status = AgentRun.STATUS_OK
         tools_used: list[str] = []
@@ -565,7 +770,11 @@ class AgentService:
         last_tool_args_preview: str | None = None
         agent_run: AgentRun | None = None
 
-        room = self._get_room_for_cid(cid)
+        room = (
+            authoritative_run.room
+            if authoritative_run is not None
+            else self._get_room_for_cid(cid)
+        )
         room_uuid = getattr(room, "uuid", None)
 
         policy = self._get_policy(cid)
@@ -579,9 +788,6 @@ class AgentService:
         tool_schemas = build_tool_schemas(skills) if skills else []
         if cap_reached:
             tool_schemas = []
-
-        if not skills:
-            _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
 
         # Allow lookup by skill name and any tool alias attached by the schema builder.
         skill_lookup = {skill.name: skill for skill in skills}
@@ -610,6 +816,9 @@ class AgentService:
                 HandoffReason.TOOL_EXCEPTION,
                 detail=f"{exc.__class__.__name__}: {exc}",
             )
+
+        if not skills:
+            _note_handoff(HandoffReason.NO_TOOLS_ENABLED, "no tools enabled")
 
 
         tool_hops = 0
@@ -762,21 +971,26 @@ class AgentService:
         ai_message: Message | None = None
 
         if persist and policy.agent_enabled:
-            if room is not None:
+            if authoritative_run is not None:
+                agent_run = authoritative_run
+            elif room is not None:
                 agent_run = self._start_agent_run(
                     room=room,
                     cid=cid,
                     run_id=effective_request_id,
                     user_id=user_id,
                 )
-            ai_message = self._persist_message(
-                cid=cid,
-                text="",
-                custom_data={
-                    "ai_generated": True,
-                    "ai_state": "AI_STATE_THINKING",
-                },
-            )
+            if authoritative_run is not None:
+                ai_message = self._persist_run_placeholder(authoritative_run)
+            else:
+                ai_message = self._persist_message(
+                    cid=cid,
+                    text="",
+                    custom_data={
+                        "ai_generated": True,
+                        "ai_state": "AI_STATE_THINKING",
+                    },
+                )
             if room is not None:
                 mark_agent_state(
                     room=room,
@@ -978,7 +1192,14 @@ class AgentService:
                         if not fallback_attempted and skills and tools_enabled:
                             candidate = self._fallback_candidate(skills, message_text, ctx)
                             if candidate and tool_hops < tool_hop_cap:
-                                executed = self._execute_fallback(candidate, message_text, ctx, messages)
+                                executed = self._execute_fallback(
+                                    candidate,
+                                    message_text,
+                                    ctx,
+                                    messages,
+                                    on_before_execute=_remember_tool_attempt,
+                                    on_exception=_note_tool_exception,
+                                )
                                 if executed:
                                     tools_used.append(candidate.name)
                                     tool_hops += 1
@@ -1132,10 +1353,12 @@ class AgentService:
                         room=room,
                         ai_state=final_state,
                         ai_message=ai_message,
+                        agent_run=agent_run,
                         error_reason=error_reason,
+                        preserve_active_run=authoritative_run is not None,
                     )
                 message = ai_message
-            else:
+            elif authoritative_run is None:
                 message = self._persist_reply(
                     cid=cid, text=reply_text, handoff=handoff_triggered
                 )
@@ -1167,8 +1390,12 @@ class AgentService:
                 if custom_data_for_message != message.custom_data:
                     self._update_message(message, custom_data=custom_data_for_message)
 
-            self._mark_provenance(message)
-            if handoff_triggered:
+            else:
+                message = None
+
+            if message is not None:
+                self._mark_provenance(message)
+            if handoff_triggered and message is not None:
                 self._notify_handoff(cid)
         else:
             message = None
@@ -1203,6 +1430,11 @@ class AgentService:
             cost_usd=total_cost,
             reason=reason,
             handoff_triggered=handoff_triggered,
+            handoff_reason=handoff_reason,
+            handoff_detail=handoff_detail,
+            last_tool_name=last_tool_name,
+            last_tool_call_id=last_tool_call_id,
+            last_tool_args_preview=last_tool_args_preview,
             message=message,
         )
 
@@ -1631,6 +1863,9 @@ class AgentService:
         text: str,
         ctx: ConversationCtx,
         messages: list[dict[str, Any]],
+        *,
+        on_before_execute: Callable[[ToolCall, Skill | None], None] | None = None,
+        on_exception: Callable[[ToolCall, Skill | None, Exception], None] | None = None,
     ) -> bool:
         args = infer_args_from_text(skill, text)
         if not args and text:
@@ -1642,8 +1877,8 @@ class AgentService:
                 ctx,
                 messages,
                 limit=1,
-                on_before_execute=_remember_tool_attempt,
-                on_exception=_note_tool_exception,
+                on_before_execute=on_before_execute,
+                on_exception=on_exception,
             )
             return bool(executed)
         except Exception:  # pragma: no cover - defensive
@@ -1766,6 +2001,47 @@ class AgentService:
                 "last_tool_args_preview": last_tool_args_preview,
             },
         )
+
+    def _persist_run_placeholder(self, agent_run: AgentRun) -> Message:
+        """Create the one result message using only persisted relationships."""
+
+        with transaction.atomic():
+            locked_run = (
+                AgentRun.objects.select_for_update(of=("self",))
+                .get(pk=agent_run.pk)
+            )
+            if locked_run.result_message_id is not None:
+                return locked_run.result_message
+            if (
+                locked_run.status != AgentRun.STATUS_RUNNING
+                or not self._persisted_run_is_consistent(locked_run)
+            ):
+                raise ValueError("Agent run relationships are no longer authoritative")
+
+            channel = locked_run.source_message.channel
+            custom_data = {
+                "ai_generated": True,
+                "ai_state": "AI_STATE_THINKING",
+                "agent": {"run_id": locked_run.run_id},
+            }
+            message = Message.objects.create(
+                channel=channel,
+                body="",
+                sent_by=agent_user_id_for_room(locked_run.room.uuid),
+                custom_data=custom_data,
+            )
+            locked_run.room.messages.add(message)
+            locked_run.result_message = message
+            locked_run.save(update_fields=["result_message", "updated_at"])
+
+        payload = MessageSerializer(message).data
+        payload["user_id"] = message.sent_by
+        payload["user"] = {"id": message.sent_by, "name": "Assistant"}
+        _broadcast_to_cid(
+            locked_run.room.cid,
+            {"type": "message.new", "message": payload},
+        )
+        return message
 
     def _persist_message(
         self, *, cid: str, text: str, custom_data: dict[str, Any] | None = None

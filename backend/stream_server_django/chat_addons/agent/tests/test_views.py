@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from unittest import mock
+from types import SimpleNamespace
 
 from decimal import Decimal
 
-import jwt
-from django.conf import settings
+from jatte.tests.jwt_factory import make_test_token
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -37,10 +37,8 @@ class AgentViewsTests(APITestCase):
             self.operator.save(update_fields=["is_staff"])
 
     def make_token(self) -> str:
-        return jwt.encode(
-            {"sub": self.operator.supabase_uid, "email": self.operator.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
+        return make_test_token(
+            self.operator.supabase_uid, email=self.operator.email
         )
 
     def auth_headers(self) -> dict[str, str]:
@@ -80,7 +78,7 @@ class AgentViewsTests(APITestCase):
         flag.refresh_from_db()
         self.assertFalse(flag.agent_enabled)
 
-    @mock.patch("stream_server_django.chat_addons.agent.tasks._broadcast_to_cid")
+    @mock.patch("stream_server_django.chat_addons.agent.services.agent_service._broadcast_to_cid")
     def test_echo_invoke_creates_message(
         self, mock_broadcast: mock.MagicMock
     ) -> None:
@@ -114,6 +112,7 @@ class AgentViewsTests(APITestCase):
         RoomAgentFlag.objects.create(room=room, agent_enabled=True)
 
         user_message = Message.objects.create(channel=channel, body="Hello", sent_by="u-1")
+        room.messages.add(user_message)
 
         url = reverse("agent-rag")
         response = self.client.post(
@@ -149,9 +148,13 @@ class AgentViewsTests(APITestCase):
         user_message = Message.objects.create(
             channel=channel, body="Hello", sent_by="user-1"
         )
+        room.messages.add(user_message)
 
         service = mock.Mock()
-        service.enqueue_generate.return_value = "job-123"
+        service.queue_authorized_run.return_value = (
+            SimpleNamespace(run_id="job-123"),
+            True,
+        )
         mock_get_service.return_value = service
 
         response = self.client.post(
@@ -171,13 +174,13 @@ class AgentViewsTests(APITestCase):
         self.assertEqual(payload["job_id"], "job-123")
         self.assertEqual(payload["trace_id"], "trace-1")
 
-        service.enqueue_generate.assert_called_once()
-        _, kwargs = service.enqueue_generate.call_args
-        self.assertEqual(kwargs["cid"], f"messaging:{room.uuid}")
-        self.assertEqual(kwargs["user_id"], str(self.operator.id))
-        self.assertEqual(kwargs["text"], user_message.body)
-        self.assertEqual(kwargs["request_id"], "trace-1")
-        self.assertEqual(kwargs["meta"].get("job_request_id"), "trace-1")
+        service.queue_authorized_run.assert_called_once()
+        _, kwargs = service.queue_authorized_run.call_args
+        self.assertEqual(kwargs["room"], room)
+        self.assertEqual(kwargs["requested_by"], self.operator)
+        self.assertEqual(kwargs["source_message"], user_message)
+        self.assertEqual(kwargs["input_text"], user_message.body)
+        self.assertEqual(kwargs["request_meta"].get("request_id"), "trace-1")
 
     @mock.patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_llm_invoke_returns_500_when_enqueue_fails(
@@ -190,9 +193,10 @@ class AgentViewsTests(APITestCase):
         user_message = Message.objects.create(
             channel=channel, body="Hello", sent_by="user-1"
         )
+        room.messages.add(user_message)
 
         service = mock.Mock()
-        service.enqueue_generate.side_effect = RuntimeError("enqueue failed")
+        service.queue_authorized_run.side_effect = RuntimeError("enqueue failed")
         mock_get_service.return_value = service
 
         response = self.client.post(
