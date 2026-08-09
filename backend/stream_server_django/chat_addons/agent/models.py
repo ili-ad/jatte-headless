@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 
 try:
@@ -87,6 +88,7 @@ class AgentRoomPolicy(models.Model):
 class AgentRun(models.Model):
     """Audit record for an agent invocation."""
 
+    STATUS_QUEUED = "queued"
     STATUS_RUNNING = "running"
     STATUS_OK = "ok"
     STATUS_CAPPED = "capped"
@@ -94,6 +96,7 @@ class AgentRun(models.Model):
     STATUS_ERROR = "error"
     STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = [
+        (STATUS_QUEUED, "Queued"),
         (STATUS_RUNNING, "Running"),
         (STATUS_OK, "Ok"),
         (STATUS_CAPPED, "Capped"),
@@ -105,6 +108,42 @@ class AgentRun(models.Model):
     run_id = models.CharField(max_length=255, unique=True)
     cid = models.CharField(max_length=255)
     user_id = models.CharField(max_length=255, blank=True)
+    room = models.ForeignKey(
+        "chat.Room",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="agent_runs",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="requested_agent_runs",
+    )
+    source_message = models.ForeignKey(
+        "chat.Message",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="source_agent_runs",
+    )
+    result_message = models.OneToOneField(
+        "chat.Message",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="result_agent_run",
+    )
+    input_text = models.TextField(blank=True, default="")
+    request_meta = models.JSONField(default=dict, blank=True)
+    idempotency_key = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True,
+        unique=True,
+    )
     tools_used = models.JSONField(default=list)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES)
     latency_ms = models.PositiveIntegerField(default=0)
@@ -117,6 +156,10 @@ class AgentRun(models.Model):
     last_tool_name = models.CharField(max_length=128, blank=True, default="")
     last_tool_call_id = models.CharField(max_length=128, blank=True, default="")
     last_tool_args_preview = models.TextField(blank=True, default="")
+    queued_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    attempt_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

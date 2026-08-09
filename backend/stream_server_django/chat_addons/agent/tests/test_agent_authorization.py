@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from jatte.tests.jwt_factory import make_test_token
@@ -55,7 +56,10 @@ class AgentAuthorizationTests(APITestCase):
     @patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_member_can_invoke_own_room_but_outsider_cannot(self, service_factory):
         service = Mock()
-        service.enqueue_generate.return_value = "job-pr5"
+        service.queue_authorized_run.return_value = (
+            SimpleNamespace(run_id="job-pr5"),
+            True,
+        )
         service_factory.return_value = service
         url = reverse("agent-invoke", kwargs={"cid": self.room.cid})
         payload = {
@@ -67,13 +71,13 @@ class AgentAuthorizationTests(APITestCase):
             url, payload, format="json", **self.auth(self.outsider)
         )
         self.assertEqual(denied.status_code, 403)
-        service.enqueue_generate.assert_not_called()
+        service.queue_authorized_run.assert_not_called()
 
         allowed = self.client.post(
             url, payload, format="json", **self.auth(self.member)
         )
         self.assertEqual(allowed.status_code, 202, allowed.data)
-        service.enqueue_generate.assert_called_once()
+        service.queue_authorized_run.assert_called_once()
 
     def test_agent_controls_require_room_agent_or_staff(self):
         enable_url = reverse("enable-agent", kwargs={"cid": self.room.cid})

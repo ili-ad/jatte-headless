@@ -1,5 +1,6 @@
 """Frontend-facing agent response contract tests."""
 
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from jatte.tests.jwt_factory import make_test_token
@@ -66,7 +67,10 @@ class StreamAgentContractTests(APITestCase):
     @patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_frontend_invoke_returns_stable_queued_shape(self, service_factory):
         service = Mock()
-        service.enqueue_generate.return_value = "job-contract-1"
+        service.queue_authorized_run.return_value = (
+            SimpleNamespace(run_id="job-contract-1"),
+            True,
+        )
         service_factory.return_value = service
         response = self.client.post(
             f"/api/chat/agent/{self.room.cid}/invoke/",
@@ -88,7 +92,7 @@ class StreamAgentContractTests(APITestCase):
                 "trace_id": "trace-contract-1",
             },
         )
-        service.enqueue_generate.assert_called_once()
+        service.queue_authorized_run.assert_called_once()
 
     @patch("stream_server_django.chat_addons.agent.views.get_agent_service")
     def test_disabled_agent_error_shape_stays_stable(self, service_factory):
