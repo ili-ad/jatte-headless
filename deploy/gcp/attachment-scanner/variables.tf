@@ -18,7 +18,7 @@ variable "scanner_image" {
   }
 }
 variable "jatte_service_account" {
-  description = "Service account email used by the JATTE attachment worker."
+  description = "ADC runtime identity used by JATTE to invoke the scanner and call signBlob."
   type        = string
 }
 variable "quarantine_retention_days" {

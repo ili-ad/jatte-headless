@@ -118,6 +118,13 @@ if _attachment_storage_configured:
         raise ProductionConfigurationError(
             "CHAT_ATTACHMENTS_ALLOWED_TYPES must be non-empty when uploads are enabled"
         )
+    if not (
+        CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT  # noqa: F405
+        or CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO  # noqa: F405
+    ):
+        raise ProductionConfigurationError(
+            "CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT is required for keyless attachment signing"
+        )
 
 # COOP is intentionally disabled because JATTE's browser integration does not
 # currently depend on cross-origin opener isolation. Other deploy checks and

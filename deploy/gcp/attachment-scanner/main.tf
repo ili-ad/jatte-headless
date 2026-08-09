@@ -7,6 +7,7 @@ resource "google_project_service" "apis" {
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudscheduler.googleapis.com",
+    "iamcredentials.googleapis.com",
     "run.googleapis.com",
     "storage.googleapis.com",
   ])
@@ -77,6 +78,24 @@ resource "google_service_account" "scheduler" {
   display_name = "JATTE ClamAV definition mirror scheduler"
 }
 
+resource "google_service_account" "attachment_signer" {
+  account_id   = "jatte-attachment-signer"
+  display_name = "JATTE keyless attachment URL signer"
+}
+
+resource "google_project_iam_custom_role" "attachment_sign_blob" {
+  role_id     = "jatteAttachmentSignBlob"
+  title       = "JATTE attachment signBlob"
+  description = "Permits only IAM signBlob for keyless attachment V4 URLs."
+  permissions = ["iam.serviceAccounts.signBlob"]
+}
+
+resource "google_service_account_iam_member" "runtime_sign_blob" {
+  service_account_id = google_service_account.attachment_signer.name
+  role               = google_project_iam_custom_role.attachment_sign_blob.name
+  member             = "serviceAccount:${var.jatte_service_account}"
+}
+
 resource "google_storage_bucket_iam_member" "scanner_pending" {
   bucket = google_storage_bucket.pending.name
   role   = "roles/storage.objectAdmin"
@@ -117,6 +136,24 @@ resource "google_storage_bucket_iam_member" "jatte_clean_viewer" {
   bucket = google_storage_bucket.clean.name
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${var.jatte_service_account}"
+}
+
+resource "google_storage_bucket_iam_member" "signer_pending_creator" {
+  bucket = google_storage_bucket.pending.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.attachment_signer.email}"
+}
+
+resource "google_storage_bucket_iam_member" "signer_pending_viewer" {
+  bucket = google_storage_bucket.pending.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.attachment_signer.email}"
+}
+
+resource "google_storage_bucket_iam_member" "signer_clean_viewer" {
+  bucket = google_storage_bucket.clean.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.attachment_signer.email}"
 }
 
 resource "google_cloud_run_v2_service" "scanner" {

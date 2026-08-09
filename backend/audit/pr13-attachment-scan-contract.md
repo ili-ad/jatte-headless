@@ -72,18 +72,44 @@ digest.
 ## Commissioning audit (2026-08-09)
 
 The authorized target is project `notice-to-owner-01`, region `us-east1`.
-Terraform created the private pending, clean, quarantine, and CVD buckets plus
-the dedicated scanner/scheduler service accounts. The VM/JATTE candidate
-identity `517119819257-compute@developer.gserviceaccount.com` received only
-pending object-creator/viewer and clean object-viewer bucket roles; it has no
-quarantine or CVD access.
+Terraform state is stored in the private, versioned
+`notice-to-owner-01-jatte-terraform-state` bucket. State migration preserved
+the existing resources without recreation. Terraform created the private
+pending, clean, quarantine, and CVD buckets plus dedicated scanner, scheduler,
+and URL-signing service accounts. The JATTE runtime identity
+`517119819257-compute@developer.gserviceaccount.com` has only pending
+object-creator/viewer, clean object-viewer, Cloud Run invoker, and the custom
+single-permission `iam.serviceAccounts.signBlob` role on
+`jatte-attachment-signer`. It has no quarantine or CVD access and no private
+key was created. A temporary cloud-platform-scoped commissioning VM using the
+runtime identity successfully called IAM Credentials `signBlob` for that
+designated signer (HTTP 200 with a signed response) and was then deleted.
 
-Commissioning remains incomplete. `nto-server-01` has ADC for that VM identity,
-but its OAuth access scopes omit `cloud-platform`, so it cannot manage Cloud
-Run, Artifact Registry, Cloud Build, Scheduler, or project IAM. The local
-operator can manage the prerequisite resources but Cloud Build rejects build
-creation. No JATTE-headless checkout/service or `CHAT_ATTACHMENTS_*`
-configuration exists on the VM, including no legacy `CHAT_ATTACHMENTS_BUCKET`.
-Consequently no immutable image digest, Cloud Run service, CVD execution, or
-real sign/commit/download benign, EICAR, and unavailable-scanner receipt is yet
-available. PR7-09 remains open until those live checks succeed.
+The scanner image was built on an ephemeral GCE builder with only
+repository-scoped Artifact Registry writer access. The builder VM, service
+account, and temporary repository binding were deleted after publication. The
+deployed immutable image is:
+
+`us-east1-docker.pkg.dev/notice-to-owner-01/jatte-security/attachment-scanner@sha256:71f3e6c8378c2d718b47f3954414f46c2c986c607d33abe877e53b5620ad1a4e`
+
+The private `jatte-malware-scanner` Cloud Run service rejects unauthenticated
+requests (HTTP 403), while the intended runtime identity receives HTTP 200.
+The CVD seed execution succeeded, an authenticated forced Scheduler update
+completed with HTTP 200, and live scans reported ClamAV 1.5.3 with definition
+`28087/2026-08-09T06:24:56.000Z`.
+
+A benign live scanner request returned clean for the exact 50-byte object,
+copied it only to clean storage, and removed pending. A live standard EICAR
+request returned flagged with `Eicar-Signature`, copied it only to quarantine,
+and removed pending. These tests exercised the real private Cloud Run service,
+not a mock. A controlled exact-object integrity failure returned HTTP 422 and
+left the object only in pending storage; neither clean nor quarantine received
+a copy. Unit/task coverage separately proves unavailable/timeout responses
+persist `scan_status=error` and never become downloadable.
+
+Full JATTE HTTP commissioning remains incomplete: no JATTE-headless deployment
+exists on `nto-server-01`, and no usable permanent Supabase end-user session was
+available without creating a new external user. Therefore the real
+sign/PUT/commit/task/download flow and its persisted scanner-unavailable state
+have not yet been claimed as commissioned. PR7-09 remains open until those
+application-level checks succeed.

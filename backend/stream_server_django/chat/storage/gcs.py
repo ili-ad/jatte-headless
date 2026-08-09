@@ -8,15 +8,26 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Mapping, MutableMapping
+from typing import Mapping, MutableMapping, Protocol
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+import google.auth
+from google.auth import iam
+from google.auth.transport.requests import Request as GoogleAuthRequest
 
 _SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+class SigningIdentity(Protocol):
+    """Identity capable of producing a Google V4 RSA signature."""
+
+    client_email: str
+
+    def sign(self, message: bytes) -> bytes: ...
 
 
 @dataclass(slots=True)
@@ -32,6 +43,42 @@ class ServiceAccount:
         return serialization.load_pem_private_key(
             self.private_key.encode("utf-8"), password=None
         )
+
+    def sign(self, message: bytes) -> bytes:
+        return self.build_signer().sign(
+            message,
+            padding.PKCS1v15(),
+            hashes.SHA256(),
+        )
+
+
+@dataclass(slots=True)
+class IAMSigningIdentity:
+    """Google-managed service-account signer backed by ADC and IAM signBlob."""
+
+    client_email: str
+    signer: iam.Signer
+
+    def sign(self, message: bytes) -> bytes:
+        return self.signer.sign(message)
+
+
+def load_iam_signing_identity(client_email: str) -> IAMSigningIdentity:
+    """Create an ADC-backed IAM signer without loading a private key."""
+
+    email = str(client_email).strip()
+    if not email:
+        raise ValueError("Signing service account is required")
+    credentials, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    request = GoogleAuthRequest()
+    if not credentials.valid:
+        credentials.refresh(request)
+    return IAMSigningIdentity(
+        client_email=email,
+        signer=iam.Signer(request, credentials, email),
+    )
 
 
 def load_service_account(raw: str | Mapping[str, str]) -> ServiceAccount:
@@ -86,7 +133,7 @@ def _canonical_headers(headers: Mapping[str, str]) -> tuple[str, str]:
 
 def generate_signed_url(
     *,
-    service_account: ServiceAccount,
+    service_account: SigningIdentity,
     method: str,
     bucket: str,
     blob_name: str,
@@ -152,12 +199,7 @@ def generate_signed_url(
         ]
     )
 
-    signer = service_account.build_signer()
-    signature = signer.sign(
-        string_to_sign.encode("utf-8"),
-        padding.PKCS1v15(),
-        hashes.SHA256(),
-    ).hex()
+    signature = service_account.sign(string_to_sign.encode("utf-8")).hex()
 
     query["X-Goog-Signature"] = signature
     final_query = _canonical_query(query)

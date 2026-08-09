@@ -63,12 +63,13 @@ from common.throttling import (
 )
 
 try:
-    from stream_server_django.chat_addons.agent.utils import agent_enabled_for_room, agent_user_id_for_room
+    from stream_server_django.chat_addons.agent.utils import (
+        agent_enabled_for_room,
+        agent_user_id_for_room,
+    )
 except Exception:  # pragma: no cover - optional dependency in certain test envs
     agent_enabled_for_room = None  # type: ignore[assignment]
     agent_user_id_for_room = None  # type: ignore[assignment]
-
-logger = logging.getLogger(__name__)
 
 from .mixins import RoomFromCIDMixin
 from .attachment_security import (
@@ -115,12 +116,15 @@ from .storage.gcs import (
     blob_name_for,
     download_blob,
     generate_signed_url,
+    load_iam_signing_identity,
     load_service_account,
     safe_filename,
 )
 from .utils import canonical_cid, group_name_for_cid
 from .webpush import broadcast_subscriptions_registered
 from .search import SearchTimeoutError, search_messages
+
+logger = logging.getLogger(__name__)
 
 
 def _user_can_access_room(user, room) -> bool:
@@ -1829,15 +1833,22 @@ _service_account_cache_key = None
 def _get_service_account():
     global _service_account_cache, _service_account_cache_key
     raw = getattr(settings, "CHAT_ATTACHMENTS_SERVICE_ACCOUNT_INFO", None)
-    if not raw:
+    signing_email = str(
+        getattr(settings, "CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT", "")
+    ).strip()
+    if not raw and not signing_email:
         return None
-    cache_key = raw
+    cache_key = raw or f"iam:{signing_email}"
     if isinstance(raw, dict):
         cache_key = json.dumps(raw, sort_keys=True)
     if _service_account_cache and _service_account_cache_key == cache_key:
         return _service_account_cache
     try:
-        account = load_service_account(raw)
+        account = (
+            load_service_account(raw)
+            if raw
+            else load_iam_signing_identity(signing_email)
+        )
     except Exception:
         logger.exception("Invalid service account configuration")
         return None

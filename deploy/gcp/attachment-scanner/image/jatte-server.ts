@@ -51,7 +51,8 @@ function clamMetadata(version: string): {
 }
 
 function malwareSignature(reply: string): string | undefined {
-  const match = /^stream: (.+) FOUND\s*$/.exec(reply);
+  const normalized = reply.replaceAll('\x00', '').trim();
+  const match = /^stream: (.+) FOUND$/.exec(normalized);
   return match?.[1];
 }
 

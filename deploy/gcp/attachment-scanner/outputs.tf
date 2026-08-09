@@ -19,6 +19,9 @@ output "scanner_service_account" {
 output "scheduler_service_account" {
   value = google_service_account.scheduler.email
 }
+output "attachment_signing_service_account" {
+  value = google_service_account.attachment_signer.email
+}
 output "scheduler_job" {
   value = google_cloud_scheduler_job.cvd_update.name
 }

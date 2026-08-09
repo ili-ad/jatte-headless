@@ -187,3 +187,30 @@ with patch("dotenv.load_dotenv") as load_dotenv:
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CHAT_ATTACHMENTS_SCANNER_BACKEND", result.stderr)
+
+    def test_attachment_storage_requires_a_signing_identity(self):
+        env = os.environ.copy()
+        env.update(PRODUCTION_ENV)
+        env.update(
+            {
+                "CHAT_ATTACHMENTS_PENDING_BUCKET": "pending",
+                "CHAT_ATTACHMENTS_CLEAN_BUCKET": "clean",
+                "CHAT_ATTACHMENTS_QUARANTINE_BUCKET": "quarantine",
+                "CHAT_ATTACHMENTS_SCANNER_BACKEND": "gcp_clamav",
+                "CHAT_ATTACHMENTS_SCANNER_URL": "https://scanner.example.test",
+                "CHAT_ATTACHMENTS_SCANNER_AUDIENCE": "https://scanner.example.test",
+                "CHAT_ATTACHMENTS_ALLOWED_TYPES": "text/plain",
+            }
+        )
+        env.pop("CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT", None)
+        env.pop("CHAT_ATTACHMENTS_SERVICE_ACCOUNT_JSON", None)
+        result = subprocess.run(
+            [sys.executable, "-c", "import jatte.settingsprod"],
+            cwd=BACKEND_DIR,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CHAT_ATTACHMENTS_SIGNING_SERVICE_ACCOUNT", result.stderr)
