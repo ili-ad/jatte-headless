@@ -14,6 +14,15 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
+resource "google_artifact_registry_repository" "scanner" {
+  location      = var.region
+  repository_id = "jatte-security"
+  description   = "Immutable JATTE security service images"
+  format        = "DOCKER"
+
+  depends_on = [google_project_service.apis]
+}
+
 resource "google_storage_bucket" "pending" {
   name                        = "${local.prefix}-pending-${var.project_id}"
   location                    = var.bucket_location
@@ -92,6 +101,24 @@ resource "google_storage_bucket_iam_member" "scanner_cvd" {
   member = "serviceAccount:${google_service_account.scanner.email}"
 }
 
+resource "google_storage_bucket_iam_member" "jatte_pending_creator" {
+  bucket = google_storage_bucket.pending.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${var.jatte_service_account}"
+}
+
+resource "google_storage_bucket_iam_member" "jatte_pending_viewer" {
+  bucket = google_storage_bucket.pending.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${var.jatte_service_account}"
+}
+
+resource "google_storage_bucket_iam_member" "jatte_clean_viewer" {
+  bucket = google_storage_bucket.clean.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${var.jatte_service_account}"
+}
+
 resource "google_cloud_run_v2_service" "scanner" {
   name     = "jatte-malware-scanner"
   location = var.region
@@ -106,28 +133,53 @@ resource "google_cloud_run_v2_service" "scanner" {
     containers {
       image = var.scanner_image
       resources {
-        limits = { cpu = "1", memory = "4Gi" }
-        cpu_idle = false
+        limits            = { cpu = "1", memory = "4Gi" }
+        cpu_idle          = false
         startup_cpu_boost = true
       }
       env {
-        name  = "PENDING_BUCKET"
-        value = google_storage_bucket.pending.name
-      }
-      env {
-        name  = "CLEAN_BUCKET"
-        value = google_storage_bucket.clean.name
-      }
-      env {
-        name  = "QUARANTINE_BUCKET"
-        value = google_storage_bucket.quarantine.name
-      }
-      env {
-        name  = "CVD_MIRROR_BUCKET"
-        value = google_storage_bucket.cvd_mirror.name
+        name = "CONFIG_JSON"
+        value = jsonencode({
+          buckets = [{
+            unscanned   = google_storage_bucket.pending.name
+            clean       = google_storage_bucket.clean.name
+            quarantined = google_storage_bucket.quarantine.name
+          }]
+          ClamCvdMirrorBucket   = google_storage_bucket.cvd_mirror.name
+          fileExclusionPatterns = []
+          ignoreZeroLengthFiles = false
+          quarantine = {
+            encryptedFiles         = true
+            fileExtensionAllowList = ["pdf", "txt", "png", "jpg", "jpeg", "docx", "xlsx"]
+            fileExtensionDenyList  = []
+          }
+        })
       }
     }
     max_instance_request_concurrency = 20
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_cloud_run_v2_job" "cvd_seed" {
+  name     = "jatte-clamav-cvd-seed"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.scanner.email
+      timeout         = "900s"
+      containers {
+        image   = var.scanner_image
+        command = ["bash"]
+        args    = ["updateCvdMirror.sh", google_storage_bucket.cvd_mirror.name]
+        resources {
+          limits = { cpu = "1", memory = "2Gi" }
+        }
+      }
+      max_retries = 1
+    }
   }
 
   depends_on = [google_project_service.apis]

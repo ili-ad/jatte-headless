@@ -59,3 +59,31 @@ scanning reference: private pending/clean/quarantine buckets, a private Cloud
 Run ClamAV service, dedicated least-privilege service identities, and a CVD
 mirror updated by Cloud Scheduler. JATTE uses IAM/ADC service-to-service
 authentication; no scanner password is stored in attachment metadata or code.
+
+The reproducible artifact in `deploy/gcp/attachment-scanner/image/` overlays
+the JATTE request adapter onto Google's scanner at commit
+`4e51c17b1db6adef5daaaf7caeff6cfe546f21bf`. It reads the exact requested GCS
+generation, verifies size and SHA-256 while streaming the bytes through the
+real ClamAV daemon, rejects stale or unparseable definitions, and copies only a
+recognized clean or malware-found result to the configured destination.
+Terraform accepts only an image reference pinned by an immutable `@sha256:`
+digest.
+
+## Commissioning audit (2026-08-09)
+
+The authorized target is project `notice-to-owner-01`, region `us-east1`.
+Terraform created the private pending, clean, quarantine, and CVD buckets plus
+the dedicated scanner/scheduler service accounts. The VM/JATTE candidate
+identity `517119819257-compute@developer.gserviceaccount.com` received only
+pending object-creator/viewer and clean object-viewer bucket roles; it has no
+quarantine or CVD access.
+
+Commissioning remains incomplete. `nto-server-01` has ADC for that VM identity,
+but its OAuth access scopes omit `cloud-platform`, so it cannot manage Cloud
+Run, Artifact Registry, Cloud Build, Scheduler, or project IAM. The local
+operator can manage the prerequisite resources but Cloud Build rejects build
+creation. No JATTE-headless checkout/service or `CHAT_ATTACHMENTS_*`
+configuration exists on the VM, including no legacy `CHAT_ATTACHMENTS_BUCKET`.
+Consequently no immutable image digest, Cloud Run service, CVD execution, or
+real sign/commit/download benign, EICAR, and unavailable-scanner receipt is yet
+available. PR7-09 remains open until those live checks succeed.

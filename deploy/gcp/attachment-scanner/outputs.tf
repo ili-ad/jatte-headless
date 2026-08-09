@@ -13,3 +13,15 @@ output "quarantine_bucket" {
 output "cvd_mirror_bucket" {
   value = google_storage_bucket.cvd_mirror.name
 }
+output "scanner_service_account" {
+  value = google_service_account.scanner.email
+}
+output "scheduler_service_account" {
+  value = google_service_account.scheduler.email
+}
+output "scheduler_job" {
+  value = google_cloud_scheduler_job.cvd_update.name
+}
+output "artifact_repository" {
+  value = google_artifact_registry_repository.scanner.name
+}
