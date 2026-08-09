@@ -2,14 +2,13 @@
 
 from unittest.mock import patch
 
-import jwt
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import caches
 from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from stream_server_django.chat.models import Channel, Message, Reaction, Room
+from jatte.tests.jwt_factory import make_test_token
 
 
 User = get_user_model()
@@ -76,11 +75,7 @@ class StreamRestContractTests(APITestCase):
 
     def token(self, user=None):
         actor = user or self.member
-        return jwt.encode(
-            {"sub": actor.supabase_uid, "email": actor.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        return make_test_token(actor.supabase_uid, email=actor.email)
 
     def auth(self, user=None):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token(user)}"}

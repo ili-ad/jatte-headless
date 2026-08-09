@@ -2,8 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-import jwt
-from django.conf import settings
+from jatte.tests.jwt_factory import make_test_token
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from rest_framework.test import APITestCase
@@ -50,11 +49,7 @@ class StreamAgentContractTests(APITestCase):
 
     def auth(self, user=None):
         actor = user or self.member
-        token = jwt.encode(
-            {"sub": actor.supabase_uid, "email": actor.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        token = make_test_token(actor.supabase_uid, email=actor.email)
         return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
     def test_status_contract_is_available_to_room_participant(self):

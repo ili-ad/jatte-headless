@@ -3,12 +3,14 @@ import { MiniStore } from './MiniStore';
 import { Channel } from './Channel';
 import { API, EVENTS } from './constants';
 import { apiFetch } from '../api';
+import { getChatCreds } from '../getChatCreds';
+import { setAccessToken } from '../authTokenStore';
 import { TokenManager } from './tokenManager';
 
 const randomId = () => Math.random().toString(36).slice(2);
 import type { Room, ChatEvents, AppSettings, User, Message } from './types';
 import type { AIState } from '@iliad/stream-chat-shim';
-import { AIStates } from '@iliad/stream-chat-shim';
+import { AIStates, setAuthToken } from '@iliad/stream-chat-shim';
 
 /* ------------------------------------------------------------------ */
 /* High-level client wrapper that Stream-UI talks to                  */
@@ -317,8 +319,12 @@ export class ChatClient {
     }
 
     async refreshToken() {
-        const newToken = await this.tokenManager.refreshToken(API.REFRESH_TOKEN);
+        const { userToken: newToken } = await getChatCreds({ forceRefresh: true });
         this.jwt = newToken;
+        this.authToken = newToken;
+        await this.tokenManager.setTokenOrProvider(newToken);
+        setAccessToken(newToken);
+        setAuthToken(newToken);
         return newToken;
     }
 

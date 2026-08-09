@@ -12,6 +12,8 @@ Production uses `jatte.settingsprod`. Startup requires all of the following:
 
 - `DJANGO_SECRET_KEY`
 - `SUPABASE_JWT_SECRET`
+- `SUPABASE_JWT_ISSUER` (or the trusted Supabase project URL used to derive it)
+- `SUPABASE_JWT_AUDIENCE` (defaults explicitly to `authenticated`)
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CORS_ALLOWED_ORIGINS`
 - `DJANGO_WS_ALLOWED_ORIGINS`
@@ -20,6 +22,13 @@ The origin and host variables are comma-separated allowlists; wildcard values
 are rejected. Production TLS is expected to terminate at a proxy that sets
 `X-Forwarded-Proto: https`; this is used only because production settings
 explicitly configure Django to trust that proxy header.
+
+Supabase Auth is the sole issuer and refresher of browser user-session access
+tokens. JATTE requires signature validation plus `sub`, `exp`, `iat`, `iss`,
+and `aud` on both HTTP and WebSocket paths. `/api/token/` and the temporary
+refresh aliases relay the already-validated access token without minting,
+re-signing, or extending it. Actual refresh-token rotation stays inside the
+Supabase browser client; Supabase refresh tokens are never sent to JATTE.
 
 ## WebSocket boundary
 

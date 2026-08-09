@@ -1,8 +1,7 @@
 from datetime import timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
-import jwt
-from django.conf import settings
+from jatte.tests.jwt_factory import make_test_token
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
@@ -49,11 +48,7 @@ class StateReminderAliasAuthorizationTests(APITestCase):
         )
 
     def _headers(self, user):
-        token = jwt.encode(
-            {"sub": user.username, "email": user.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        token = make_test_token(user.username, email=user.email)
         return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
     def _reminder_payload(self, **updates):

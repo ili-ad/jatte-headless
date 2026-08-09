@@ -1,7 +1,6 @@
 """Tests for GET/POST /user-agent/ authentication requirements."""
 
-import jwt
-from django.conf import settings
+from jatte.tests.jwt_factory import make_test_token
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -17,8 +16,7 @@ class UserAgentAuthTests(APITestCase):
         self.url = reverse("user-agent")
 
     def _make_token(self, sub: str = "user-1", email: str | None = None) -> str:
-        payload = {"sub": sub, "email": email or f"{sub}@example.com"}
-        return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+        return make_test_token(sub, email=email)
 
     def test_get_requires_authentication(self):
         response = self.client.get(self.url)

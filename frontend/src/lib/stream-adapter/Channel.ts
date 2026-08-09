@@ -1154,7 +1154,7 @@ export class Channel {
             console.log('[agent/ws] opening socket', {
                 cid: this.cid,
                 uuid: this.uuid,
-                url: wsUrl,
+                endpoint: `${WS_BASE}/ws/${this.cid}/`,
             });
         }
 

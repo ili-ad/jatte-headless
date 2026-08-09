@@ -1,34 +1,19 @@
-import jwt
-from jwt.exceptions import PyJWTError
 from urllib.parse import parse_qs
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.auth import get_user_model
-from django.conf import settings
+from rest_framework.exceptions import AuthenticationFailed
 
-User = get_user_model()
+from stream_server_django.accounts_supabase.authentication import (
+    authenticate_supabase_token,
+)
 
 @database_sync_to_async
 def get_user(token: str):
     try:
-        decoded = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-            leeway=30,
-        )
-        uid = decoded.get("sub")
-        email = decoded.get("email")
-        if uid:
-            user, _ = User.objects.get_or_create(
-                username=uid, defaults={"email": email, "supabase_uid": uid}
-            )
-            return user
-    except PyJWTError:
-        pass
-    return AnonymousUser()
+        return authenticate_supabase_token(token)
+    except AuthenticationFailed:
+        return AnonymousUser()
 
 
 class SupabaseJWTAuthMiddleware(BaseMiddleware):

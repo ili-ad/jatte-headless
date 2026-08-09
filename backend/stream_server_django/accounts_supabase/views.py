@@ -4,9 +4,7 @@ from typing import Any, Mapping
 import logging
 import uuid
 
-import jwt
 from django.apps import apps
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import generics, serializers, status
 from rest_framework.permissions import IsAuthenticated
@@ -287,17 +285,16 @@ class CurrentUserView(APIView):
 
 
 class RefreshTokenView(APIView):
+    """Compatibility relay that never extends or replaces a Supabase token."""
+
     authentication_classes = get_chat_authentication_classes()
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        token = jwt.encode(
-            {"sub": _get_user_identifier(request.user) or str(getattr(request.user, "id", "")),
-            "email": getattr(request.user, "email", "") or ""},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
-        return Response({"token": token})
+        response = Response({"token": request.auth})
+        response["Cache-Control"] = "no-store"
+        response["Pragma"] = "no-cache"
+        return response
 
 
 class DisconnectedView(APIView):
@@ -320,4 +317,3 @@ class InitializedView(APIView):
     def get(self, request):
         val = request.session.get("initialized", False)
         return Response({"initialized": bool(val)})
-

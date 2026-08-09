@@ -46,6 +46,12 @@ SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
 SUPABASE_JWKS_URL = (
     f"{SUPABASE_URL.rstrip('/')}/auth/v1/keys" if SUPABASE_URL else None
 )
+SUPABASE_JWT_ISSUER = os.environ.get("SUPABASE_JWT_ISSUER") or (
+    f"{SUPABASE_URL.rstrip('/')}/auth/v1"
+    if SUPABASE_URL
+    else "http://localhost:54321/auth/v1"
+)
+SUPABASE_JWT_AUDIENCE = os.environ.get("SUPABASE_JWT_AUDIENCE", "authenticated")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 

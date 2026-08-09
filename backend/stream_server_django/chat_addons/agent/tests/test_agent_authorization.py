@@ -1,7 +1,6 @@
 from unittest.mock import Mock, patch
 
-import jwt
-from django.conf import settings
+from jatte.tests.jwt_factory import make_test_token
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -48,11 +47,7 @@ class AgentAuthorizationTests(APITestCase):
         RoomAgentFlag.objects.create(room=self.room, agent_enabled=True)
 
     def token(self, user) -> str:
-        return jwt.encode(
-            {"sub": user.supabase_uid, "email": user.email},
-            settings.SUPABASE_JWT_SECRET,
-            algorithm="HS256",
-        )
+        return make_test_token(user.supabase_uid, email=user.email)
 
     def auth(self, user) -> dict[str, str]:
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token(user)}"}
