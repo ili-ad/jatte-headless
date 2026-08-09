@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
-from datetime import timedelta
 import os
 
 from dotenv import load_dotenv
@@ -23,7 +22,13 @@ import dj_database_url
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # this is already there
-load_dotenv(BASE_DIR / ".env")
+if os.environ.get("JATTE_LOAD_DOTENV", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}:
+    load_dotenv(BASE_DIR / ".env")
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
