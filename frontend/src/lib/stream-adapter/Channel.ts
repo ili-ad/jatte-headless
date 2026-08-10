@@ -7,7 +7,15 @@ import { apiFetch } from '../api';
 import { AuthError } from '../errors';
 import { getAccessToken } from '../authTokenStore';
 import { buildAttachmentManager } from './composer/attachments';
-import { WS_BASE } from '@iliad/stream-chat-shim';
+import { createRealtimeClient, type RealtimeClient, type RealtimeDiagnostic } from '@iliad/realtime';
+import {
+    createJatteRealtimeSocket,
+    createJatteCredentialProvider,
+    decodeRealtimeEvent,
+    shouldReconnectJatte,
+    shouldRefreshJatteCredential,
+    type JatteRealtimeEvent,
+} from './jatteRealtime';
 import {
     clearAgentTypingTimer,
     normalizeMessagesWithDisplayName,
@@ -43,7 +51,7 @@ export class Channel {
 
     private roomUuid!: string;
 
-    private socket?: WebSocket;
+    private realtimeClient?: RealtimeClient<JatteRealtimeEvent>;
     private emitter = mitt<ChatEvents>();
     /** Track optimistic messages so we can reconcile server echoes */
     private pendingMessages = new Map<string, true>();
@@ -972,349 +980,199 @@ export class Channel {
     /** Fetch initial state without opening a websocket */
     async query() {
         try {
-            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
-                headers: { Authorization: `Bearer ${this.client['jwt']}` },
-            });
-
-            if (res.ok) {
-                const payload: any = await res.json().catch(() => ({}));
-                const rawList: Message[] = Array.isArray(payload)
-                    ? payload
-                    : (payload?.messages ?? payload?.results ?? []);
-
-                const nextCursor = Array.isArray(payload) ? null : (payload?.next ?? null);
-
-                // Ensure chronological order (oldest → newest)
-                const first = [...rawList].sort((a: any, b: any) => {
-                    const ta = new Date(a?.created_at ?? 0).getTime();
-                    const tb = new Date(b?.created_at ?? 0).getTime();
-                    return ta - tb;
-                });
-
-                const me = this.client.user?.id;
-
-                const patch: any = {
-                    messages: first,
-                    latestMessages: first,
-                    messagePagination: {
-                        ...this._state.messagePagination,
-                        hasPrev: Boolean(nextCursor),
-                        hasNext: false,
-                    },
-                };
-
-                if (me) {
-                    const last = first.length ? first[first.length - 1] : undefined;
-                    patch.read = {
-                        ...this._state.read,
-                        [me]: {
-                            last_read: new Date(),
-                            last_read_message_id: last?.id,
-                            unread_messages: 0,
-                        },
-                    };
-                }
-
-                this.bump(patch);
-            }
-
-            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
-                headers: { Authorization: `Bearer ${this.client['jwt']}` },
-            });
-
-            if (memRes.ok) {
-                const payload: any = await memRes.json().catch(() => ({}));
-                const list: any[] = Array.isArray(payload)
-                    ? payload
-                    : (payload?.members ?? payload?.results ?? []);
-
-                const map: Record<string, { user: { id: string } }> = {};
-                for (const m of list) {
-                    const id =
-                        (m as any).id ??
-                        (m as any).user_id ??
-                        (m as any).user?.id;
-
-                    if (id) map[String(id)] = { user: { id: String(id) } };
-                }
-
-                this.bump({ members: map });
-            }
+            await this.hydrateAuthoritativeState({ strict: false, updateRead: true });
         } catch (err) {
             if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
                 console.warn('[Channel.query] failed to hydrate history', err);
             }
         }
-
         this.initialized = true;
     }
 
+    private async hydrateAuthoritativeState(options: {
+        strict: boolean;
+        updateRead: boolean;
+    }): Promise<void> {
+        const headers = { Authorization: `Bearer ${this.client.userToken ?? ''}` };
+        const [messagesResult, membersResult] = await Promise.allSettled([
+            apiFetch(`${API.ROOMS}${this.uuid}/messages/`, { headers }),
+            apiFetch(`${API.ROOMS}${this.uuid}/members/`, { headers }),
+        ]);
+        if (options.strict && (messagesResult.status === 'rejected' || membersResult.status === 'rejected')) {
+            throw new Error('authoritative channel resync failed');
+        }
+        const messagesResponse = messagesResult.status === 'fulfilled' ? messagesResult.value : undefined;
+        const membersResponse = membersResult.status === 'fulfilled' ? membersResult.value : undefined;
 
-    async watch() {
-        if (this.socket) return;
-        this.client.activeChannels[this.cid] = this;
+        if (options.strict && (!messagesResponse?.ok || !membersResponse?.ok)) {
+            throw new Error('authoritative channel resync failed');
+        }
 
-        /* initial history + read row */
-        try {
-            const res = await apiFetch(`${API.ROOMS}${this.uuid}/messages/`, {
-                headers: { Authorization: `Bearer ${this.client['jwt']}` },
-            });
+        let messagesPayload: any;
+        let membersPayload: any;
+        if (messagesResponse?.ok) {
+            try {
+                messagesPayload = await messagesResponse.json();
+            } catch {
+                if (options.strict) throw new Error('authoritative channel resync returned malformed JSON');
+            }
+        }
+        if (membersResponse?.ok) {
+            try {
+                membersPayload = await membersResponse.json();
+            } catch {
+                if (options.strict) throw new Error('authoritative channel resync returned malformed JSON');
+            }
+        }
 
-            if (res.ok) {
-                const payload: any = await res.json().catch(() => ({}));
-                const rawList: Message[] = Array.isArray(payload)
-                    ? payload
-                    : (payload?.messages ?? payload?.results ?? []);
+        const rawMessages = Array.isArray(messagesPayload)
+            ? messagesPayload
+            : messagesPayload?.messages ?? messagesPayload?.results;
+        const rawMembers = Array.isArray(membersPayload)
+            ? membersPayload
+            : membersPayload?.members ?? membersPayload?.results;
 
-                const nextCursor = Array.isArray(payload) ? null : (payload?.next ?? null);
+        if (options.strict && (!Array.isArray(rawMessages) || !Array.isArray(rawMembers))) {
+            if (options.strict) throw new Error('authoritative channel resync returned invalid state');
+        }
 
-                // Ensure chronological order (oldest → newest)
-                const first = [...rawList].sort((a: any, b: any) => {
-                    const ta = new Date(a?.created_at ?? 0).getTime();
-                    const tb = new Date(b?.created_at ?? 0).getTime();
-                    return ta - tb;
-                });
-
-                const me = this.client.user?.id;
-                const last = first.length ? first[first.length - 1] : undefined;
-
-                const patch: any = {
-                    messages: first,
-                    latestMessages: first, // keep mirror
-                    messagePagination: {
-                        ...this._state.messagePagination,
-                        hasPrev: Boolean(nextCursor),
-                        hasNext: false,
+        const patch: any = {};
+        if (Array.isArray(rawMessages)) {
+            const messages = [...rawMessages].sort((a: any, b: any) =>
+                new Date(a?.created_at ?? 0).getTime() - new Date(b?.created_at ?? 0).getTime(),
+            ) as Message[];
+            const nextCursor = Array.isArray(messagesPayload) ? null : messagesPayload?.next ?? null;
+            patch.messages = messages;
+            patch.latestMessages = messages;
+            patch.messagePagination = {
+                ...this._state.messagePagination,
+                hasPrev: Boolean(nextCursor),
+                hasNext: false,
+            };
+            const me = this.client.user?.id;
+            if (options.updateRead && me) {
+                patch.read = {
+                    ...this._state.read,
+                    [me]: {
+                        last_read: new Date(),
+                        last_read_message_id: messages.at(-1)?.id,
+                        unread_messages: 0,
                     },
                 };
-
-                // Only set read state if we know who "me" is; do not bail out of watch().
-                if (me) {
-                    patch.read = {
-                        ...this._state.read,
-                        [me]: {
-                            last_read: new Date(),
-                            last_read_message_id: last?.id,
-                            unread_messages: 0,
-                        },
-                    };
-                }
-
-                this.bump(patch);
-            }
-
-            const memRes = await apiFetch(`${API.ROOMS}${this.uuid}/members/`, {
-                headers: { Authorization: `Bearer ${this.client['jwt']}` },
-            });
-
-            if (memRes.ok) {
-                const payload: any = await memRes.json().catch(() => ({}));
-                const list: any[] = Array.isArray(payload)
-                    ? payload
-                    : (payload?.members ?? payload?.results ?? []);
-
-                const map: Record<string, { user: { id: string } }> = {};
-                for (const m of list) {
-                    const id =
-                        (m as any).id ??
-                        (m as any).user_id ??
-                        (m as any).user?.id;
-
-                    if (id) map[String(id)] = { user: { id: String(id) } };
-                }
-
-                this.bump({ members: map });
-            }
-        } catch (err) {
-            if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
-                console.warn('[Channel.watch] failed to hydrate history', err);
             }
         }
-
-
-        this.initialized = true;
-
-        /* web-socket for live updates */
-        // const wsRoot = process.env.NEXT_PUBLIC_WS_URL;
-        // if (!wsRoot) {
-        //     throw new Error('NEXT_PUBLIC_WS_URL is not set');
-        // }
-        // this.socket = new WebSocket(
-        //     `${wsRoot}/ws/${this.cid}/?token=${this.client['jwt']}`,
-        // );
-
-        const wsUrl = `${WS_BASE}/ws/${this.cid}/?token=${encodeURIComponent(
-            this.client['jwt'] ?? '',
-        )}`;
-
-        if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.log('[agent/ws] opening socket', {
-                cid: this.cid,
-                uuid: this.uuid,
-                endpoint: `${WS_BASE}/ws/${this.cid}/`,
-            });
-        }
-
-        this.socket = new WebSocket(wsUrl);
-
-        this.socket.onopen = () => {
-        const frame = {
-            type: 'channel.watch',
-            cid: this.cid,
-            // you can add extra metadata here if the consumer ever needs it
-            // data: { user_id: this.client.user?.id },
-        };
-
-        if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.log('[agent/ws] open', {
-            cid: this.cid,
-            uuid: this.uuid,
-            });
-            // eslint-disable-next-line no-console
-            console.log('[agent/ws] sending watch', frame);
-        }
-
-        try {
-            this.socket?.send(JSON.stringify(frame));
-        } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error('[agent/ws] failed to send watch', err);
-        }
-        };
-
-
-        this.socket.onerror = (event) => {
-            if (process.env.NODE_ENV !== 'production') {
-                const isErrorEvent = typeof ErrorEvent !== 'undefined' && event instanceof ErrorEvent;
-                if (isErrorEvent) {
-                    // eslint-disable-next-line no-console
-                    console.error('[agent/ws] error', {
-                        cid: this.cid,
-                        uuid: this.uuid,
-                        message: event.message,
-                    });
+        if (Array.isArray(rawMembers)) {
+            const members: Record<string, { user: { id: string } }> = {};
+            for (const member of rawMembers) {
+                const id = member?.id ?? member?.user_id ?? member?.user?.id;
+                if (id !== undefined && id !== null) {
+                    members[String(id)] = { user: { id: String(id) } };
                 }
             }
-        };
-
-        this.socket.onclose = (event) => {
-            if (process.env.NODE_ENV !== 'production') {
-                // eslint-disable-next-line no-console
-                console.log('[agent/ws] close', {
-                    cid: this.cid,
-                    uuid: this.uuid,
-                    code: event.code,
-                    reason: event.reason,
-                    wasClean: event.wasClean,
-                });
-            }
-        };
-
-        this.socket.onmessage = (ev) => {
-            try {
-                const p = JSON.parse(ev.data);
-
-                if (process.env.NODE_ENV !== 'production') {
-                    // eslint-disable-next-line no-console
-                    console.log('[agent/ws] raw event', p);
-                }
-
-                const { type } = p as { type?: string };
-
-                switch (type) {
-                    case 'message':
-                    case 'message.new':
-                    case 'message.updated': {
-                        const msg = (p.message ?? p.data ?? (p as any).message ?? p.data?.message) as Message & {
-                            client_generated_id?: string;
-                        };
-
-                        if (!msg) {
-                            if (process.env.NODE_ENV !== 'production') {
-                                // eslint-disable-next-line no-console
-                                console.warn('[agent/ws] message event without payload', p);
-                            }
-                            break;
-                        }
-
-                        if (process.env.NODE_ENV !== 'production') {
-                            // eslint-disable-next-line no-console
-                            console.log('[agent/ws] message event', {
-                                cid: this.cid,
-                                uuid: this.uuid,
-                                id: msg.id,
-                                user_id: (msg as any).user_id,
-                                client_generated_id: (msg as any).client_generated_id,
-                                ai_generated: (msg as any).ai_generated,
-                            });
-                        }
-
-                        this.integrateIncomingMessage(
-                            { ...msg, status: (msg as any).status ?? 'received' },
-                            (msg as any).client_generated_id,
-                        );
-                        this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
-                        break;
-                    }
-
-                    case 'typing.start':
-                    case 'typing.stop': {
-                        if (process.env.NODE_ENV !== 'production') {
-                            // eslint-disable-next-line no-console
-                            console.log('[agent/ws] typing event', {
-                                cid: this.cid,
-                                uuid: this.uuid,
-                                type,
-                                user_id: (p as any).user_id,
-                            });
-                        }
-
-                        this.applyTypingEvent({ type: type as any, user_id: (p as any).user_id } as any);
-                        this.emitter.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
-                        this.client.emit(type as any, { type, cid: this.cid, user_id: (p as any).user_id } as any);
-                        break;
-                    }
-
-                    case 'ai_indicator.update': {
-                        const aiState = this.client.normalizeAIState((p as any).ai_state);
-                        this.client.setAIState(aiState, this.cid);
-                        break;
-                    }
-
-                    case 'ai_indicator.clear': {
-                        this.client.clearAIState(this.cid);
-                        break;
-                    }
-
-                    // Backend emits read events as type: "message.read" with
-                    // { cid, user: { id, channel_last_read_at, channel_unread_count, ... } }.
-                    case 'message.read': {
-                        this.handleMessageReadEvent(p as any);
-                        break;
-                    }
-
-                    default: {
-                        if (process.env.NODE_ENV !== 'production') {
-                            // eslint-disable-next-line no-console
-                            console.log('[agent/ws] unhandled event type', {
-                                cid: this.cid,
-                                uuid: this.uuid,
-                                event: p,
-                            });
-                        }
-                    }
-                }
-            } catch (err) {
-                // eslint-disable-next-line no-console
-                console.error('[agent/ws] bad payload', ev.data, err);
-            }
-        };
+            patch.members = members;
+        }
+        if (Object.keys(patch).length > 0) this.bump(patch);
     }
 
+    async resyncAuthoritativeState(): Promise<void> {
+        await this.hydrateAuthoritativeState({ strict: true, updateRead: false });
+    }
+
+    async watch() {
+        if (this.realtimeClient) return;
+        this.client.activeChannels[this.cid] = this;
+        await this.query();
+
+        const realtime = createRealtimeClient<JatteRealtimeEvent>({
+            credentialProvider: createJatteCredentialProvider(this.client),
+            createSocket: ({ credential }) => createJatteRealtimeSocket({
+                credential,
+                cid: this.cid,
+            }),
+            decodeEvent: decodeRealtimeEvent,
+            resync: () => this.resyncAuthoritativeState(),
+            shouldReconnect: shouldReconnectJatte,
+            shouldRefreshCredential: shouldRefreshJatteCredential,
+            reconnect: {
+                maxAttempts: 5,
+                initialDelayMs: 400,
+                maximumDelayMs: 8000,
+                multiplier: 2,
+                jitterRatio: 0,
+            },
+        });
+        this.realtimeClient = realtime;
+        realtime.subscribe(event => this.applyRealtimeEvent(event));
+        realtime.subscribeDiagnostics(diagnostic => this.handleRealtimeDiagnostic(diagnostic));
+        await realtime.start();
+    }
+
+    stopRealtime() {
+        this.realtimeClient?.stop();
+        this.realtimeClient = undefined;
+    }
+
+    realtimeState() {
+        return this.realtimeClient?.state() ?? 'disconnected';
+    }
+
+    private handleRealtimeDiagnostic(diagnostic: RealtimeDiagnostic) {
+        if (process.env.NODE_ENV === 'production') return;
+        if (diagnostic.type === 'socket_error' || diagnostic.type === 'resync_failed') {
+            console.warn('[agent/ws] lifecycle diagnostic', {
+                cid: this.cid,
+                type: diagnostic.type,
+                ...('generation' in diagnostic ? { generation: diagnostic.generation } : {}),
+                ...('attempt' in diagnostic ? { attempt: diagnostic.attempt } : {}),
+            });
+        }
+    }
+
+    private applyRealtimeEvent(event: JatteRealtimeEvent) {
+        const p = event as any;
+        const type = p.type;
+        switch (type) {
+            case 'message':
+            case 'message.new':
+            case 'message.updated': {
+                const msg = (p.message ?? p.data?.message ?? p.data) as Message & {
+                    client_generated_id?: string;
+                };
+                if (!msg || typeof msg !== 'object') return;
+                this.integrateIncomingMessage(
+                    { ...msg, status: (msg as any).status ?? 'received' },
+                    msg.client_generated_id,
+                );
+                this.emitter.emit(EVENTS.MESSAGE_NEW, { type: EVENTS.MESSAGE_NEW, message: msg });
+                return;
+            }
+            case 'typing.start':
+            case 'typing.stop': {
+                this.applyTypingEvent({ type, user_id: p.user_id } as any);
+                const payload = { type, cid: this.cid, user_id: p.user_id } as any;
+                this.emitter.emit(type as any, payload);
+                this.client.emit(type as any, payload);
+                return;
+            }
+            case 'ai_indicator.update':
+                this.client.setAIState(this.client.normalizeAIState(p.ai_state), this.cid);
+                return;
+            case 'ai_indicator.clear':
+                this.client.clearAIState(this.cid);
+                return;
+            case 'message.read':
+                this.handleMessageReadEvent(p);
+                return;
+            default:
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log('[agent/ws] unhandled event type', {
+                        cid: this.cid,
+                        uuid: this.uuid,
+                        type,
+                    });
+                }
+        }
+    }
     private handleMessageReadEvent(event: {
         cid?: string;
         user?: {

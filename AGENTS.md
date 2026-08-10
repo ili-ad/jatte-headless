@@ -118,11 +118,11 @@ writes or updates a markdown file in `audit/` rather than guess-editing code.
 
 - For chat/agent UI work, prefer:
   1. New components / overrides in `frontend/`.
-  2. Only if necessary, small, reusable adaptations in `stream-chat-shim`.
+  2. Only if necessary, small, reusable adaptations in `libs/chat-shim`.
 
-Generic Stream-derived UI changes begin in
-`ili-ad/iliad-stream-chat-react`; Jatte advances only an exact reviewed
-submodule commit. Jatte-specific adapter and application behavior stays here.
+Generic Stream-derived changes are made in `ili-ad/iliad-stream-chat-react`;
+Jatte advances the reviewed submodule pin. Jatte-specific adapter and
+application behavior stays here.
 
 
 ---

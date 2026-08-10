@@ -1,0 +1,46 @@
+name: Realtime convergence
+
+on:
+  pull_request:
+    paths:
+      - .gitmodules
+      - libs/iliad-realtime
+      - frontend/package.json
+      - pnpm-lock.yaml
+      - frontend/src/lib/stream-adapter/**
+      - frontend/src/lib/authTokenStore.ts
+      - frontend/src/config/endpoints.ts
+      - scripts/check-realtime-authority.mjs
+      - .github/workflows/realtime-convergence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  convergence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify shared and consumer authorities
+        run: |
+          pnpm --dir libs/iliad-realtime check
+          node scripts/check-realtime-authority.mjs
+          node scripts/check-stream-fork-authority.mjs
+      - name: Focused Jatte realtime tests
+        run: >-
+          pnpm --filter @jatte-headless/chat-kit exec vitest run
+          src/config/__tests__/endpoints.test.ts
+          src/lib/stream-adapter/__tests__/jatteRealtime.test.ts
+          src/lib/stream-adapter/__tests__/channelRealtimeEvents.test.ts
+          src/lib/stream-adapter/__tests__/disconnectRealtime.test.ts
+          __tests__/adapter/tokenManager.test.ts
+      - run: git diff --check HEAD^

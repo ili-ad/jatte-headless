@@ -403,6 +403,9 @@ export class ChatClient {
 
     /** Tear-down helper mirroring Stream’s client.disconnectUser */
     disconnectUser() {
+        for (const channel of Object.values(this.activeChannels)) {
+            channel?.stopRealtime?.();
+        }
         const token = this.jwt;
         if (token) {
             apiFetch(API.SESSION, {
