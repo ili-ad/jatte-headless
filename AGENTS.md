@@ -20,11 +20,9 @@ At the root you’ll see three main areas:
 Inside `libs/`:
 
 - `libs/chat-shim/` – Thin compatibility shim around our chat client state.
-- `libs/stream-chat-shim/` – Our adapter that makes Stream Chat React talk to
-  the Django backend instead of Stream’s hosted service.
-- `libs/stream-ui/` – **Upstream Stream UI library**, brought into the repo as
-  a vendor dependency.  
-  **This directory is treated as read-only. Do not modify its source.**
+- `libs/stream-chat-shim/` – The read-only `@iliad/stream-chat-shim` submodule,
+  pinned to the Iliad downstream Stream fork. Its GetStream ancestry and
+  upgrade process are documented in that repository's `UPSTREAM.md`.
 - `libs/stream-value-shim/` – Small helper shim for value types.
 
 ---
@@ -35,7 +33,7 @@ Inside `libs/`:
 
 These directories must not be edited by agents:
 
-- `libs/stream-ui/**`
+- `libs/stream-chat-shim/**`
 - `node_modules/**` (anywhere)
 - Any generated bundles / `dist` output.
 
@@ -59,12 +57,10 @@ propose a workaround in our own code rather than editing vendor code.
 
 **Writable but “use sparingly” / generic:**
 
-- `libs/stream-chat-shim/**`
 - `libs/chat-shim/**`
 
-These shims are intended to be **reusable across multiple projects**. You *may*
-modify them when necessary (e.g. to expose a new hook/API or support a real
-Stream feature we want to mirror), but:
+This shim is intended to be **reusable across multiple projects**. You *may*
+modify it when necessary, but:
 
 - Prefer solving project-specific behavior in `frontend/` first.
 - When you change a shim, think in terms of *generic adapter behavior*, not
@@ -77,7 +73,7 @@ Stream feature we want to mirror), but:
 
 When working on chat/agent features (e.g. streaming, AI indicators, RAG UI):
 
-1. **Do not** edit `libs/stream-ui/src/**`.  
+1. **Do not** edit `libs/stream-chat-shim/src/**` in Jatte.
    Instead:
    - Use the customization hooks exposed by Stream UI (Message renderer,
      MessageList overrides, etc.) **via** `stream-chat-shim` and `frontend`.
@@ -116,17 +112,17 @@ writes or updates a markdown file in `audit/` rather than guess-editing code.
 ## 5. Quick summary for agents
 
 - ✅ **Edit freely:** `frontend/**`, `backend/**`, audit docs, tests.  
-- ⚠️ **Edit sparingly (prefer generic changes):** `libs/chat-shim/**`,
-  `libs/stream-chat-shim/**`.  
-- ⛔ **Do NOT edit:** `libs/stream-ui/**`, `node_modules/**`, generated
+- ⚠️ **Edit sparingly (prefer generic changes):** `libs/chat-shim/**`.
+- ⛔ **Do NOT edit:** `libs/stream-chat-shim/**`, `node_modules/**`, generated
   bundles.
 
 - For chat/agent UI work, prefer:
   1. New components / overrides in `frontend/`.
   2. Only if necessary, small, reusable adaptations in `stream-chat-shim`.
 
-If a change would require touching `stream-ui`, stop and write down your
-findings in `audit/` instead; we’ll design a shim-side workaround.
+Generic Stream-derived UI changes begin in
+`ili-ad/iliad-stream-chat-react`; Jatte advances only an exact reviewed
+submodule commit. Jatte-specific adapter and application behavior stays here.
 
 
 ---

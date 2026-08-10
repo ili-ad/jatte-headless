@@ -1,0 +1,43 @@
+name: Stream fork authority
+
+on:
+  pull_request:
+    paths:
+      - .gitmodules
+      - libs/stream-chat-shim
+      - frontend/package.json
+      - frontend/tsconfig.json
+      - frontend/types/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - scripts/check-stream-fork-authority.mjs
+      - .github/workflows/stream-fork-authority.yml
+  push:
+    branches: [main]
+    paths:
+      - .gitmodules
+      - libs/stream-chat-shim
+      - frontend/package.json
+      - frontend/tsconfig.json
+      - frontend/types/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - scripts/check-stream-fork-authority.mjs
+      - .github/workflows/stream-fork-authority.yml
+
+permissions:
+  contents: read
+
+jobs:
+  authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify downstream authority and workspace declaration
+        run: |
+          node scripts/check-stream-fork-authority.mjs
+          node -e "const p=require('./libs/stream-chat-shim/package.json'); if(p.name!=='@iliad/stream-chat-shim') process.exit(1)"
+      - name: Check patch hygiene
+        run: git diff --check HEAD^
