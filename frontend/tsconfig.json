@@ -28,11 +28,9 @@
       /* make the shim visible */
       "@iliad/stream-chat-shim": ["../libs/stream-chat-shim/src"],
       "@iliad/stream-chat-shim/*": ["../libs/stream-chat-shim/src/*"],
-            
-      "@iliad/stream-ui": ["./types/stream-ui-shim"],
       "stream-chat": ["../libs/chat-shim"],
     },
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "../libs/stream-ui"]
+  "exclude": ["node_modules"]
 }

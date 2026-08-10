@@ -109,9 +109,6 @@ importers:
 
   frontend:
     dependencies:
-      '@iliad/stream-ui':
-        specifier: file:../libs/stream-ui
-        version: stream-ui@file:libs/stream-ui
       '@supabase/supabase-js':
         specifier: 2.50.0
         version: 2.50.0
@@ -4344,9 +4341,6 @@ packages:
   stream-chat@9.8.0:
     resolution: {integrity: sha512-iKFVFOKWuW2/GTWBOps9YWZoQBlXdJ05FiOKXI/AnCMCGzOpmvEyaoCtsktvdeMaetmZojVPbw/5jomP36Qg0Q==}
     engines: {node: '>=18'}
-
-  stream-ui@file:libs/stream-ui:
-    resolution: {directory: libs/stream-ui, type: directory}
 
   string-length@4.0.2:
     resolution: {integrity: sha512-+l6rNN5fYHNhZZy41RXsYptCjA2Igmq4EG7kZAYFQI1E1VTXarr6ZPXBg6eq7Y6eK4FEhY6AJlyuFIb/v/S0VQ==}
@@ -9970,8 +9964,6 @@ snapshots:
       - debug
       - supports-color
       - utf-8-validate
-
-  stream-ui@file:libs/stream-ui: {}
 
   string-length@4.0.2:
     dependencies:

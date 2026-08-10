@@ -7,7 +7,7 @@ frontend/src/lib/stream-chat-react-bridge.ts
 libs/stream-chat-shim/src/channel-utils.ts
 libs/stream-chat-shim/src/Avatar.tsx
 node_modules/stream-chat-react/dist/components/Attachment/FileAttachment.js
-libs/stream-ui/src/@types/stream-chat-custom-data.d.ts
+libs/stream-chat-shim/src/@types/stream-chat-custom-data.d.ts
 frontend/src/lib/stream-chat-react-bridge.ts
 libs/stream-chat-shim/src/Card.tsx
 frontend/src/lib/stream-chat-react-bridge.ts

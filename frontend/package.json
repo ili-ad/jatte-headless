@@ -15,7 +15,6 @@
     "ci": "turbo run build test --filter='...[HEAD^]'"
   },
   "dependencies": {
-    "@iliad/stream-ui": "file:../libs/stream-ui",
     "@supabase/supabase-js": "2.50.0",
     "mitt": "^3.0.1",
     "mml-react": "0.4.7",
