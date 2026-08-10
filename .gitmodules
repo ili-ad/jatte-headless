@@ -1,3 +1,6 @@
 [submodule "libs/stream-chat-shim"]
 	path = libs/stream-chat-shim
 	url = https://github.com/ili-ad/iliad-stream-chat-react.git
+[submodule "libs/iliad-realtime"]
+	path = libs/iliad-realtime
+	url = https://github.com/ili-ad/iliad-realtime.git

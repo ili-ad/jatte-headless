@@ -4,6 +4,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
+  transpilePackages: ['@iliad/realtime'],
 
   webpack(cfg) {
     cfg.resolve ??= {};
